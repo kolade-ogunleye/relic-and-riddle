@@ -258,6 +258,7 @@ def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule(tmp
 
 
 # ------------------------------------------------------------------ ruling 4 on the cards: the lone "RINGS"
+@pytest.mark.usefixtures("card_last_guard")   # the myth card's own refusal, past the field gate (lane F cycle 2)
 def test_no_one_word_middle_row_in_a_card_heading():
     """Ruling 4 (lander ruling, round 8: middle rows too): the 9:16 chapter act 4 set ARCHAEOLOGICAL / EVIDENCE / AND
     REFUTED CLAIMS and the 16:9 struck myth EXTRATERRESTRIALS / CONSTRUCTED / THE CIRCULAR / RINGS (the M2 long-word

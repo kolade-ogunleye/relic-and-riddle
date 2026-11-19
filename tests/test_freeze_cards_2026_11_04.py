@@ -17,6 +17,9 @@ from src.safe_zones import graphics_box
 
 import tests.test_design_cards_2026_11_03 as T
 
+# the myth card's own guards, past the field gate (conftest.card_last_guard; lane F cycle 2)
+pytestmark = pytest.mark.usefixtures("card_last_guard")
+
 SHEET = copy.deepcopy(T.SHEET)      # this module's own sheet: the shared one is never extended
 SHEET["facts"] += [f for f in (
     T.fact("fz_wall", "Erosion of the tilted quartzite layers left the outer walls standing as hard ridges",
@@ -523,8 +526,8 @@ def test_h4_dissolve(photos):
     for e in plan.elements:
         assert all(dc.alpha_at(plan, e.name, i / 30) == 1.0 for i in range(33))
         assert dc.alpha_at(plan, e.name, 1.40) == 0.0
-    # H6 (5), round 2: the ground holds to 1.22 s (was 1.16) and fades over 0.18 s to CAPTION_CLEAR
-    assert dc._hook_alpha(1.40, dc.HOOK_GROUND_HOLD) == 0.0 and dc._hook_alpha(1.22, dc.HOOK_GROUND_HOLD) == 1.0
+    # lane F cycle 1: the ground leaves with its type and is gone by CAPTION_CLEAR (test_lane_f_hook_ground_leaves_with_type)
+    assert dc._hook_ground_alpha(dc.CAPTION_CLEAR) == 0.0
     bg = plan.meta["_r"]["bg"]
     assert T.mad(dc.frame_at(plan, 42), dc._pushed_in(bg, 1 + 0.0016 * 42)) <= 1
 
@@ -550,27 +553,33 @@ def chapter_plan(size, number=2, total=5, title="The Eye of the Great Sahara", p
 
 @pytest.mark.parametrize("size", [TALL, WIDE, (720, 1280), (1280, 720)])
 def test_c1_chapter_total(size):
-    """C1 (round 2: C5 / C6): 9:16 '/ N' after the numeral in GOLD at 72 px (was 90 GOLD_DIM), on its baseline, 16
-    px after its ink; 16:9 '/ N' on the kicker line in the kicker's face (was 93 px Anton after the numeral, C5); >=
-    4.5; none for a one-chapter video; inside the zone."""
+    """C1 (C6; lane F cycle 2, lander ruling on C5/C6: one treatment): on both formats '/ N' after the numeral in GOLD
+    at CHAPTER_TOTAL_PX (9:16 72, 16:9 86: 0.24 of the numeral), on its baseline, CHAPTER_TOTAL_GAP after its ink
+    (9:16 16, 16:9 19); >= 4.5; none for a one-chapter video; inside the zone (16:9: before the divider)."""
     plan = chapter_plan(size, 3, 4)
     e = els(plan)
     wide = size[0] > size[1]
     k = _WideGrid(*size).k if wide else size[0] / 1080
     tot, num = e["total"], e["numeral"]
-    ref = e["kicker_label"] if wide else num
-    assert tot.text == "/ 4" and tot.fill == brand.GOLD
-    assert tot.px == max(1, round((dc.KICKER_WIDE_PX if wide else 72) * k))
-    assert abs(tot.xy[1] - ref.xy[1]) <= 1
-    assert abs((tot.box[0] - ref.box[2]) - round((24 if wide else 16) * k)) <= 1 + k, (tot.box, ref.box)
+    assert tot.text == "/ 4" and tot.fill == brand.GOLD and tot.face == num.face
+    assert tot.px == max(1, round(dc.CHAPTER_TOTAL_PX[wide] * k))
+    assert abs(tot.xy[1] - num.xy[1]) <= 1
+    assert abs((tot.box[0] - num.box[2]) - round(dc.CHAPTER_TOTAL_GAP[wide] * k)) <= 1 + k, (tot.box, num.box)
     assert dict(plan.meta["_contrast"])["total"].contrast >= 4.5
     if wide:
-        g = _WideGrid(*size)
-        assert e["divider"].box[2] < tot.box[0] and tot.box[2] <= g.x(1766) + 1
+        assert tot.box[2] < e["divider"].box[0]
     else:
         z = graphics_box(*size)
         assert z[0] <= tot.box[0] and tot.box[2] <= z[2] and z[1] <= tot.box[1] and tot.box[3] <= z[3]
     assert "total" not in els(chapter_plan(size, 1, 1))
+
+
+def _shares_baseline(a) -> bool:
+    """16:9: whether two title lines at this size reach the numeral column's ink top at CHAPTER_WIDE_LEAD_MAX (then
+    their last baseline is the numeral's); a smaller size is top-aligned (operator decision 2026-11-05)."""
+    P = a["title_px"]
+    off = dc._chapter_wide_off(["A", "B"], P, dc._numeral_tall(ACTS))
+    return off[1] + round(0.86 * P) >= dc._numeral_tall(ACTS) - dc.CHAPTER_TALL_SLACK
 
 
 def test_c2_numeral_column_fixed_per_video():
@@ -579,14 +588,17 @@ def test_c2_numeral_column_fixed_per_video():
     2 px at 168; W2 sets this title at 160, 16 px lower), with the baselines shared."""
     xs = {chapter_plan(WIDE, n, 12, "The Ring").meta["anchors"]["title_x"] for n in (1, 9, 10, 12)}
     assert len(xs) == 1
-    rights = {els(chapter_plan(WIDE, n, 12, "The Ring"))["numeral"].box[2] for n in (1, 9, 10, 12)}
+    # lane F cycle 2: the numeral's "/ 12" ends on the video's one column edge (the numerals before it differ)
+    rights = {els(chapter_plan(WIDE, n, 12, "The Ring"))["total"].box[2] for n in (1, 9, 10, 12)}
     assert max(rights) - min(rights) <= 2
     plan = chapter_plan(WIDE)
     e, a = els(plan), plan.meta["anchors"]
     assert len(a["title_baselines"]) == 2
     cap_top = a["title_baselines"][0] - round(0.86 * a["title_px"])
     assert cap_top - e["numeral"].box[1] >= -dc.CHAPTER_TALL_SLACK, (cap_top, e["numeral"].box)
-    assert abs(e["title_1"].xy[1] - e["numeral"].xy[1]) <= 1
+    assert e["title_1"].xy[1] <= e["numeral"].xy[1] + 1
+    if _shares_baseline(a):
+        assert abs(e["title_1"].xy[1] - e["numeral"].xy[1]) <= 1
 
 
 @pytest.mark.parametrize("size", [TALL, WIDE])
@@ -687,33 +699,33 @@ def test_t0_json_records_read_as_utf8():
 
 # ------------------------------------------------------------------------------------------------ C5
 def test_c5_wide_title_keeps_its_measure():
-    """C5 (operator decision): 1920x1080, total 5: numeral column 325, divider 391, title 459 (measure 1307); the real
-    act 2 sets 'DOCUMENTED PHYSICAL / ARCHITECTURE' at 152 (was 136), act 3 at 176 (was 168)."""
+    """C5, lane F cycle 2 (the total stands with its numeral, so it widens the column): 1920x1080, total 5: numeral and
+    total column 440, divider 506, title 574 (measure 1192, was 1307 with the total on the kicker); the real act 2
+    sets 'DOCUMENTED PHYSICAL / ARCHITECTURE' at 136 (152 with the C5 kicker total), act 3 at 176."""
     p2 = chapter_plan(WIDE, 2, ACTS, ACT2)
     a = p2.meta["anchors"]
-    assert (a["title_x"], a["divider_x"], a["numeral_right"]) == (459, 391, 325)
+    assert a["numeral_right"] == 153 + dc._numeral_column(ACTS, f"/ {ACTS}")
+    assert (a["title_x"], a["divider_x"], a["numeral_right"]) == (574, 506, 440)
     assert a["divider_x"] - a["numeral_right"] == 66
-    assert (a["title_px"], lines_of(p2, "title")) == (152, ["DOCUMENTED PHYSICAL", "ARCHITECTURE"])
+    assert (a["title_px"], lines_of(p2, "title")) == (136, ["DOCUMENTED PHYSICAL", "ARCHITECTURE"])
     p3 = chapter_plan(WIDE, 3, ACTS, ACT3)
     assert p3.meta["anchors"]["title_px"] == 176 and no_stop_end(lines_of(p3, "title"))
 
 
 @pytest.mark.parametrize("ground", ["dark", "noise", "warm"])
-def test_c5_total_on_the_kicker(ground, photos):
-    """C5: '/ 5' on the kicker baseline, 24 design px after the CHAPTER label's ink, in its GOLD, revealed with it;
-    nothing between the numeral and the divider; contrast within 0.1 of the label's."""
+def test_c5_total_with_its_numeral(ground, photos):
+    """Lane F cycle 2 (lander ruling on C5/C6, was C5's '/ 5' on the kicker line): '/ 5' on the numeral's baseline
+    after its ink, in its GOLD display face, revealed after it, the kicker CHAPTER alone; nothing between the total
+    and the divider; drawn >= CHAPTER_TOTAL_TARGET on every ground."""
     plan = chapter_plan(WIDE, 2, ACTS, ACT2, photo=photos[ground])
     e = els(plan)
-    tot, lab = e["total"], e["kicker_label"]
-    assert tot.text == "/ 5" and tot.fill == lab.fill == brand.GOLD and tot.face == "Montserrat" and tot.weight == 800
-    assert abs(tot.xy[1] - lab.xy[1]) <= 1
-    assert abs((tot.box[0] - lab.box[2]) - 24) <= 1
-    assert tot.box[0] > e["divider"].box[2]
-    for t in [i / 30 for i in range(0, 106)]:
-        assert dc.alpha_at(plan, "total", t) == dc.alpha_at(plan, "kicker_label", t)
+    tot, num = e["total"], e["numeral"]
+    assert tot.text == "/ 5" and tot.fill == num.fill == brand.GOLD and tot.face == num.face
+    assert abs(tot.xy[1] - num.xy[1]) <= 1 and tot.box[0] > num.box[2]
+    assert tot.box[2] < e["divider"].box[0] and plan.drawn_text["kicker_label"] == "CHAPTER"
+    assert tot.t_in > num.t_in
     last = dc.frame_at(plan, plan.frames - 1)
-    c = dict(plan.meta["_contrast"])
-    assert abs(c["total"].measure(last) - c["kicker_label"].measure(last)) <= 0.1
+    assert dict(plan.meta["_contrast"])["total"].measure(last) >= dc.CHAPTER_TOTAL_TARGET - 0.1
 
 
 def test_c5_total_and_column():
@@ -737,7 +749,10 @@ def test_c5_total_and_column():
         own = dc._numeral_tall(ACTS) + (e["numeral"].box[1] - e["numeral"].xy[1])
         assert abs((a["title_baselines"][0] - round(0.86 * a["title_px"])) - e["numeral"].box[1]) <= 12 + own, (
             title, a)
-        assert abs(a["title_baselines"][-1] - e["numeral"].xy[1]) <= 1
+        if _shares_baseline(a):     # lane F cycle 2: ACT2 (136) and the Sahara title (144) are top-aligned now
+            assert abs(a["title_baselines"][-1] - e["numeral"].xy[1]) <= 1
+        else:
+            assert a["title_baselines"][-1] < e["numeral"].xy[1] - dc.CHAPTER_TALL_SLACK
         step = a["title_baselines"][1] - a["title_baselines"][0]
         assert round(0.98 * a["title_px"]) <= step <= round(dc.CHAPTER_WIDE_LEAD_MAX * a["title_px"]), (title, step)
 
@@ -761,18 +776,20 @@ def test_fr1_c5_cap_top_meets_the_numeral_at_every_two_line_size(monkeypatch):
         k = _WideGrid(*size).k
         p = chapter_plan(size, 2, ACTS, ACT2)
         e = els(p)
-        assert p.meta["anchors"]["title_px"] == 152
+        assert p.meta["anchors"]["title_px"] == chapter_plan(WIDE, 2, ACTS, ACT2).meta["anchors"]["title_px"]
         assert abs(e["title_0"].box[1] - e["numeral"].box[1]) / k <= dc.CHAPTER_TALL_SLACK, (size, e["title_0"].box)
     real = dc._design_wrap
     monkeypatch.setattr(dc, "CHAPTER_WIDE_ONE", ())
     # decision 2026-11-05: a title that needs a smaller two-line size is drawn (was refused, no_fit), cap top on the
     # numeral's ink top, last baseline above the numeral's
+    base = chapter_plan(WIDE, 2, ACTS, ACT2).meta["anchors"]["title_px"]
+    below = dc.CHAPTER_WIDE_TWO[dc.CHAPTER_WIDE_TWO.index(base) + 1]
     monkeypatch.setattr(dc, "_design_wrap", lambda text, face, w, px, *a, **kw: (
-        None if px >= 152 and kw.get("even") is not None else real(text, face, w, px, *a, **kw)))
+        None if px >= base and kw.get("even") is not None else real(text, face, w, px, *a, **kw)))
     p = chapter_plan(WIDE, 2, ACTS, ACT2)
     e, a = els(p), p.meta["anchors"]
-    assert a["title_px"] == 144 and len(a["title_baselines"]) == 2
-    assert abs(a["title_baselines"][0] - round(0.86 * 144) - e["numeral"].box[1]) <= dc.CHAPTER_TALL_SLACK
+    assert below < 145 and a["title_px"] == below and len(a["title_baselines"]) == 2
+    assert abs(a["title_baselines"][0] - round(0.86 * below) - e["numeral"].box[1]) <= dc.CHAPTER_TALL_SLACK
     assert e["title_1"].xy[1] < e["numeral"].xy[1] - dc.CHAPTER_TALL_SLACK
     # only no two-line size down to the floor refuses
     monkeypatch.setattr(dc, "_design_wrap", lambda text, face, w, px, *a, **kw: (
@@ -792,9 +809,10 @@ RICHAT_ACTS = ("Introduction: A Desert Landmark from Space", ACT2, ACT3, "Archae
 CHAPTER_FLOOR = {False: 84, True: 96}
 TALL_REFUSED_ACTS: set = set()   # round 8: none (act 2 takes the box column at its floor, ruling 3)
 RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
-    (True, 1): (144, ["INTRODUCTION: A DESERT", "LANDMARK FROM SPACE"]),
-    (True, 4): (128, ["ARCHAEOLOGICAL EVIDENCE", "AND REFUTED CLAIMS"]),
-    (True, 5): (152, ["INTERNATIONAL", "HERITAGE RECOGNITION"]),
+    # lane F cycle 2: the 16:9 total stands with its numeral (measure 1192, was 1307): one or two steps smaller
+    (True, 1): (128, ["INTRODUCTION: A DESERT", "LANDMARK FROM SPACE"]),
+    (True, 4): (120, ["ARCHAEOLOGICAL EVIDENCE", "AND REFUTED CLAIMS"]),
+    (True, 5): (144, ["INTERNATIONAL", "HERITAGE RECOGNITION"]),
     # QF-24: on the organic box's 735 px title measure (788 on the ads box) acts 1 and 4 set at 92 (were 100); act 4
     # steps down to its first break with no stop-word end (W2's few steps found only "EVIDENCE AND"; every chapter
     # card is drawn, operator decision 2026-11-05)
@@ -838,7 +856,7 @@ def test_d1_every_richat_act_is_drawn(size):
             col_top = a["Bn"] - dc._numeral_tall(ACTS)       # the video's numeral column's ink top (C5)
             assert abs(cap_top - col_top) <= dc.CHAPTER_TALL_SLACK, (n, cap_top, col_top)
             assert e[f"title_{len(lines) - 1}"].xy[1] <= e["numeral"].xy[1] + 1
-            assert a["title_x"] == 459
+            assert a["title_x"] == 574      # lane F cycle 2: the "/ 5" with its numeral (459 with it on the kicker)
         else:
             z = graphics_box(*size)
             assert 2 <= len(lines) <= 3, (n, lines)
@@ -888,9 +906,10 @@ def test_w2_within_one_size_compliance_wins():
 
 
 def test_w2_sahara_fixture_titles():
-    """W2, product choice P2: 16:9 'THE EYE / OF THE GREAT SAHARA' at 160; 9:16 in 3 lines at >= 120."""
+    """W2, product choice P2: 16:9 'THE EYE / OF THE GREAT SAHARA' at 144 (160 before lane F cycle 2 put the total
+    with its numeral); 9:16 in 3 lines at >= 120."""
     wide = chapter_plan(WIDE)
-    assert (wide.meta["anchors"]["title_px"], lines_of(wide, "title")) == (160, ["THE EYE", "OF THE GREAT SAHARA"])
+    assert (wide.meta["anchors"]["title_px"], lines_of(wide, "title")) == (144, ["THE EYE", "OF THE GREAT SAHARA"])
     tall = chapter_plan(TALL)
     assert lines_of(tall, "title") == ["THE EYE", "OF THE GREAT", "SAHARA"] and tall.meta["anchors"]["title_px"] >= 120
 
@@ -1087,12 +1106,12 @@ def test_h6_dissolve(photos):
     0..32 at full
     alpha; the plate band moves <= 70 luma per frame over frames 33..42."""
     plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
-    assert dc.HOOK_FADE == 0.16 and dc.HOOK_GROUND_HOLD == 1.22
+    assert dc.HOOK_FADE == 0.16
     for e in plan.elements:
         assert all(dc.alpha_at(plan, e.name, i / 30) == 1.0 for i in range(33))
         assert dc.alpha_at(plan, e.name, 1.22) <= 0.10, (e.name, dc.alpha_at(plan, e.name, 1.22))
         assert dc.alpha_at(plan, e.name, 1.40) == 0.0
-    assert dc._hook_alpha(1.40, dc.HOOK_GROUND_HOLD) == 0.0
+    assert dc._hook_ground_alpha(1.40) == 0.0
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = [float(np.asarray(dc.frame_at(plan, i).convert("L"))[y0:y1].mean()) for i in range(33, 43)]
     assert max(abs(b - a) for a, b in zip(lum, lum[1:])) <= 70, lum

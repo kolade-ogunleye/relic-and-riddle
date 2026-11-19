@@ -23,6 +23,9 @@ from src.fact_evidence import check_record, public_fingerprint, record_fact_revi
 from src.graphics import _WideGrid, nontext_contrast
 from src.safe_zones import cover_box, graphics_box
 
+# the myth card's own guards, past the field gate (conftest.card_last_guard; lane F cycle 2)
+pytestmark = pytest.mark.usefixtures("card_last_guard")
+
 ROOT = Path(__file__).resolve().parent.parent
 MODULE = ROOT / "src" / "design_cards.py"
 HAS_FFMPEG = shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
@@ -428,7 +431,10 @@ def test_exact_anchors():
     p = dc.plan_chapter_card(chapter(), SHEET, 1920, 1080)
     els = {e.name: e for e in p.elements}
     last = max(n for n in els if n.startswith("title_"))
-    assert abs(els[last].xy[1] - els["numeral"].xy[1]) <= 1
+    # lane F cycle 2: with the "/ 5" beside the numeral this title sets at 144, under the 145 px from which two lines
+    # reach the numeral's ink top, so it is top-aligned (operator decision 2026-11-05): the last baseline at or
+    # above the numeral's, never below it
+    assert els[last].xy[1] <= els["numeral"].xy[1] + 1
     # operator decision C (2026-11-03, deliberate change): the 16:9 title fills its measure ("THE EYE OF THE /
     # GREAT SAHARA" at 176 px, no empty right third), so the taller block centres lower (Bn was 630)
     # freeze panel 2026-11-04 (C2, deliberate change): two title lines stand no taller than the numeral's measured ink
@@ -439,7 +445,10 @@ def test_exact_anchors():
     # (were 168, Bn 668)
     # freeze panel round 4 (C5 review: two lines at 160 stood 16 px under the numeral's ink top, deliberate change):
     # the two-line step grows until the first cap top meets the numeral's ink top (173, was 157), so Bn 670 (was 662)
-    assert p.meta["anchors"]["Bn"] == 670 and p.meta["anchors"]["title_px"] == 160
+    # lane F cycle 2 (lander ruling on C5/C6, deliberate change): the "/ 5" stands with its numeral, so the title's
+    # measure is 1192 (was 1307 from x 459, now x 574) and "THE EYE / OF THE GREAT SAHARA" sets at 144 (was 160),
+    # top-aligned on the numeral's ink top; Bn 670 unchanged
+    assert p.meta["anchors"]["Bn"] == 670 and p.meta["anchors"]["title_px"] == 144
     p = dc.plan_myth_fact(myth(myth_text="Extraterrestrials constructed the circular rings", myth_fact_id="f_et",
                                fact_text="Wind and water slowly eroded the dome over millions of years into "
                                          "concentric rings", fact_id="f_et"), SHEET)
@@ -986,9 +995,9 @@ def test_chapter_169_numeral_keeps_the_divider_close(size):
         div = els["divider"].box
         arr = np.asarray(dc.frame_at(plan, plan.frames - 1))
         cols = _gold_cols(arr, div[1], div[3], div[0])
-        # freeze panel round 2 (C5, deliberate change): the total is on the kicker line, so the last ink before the
-        # divider is the numeral's again (was the muted total's)
-        assert els["total"].box[0] > div[2]
+        # lane F cycle 2 (lander ruling on C5/C6): the total stands with its numeral again, so the last ink before
+        # the divider is the GOLD total's, right-aligned on the video's column
+        assert els["total"].box[2] < div[0] and els["total"].box[0] > els["numeral"].box[2]
         gaps.append(div[0] - (cols.max() + 1))
         assert abs(els["title_0"].box[0] - div[2] - round(dc.CHAPTER_GAP * k)) <= 3, (n, els["title_0"].box, div)
         # round 2: the ink left (this title's O has a side bearing the old fixture's T did not)

@@ -100,14 +100,20 @@ VERSION = "design-cards-1"
 HOOK_SECONDS = 1.5
 # s: every hook element at full alpha before this (frames 0-32: frame 32 is 1.067 s). Freeze panel round 4 (review:
 # with H6's HOOK_FADE 0.16 a 1.10 hold left the type at 0.156 alpha at 1.22 s, against <= 0.10): 1.09, so the type
-# is at 0.092 at 1.22 s and gone at 1.25, before the plate and wash leave from HOOK_GROUND_HOLD (was 1.10).
+# is at 0.092 at 1.22 s and gone at 1.25 (the plate and wash now leave with it: HOOK_GROUND_HOLD below).
 # Fix round 1 (review: measure at the spec time, not a chosen instant): the frame on screen at 1.22 s is frame 36
 # (1.200 s), which a 1.09 hold left at 0.21 alpha; 1.07 puts frame 36 at 0.092 and keeps frames 0-32 whole (32 is
 # 1.067 s), gone by frame 37 (1.233 s)
-HOOK_HOLD = 1.07
-HOOK_FADE = 0.16            # s: freeze panel H6 (5): then a smoothstep dissolve of the type (H4: 0.24)
-HOOK_GROUND_HOLD = 1.22     # s: the plate and wash dissolve a beat after the type (H6: was 1.16) ...
-HOOK_GROUND_FADE = 0.18     # s: ... over this, so they end at CAPTION_CLEAR
+HOOK_HOLD = 1.07            # = brand_system SPEC motion.hook_hold (written; SYS-F-1 asks for it to drive)
+HOOK_FADE = 0.16            # s: freeze panel H6 (5): then a smoothstep dissolve of the type (= SPEC motion.hook_fade)
+# Freeze lane F cycle 1 (panel 2 MO, clips\hook__obelisk__916 f037-f039): the plate and wash held to 1.22 s and left
+# over 0.18 s, so for three frames after the type had gone (1.233 s) an empty INK band stood across the photo at
+# 0.98-0.58 alpha. The ground now leaves WITH its type: from the same HOOK_HOLD, over one frame longer than the type's
+# fade, so (1) the ground is never thinner than the type it carries (ground alpha >= type alpha at every t) and (2) on
+# the first frame without type the ground is at most HOOK_EMPTY_MAX (it is 0.064 at frame 37, gone at frame 38).
+HOOK_GROUND_HOLD = HOOK_HOLD
+HOOK_GROUND_FADE = HOOK_FADE + 1.0 / VIDEO_FPS
+HOOK_EMPTY_MAX = 0.10       # the ground's alpha on any frame whose type is gone (the type's own 0.10 rule, mirrored)
 CAPTION_CLEAR = 1.40        # s: the composer's first caption burst may start here
 HOOK_TARGET = 5.1           # the hook's planned contrast (the brand's own plate keeps PLACE_TARGET)
 REVEAL = 0.40               # s: a line's reveal
@@ -131,6 +137,10 @@ KICKER_WIDE_PX = 40         # freeze panel M9: the 16:9 kicker labels (MYTH, FAC
 SOURCE_DROP = {False: 72, True: 68}     # 16:9: max(68, round(0.58 x P)) (freeze panel M10, was 56): _source_drop
 SOURCE_DROP_WIDE_SHARE = 0.58
 FACT_CHARS_WIDE = 96        # the 16:9 myth card's fact: the measured 4-line ceiling of its column
+# the myth card's first gate, (myth, fact) characters per format (9:16 False, 16:9 True); the binding gate is the line
+# fit (myth_set). The field gate (card_fields.findings) takes both through myth_fit_problem, so the writer's copy is
+# what every format sets (lane F cycle 2)
+MYTH_CHARS = {False: (56, 84), True: (70, FACT_CHARS_WIDE)}
 CHAPTER_BLUR = 36          # design px (the myth's: a photo's burned-in words never read)
 CHAPTER_INNER = (0.06, 0.26)
 CHAPTER_ABOVE = (0.08, 0.32)
@@ -341,10 +351,13 @@ def _smoothstep(x: float) -> float:
 
 def _hook_alpha(t: float, hold: float = HOOK_HOLD, fade: float | None = None) -> float:
     """Freeze panel H4: a real dissolve, 1 - smoothstep((t - hold) / fade): the type (claim, eyebrow, masthead) from
-    HOOK_HOLD over HOOK_FADE, the plate and wash from HOOK_GROUND_HOLD over HOOK_GROUND_FADE (H6)."""
-    if fade is None:
-        fade = HOOK_GROUND_FADE if hold == HOOK_GROUND_HOLD else HOOK_FADE
-    return 1.0 - _smoothstep((t - hold) / fade)
+    HOOK_HOLD over HOOK_FADE (the default), the plate and wash through _hook_ground_alpha."""
+    return 1.0 - _smoothstep((t - hold) / (HOOK_FADE if fade is None else fade))
+
+
+def _hook_ground_alpha(t: float) -> float:
+    """The plate, wash and marks: from HOOK_GROUND_HOLD over HOOK_GROUND_FADE (they leave with the type)."""
+    return _hook_alpha(t, HOOK_GROUND_HOLD, HOOK_GROUND_FADE)
 
 
 class _Geo:
@@ -1462,11 +1475,13 @@ def _ground(photo: Path | None, geo: _Geo, last_t: float, dim: float = 0.0
 
 
 # ------------------------------------------------------------------------------------------------ chapter card
-CHAPTER_TOTAL_PX = {False: 72}          # freeze panel C6: the 9:16 "/ N" after the numeral, in GOLD (was 90 GOLD_DIM)
-CHAPTER_TOTAL_GAP = 16                    # design px from the numeral's ink to the total's (9:16)
+# Freeze lane F cycle 2 (lander ruling, operator-delegated C5/C6): one treatment on both formats. The "/ N" stands with
+# its numeral ("1 / 5", as C6 drew it on 9:16), baseline-aligned, in the numeral's GOLD display face, and the kicker
+# reads CHAPTER alone (a "CHAPTER / 5" kicker beside a large "1" read as "chapter 5"). Its size and gap are shares of
+# the numeral's px, so the 16:9 total is the 9:16 one scaled with its numeral (9:16: 72 px, 16 px gap at 300).
+CHAPTER_TOTAL_SHARE = 0.24                # x the numeral's px: the total's size (9:16 72 at 300; 16:9 86 at 360)
+CHAPTER_TOTAL_GAP_SHARE = 16 / 300        # x the numeral's px: numeral ink to the total's (9:16 16; 16:9 19)
 CHAPTER_TOTAL_TARGET = 7.0              # C5 / C6: the GOLD total is planned to draw >= 7.0 (was PLACE_TARGET, muted)
-CHAPTER_TOTAL_KICK_GAP = 24             # 16:9 (freeze panel C5): design px from the CHAPTER label's ink to the "/ N"
-CHAPTER_TOTAL_HALO_PX = 31              # 16:9 total's halo spread (typography's widest default; the label keeps its own)
 CHAPTER_TALL_SLACK = 12                 # 16:9 (C5): two title lines may stand this much taller than the numeral's ink
 # 16:9 (C5, round 4 review: act 2's two lines at 152 stood 30 px under the numeral's ink top): the step between two
 # title lines grows until their first cap top meets the video's numeral ink top, at most to this x P (so the sizes
@@ -1479,10 +1494,18 @@ CHAPTER_TALL_BOX = (graphics_box()[1], TALL_FOOT)   # 9:16: the graphics box's y
 CHAPTER_INK_FOOT = 2                    # design px a round letter's overshoot may run below the last baseline
 CHAPTER_TITLE_T0 = {False: 0.62, True: 0.80}     # s: the first title line's start (C6: 9:16 was 0.55)
 CHAPTER_TITLE_STAGGER = {False: 0.18, True: 0.18}  # s: per title line (C6: 9:16 was 0.12)
-CHAPTER_TOTAL_T0 = 0.55                 # s: the 9:16 total's reveal, after the numeral's settle (C6)
+CHAPTER_TOTAL_AFTER = 0.30              # s: the total's reveal after its numeral's start (C6: 9:16 at 0.55)
 ACCENT_AIR = 16                         # design px (freeze panel A1): an accented line's ink top clears the line
                                         # above's baseline by at least this
 CHAPTER_NUMERAL_PX = {False: 300, True: 360}   # round 7 (F18): the TYPE figure token per canvas (tall 300, wide 360)
+CHAPTER_TOTAL_PX = {w: round(CHAPTER_TOTAL_SHARE * px) for w, px in CHAPTER_NUMERAL_PX.items()}
+CHAPTER_TOTAL_GAP = {w: round(CHAPTER_TOTAL_GAP_SHARE * px) for w, px in CHAPTER_NUMERAL_PX.items()}
+
+
+def _total_width(total_t: str, wide: bool, f_tot: Any) -> int:
+    """Design px the "/ N" (set in `f_tot`, the display face at CHAPTER_TOTAL_PX[wide]) and its gap add after the
+    numeral (0 without a total)."""
+    return CHAPTER_TOTAL_GAP[wide] + _width(total_t, f_tot) if total_t else 0
 CHAPTER_SAT_MAX = 90                      # freeze panel C3: a ground more saturated than this (of 255) under the block
 CHAPTER_SAT_TARGET = 7.0                  # is darkened (x CHAPTER_SAT_STEP luma) until the drawn minimum reaches this
 CHAPTER_SAT_STEP = 0.86
@@ -1589,11 +1612,13 @@ def _sat_under(im: Image.Image, box: Sequence[int]) -> float:
     return float(np.asarray(crop, np.float32)[..., 1].mean()) if crop.width and crop.height else 0.0
 
 
-def _numeral_column(total: int) -> int:
+def _numeral_column(total: int, total_t: str = "") -> int:
     """16:9 (freeze panel C2): design px of the widest numeral this video shows (1..total, Anton at the numeral's
-    px), so the numeral's right edge, the divider and the title stand at one x on every chapter of the video."""
+    px) with its "/ N" (lane F cycle 2), so the group's right edge, the divider and the title stand at one x on every
+    chapter of the video."""
     f = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[True])
-    return max(_width(str(k), f) for k in range(1, max(1, total) + 1))
+    f_tot = get_font(brand.DISPLAY_FONT, CHAPTER_TOTAL_PX[True])
+    return max(_width(str(k), f) for k in range(1, max(1, total) + 1)) + _total_width(total_t, True, f_tot)
 
 
 def _numeral_tall(total: int) -> int:
@@ -1667,10 +1692,10 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
     total_t = f"/ {spec.total}" if spec.total >= 2 else ""      # C1: the chapter count is structural (ChapterCard.total)
     f_num = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[geo.wide])
     num_ink = _ink(num, f_num)
-    # 16:9 (C2): the numeral right-aligned on a column fixed per video; the divider a fixed CHAPTER_GAP after that
-    # column, and the title the same gap after the divider. Freeze panel C5 (operator decision): the "/ N" stands on
-    # the kicker line, so it no longer widens the column and the title keeps its full measure
-    edge = 153 + _numeral_column(spec.total)
+    # 16:9 (C2): the numeral and its "/ N" right-aligned on a column fixed per video; the divider a fixed CHAPTER_GAP
+    # after that column, and the title the same gap after the divider (lane F cycle 2: the total stands with its
+    # numeral, as on 9:16, so it widens the column)
+    edge = 153 + _numeral_column(spec.total, total_t)
     div_x = edge + CHAPTER_GAP
     title_x = div_x + 2 + CHAPTER_GAP
     num_tall = -num_ink[1]                      # C2: the numeral's measured ink height (CHAPTER_WIDE_TALL)
@@ -1798,6 +1823,18 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
     raise AssertionError("unreachable")
 
 
+def _chapter_total(card: _Card, anchors: dict, total_t: str, num_right: float, Bn: float, n_start: float,
+                   wide: bool) -> None:
+    """The chapter count after its numeral, on both formats (C6; lane F cycle 2): GOLD display type at
+    CHAPTER_TOTAL_PX, CHAPTER_TOTAL_GAP after the numeral's advance, on its baseline, revealed CHAPTER_TOTAL_AFTER
+    after the numeral starts."""
+    card.text("total", total_t, brand.DISPLAY_FONT, None, CHAPTER_TOTAL_PX[wide], brand.GOLD,
+              num_right + CHAPTER_TOTAL_GAP[wide], Bn, ("ease", n_start + CHAPTER_TOTAL_AFTER, REVEAL), "display",
+              rise=False, target=CHAPTER_TOTAL_TARGET)
+    anchors["total_fill"] = brand.hex_colour(brand.GOLD)
+    anchors["total_placement"] = "after_numeral"
+
+
 def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any, last_t: float, seconds: float,
                      frames: int, cited: Any, prov: Any, P: int, lines: list[str], num: str, total_t: str,
                      div_x: int, title_x: int, edge: int, tall_left: int = TALL_LEFT) -> CardPlan:
@@ -1826,13 +1863,7 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         if tall_left != TALL_LEFT:
             anchors["margin"] = "box"   # ruling 3: the box column, only where the margin column refuses at the floor
         if total_t:
-            # C6: the chapter count after the numeral in the kicker's GOLD, baseline-aligned, revealed after the
-            # numeral's settle
-            tot_x = num_x + _width(num, f_num) + CHAPTER_TOTAL_GAP
-            card.text("total", total_t, brand.DISPLAY_FONT, None, CHAPTER_TOTAL_PX[False], brand.GOLD, tot_x, Bn,
-                      ("ease", CHAPTER_TOTAL_T0, REVEAL), "display", rise=False, target=CHAPTER_TOTAL_TARGET)
-            anchors["total_fill"] = brand.hex_colour(brand.GOLD)
-            anchors["total_placement"] = "after_numeral"
+            _chapter_total(card, anchors, total_t, num_x + _width(num, f_num), Bn, n_start, geo.wide)
     else:
         rise = _chapter_wide_rise(off, P, col_tall)
         top_rel = max(310, rise + MYTH_LABEL_AIR[True] + MYTH_KICK[True])
@@ -1842,7 +1873,9 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         K = baselines[0] - cap - MYTH_LABEL_AIR[True]     # the kicker label's baseline
         # freeze panel C4: the 16:9 reveal paced to its 3.5 s card
         n_start = 0.30
-        num_x = edge - _width(num, f_num)        # C2: right-aligned on the video's numeral column
+        # C2: right-aligned on the video's numeral column, the numeral with its "/ N" (lane F cycle 2)
+        num_x = edge - _width(num, f_num) - _total_width(total_t, True,
+                                                         get_font(brand.DISPLAY_FONT, CHAPTER_TOTAL_PX[True]))
         card.text("numeral", num, brand.DISPLAY_FONT, None, npx, brand.GOLD, num_x, Bn, ("ease", n_start, REVEAL), "display",
                   rise=False, settle=(n_start, FIGURE_SETTLE))
         div = (div_x, Bn - 310, div_x + 2, Bn)
@@ -1850,28 +1883,7 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
         card.rect("divider", div, fill, ("ease", 0.55, 0.45), "y", role="divider")
         _kicker(card, "kicker", "CHAPTER", title_x, K - MYTH_KICK[True], brand.GOLD, brand.GOLD, (0.20, 0.40), (0.20, 0.40))
         if total_t:
-            # freeze panel C5 (operator decision): the chapter count on the kicker line, in the kicker's own face,
-            # tracking and GOLD, CHAPTER_TOTAL_KICK_GAP after the label's ink, revealed with it; never the numeral
-            # repeated ("CHAPTER 2 OF 5" is rejected)
-            lab = next(e for e in card.elements if e.name == "kicker_label").box
-            tx = (lab[2] - geo._ox) / geo.k + CHAPTER_TOTAL_KICK_GAP
-            # planned to read as the label beside it does (within 0.1, and never under CHAPTER_TOTAL_TARGET)
-            lab_c = dict(card.contrast)["kicker_label"].contrast or 0.0
-            # round 2 (review: 9.68 against the label's 9.85 on act 2 busy, the halo at its strongest): the total's
-            # halo spreads CHAPTER_TOTAL_HALO_PX, so it can reach the label's own contrast first
-            targets = [t for t in (lab_c, lab_c - 0.05, lab_c - 0.10) if t > CHAPTER_TOTAL_TARGET] + [
-                CHAPTER_TOTAL_TARGET]
-            for i, tgt in enumerate(targets):
-                try:
-                    card.text("total", total_t, brand.TEXT_FONT, 800, KICKER_WIDE_PX, brand.GOLD, tx, K, ("ease", 0.20, 0.40),
-                              "kicker", track=5, target=tgt,
-                              halo_px=max(21, round(CHAPTER_TOTAL_HALO_PX * geo.k)))
-                    break
-                except CardRefused:
-                    if i == len(targets) - 1:
-                        raise
-            anchors["total_fill"] = brand.hex_colour(brand.GOLD)
-            anchors["total_placement"] = "kicker"
+            _chapter_total(card, anchors, total_t, num_x + _width(num, f_num), Bn, n_start, True)
         for k, (ln, b) in enumerate(zip(lines, baselines)):
             card.text(f"title_{k}", ln, brand.DISPLAY_FONT, None, P, brand.BONE, title_x, b, ("ease", t0 + dt * k, 0.50, TITLE_ALPHA),
                       "display")
@@ -1993,7 +2005,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
             raise CardRefused(f"the {label} {v!r} is not the myth field's refuting fact {fid!r}", code="bad_field")
     # 16:9 fact: 96, not the brief's 110 (round 1 review 10). The character limits are a first gate only; the binding
     # one is the line limit at the fixed size, checked below. The myth is the whole field: too long refuses.
-    lim_m, lim_f = (70, FACT_CHARS_WIDE) if geo.wide else (56, 84)
+    lim_m, lim_f = MYTH_CHARS[geo.wide]
     if len(myth) > lim_m or len(fact_t) > lim_f:
         raise CardRefused(f"the myth ({len(myth)}) or fact ({len(fact_t)}) runs past {lim_m}/{lim_f} characters")
     if myth.lower() == fact_t.lower():
@@ -2019,13 +2031,7 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     spec = MythFact(myth, fid, fact_t, fid, spec.photo, spec.fact_at, spec.myth_src)
     m_draw, f_draw = myth.upper(), fact_t.upper()
     _glyphs_ok(m_draw, brand.DISPLAY_FONT, None)
-    fit = _myth_fit(m_draw, f_draw, host, geo)
-    column = None
-    if not geo.wide and (fit is None or fit[0] < MYTH_FLOOR_SOURCE):
-        # the margin column never costs the type its floor: under it (or refused) the box column, when it does better
-        boxed = _myth_fit(m_draw, f_draw, host, geo, MYTH_BOX_COLUMN)
-        if boxed is not None and (fit is None or boxed[0] > fit[0]):
-            column, fit = MYTH_BOX_COLUMN, boxed
+    fit, column = myth_set(m_draw, f_draw, host, geo)
     if fit is None:
         raise CardRefused("the myth or the fact runs past its line limit at the floor size"
                           + (" with its source line kept" if host else ""), code="no_fit")
@@ -2282,6 +2288,46 @@ def _myth_wrap(m_draw: str, pm: int, m_meas: int, m_lim: int, geo: _Geo) -> list
         # trims the overhang)
         return full if _stop_end(held) else held
     return held if held and (not full or len(held) <= len(full)) else full
+
+
+def myth_set(m_draw: str, f_draw: str, host: str | None, geo: _Geo) -> tuple[Any, tuple[int, int] | None]:
+    """(_myth_fit's result or None, the column): the margin column, and on 9:16 the box column (ruling 3) where the
+    margin column sets it under MYTH_FLOOR_SOURCE or not at all and the box column does better."""
+    fit = _myth_fit(m_draw, f_draw, host, geo)
+    if not geo.wide and (fit is None or fit[0] < MYTH_FLOOR_SOURCE):
+        # the margin column never costs the type its floor: under it (or refused) the box column, when it does better
+        boxed = _myth_fit(m_draw, f_draw, host, geo, MYTH_BOX_COLUMN)
+        if boxed is not None and (fit is None or boxed[0] > fit[0]):
+            return boxed, MYTH_BOX_COLUMN
+    return fit, None
+
+
+MYTH_FORMATS = ((False, (1080, 1920)), (True, (1920, 1080)))   # every format a myth card is drawn in: 9:16, 16:9
+
+
+def myth_chars_max() -> int:
+    """The longest myth every format's card takes at its first gate (the smallest of MYTH_CHARS)."""
+    return min(MYTH_CHARS[wide][0] for wide, _ in MYTH_FORMATS)
+
+
+def myth_fit_problem(myth: str, correction: str, source_url: str = "") -> str:
+    """"" when the myth card sets `myth` and `correction` (with the source line `source_url` gives) on every format,
+    by the card's own first gate and line fit (plan_myth_fact's); else why not. The field gate's copy rule (lane F
+    cycle 2): a myth field is only what every format sets; the card's own refusal stays the last guard."""
+    m, c = (" ".join(str(x or "").split()) for x in (myth, correction))
+    host = display_host((urlparse(str(source_url or "")).hostname or "").lower()).upper() or None
+    for wide, size in MYTH_FORMATS:
+        fmt = "16:9" if wide else "9:16"
+        lim_m, lim_f = MYTH_CHARS[wide]
+        if len(m) > lim_m or len(c) > lim_f:
+            return f"the {fmt} myth card takes a myth of at most {lim_m} and a correction of at most {lim_f} characters"
+        try:
+            fit, _ = myth_set(typeset(m).upper(), typeset(c).upper(), host, _Geo(*size))
+        except LayoutError as e:     # CardRefused, GlyphRefused (a glyph no bundled face draws): the one refusal type
+            return f"the {fmt} myth card cannot set it: {getattr(e, 'reason', None) or e}"
+        if fit is None:
+            return f"the {fmt} myth card cannot set it whole within its line limits at the floor size"
+    return ""
 
 
 def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo, column: tuple[int, int] | None = None):
@@ -4313,7 +4359,7 @@ def _over(im: Image.Image, layer: Image.Image, a: float) -> Image.Image:
 def _hook_compose(r: Mapping[str, Any], i: int) -> Image.Image:
     im = _pushed_in(r["bg"], 1.0 + LOOP_PUSH * i)
     t = i / VIDEO_FPS
-    a, g = _hook_alpha(t), _hook_alpha(t, HOOK_GROUND_HOLD, HOOK_GROUND_FADE)
+    a, g = _hook_alpha(t), _hook_ground_alpha(t)
     if g <= 0:
         return im
     im = _over(im, r["under"], g)

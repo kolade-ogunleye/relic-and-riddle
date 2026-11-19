@@ -507,7 +507,17 @@ def make_all(payload: dict, work_dir: Path, *, photo: Path | None = None,
     (work_dir / "card-selection.json").write_text(json.dumps({"version": VERSION,
         "made": [p.name for p in made], "hook": "hook_frame.mp4" if hook_made else None,
         "refused": refused}, indent=2), encoding="utf-8")
+    record_refusals(payload, width, height, refused)
     return made
+
+
+def record_refusals(payload: dict, width: int, height: int, refused: list[dict]) -> None:
+    """Lane F cycle 2: every design card refused in this format, with its reason, in the run's own record
+    (payload["design_card_refusals"], kept in script_metadata.json; not on the review card). One format's entries
+    replace that format's earlier ones (a resumed or re-rendered run), the other format's stay."""
+    fmt = f"{int(width)}x{int(height)}"
+    kept = [r for r in payload.get("design_card_refusals") or [] if isinstance(r, dict) and r.get("format") != fmt]
+    payload["design_card_refusals"] = kept + [{**r, "format": fmt} for r in refused]
 
 
 def check_chapter_fields(payload: dict, source: Path, destination: Path, *, trace=None,

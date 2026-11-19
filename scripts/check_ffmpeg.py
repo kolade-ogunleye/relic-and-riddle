@@ -32,7 +32,7 @@ FILTERS = (
     "format", "fps", "geq", "highpass", "hstack", "hue", "identity", "life", "loop", "lowpass", "metadata",
     "null", "overlay", "pad", "pan", "phase", "scale", "scroll", "segment", "select", "setparams", "setpts",
     "setsar", "settb", "sidechaincompress", "signature", "silencedetect", "split", "subtitles", "thumbnail",
-    "tile", "tpad", "trim", "vignette", "volume", "xfade",
+    "tile", "tpad", "treble", "trim", "vignette", "volume", "xfade",
 )
 ENCODERS = ("aac", "ffv1", "h264_nvenc", "libx264", "pcm_s16le", "pcm_s24le", "png", "rawvideo")
 # "-f" formats src/ names, plus the containers its outputs use by extension (.mp4, .mkv, .wav, numbered images).

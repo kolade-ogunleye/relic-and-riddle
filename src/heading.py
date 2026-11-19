@@ -171,7 +171,9 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
     """A drawn form obeys the engine's hard rules: no line but the last ends on a never word; no lone-word row (unless
     `lone_ok`: a locked cover's last resort, where the break gives way before the size does; or a last row the phrase
     exception holds, phrase_row: ruling 4, measured on `widths` when given). `free_ends`: rows whose end is the copy's
-    own field boundary, not a break the engine chose (a lockup's authored lines drawn whole, QF-23 / QF-143)."""
+    own field boundary, not a break the engine chose (a lockup's authored lines drawn whole, QF-23 / QF-143): free of
+    the bonded-unit reading only, never of the never-end rule (freeze SYS-B-1: the exemption drew CARVED FROM / SOLID
+    SALT, a row ending on FROM; lockup_fields already moves a field's closing never-end words to the next field)."""
     words = " ".join(lines).split()
     spans, k = [], 0
     for ln in lines:
@@ -180,7 +182,7 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
         k += m
     if any(not ln.split() for ln in lines):
         return False
-    if any(not end_ok(ln.split()[-1]) for i, ln in enumerate(lines[:-1]) if i not in free_ends):
+    if any(not end_ok(ln.split()[-1]) for ln in lines[:-1]):
         return False
     # cycle 0 round 8 (panel: "SACRED PATHS / OR / ASTRONOMY", "CARVED / FROM"): a row of function words only is
     # never a row, at any word count and in any last resort (it is the break's hinge, not a line of the heading)
@@ -437,7 +439,8 @@ def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, se
     row's drawn width (the phrase exception's balance); `seam`: the word the copy's payoff field opens at (a
     two-field lockup's line 2), whose last row the phrase exception may keep alone (ruling 4). `fields`: `seam` is a
     boundary between two authored fields, so the row ending there is the copy's own line end (each field's own
-    breaks are the engine's and set_field already held them to the rules)."""
+    breaks are the engine's and set_field already held them to the rules): free of the bonded-unit reading, never of
+    the never-end rule (SYS-B-1)."""
     rows = [t for t in lines if t.strip()]
     if len(rows) < 2:
         return True

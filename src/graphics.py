@@ -2672,10 +2672,13 @@ def region_line(place: dict[str, Any]) -> str:
 
 def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
                      box: tuple[float, float, float, float]) -> MarkerLayout:
-    """`lay` with the region line `text` as its extra row (see region_line): on the label's far side from the marker
-    (above a label that sits over its marker, else under it), on the rows' own x and anchor, at the largest place step
-    whose ink fits the label measure, inside `box` (the text box) and clear of the marker's box; `lay` unchanged (and
-    the reason recorded in LAST_REGION_LINE) when no step or side holds it."""
+    """`lay` with the region line `text` as its extra row (see region_line), ALWAYS UNDER the site's name (lander
+    ruling, cycle 2: a map's place hierarchy reads name first, then region, and one position gives one form across
+    maps; above the name it read as a kicker), on the rows' own x and anchor, at the largest place step under the
+    site's whose ink fits the label measure. A label that sits over its marker keeps its foot where the name's foot
+    was (the label's air to the marker is unchanged): the name rises by the region line's step and the line takes the
+    name's old place. The line and the label stay inside `box` (the text box) and clear of the marker's box; else the
+    next step down, else `lay` unchanged and the reason recorded in LAST_REGION_LINE. Never above the name."""
     LAST_REGION_LINE.clear()
     LAST_REGION_LINE.update({"text": text, "shown": False, "reason": ""})
     if not text or not lay.rows:
@@ -2687,27 +2690,32 @@ def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
     gap = cap_height(site) * REGION_LINE_GAP
     _t0, (x, _b0), anchor = lay.rows[0]
     lb, mb = lay.label_box, lay.marker_box
-    over = lb[3] <= lay.anchor[1]                       # the label sits over its marker: the line goes above it
+    over = lb[3] <= lay.anchor[1]                       # the label sits over its marker: the name rises to make room
+    inside = lambda b: box[0] <= b[0] and b[2] <= box[2] and box[1] <= b[1] and b[3] <= box[3]
     why = "wider than the label measure at every place step"
     for px in place_steps(width, height):
         if px >= lay.font_px:
             continue                                    # one step under the site's: the site keeps the focal size
         f = field_font(text, place_font(px))
-        for above in ((True, False) if over else (False, True)):
-            base = lb[1] - gap if above else lb[3] + gap + cap_height(f)
-            rb = ink_box((x, base), text, f, anchor, 0)
-            if rb is None:
-                continue
-            if rb[2] - rb[0] > measure:
-                break
-            if not (box[0] <= rb[0] and rb[2] <= box[2] and box[1] <= rb[1] and rb[3] <= box[3]):
-                why = "outside the text box on either side of the label"
-                continue
-            if LayoutConstraintSolver.boxes_intersect(rb, mb, MARKER_LABEL_CLEAR * k):
-                why = "over the marker on either side of the label"
-                continue
-            LAST_REGION_LINE.update({"shown": True, "px": px, "box": list(rb), "side": "above" if above else "below"})
-            return dataclasses.replace(lay, label_box=_union([lb, rb]), extra=((text, (x, base), anchor, px),))
+        rise = gap + cap_height(f) if over else 0.0
+        rows = tuple((t, (xy[0], xy[1] - rise), a) for t, xy, a in lay.rows)
+        name_box = (lb[0], lb[1] - rise, lb[2], lb[3] - rise)
+        base = name_box[3] + gap + cap_height(f)
+        rb = ink_box((x, base), text, f, anchor, 0)
+        if rb is None:
+            continue
+        if rb[2] - rb[0] > measure:
+            continue
+        if not (inside(rb) and inside(name_box)):
+            why = "the name and its region line do not fit the text box"
+            continue
+        if LayoutConstraintSolver.boxes_intersect(rb, mb, MARKER_LABEL_CLEAR * k) or (
+                over and LayoutConstraintSolver.boxes_intersect(name_box, mb, 0)):
+            why = "under the name it would sit over the marker"
+            continue
+        LAST_REGION_LINE.update({"shown": True, "px": px, "box": list(rb), "side": "below", "rise": round(rise, 1)})
+        return dataclasses.replace(lay, rows=rows, label_box=_union([name_box, rb]),
+                                   extra=((text, (x, base), anchor, px),))
     LAST_REGION_LINE["reason"] = why
     log.info("Map: the region line %r is not drawn: %s.", text, why)
     return lay

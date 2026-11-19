@@ -350,7 +350,7 @@ def _layout(anchor=(540.0, 900.0), above=True):
 
 
 @pytest.mark.parametrize("above", [True, False], ids=["label-over-pin", "label-under-pin"])
-def test_the_region_line_joins_the_site_label_on_its_far_side_under_the_gates(above):
+def test_the_region_line_joins_the_site_label_always_under_the_name_under_the_gates(above):
     box = graphics.get_text_box(*TALL)
     lay = _layout(above=above)
     out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, box)
@@ -362,7 +362,13 @@ def test_the_region_line_joins_the_site_label_on_its_far_side_under_the_gates(ab
     rb = rec["box"]
     assert box[0] <= rb[0] and rb[2] <= box[2] and box[1] <= rb[1] and rb[3] <= box[3]
     assert not graphics.LayoutConstraintSolver.boxes_intersect(rb, lay.marker_box, 0)
-    assert (rb[3] <= lay.label_box[1]) if above else (rb[1] >= lay.label_box[3])   # the far side from the marker
+    assert rec["side"] == "below"                                             # always under the name (ruling)
+    name_ink = graphics._rows_box(list(out.rows), graphics.place_font(lay.font_px))
+    assert rb[1] >= name_ink[3]                                               # under the name's ink, never above
+    if above:      # the label over its pin keeps its foot: the line takes the name's old place, the name rises
+        assert abs(out.label_box[3] - lay.label_box[3]) <= 8                 # (a comma descends a few px)
+    else:          # the label under its pin: the name stays where it was
+        assert out.rows == lay.rows
     assert out.label_box[1] <= rb[1] and out.label_box[3] >= rb[3]            # the label box holds it
     # one member of the label set: planned with the site's rows, one treatment
     ground = Image.new("RGB", TALL, (200, 190, 170))

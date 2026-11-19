@@ -472,6 +472,11 @@ def _thin_geo(tmp: Path):
             (geo, "find_country", lambda name, **k: next((c for c in world if name.lower() in c["names"]), None))]
 
 
+def _same_geo(tmp: Path):
+    """The base synthetic world, unchanged (for a branch that changes only the map's site)."""
+    return []
+
+
 def branches() -> dict[str, dict[str, Callable]]:
     """kind -> {branch: render(ctx, size)}: the data-driven variants each kind's code distinguishes, beyond its base
     input. Event counts from graphics.TIMELINE_MAX_EVENTS (2 to one over the cap, the base drawing 5); optional fields
@@ -494,7 +499,12 @@ def branches() -> dict[str, dict[str, Callable]]:
                                                     "subject": "A stone tower", "approximate": True})},
         "graphics.render_map": {"coast": _on_world("map", _coast_geo),
                                 "thin_home": _on_world("map", _thin_geo, {"lat": 13.45, "lon": -15.3, "label": "Janjanbureh",
-                                                                          "country": "Gambia", "approximate": False})},
+                                                                          "country": "Gambia", "approximate": False}),
+                                # lane A cycle 2: a site with a recorded region draws its region line under the name
+                                # (graphics.with_region_line), a size site of its own
+                                "region": _on_world("map", _same_geo, {"lat": 38.3735, "lon": 34.7347,
+                                                                       "label": "Derinkuyu", "region": "Cappadocia",
+                                                                       "country": "Turkey", "approximate": False})},
         "graphics.render_route": {"coast": _on_world("route", _coast_geo)},
         "story.frame": {
             "hero": _story_slide({"kicker": "UNDERGROUND", "line1": "280 FEET", "line2": "BELOW THE HILL",

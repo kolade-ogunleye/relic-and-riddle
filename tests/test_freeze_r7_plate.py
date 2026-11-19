@@ -256,6 +256,9 @@ def test_a_detector_plugs_in_and_every_crop_honours_it(tmp_path):
 CROP_SITES = {
     "typography:cover_crop": "crops the hero window's clean region (without_caption_strip)",
     "then_now:frame_pair": "its sources come from then_now._load_clean (without_caption_strip)",
+    "then_now:frame_pair._fitted": ("SYS-A-3: the subject mask (_load_clean_subject, of the same cleaned source) "
+                                    "through the photo's own trim and fit, so the mask stays registered to the "
+                                    "photo; a mask, never a drawn photo"),
     "end_card:_cover": "a rendered video frame (the narration's graded last frame), not a source photograph",
     "visual_engine:redraw_cover": "engine._hero_source, cleaned by photo_hygiene.clean_hero",
     "visual_engine:VisualEngine.generate_thumbnails": "self._hero_source, cleaned by photo_hygiene.clean_hero",

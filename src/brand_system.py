@@ -491,7 +491,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "end_card:_masthead.at": "E",
     "end_card:end_screen_extras": "E",
     "end_card:layout": "E",
-    "graphics:_plan": "A",
     "graphics:_probe_tracked": "A",
     "graphics:_render_cross_section": "A",
     "graphics:_render_cross_section.build": "A",
@@ -522,7 +521,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:neighbour_plates": "A",
     "graphics:place_font": "A",
     "graphics:relief_base": "A",
-    "graphics:ruler_label": "A",
     "graphics:render_route": "A",
     "graphics:render_route.name_places": "A",
     "graphics:scale_bar": "A",
@@ -587,7 +585,9 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:_dash_rule": "A",
     "graphics:_italic_mask": "A",
     "graphics:_place_name": "A",
+    "graphics:_plan": "A",                # QF-138 (lane A c1): sized by its callers, measured and drawn here
     "graphics:_plan_thin": "A",
+    "graphics:ruler_label": "A",          # QF-138 (lane A c1): sized by its callers, measured and drawn here
     "graphics:_render_cross_section.compose": "A",
     "graphics:_render_scale_vertical.compose": "A",
     "graphics:_render_timeline_tall": "A",

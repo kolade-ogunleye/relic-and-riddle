@@ -3,6 +3,8 @@ each held by an invariant over its class.
 
 a. drawn == signed: a signed scale value is drawn at its signed precision (6.5 m drew "6 M"), and the drawn-figure
    gate's conversion tolerance never passes a figure in the signed value's own unit (it passed "6 M" for 6.1 m).
+b. the number card draws in the one gold scope (ruling 8): a span with "TO" is the figure whole, a bracketed qualifier
+   the bone hedge, every row coloured by figures.gold_runs (Damascus "62 TO 67 (ESTIMATED)").
 """
 from __future__ import annotations
 
@@ -64,3 +66,56 @@ def test_a_subject_precision_only_for_the_subjects_own_size():
     assert graphics.signed_lead(fact, 305.0, "M") is None          # a landmark's size is never the fact's
     assert graphics.signed_lead(fact, 6.5 * graphics.FT_PER_M, "FT") is None   # the fact signs metres
     assert graphics.signed_lead({"value": 10, "unit": "km"}, 32808.4, "FT") is None
+
+
+# ------------------------------------------------------------------ b. the number card's gold scope (ruling 8)
+@pytest.mark.parametrize("value,want", [
+    ("62 TO 67 (ESTIMATED)", {"pre": "ESTIMATED", "num": "62–67", "unit": "", "sec": ""}),
+    ("ABOUT 62 TO 67 FT (ESTIMATED)", {"pre": "ABOUT", "num": "62–67", "unit": "FT (ESTIMATED)", "sec": ""}),
+    ("ABOUT 280 FT (85 M)", {"pre": "ABOUT", "num": "280", "unit": "FT", "sec": "85 M"}),
+    ("94–104 MILLION YEARS AGO", {"pre": "", "num": "94–104", "unit": "MILLION YEARS AGO", "sec": ""}),
+])
+def test_b_figure_parts_keep_a_span_whole_and_a_bracketed_qualifier_a_hedge(value, want):
+    assert graphics.figure_parts(value) == want
+    parts = graphics.figure_parts(value)
+    # the parts state the value's figure whole, with its hedge (the drawn-figure gate's reading)
+    drawn = " ".join(x for x in (parts["pre"], parts["num"], parts["unit"]) if x)
+    assert figure_gate.figure_faults(drawn, figures.parse(value)) == []
+
+
+@pytest.mark.parametrize("value", ["62 TO 67 (ESTIMATED)", "ABOUT 62 TO 67 FT (ESTIMATED)", "94–104 MILLION YEARS AGO",
+                                   "280 FT DEEP (85 M)", "EST. OVER 13,000 LBS", "1,200 TONS", "25+ MILES"])
+def test_b_every_number_card_row_is_coloured_by_the_one_gold_scope(tmp_path, monkeypatch, value):
+    """Every word the card draws is gold exactly when figures.gold_runs gilds it in the card's whole value: the number
+    and its unit gold, a hedge, a dimension word and a bracketed qualifier bone."""
+    from src import brand
+    monkeypatch.setattr(graphics, "VIDEO_FPS", 4)
+    seen = {}
+    real = graphics.record_contrast
+
+    def grab(out, frame, plates, rulers=None):
+        seen["plates"] = plates
+        return real(out, frame, plates, rulers)
+    monkeypatch.setattr(graphics, "record_contrast", grab)
+    graphics.render_stat_cards([{"value": value, "label": "Of the blades tested"}], tmp_path / "n.mp4")
+    gold_words, bone_words = set(), set()
+    for name, plate in seen["plates"]:
+        if name == "label":
+            continue
+        subs = getattr(plate, "plates", None) or [plate]
+        if len({tuple(q.fill[:3]) for q in subs}) == 1:   # a figure planned a character at a time: read whole
+            subs = [type("Whole", (), {"text": plate.text, "fill": subs[0].fill})()]
+        for p in subs:
+            words = {w.strip("()") for w in p.text.split()} - {""}
+            (gold_words if tuple(p.fill[:3]) == tuple(graphics.figure_fill()) else bone_words).update(words)
+            assert tuple(p.fill[:3]) in (tuple(graphics.figure_fill()), tuple(brand.BONE)), (name, p.text, p.fill)
+    want_gold = set()
+    for run, gold in figures.gold_runs(graphics.figure_text(value)):
+        if gold:
+            want_gold |= {w.strip("()") for w in run.replace("–", " ").split()}
+    drawn_gold = {g for w in gold_words for g in w.replace("–", " ").split()}
+    assert drawn_gold == want_gold - {"TO"}, (gold_words, want_gold)
+    assert not ({w for w in bone_words if any(c.isdigit() for c in w)}), bone_words
+    if "ESTIMATED" in value:
+        assert "ESTIMATED" in bone_words and "ESTIMATED" not in gold_words
+

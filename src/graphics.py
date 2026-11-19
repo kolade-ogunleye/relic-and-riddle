@@ -9612,13 +9612,55 @@ def count_step(raw: str) -> int:
 def figure_parts(value: str) -> dict[str, str]:
     """A number card's value in its drawn parts: what comes before the figure ("ABOUT", "EST."), the figure
     ("280", "25+", "94–104"), its unit ("FT", "MILLION YEARS") and a figure in brackets ("85 M"), which the card
-    sets as its second line (the conversion). A value with no figure is all `unit` (drawn as it is)."""
+    sets as its second line (the conversion). A value with no figure is all `unit` (drawn as it is).
+    SYS-R8 integration (ruling 8, Damascus "62 TO 67 (ESTIMATED)" drew "62" over a gold "TO 67" and a gold
+    "ESTIMATED"): a span written with "TO" is the figure whole, in the card's span form ("62–67", as range_figure
+    and figure_text write a range), never one end with the other in the unit; a bracket that states no figure is a
+    qualifier, not a conversion: it is the card's hedge, the bone kicker ("ESTIMATED"; the prefix role, so one
+    qualifier role has one treatment), or, beside a prefix, stays in brackets after the unit, which the card colours
+    by figures.gold_runs (bone)."""
     import re
-    m = re.match(r"^\s*(?P<pre>[^\d(]*?)\s*(?P<num>\d[\d,.]*(?:\s*[–-]\s*\d[\d,.]*)?\+?)\s*(?P<unit>[^()]*?)\s*"
-                 r"(?:\((?P<sec>[^)]*)\))?\s*$", value or "")
+    m = re.match(r"^\s*(?P<pre>[^\d(]*?)\s*(?P<num>\d[\d,.]*(?:\s*(?:[–-]|TO\b)\s*\d[\d,.]*)?\+?)\s*"
+                 r"(?P<unit>[^()]*?)\s*(?:\((?P<sec>[^)]*)\))?\s*$", value or "", re.IGNORECASE)
     if not m:
         return {"pre": "", "num": "", "unit": (value or "").strip(), "sec": ""}
-    return {k: " ".join((m.group(k) or "").split()) for k in ("pre", "num", "unit", "sec")}
+    out = {k: " ".join((m.group(k) or "").split()) for k in ("pre", "num", "unit", "sec")}
+    to = re.fullmatch(r"(\d[\d,.]*)\s+TO\s+(\d[\d,.]*\+?)", out["num"], re.IGNORECASE)
+    if to:
+        lo, hi = (float(x.replace(",", "").rstrip("+")) for x in to.groups())
+        if lo < hi:
+            out["num"] = f"{to.group(1)}–{to.group(2)}"
+        else:   # not a span ("2025 TO 12"): the first number, the rest as before
+            out["num"], out["unit"] = to.group(1), " ".join(x for x in (f"TO {to.group(2)}", out["unit"]) if x)
+    if out["sec"] and not re.search(r"\d", out["sec"]):
+        qual, out["sec"] = out["sec"], ""
+        if out["pre"]:
+            out["unit"] = " ".join(x for x in (out["unit"], f"({qual})") if x)
+        else:
+            out["pre"] = qual
+    return out
+
+
+def stat_row_runs(parts: dict[str, str], key: str) -> list[tuple[str, bool]]:
+    """A number card row's text as gold runs (ruling 8, src/figures.py gold_runs): the row read inside its whole
+    figure ("94–104 MILLION YEARS AGO": the unit row MILLION YEARS gold, AGO bone; a bracketed qualifier bone), so a
+    unit or a conversion drawn on its own row keeps the one gold scope."""
+    from .figures import gold_runs
+    text = parts.get(key) or ""
+    if not text:
+        return []
+    if key == "sec":
+        return gold_runs(text) or [(text, False)]
+    head = f"{parts.get('num') or ''} " if parts.get("num") else ""
+    full = head + text
+    out, pos = [], 0
+    for run, gold in gold_runs(full) or [(full, False)]:
+        a, b = pos, pos + len(run)
+        pos = b
+        lo, hi = max(a, len(head)), b
+        if hi > lo:
+            out.append((full[lo:hi], gold))
+    return out
 
 
 def _cells(d: ImageDraw.ImageDraw, text: str, font) -> list[tuple[str, float]]:
@@ -9697,11 +9739,11 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
     if unit and below:
         y += round(cap_height(f_unit) * 1.45)
         rows.append({"name": "unit", "kind": "unit", "text": unit, "font": f_unit, "y": y, "x": 0,
-                     "fill": figure_fill() if num else brand.BONE})
+                     "fill": figure_fill() if num else brand.BONE, "runs": stat_row_runs(parts, "unit") if num else []})
     elif unit:
         # ruling 8 (cycle 0 round 8): the unit is the quantity's, gold with its number; with no number it is a heading
         rows.append({"name": "unit", "kind": "unit", "text": unit, "font": f_unit, "y": y, "x": (num_w + 24) if num else 0,
-                     "fill": figure_fill() if num else brand.BONE})
+                     "fill": figure_fill() if num else brand.BONE, "runs": stat_row_runs(parts, "unit") if num else []})
     f_lab_px = round(46 * scale)
     lines, f_lab, _ = fit_text(d, card["label"].upper(), brand.TEXT_FONT, max(word_floor, f_lab_px), width - 120, 2,
                                max(word_floor, label_min if label_min is not None else max(26, round(f_lab_px * 0.75))),
@@ -9715,7 +9757,8 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
     if sec:
         f_sec = figure_font(conversion_px(size, round(46 * scale), word_floor))
         y += round(f_sec.size * 1.45)
-        rows.append({"name": "secondary", "kind": "count", "text": sec, "font": f_sec, "y": y, "fill": figure_fill()})
+        rows.append({"name": "secondary", "kind": "count", "text": sec, "font": f_sec, "y": y, "fill": figure_fill(),
+                     "runs": stat_row_runs(parts, "sec")})
     probe_rows = [r for r in rows if r["kind"] != "kicker"]
     low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in probe_rows)
     high = min([0] + [d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in rows])
@@ -10029,12 +10072,32 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                     x += w
                 r["x_end"] = x
                 r["fill"] = r["dim_fill"] = figure_fill()
+            elif any(not g for _t, g in r.get("runs") or ()) and any(g for _t, g in r.get("runs") or ()):
+                # ruling 8 (SYS-R8 integration): a unit or conversion row with a bone word in it (a dimension word,
+                # a bracketed qualifier) is drawn run by run, its quantity gold and its words bone (stat_row_runs);
+                # the quantity never steps back, its words dim like the label's
+                x, r["plates"], dims = x0 + r.get("x", 0), [], []
+                for run, gold in r["runs"]:
+                    if run.strip():
+                        lead = probe.textlength(run[:len(run) - len(run.lstrip())], font=r["font"])
+                        r["plates"].append(plan_text(rest, (x + lead, yy), run.strip(), r["font"],
+                                                     figure_fill() if gold else brand.BONE, "ls"))
+                        dims.append(figure_fill() if gold else brand.STONE_LT)
+                    x += probe.textlength(run, font=r["font"])
+                r["dim_fill"] = r["fill"]
+                r["twins"] = [_twin(rest, pl, f) for pl, f in zip(r["plates"], dims)] if p["dims"] else []
+                plates.append((r["name"], _JoinedPlate(r["twins"] or r["plates"], rest, r["text"])))
+                continue
             else:
-                r["plates"] = [plan_text(rest, (x0 + r.get("x", 0), yy), r["text"], r["font"], r["fill"], "ls",
+                fill = r["fill"]
+                if r.get("runs") and not any(g for _t, g in r["runs"]):
+                    fill = brand.BONE   # a row with no quantity in it is a word row (ruling 8: bone)
+                r["fill"] = fill
+                r["plates"] = [plan_text(rest, (x0 + r.get("x", 0), yy), r["text"], r["font"], fill, "ls",
                                          track=r.get("track", 0))]
                 # a conversion and a unit stay gold (the quantity never steps back; ruling 8: one treatment for both
                 # twin cards' number and unit, MG-4)
-                r["dim_fill"] = r["fill"] if r["kind"] in ("count", "unit") else brand.STONE_LT
+                r["dim_fill"] = r["fill"] if r["kind"] in ("count", "unit") and fill != brand.BONE else brand.STONE_LT
             r["twins"] = [_twin(rest, pl, r["dim_fill"]) for pl in r["plates"]] if p["dims"] else []
             shown = r["twins"] or r["plates"]
             if r["kind"] == "figure":

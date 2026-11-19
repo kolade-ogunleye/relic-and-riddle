@@ -122,7 +122,8 @@ def test_the_finished_capsule_outline_is_symmetric():
 def test_the_card_runs_its_length_and_starts_on_the_last_frame():
     last = _busy(5)
     frames = list(end_card.frames(last, "Send this to the codebreaker you know.", stats := {}))
-    assert len(frames) == round(end_card.SECONDS * end_card.FPS) and frames[0].size == (1080, 1920)
+    assert len(frames) == round(stats["seconds"] * end_card.FPS) and frames[0].size == (1080, 1920)
+    assert stats["seconds"] >= end_card.SECONDS and not stats["reading"]["over_pace"]   # held until it reads
     first = np.asarray(frames[0], dtype=np.float32)
     assert np.abs(first - np.asarray(last, dtype=np.float32)).mean() < 3          # no jump at the seam
     end = np.asarray(frames[-1].convert("L"), dtype=np.float32)

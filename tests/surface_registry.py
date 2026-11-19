@@ -249,12 +249,13 @@ def _youtube(ctx, size):
 
 def _end_card(ctx, size):
     from src import end_card
-    old = (end_card.SECONDS, end_card.END_SCREEN_SECONDS)
+    old = (end_card.SECONDS, end_card.END_SCREEN_SECONDS, end_card.reading_need)
     end_card.SECONDS = end_card.END_SCREEN_SECONDS = 0.2
+    end_card.reading_need = lambda *a, **k: 0.0   # short: the reading hold is lane E's own test
     try:
         list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "Share this with a friend.", {}))
     finally:
-        end_card.SECONDS, end_card.END_SCREEN_SECONDS = old
+        end_card.SECONDS, end_card.END_SCREEN_SECONDS, end_card.reading_need = old
 
 
 def _captions(ctx, size):
@@ -420,12 +421,13 @@ def _only(canvas, fn):
 def _end_screen(**kw):
     def go(ctx, size):
         from src import end_card
-        old = (end_card.SECONDS, end_card.END_SCREEN_SECONDS)
+        old = (end_card.SECONDS, end_card.END_SCREEN_SECONDS, end_card.reading_need)
         end_card.SECONDS = end_card.END_SCREEN_SECONDS = 0.2
+        end_card.reading_need = lambda *a, **k: 0.0   # short: the reading hold is lane E's own test
         try:
             list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "The next riddle is right here.", {}, **kw))
         finally:
-            end_card.SECONDS, end_card.END_SCREEN_SECONDS = old
+            end_card.SECONDS, end_card.END_SCREEN_SECONDS, end_card.reading_need = old
     return go
 
 

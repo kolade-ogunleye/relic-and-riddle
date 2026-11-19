@@ -369,8 +369,11 @@ def test_thumbnail_qualifier_is_kerned_and_the_title_clears_the_dimension_word()
 
 def test_thumbnail_raises_a_lines_target_until_it_passes_the_feed_gate(monkeypatch) -> None:
     # A busy bright photo: the full-size plan alone measures under 4.5 at 246 px; the loop re-plans that line.
+    # Freeze integration (lane B cycle 2's masthead fit ladder re-lays the lockup): noise 100-230 no longer fails the
+    # first plan (figure 4.84, unit 4.63, title 5.45 at 246 px), so the generated noise is brighter, 140-255: the
+    # figure and its unit measure under 4.5 on the first plan and pass after one raised target each.
     rng = np.random.default_rng(5)
-    noise = Image.fromarray(rng.integers(100, 230, (1080, 1920, 3), dtype=np.uint8))
+    noise = Image.fromarray(rng.integers(140, 255, (1080, 1920, 3), dtype=np.uint8))
     monkeypatch.setattr(youtube_thumbnail, "SHADE_ALPHA", 0.0)
     meta = {}
     youtube_thumbnail.render(noise, {"line1": "THE 25-MILE", "line2": "SAHARA EYE"}, meta=meta)

@@ -1797,6 +1797,28 @@ def _line_break_defect(shown: list[str], k: int) -> bool:
     return never_end_end(shown[k - 1]) or unit_link(shown[k - 1], shown[k])
 
 
+def reel_name_split(phrase: Any) -> bool:
+    """Lane C cycle 2 (lander ruling 2): whether the 9:16 burst draws on two lines broken inside a proper name."""
+    layout = reel_caption_lines(phrase)
+    if layout is None:
+        return False
+    words = phrase.split() if isinstance(phrase, str) else phrase
+    shown = _phrase_words(list(words))
+    return (layout[0] - 1) in name_bonds(list(shown))
+
+
+def name_split_bursts(phrases) -> list[str]:
+    """The 9:16 bursts (" / " between the lines) whose two lines split a proper name: each where no line holds the
+    name whole at the bond floor (a name too wide for one line: PODKAMENNAYA TUNGUSKA RIVER)."""
+    out = []
+    for p in phrases:
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        if reel_name_split(ws):
+            k = reel_caption_lines(ws)[0]
+            out.append(" ".join(ws[:k]) + " / " + " ".join(ws[k:]))
+    return out
+
+
 def reel_line_defect(phrase: Any) -> bool:
     """Whether the 9:16 burst draws on two lines (reel_caption_lines) with a line defect (_line_break_defect)."""
     layout = reel_caption_lines(phrase)
@@ -1854,7 +1876,10 @@ def _two_line_options(words: tuple[str, ...]) -> tuple[tuple[tuple, int, int, fl
             # from its unit (MORE THAN 830 / SQUARE) is a line defect (_line_break_defect), ranked before the rung:
             # a break without one at any rung comes first; with none, the burst is set another way where it can be
             # (_reel_caption_lines: one line at CAPTION_BOND_MIN_SIZE; caption_phrases' _break_repair re-cuts it)
-            rank = (_line_break_defect(shown, k), -rung, name, dangles, lone, round(wide),
+            # lane C cycle 2 (lander ruling 2, 2026-11-20): a proper name is a bond like a figure and its unit, so a
+            # break inside one (name_bonds) ranks first, above the line defect and the rung: the lead-in and the whole
+            # name take one line down to the bond floor (_reel_form) before a name splits (was: rung first)
+            rank = (name, _line_break_defect(shown, k), -rung, dangles, lone, round(wide),
                     0 if _bare(shown[k]) in NAME_PARTICLES else 1)
             out.append((rank, k, rung, wide))
     return tuple(sorted(out))
@@ -1946,14 +1971,21 @@ def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
     # two-line burst (a whole figure group then tries its range or bracket break)
     options = [(k, rung) for _, k, rung, _ in _two_line_options(tuple(words)) if rung >= floor and plate_fits(k, rung)]
     if options and max(rung for _, rung in options) >= minimum:
-        if not _line_break_defect(shown, options[0][0]):
+        shown_named = name_bonds(list(shown))
+
+        def bad(k: int) -> bool:   # lane C cycle 2: a break inside a proper name, or a line defect
+            return (k - 1) in shown_named or _line_break_defect(shown, k)
+        if not bad(options[0][0]):
             return ("two", *options[0])
         # lane C cycle 1 (N1): every break here has a line defect. A whole figure group's own break (a range joiner,
         # after its hedge) comes first, then one line at CAPTION_BOND_MIN_SIZE (THAT THE MANUSCRIPT'S); only where
         # neither holds is the defect kept (NEAR / THE PODKAMENNAYA: no valid break exists), and every record names
         # it (line_defect_bursts)
+        # lane C cycle 2: likewise a burst every break of which splits a name sets on one line at the bond floor where
+        # it fits (OF ARMY GROUP NORTH at 66); only where nothing else holds does a name split (a name too wide
+        # for any one line), and every record names it (line_defect_bursts, name_split_bursts)
         split = _figure_split(words, shown, minimum, floor, plate_fits) if whole_figure else None
-        if split is not None and not _line_break_defect(shown, split[0]):
+        if split is not None and not bad(split[0]):
             return ("two", *split)
         if _caption_ink_width(shown, CAPTION_BOND_MIN_SIZE) <= budget:
             return ("floor", 0, CAPTION_BOND_MIN_SIZE)
@@ -2346,7 +2378,9 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             # rules2 F4: the bursts ending mid-sentence on a never-end word, counted by the breakers' own predicate
             "never_end": never_end_bursts(phrases),
             # lane C cycle 1: and the 9:16 two-line bursts whose line break the repair could not make valid
-            "line_defect": [] if widescreen else line_defect_bursts(phrases)}
+            "line_defect": [] if widescreen else line_defect_bursts(phrases),
+            # lane C cycle 2: and those whose line break splits a proper name (recorded, as ruled)
+            "name_split": [] if widescreen else name_split_bursts(phrases)}
 
 
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:

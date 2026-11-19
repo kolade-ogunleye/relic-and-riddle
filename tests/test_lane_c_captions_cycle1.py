@@ -184,18 +184,34 @@ def test_a_one_word_line_only_where_no_break_without_one_is_valid(name, words, e
         k, rung = lines
         if k != 1 and k != len(shown) - 1:
             continue
-        named = vc.name_bonds(list(shown))
         for rank, kk, rr, _ in vc._two_line_options(tuple(w["word"] for w in p)):
             if rr != rung or kk in (1, len(shown) - 1):
                 continue
-            assert rank[0] or rank[2] or rank[3] or (kk - 1) in named, (name, shown, k, kk)
+            assert rank[0] or rank[1] or rank[3], (name, shown, k, kk)   # a name split, a line defect, a dangle
 
 
-def test_line_one_never_ends_on_a_never_end_word_where_a_valid_break_exists():
-    # the AD's N1 lines (Amber OF / ARMY GROUP NORTH, WHEN / KÖNIGSBERG CASTLE): another break sets them
-    for words in (["of", "Army", "Group", "North"], ["when", "Königsberg", "Castle"]):
-        lines = vc.reel_caption_lines(words)
-        assert lines is not None and not vc._line_break_defect(words, lines[0]), (words, lines)
+def test_a_name_is_a_bond_before_the_rung_and_the_line_defect():
+    """Cycle 2 (lander ruling 2): the lead-in and the whole name on one line down to the bond floor (OF ARMY GROUP
+    NORTH at 66) before a name splits; where no line holds them (WHEN KÖNIGSBERG CASTLE: 663 px at 66) the name stays
+    whole on line 2 and the lead-in line is a recorded line defect."""
+    assert vc.reel_floor_line(["of", "Army", "Group", "North"]) and not vc.reel_name_split(["of", "Army", "Group", "North"])
+    lines = vc.reel_caption_lines(["when", "Königsberg", "Castle"])
+    assert lines == (1, vc.FONT_SIZE) and not vc.reel_name_split(["when", "Königsberg", "Castle"])
+
+
+@pytest.mark.parametrize("name,words,emph,wide", CASES, ids=[c[0] for c in CASES])
+def test_no_burst_and_no_line_splits_a_proper_name_unless_recorded(name, words, emph, wide):
+    """A proper name (name_bonds: the narration's own capitalised runs, not sentence starts; no topic list) is never
+    cut between bursts on either path, and a 9:16 line splits one only where the record names it."""
+    phrases = _phrases(name, words, emph, wide)
+    named = vc.name_bonds([w["word"] for w in words])
+    raw = [w["word"] for w in words]
+    for k in _cuts(phrases):
+        assert k not in named, (name, raw[max(0, k - 3):k + 3])
+    if wide:
+        return
+    split = [_line_text(p, vc.reel_caption_lines(p)[0]) for p in phrases if vc.reel_name_split(p)]
+    assert _record(phrases, wide)["name_split"] == split
 
 
 def test_a_break_after_a_whole_hedge_keeps_the_value_whole():

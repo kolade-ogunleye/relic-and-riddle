@@ -121,7 +121,8 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     from src import video_composer as vc
 
     def forced(p) -> bool:   # no full-size form without a line defect
-        return all(rank[0] for rank, _k, rung, _w in vc._two_line_options(tuple(w["word"] for w in p)) if rung == FONT_SIZE)
+        options = vc._two_line_options(tuple(w["word"] for w in p))
+        return all(rank[0] or rank[1] for rank, _k, rung, _w in options if rung == FONT_SIZE)
     bursts = vc.caption_phrases(words, ["Kailasa"])
     unbonded = [" ".join(w["word"] for w in p) for p in bursts
                 if len(p) > 1 and _caption_fit_size(p) < FONT_SIZE and not caption_bonds(p) and not forced(p)]

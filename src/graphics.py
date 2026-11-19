@@ -8563,9 +8563,13 @@ def render_scale(fact: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         return None
     ref_label, ref_feet, _ = ref
     depth = fact.get("dimension") == "depth"
-    if width < height or drawing_floor is not None:
-        return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height, drawing_floor)
-    return _render_scale_wide(fact, feet, ref_label, ref_feet, depth, out, width, height)
+    feed = _FEED_PX.set(FEED_MIN_DELIVERED * width / FEED_PHONE_PT)   # landmark prototype: the least feed detail
+    try:
+        if width < height or drawing_floor is not None:
+            return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height, drawing_floor)
+        return _render_scale_wide(fact, feet, ref_label, ref_feet, depth, out, width, height)
+    finally:
+        _FEED_PX.reset(feed)
 
 
 # Each landmark's width per px of its height, from its sourced proportions (reference_facts.json heights):
@@ -8581,18 +8585,126 @@ def _landmark_kind(label: str) -> str:
             "pyramid" if "pyramid" in low else "person")
 
 
+# Landmark prototype (claude/freeze-landmark-proto): one flat-vector style for the landmarks and the subject. Four
+# tones per object from the brand palette, lit from the upper left on every object: a LIGHT face, a SHADE face (each
+# mass's right side), a RIM (BONE, a band inside the lit left or top skyline) and a DARK detail ink (openings). Shapes are
+# written once as path data in the landmark's own units (FEED_PATH_UNITS per height, x from the centre line, y UP
+# from the base) and filled through the drawing's Draw (raster.Draw on the renders: QF-26's one antialiased path).
+# Feed legibility: nothing is drawn thinner than FEED_MIN_DELIVERED px at the delivered phone width (FEED_PHONE_PT):
+# a rim is thickened to it and a detail that would fall under it is left out (it would only read as noise).
+FEED_PATH_UNITS = 1000
+FEED_PHONE_PT = 390            # px: the phone width a feed post is seen at
+FEED_MIN_DELIVERED = 2.0       # px: the least stroke or detail at that width
+FEED_MIN_PX_916 = FEED_MIN_DELIVERED * 1080 / FEED_PHONE_PT   # ~5.5 px on the 1080-wide 9:16 frame
+LANDMARK_BAND_MAX_U = 25        # path units: a rim or joint band deeper than this is left out (too coarse)
+_FEED_PX: _ctxvars.ContextVar[float] = _ctxvars.ContextVar("feed_px", default=FEED_MIN_PX_916)  # per render
+
+_PATH_TOKEN = re.compile(r"[MLHVQCZ]|-?\d+(?:\.\d+)?")
+
+
+def _path_polygons(path: str, steps: int = 12) -> list[list[tuple[float, float]]]:
+    """A small SVG path subset (absolute M L H V Q C Z) flattened to polygons, in the path's own units."""
+    toks = _PATH_TOKEN.findall(path)
+    polys: list[list[tuple[float, float]]] = []
+    cur: list[tuple[float, float]] = []
+    i, cmd = 0, "M"
+    x = y = 0.0
+
+    def num() -> float:
+        nonlocal i
+        v = float(toks[i])
+        i += 1
+        return v
+    while i < len(toks):
+        if toks[i].isalpha():
+            cmd = toks[i]
+            i += 1
+            if cmd == "Z":
+                if cur:
+                    polys.append(cur)
+                cur = []
+                continue
+        if cmd == "M":
+            if cur:
+                polys.append(cur)
+            x, y = num(), num()
+            cur = [(x, y)]
+            cmd = "L"
+        elif cmd == "L":
+            x, y = num(), num()
+            cur.append((x, y))
+        elif cmd == "H":
+            x = num()
+            cur.append((x, y))
+        elif cmd == "V":
+            y = num()
+            cur.append((x, y))
+        elif cmd == "Q":
+            c1, e = (num(), num()), (num(), num())
+            p0 = (x, y)
+            for k in range(1, steps + 1):
+                t = k / steps
+                cur.append(((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c1[0] + t * t * e[0],
+                            (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c1[1] + t * t * e[1]))
+            x, y = e
+        elif cmd == "C":
+            c1, c2, e = (num(), num()), (num(), num()), (num(), num())
+            p0 = (x, y)
+            for k in range(1, steps + 1):
+                t = k / steps
+                a, b, c, dd = (1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3
+                cur.append((a * p0[0] + b * c1[0] + c * c2[0] + dd * e[0], a * p0[1] + b * c1[1] + c * c2[1] + dd * e[1]))
+            x, y = e
+        else:
+            raise ValueError(f"unsupported path command {cmd!r}")
+    if cur:
+        polys.append(cur)
+    return polys
+
+
 class _LandmarkPen:
     """Draws in a landmark's own units: x in heights from its centre line, y as the fraction of its height above
-    its base (0 = ground, 1 = top), so each drawing is written once and scales to any size."""
+    its base (0 = ground, 1 = top), so each drawing is written once and scales to any size. `min_px` is the least
+    stroke or detail in frame px that still reads at feed size (FEED_MIN_DELIVERED at the phone width)."""
 
-    def __init__(self, d: ImageDraw.ImageDraw, cx: float, base_y: float, h: float, colour) -> None:
+    def __init__(self, d: ImageDraw.ImageDraw, cx: float, base_y: float, h: float, colour,
+                 min_px: float | None = None) -> None:
         self.d, self.cx, self.base_y, self.h = d, cx, base_y, h
         self.fill = (*colour, 255)
-        shade = brand.STONE if tuple(colour) == tuple(brand.STONE_LT) else tuple(int(c * 0.82) for c in colour)
+        branded = tuple(colour) == tuple(brand.STONE_LT)
+        shade = brand.STONE if branded else tuple(int(c * 0.82) for c in colour)
         self.shade = (*shade, 255)
         self.ink, self.gold = (*brand.INK, 255), (*brand.GOLD_DIM, 255)
         self.detail = h >= 110                      # fine lines only where they read; the outline carries it below
         self.lw = max(1, round(h * 0.0035))
+        # the prototype's four tones (a mask or a test colour draws every tone in its one colour)
+        self.light = self.fill
+        self.rim = (*brand.BONE, 255) if branded else self.fill
+        self.dark = self.ink if branded else self.fill
+        self.min_px = _FEED_PX.get() if min_px is None else min_px
+        self.rim_u = max(self.min_px, 0.006 * h) / h * FEED_PATH_UNITS if h > 0 else 0.0   # rim, in path units
+
+    def fine(self, units: float) -> bool:
+        """Whether a detail `units` path units across reads at feed size."""
+        return units * self.h / FEED_PATH_UNITS >= self.min_px
+
+    def path(self, svg: str, fill=None) -> None:
+        k = 1 / FEED_PATH_UNITS
+        for poly in _path_polygons(svg):
+            if len(poly) >= 3:
+                self.d.polygon([self.pt(x * k, y * k) for x, y in poly], fill=fill or self.light)
+
+    def band(self, x0: float, x1: float, y: float) -> None:
+        """A SHADE band rim_u deep under y (path units) from x0 to x1: a joint or a cornice's shadow (none where
+        the landmark is drawn so small that a feed-width band would swallow the course it marks)."""
+        if self.rim_u <= LANDMARK_BAND_MAX_U:
+            self.path(f"M{x0} {y} H{x1} V{max(0.0, y - self.rim_u):.1f} H{x0} Z", self.shade)
+
+    def edge(self, xb: float, yb: float, xt: float, yt: float) -> None:
+        """A RIM band of rim_u inside a mass's lit left edge, from (xb, yb) up to (xt, yt) (path units)."""
+        r = self.rim_u
+        if r <= LANDMARK_BAND_MAX_U:
+            self.path(f"M{xb} {yb} H{xb + r:.1f} L{xt + r:.1f} {yt} H{xt} Z", self.rim)
 
     def pt(self, x: float, y: float) -> tuple[float, float]:
         return self.cx + x * self.h, self.base_y - y * self.h
@@ -8613,64 +8725,94 @@ class _LandmarkPen:
 
 
 def _draw_liberty(p: _LandmarkPen) -> None:
-    """NPS statistics as fractions of 305 ft: foundation to 65 ft (0.21), granite pedestal to 154 ft (0.505),
-    heel to head 111 ft (to 0.87), the torch to 1.0. Facing us, her raised right arm is on our left, the tablet in
-    her left arm on our right."""
-    # Fort Wood's star wall: a low wall whose bastion points face us, lit and shaded facets alternating.
-    p.poly([(-0.18, 0), (0.18, 0), (0.17, 0.045), (-0.17, 0.045)])
-    for x0 in (-0.18, -0.06, 0.06):
-        p.poly([(x0 + 0.06, 0), (x0 + 0.12, 0), (x0 + 0.115, 0.045), (x0 + 0.06, 0.045)], p.shade)
-    # The foundation: a stepped, truncated pyramid of concrete.
-    for (y0, y1, a, b) in ((0.045, 0.105, 0.148, 0.138), (0.105, 0.16, 0.128, 0.118), (0.16, 0.213, 0.11, 0.102)):
-        p.poly([(-a, y0), (a, y0), (b, y1), (-b, y1)])
-        p.poly([(a * 0.55, y0), (a, y0), (b, y1), (b * 0.55, y1)], p.shade)
-        p.line([(-a, y0), (a, y0)])
-    # The granite pedestal: base course, dado with its door, cornice, the loggia's columns, top cornice, parapet.
-    p.rect(-0.098, 0.213, 0.098, 0.25)
-    p.rect(-0.084, 0.25, 0.084, 0.365)
-    p.rect(-0.093, 0.365, 0.093, 0.38)
-    p.rect(-0.079, 0.38, 0.079, 0.452)
-    p.rect(-0.09, 0.452, 0.09, 0.47)
-    p.rect(-0.074, 0.47, 0.074, 0.505)
-    p.rect(0.045, 0.25, 0.084, 0.365, p.shade)
-    p.rect(0.042, 0.38, 0.079, 0.452, p.shade)
-    if p.detail:
-        p.rect(-0.016, 0.262, 0.016, 0.33, p.ink)                       # the door
-        for k in range(3):                                              # the loggia between its columns
-            x = -0.05 + k * 0.042
-            p.rect(x - 0.011, 0.392, x + 0.011, 0.44, p.ink)
-        for yy in (0.25, 0.365, 0.38, 0.452, 0.47):
-            p.line([(-0.093, yy), (0.093, yy)])
-    # The figure: robe from the plinth to the shoulders, folds in gold.
-    p.rect(-0.046, 0.505, 0.046, 0.516)
-    p.poly([(-0.066, 0.516), (0.064, 0.516), (0.054, 0.56), (0.05, 0.64), (0.047, 0.72), (0.041, 0.785),
-            (0.02, 0.8), (-0.02, 0.8), (-0.043, 0.785), (-0.046, 0.7), (-0.052, 0.6), (-0.058, 0.55)])
-    p.poly([(0.022, 0.516), (0.064, 0.516), (0.054, 0.56), (0.05, 0.64), (0.047, 0.72), (0.041, 0.785),
-            (0.026, 0.79), (0.03, 0.7)], p.shade)
-    p.line([(-0.04, 0.785), (0.04, 0.64)], p.gold)                                        # the stola's hem
-    for x0, x1 in ((-0.044, -0.03), (-0.018, -0.012), (0.006, 0.006)):                    # the robe's folds
-        p.line([(x0, 0.522), (x1, 0.66)], p.gold)
-    # The tablet, held edge-on against her left side and tilted outward.
-    p.poly([(0.03, 0.655), (0.056, 0.652), (0.078, 0.745), (0.054, 0.752)])
-    p.line([(0.03, 0.655), (0.054, 0.752)])
-    p.poly([(0.02, 0.72), (0.06, 0.70), (0.064, 0.715), (0.024, 0.735)])                     # her forearm across
-    # Neck, head and the crown's seven rays.
-    p.rect(-0.011, 0.795, 0.011, 0.815)
-    p.ellipse(0.0, 0.838, 0.019, 0.03, fill=p.fill)
-    p.rect(-0.021, 0.848, 0.021, 0.857)
+    """The Statue of Liberty in the prototype's four tones, in path units (1000 = 305 ft, ground to torch tip).
+    References (NPS, "Statue Statistics", nps.gov/stli/learn/historyculture/statue-statistics.htm): ground to torch
+    305 ft 1 in; foundation (Fort Wood level) 65 ft -> 213; granite pedestal 89 ft -> top at 154 ft = 505; heel to top
+    of head 111 ft 1 in -> head top at about 870; right arm 42 ft long, 12 ft at its thickest (-> 39 units, drawn 26
+    at the forearm); tablet 23 ft 7 in x 13 ft 7 in (-> 77 x 45 units, drawn edge-on and tilted). Widths of the star
+    wall, foundation steps and pedestal courses are read from the NPS elevation drawings (approximate, not a cited
+    figure) and kept to SILHOUETTE_WIDTH's 0.36 overall (the star wall's points). Facing us: her raised right arm on
+    our left, the tablet on our right; lit from the upper left, every mass shaded on its right."""
+    lt, sh, dk = p.light, p.shade, p.dark
+    # Fort Wood's star wall: bastion points facing us, lit and shaded facets alternating, its lit left edge.
+    p.path("M-180 0 H180 L170 45 H-170 Z", lt)
+    for x0 in (-120, 0, 120):
+        p.path(f"M{x0} 0 H{x0 + 60} L{x0 + 56} 45 H{x0 + 4} Z", sh)
+    p.edge(-180, 0, -170, 45)
+    # The foundation: a stepped, truncated pyramid of concrete; each step's left edge lit.
+    for y0, y1, a, b in ((45, 105, 148, 138), (105, 160, 128, 118), (160, 213, 110, 102)):
+        p.path(f"M{-a} {y0} H{a} L{b} {y1} H{-b} Z", lt)
+        p.path(f"M{a * 0.55:.1f} {y0} H{a} L{b} {y1} H{b * 0.55:.1f} Z", sh)
+        p.edge(-a, y0, -b, y1)
+        p.band(-a, a, y0)                                                       # its joint, at feed width
+    # The granite pedestal: base course, dado and its door, cornice, the loggia, top cornice, parapet.
+    for x, y0, y1, s in ((98, 213, 250, 56), (84, 250, 365, 45), (93, 365, 380, 52), (79, 380, 452, 42),
+                         (90, 452, 470, 50), (74, 470, 505, 40)):
+        p.path(f"M{-x} {y0} H{x} V{y1} H{-x} Z", lt)
+        p.path(f"M{s} {y0} H{x} V{y1} H{s} Z", sh)
+        p.edge(-x, y0, -x, y1)
+    for x, y in ((84, 365), (79, 452)):                                         # the cornices' shadows
+        p.band(-x, x, y)
+    if p.fine(30):
+        p.path("M-16 262 H16 V332 Q0 346 -16 332 Z", dk)                       # the door, arched
+    if p.fine(20):
+        for x in (-50, -8, 34):                                                 # the loggia's three openings
+            p.path(f"M{x - 11} 392 H{x + 11} V432 Q{x} 446 {x - 11} 432 Z", dk)
+    # The figure on its plinth: the robe, falling in curves to a flared hem, its right side in shade.
+    p.path("M-46 505 H46 V517 H-46 Z", lt)
+    p.path("M-64 516 H62 Q55 610 50 690 Q46 760 38 788 L20 800 H-20 L-42 786 Q-47 700 -54 610 Z", lt)
+    p.path("M16 516 H62 Q55 610 50 690 Q46 760 38 788 L24 795 Q30 700 24 610 Z", sh)
+    p.edge(-64, 516, -54, 610)
+    p.edge(-54, 610, -48, 700)
+    p.edge(-48, 700, -42, 786)
+    if p.fine(16):
+        p.path("M-46 516 H-30 L-38 632 Z", sh)                                   # two deep folds at the hem
+        p.path("M-14 516 H2 L-8 604 Z", sh)
+    p.path("M-48 636 L-46 664 L40 780 L38 750 Z", sh)                           # the stola across her body
+    # The tablet, held against her left side, tilted out: its lit face and shaded edge; her forearm across it.
+    p.path("M28 655 L56 650 L80 748 L54 756 Z", lt)
+    p.path("M56 650 L66 652 L88 746 L80 748 Z", sh)
+    p.path("M16 722 L60 700 L66 717 L24 740 Z", lt)
+    # Neck, head (its right side in shade) and the crown's seven rays.
+    p.path("M-11 794 H11 V816 H-11 Z", lt)
+    p.path("M0 808 Q22 808 20 838 Q18 868 0 868 Q-20 868 -20 838 Q-22 808 0 808 Z", lt)
+    p.path("M6 809 Q22 810 20 838 Q18 866 4 868 Q14 838 6 809 Z", sh)
+    p.path("M-24 848 H24 V860 H-24 Z", lt)
     for k in range(7):
         a = math.radians(-72 + k * 24)
-        bx, by = 0.017 * math.sin(a), 0.853 + 0.006 * math.cos(a)
-        tx, ty = bx + 0.036 * math.sin(a), by + 0.036 * math.cos(a)
-        nx, ny = 0.0045 * math.cos(a), -0.0045 * math.sin(a)
-        p.poly([(bx - nx, by - ny), (bx + nx, by + ny), (tx, ty)])
-    # The raised right arm, its sleeve falling from it, and the torch with its flame.
-    p.poly([(-0.042, 0.775), (-0.02, 0.79), (-0.048, 0.932), (-0.07, 0.928)])
-    p.poly([(-0.044, 0.776), (-0.07, 0.862), (-0.064, 0.89), (-0.048, 0.83)])                # the sleeve
-    p.poly([(-0.062, 0.928), (-0.054, 0.928), (-0.058, 0.955), (-0.068, 0.955)])
-    p.poly([(-0.084, 0.955), (-0.042, 0.955), (-0.048, 0.968), (-0.078, 0.968)])
-    p.poly([(-0.075, 0.968), (-0.051, 0.968), (-0.052, 0.982), (-0.06, 1.0), (-0.071, 0.984)])
-    p.line([(-0.075, 0.968), (-0.071, 0.984), (-0.06, 1.0), (-0.052, 0.982), (-0.051, 0.968)], p.gold)
+        bx, by = 18 * math.sin(a), 855 + 6 * math.cos(a)
+        tx, ty = bx + 40 * math.sin(a), by + 40 * math.cos(a)
+        nx, ny = 7 * math.cos(a), -7 * math.sin(a)
+        p.path(f"M{bx - nx:.1f} {by - ny:.1f} L{bx + nx:.1f} {by + ny:.1f} L{tx:.1f} {ty:.1f} Z",
+               sh if k > 3 else lt)
+    # The raised right arm (its right side in shade), the sleeve falling from it, the torch and its lit flame.
+    p.path("M-44 774 L-18 790 L-46 932 L-72 928 Z", lt)
+    p.path("M-28 784 L-18 790 L-46 932 L-56 930 Z", sh)
+    p.path("M-44 776 Q-68 822 -72 864 L-62 892 Q-58 850 -46 828 Z", sh)
+    p.path("M-64 928 H-52 L-56 956 H-68 Z", sh)
+    p.path("M-88 956 H-38 L-44 970 H-82 Z", lt)
+    p.path("M-55 956 H-38 L-44 970 H-58 Z", sh)
+    p.path("M-78 970 H-48 Q-44 986 -56 1000 Q-60 990 -66 994 Q-80 986 -78 970 Z", p.rim)
+
+
+def _draw_pyramid(p: _LandmarkPen) -> None:
+    """The Great Pyramid in the prototype's tones, seen a little off its axis. References: Petrie's survey (The
+    Pyramids and Temples of Gizeh, 1883) as reported by Lehner (The Complete Pyramids, 1997): base side 230.33 m,
+    original height 146.6 m, faces at 51 deg 50 min -> base 1.57 heights (SILHOUETTE_WIDTH). The lit face on the left
+    (light from the upper left), the shade face on the right, a RIM along the lit skyline and the lost capstone
+    (pyramidion) in the rim's tone. No coursing: at its original height the faces were smooth casing (and 5.5 px
+    bands at feed size read as a stepped pyramid)."""
+    half = 1.57 / 2 * FEED_PATH_UNITS
+    split = 160
+    p.path(f"M{-half} 0 H{split} L0 1000 Z", p.light)
+    p.path(f"M{split} 0 H{half} L0 1000 Z", p.shade)
+    # the lit skyline's rim: a band of even width (rim_u across the 51.8 deg edge) up to where it meets the ridge
+    r = p.rim_u * 1.27
+    g = r / (split + half)                       # the (1 - y) at which the band's inner edge meets the ridge
+    p.path(f"M{-half} 0 H{-half + r:.1f} L{split * g:.1f} {1000 * (1 - g):.1f} L0 1000 Z", p.rim)
+    cap = 40
+    if p.fine(cap * 1.4):
+        p.path(f"M{-half * cap / 1000:.1f} {1000 - cap} H{split * cap / 1000:.1f} L0 1000 Z", p.rim)
 
 
 def _draw_elizabeth(p: _LandmarkPen) -> None:
@@ -8718,21 +8860,6 @@ def _draw_elizabeth(p: _LandmarkPen) -> None:
     p.rect(-0.003, 0.975, 0.003, 1.0)
 
 
-def _draw_pyramid(p: _LandmarkPen) -> None:
-    """Base 1.57 times its original height (faces at 51.8 degrees), seen a little off its axis: a lit face and a
-    shaded one, coursing on the lit face, and the original apex with its pyramidion."""
-    half = 1.57 / 2
-    split = 0.16
-    p.poly([(-half, 0), (split, 0), (0, 1.0)])
-    p.poly([(split, 0), (half, 0), (0, 1.0)], p.shade)
-    if p.detail:
-        for k in range(1, 12):
-            f = k / 12
-            p.line([(-half * (1 - f), f), (split * (1 - f), f)], p.shade)
-        p.line([(-half * 0.035, 0.965), (split * 0.035, 0.965)], p.gold, width=max(1, p.lw))
-    p.line([(split, 0), (0, 1.0)], p.gold, width=max(1, p.lw))
-
-
 def _draw_person(p: _LandmarkPen) -> None:
     """An adult standing, arms at his sides: head an eighth of his height, shoulders about a quarter wide, hands
     at mid-thigh, legs a little under half his height."""
@@ -8754,7 +8881,8 @@ _LANDMARK_DRAWINGS = {"liberty": _draw_liberty, "elizabeth": _draw_elizabeth, "p
                       "person": _draw_person}
 
 
-def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour) -> float:
+def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour,
+                min_px: float | None = None) -> float:
     """The reference landmark as a flat illustration (2026-11-02 rebuild: the old outlines read as a lamp post, a
     chimney and a wedge), `h` px tall standing on `base_y`, in one fill with a shaded side and INK / GOLD_DIM
     detail lines: the Statue of Liberty (star wall, stepped foundation, pedestal, robed figure, crown, tablet and
@@ -8763,7 +8891,7 @@ def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h:
     width _silhouette_width(label) * h; returns that width."""
     kind = _landmark_kind(label)
     if h >= 2:
-        _LANDMARK_DRAWINGS[kind](_LandmarkPen(d, cx, base_y, h, colour))
+        _LANDMARK_DRAWINGS[kind](_LandmarkPen(d, cx, base_y, h, colour, min_px))
     return h * SILHOUETTE_WIDTH[kind]
 
 
@@ -8978,6 +9106,45 @@ def _monolith_lying(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float,
     if h >= 10:
         lw = max(1, round(h / 40))
         d.line([(x0, top + lw), (x1 - end, top + lw)], fill=ink, width=lw)        # the lit face's top arris
+
+
+# The subject drawn as itself where its kind is known (landmark prototype). An obelisk: a tapering four-sided shaft
+# with a pyramidion. References: the Aswan unfinished obelisk, about 41.75 m long with a 4.2 m square butt
+# (R. Engelbach, The Aswan Obelisk, Cairo 1922; the figures the Egyptian Ministry of Tourism and Antiquities repeats)
+# -> thickness 0.1006 of its length; the taper and the pyramidion follow the Lateran obelisk, the tallest standing
+# Egyptian one (about 2.9 m at the butt, 1.9 m under the pyramidion: top 0.66 of the butt; its pyramidion about as
+# long as the top is wide). These are proportions for the drawing only; the length on the scale is the signed one.
+OBELISK_BUTT_RATIO = 4.2 / 41.75
+OBELISK_TAPER = 0.66
+OBELISK_PYRAMIDION = 1.0       # the pyramidion's length per top width
+
+
+def subject_kind(fact: dict[str, Any]) -> str | None:
+    """The subject's kind where it is drawn as itself ("obelisk"), else None (the generic monolith)."""
+    return "obelisk" if re.search(r"\bobelisk", str(fact.get("subject") or ""), re.I) else None
+
+
+def _obelisk_lying(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float, h: float,
+                   min_px: float | None = None) -> None:
+    """An obelisk lying on one face along the ground from its butt at x0 to its pyramidion's tip at x1 (the signed
+    length), at most `h` px thick, in the landmarks' tones: the GOLD front face (light), the pyramidion's lower facet
+    GOLD_DIM (shade), a BONE rim along the lit top arris; lit from the upper left."""
+    length = x1 - x0
+    if length < 2 or h < 1:
+        return
+    min_px = _FEED_PX.get() if min_px is None else min_px
+    t = min(h, max(SUBJECT_MIN_PX * 0.75, OBELISK_BUTT_RATIO * length))   # butt thickness, true where it reads
+    ts = t * OBELISK_TAPER
+    lp = min(length * 0.5, ts * OBELISK_PYRAMIDION)
+    xs = x1 - lp                                                           # shaft's end, pyramidion's foot
+    lit, shade, rim = (*brand.GOLD, 255), (*brand.GOLD_DIM, 255), (*brand.BONE, 255)
+    y = base_y
+    d.polygon([(x0, y), (x0, y - t), (xs, y - ts), (xs, y)], fill=lit)               # the shaft's lit face
+    d.polygon([(xs, y), (xs, y - ts), (x1, y - ts / 2)], fill=lit)                   # the pyramidion's upper facet
+    d.polygon([(xs, y), (xs, y - ts / 2), (x1, y - ts / 2)], fill=shade)             # its lower facet in shade
+    r = max(min_px, t * 0.1)
+    if t >= 4 * r:                                         # the lit top arris, only where it is a rim, not a stripe
+        d.polygon([(x0, y - t), (xs, y - ts), (x1, y - ts / 2), (xs, y - ts + r), (x0, y - t + r)], fill=rim)
 
 
 def _monolith(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float, h: float) -> None:
@@ -9226,6 +9393,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     (2026-11-02): a depth carries a data-face ruler on the shaft's left wall and a gold bracket giving the
     landmark's part above (or below) the surface; a height labels the landmark's figure at its top; the meaning
     from scale_meaning at 34-36 px."""
+    kind = subject_kind(fact)            # landmark prototype: an obelisk drawn as itself
     drawing = drawing_floor is not None
     if drawing:            # the drawing alone on its canvas (a carousel diagram's art box)
         pad = round(DIAGRAM_PAD * max(width, height) / 1440)
@@ -9502,7 +9670,10 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                     d.line([(rule_x - 6, yy), (rule_x + 10, yy)], fill=(*brand.STONE_LT, 255), width=2)
             rise = _ease((t - 0.3) / 1.2)
             if lying:      # a length runs out along the ground; a height rises
-                _monolith_lying(d, shaft[0], shaft[0] + blk_w * rise, base_y, blk_h)
+                if kind == "obelisk":
+                    _obelisk_lying(d, shaft[0], shaft[0] + blk_w * rise, base_y, blk_h)
+                else:
+                    _monolith_lying(d, shaft[0], shaft[0] + blk_w * rise, base_y, blk_h)
             else:
                 _monolith(d, shaft[0], shaft[1], base_y, blk_h * rise)
             rr = _ease((t - 1.2) / 1.2)
@@ -9597,6 +9768,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     from the ground beside the landmark; the subject, its figure and the meaning in a column at the right."""
     g = _WideGrid(width, height)
     X, Y, S = g.x, g.y, g.s
+    kind = subject_kind(fact)            # landmark prototype: an obelisk drawn as itself
     n = int(CLIP_SECONDS * VIDEO_FPS)
     _sx0, sy0, _sx1, sy1 = WIDE_SAFE
     dx0, dx1 = WIDE_LEFT + 80, 1000.0         # the drawing (round 3: from title-safe, the master lifts its
@@ -9769,7 +9941,10 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                            width=max(1, round(S(2))))
             rise = _ease((t - 0.3) / 1.2)
             if lying:      # a length runs out along the ground; a height rises
-                _monolith_lying(d, X(shaft[0]), X(shaft[0] + blk_w * rise), Y(base_y), S(blk_h))
+                if kind == "obelisk":
+                    _obelisk_lying(d, X(shaft[0]), X(shaft[0] + blk_w * rise), Y(base_y), S(blk_h))
+                else:
+                    _monolith_lying(d, X(shaft[0]), X(shaft[0] + blk_w * rise), Y(base_y), S(blk_h))
             else:
                 _monolith(d, X(shaft[0]), X(shaft[1]), Y(base_y), S(blk_h * rise))
             rr = _ease((t - 1.2) / 1.2)

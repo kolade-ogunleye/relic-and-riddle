@@ -11230,9 +11230,13 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         # feet and never larger than the label line (Montserrat in stone before)
         lead = f_deep if k == len(levels) - 1 else f_fig
         return figure_font(conversion_px(lead.size, f_lab.size, label_floor(width, height)))
+    # freeze SYS-A-1 (TY6): the level column's metres at ONE precision (figures.converted_numbers: 4.6 / 10.7 / 42.7 /
+    # 85.3, where per level they read 4.6 / 10.7 / 43 / 85)
+    from .figures import converted_numbers
+    metres_of = converted_numbers([lv["depth_ft"] for lv in levels], "FT", "M")
     inline_w = max((probe.textbbox((0, 0), f"{lv['depth_ft']:,.0f} FT", font=f_deep if k == len(levels) - 1 else f_fig,
                                    anchor="ls")[2] + S(14)
-                    + probe.textbbox((0, 0), f"{converted_number(lv['depth_ft'], 'FT', 'M')} M", font=f_conv(k), anchor="ls")[2])
+                    + probe.textbbox((0, 0), f"{metres_of[k]} M", font=f_conv(k), anchor="ls")[2])
                    for k, lv in enumerate(levels))
     label_x = min(label_x, L.right - (math.ceil(inline_w) + 1) / g.k)
     rooms_x1 = min(rooms_x1, label_x - (L.label_x - L.rooms_x1))
@@ -11463,7 +11467,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         # its words dim, its figures do not
         bright = _plan(final, (X(label_x), Y(fig_base)), fig, b["font"], figure_fill(), "ls")
         timed.append((f"level{k}_depth", bright, t_in, None, None))
-        metres = _plan(final, (bright.box[2] + S(14), Y(fig_base)), f"{converted_number(lv['depth_ft'], 'FT', 'M')} M",
+        metres = _plan(final, (bright.box[2] + S(14), Y(fig_base)), f"{metres_of[k]} M",
                        f_conv(k), figure_fill(), "ls")
         timed.append((f"level{k}_metres", metres, t_in, None, None))
         for j, ln in enumerate(b["lines"]):

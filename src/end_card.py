@@ -42,10 +42,23 @@ from .typography import cap_height, get_font, tracked_width
 log = logging.getLogger(__name__)
 
 VARIANT = "plain_v4"     # capsule_v3 until 2026-10-29
-SECONDS = 2.9            # the card's length after the narration
-FPS = 30
+SECONDS = 2.9            # the 9:16 card's shortest length after the narration; it holds longer until its lines read
+FPS = 30                 # at the reading pace (card_seconds, freeze lane E cycle 1)
 WIDTH, HEIGHT = 1080, 1920
 WHOOSH_AT, BELL_AT = 0.0, 1.95   # seconds into the card
+# The card's reveal, seconds into it (one timeline for frames() and its gates, _gate_lines). The values the written
+# motion.* tokens name (src/brand_system.py SPEC: motion.reveal, motion.word_stagger, motion.rise_l, motion.rise_m)
+# are held equal to them by tests/test_freeze_lane_e_c1.py until the tokens drive (queue SYS-E-1).
+DIM_IN = 0.45            # the dim comes in (ease_out over this)
+SOFTEN_IN = 0.6          # the softening comes in
+MAST_AT, MAST_IN = 0.15, 0.40    # the masthead and its mark fade in (motion.reveal)
+RULE_AT, RULE_IN = 0.25, 0.5     # the gold rule draws out
+SHARE_AT = 0.45          # the share line's first word starts to rise
+WORD_STAGGER = 0.055     # each next word (motion.word_stagger)
+WORD_IN = 0.3            # a word's rise
+SHARE_RISE = 14          # px (motion.rise_l: a share block)
+FOLLOW_IN = 0.35         # the follow line rises in, landing with the bell (BELL_AT)
+FOLLOW_RISE = 10         # px (motion.rise_m: a single line)
 # The masthead, the follow line (FOLLOW), the 16:9 hand-off (HANDOFF) and the colours (#D4AF37 gold until
 # 2026-10-29) are the active brand's (src/brand.py), read when drawn (QF-35a); the names below serve their readers.
 _BRAND_NAMES = {"BRAND": "MASTHEAD", "FOLLOW": "FOLLOW_LINE", "HANDOFF": "HANDOFF_LINE", "GOLD": "GOLD", "WHITE": "BONE",
@@ -412,10 +425,70 @@ def _pushed(arr: Image.Image, z: float, width: int, height: int) -> np.ndarray:
     return np.asarray(kenburns(arr, (width, height), zoom=z, resample=Image.LANCZOS), dtype=np.float32)
 
 
-def zoom_at(t: float) -> float:
-    """The push-in: from the last frame as it is (1.0), easing out to 3.5% closer by the card's end."""
-    u = max(0.0, min(1.0, t / SECONDS))
+def zoom_at(t: float, seconds: float | None = None) -> float:
+    """The push-in: from the last frame as it is (1.0), easing out to 3.5% closer by the card's end (`seconds`, the
+    card's length: SECONDS unless it holds longer to be read, card_seconds)."""
+    u = max(0.0, min(1.0, t / (seconds or SECONDS)))
     return 1.0 + 0.035 * (1 - (1 - u) ** 2)
+
+
+def word_at(k: int) -> float:
+    """When the share line's word k (0-based) starts to rise."""
+    return SHARE_AT + WORD_STAGGER * k
+
+
+def share_done(n_words: int) -> float:
+    """When the last of `n_words` share words has risen (the 16:9 extras follow it)."""
+    return word_at(max(0, n_words - 1)) + WORD_IN
+
+
+def reading_need(lines: list[tuple[float, str]], cps: float | None = None) -> float:
+    """Seconds into the card by which every line has been read once at the reading pace (tok("motion.caption_cps"),
+    17: the operator's target, freeze lane E cycle 1): `lines` as (when it starts to show, its text) in reading
+    order. The reader starts on the first line as it shows and reads each in turn, never before it shows."""
+    cps = float(cps or tok("motion.caption_cps"))
+    t = end = 0.0
+    for start, text in lines:
+        chars = len(" ".join((text or "").split()))
+        if not chars:
+            continue
+        t = max(t, start) + chars / cps
+        end = max(end, t)
+    return end
+
+
+def card_lines(lay: dict[str, Any], *, kicker: bool = False, credits: bool = False) -> list[tuple[float, str]]:
+    """The lines a card's viewer reads, in order, each with when it starts to show (frames()'s own timeline): the
+    share line, then the follow line (9:16) or the WATCH NEXT kicker and the credits line (16:9, when drawn). The
+    masthead is the brand's mark, read at a glance, and is not counted."""
+    n = sum(len(ln) for ln in lay["lines"])
+    out = [(SHARE_AT, " ".join(" ".join(ln) for ln in lay["lines"]))]
+    if lay.get("follow"):
+        out.append((BELL_AT - FOLLOW_IN, brand.FOLLOW_LINE))
+    if kicker:
+        out.append((share_done(n), KICKER))
+    if credits:
+        out.append((share_done(n) + 0.3, CREDITS_LINE))
+    return out
+
+
+def card_seconds(lay: dict[str, Any], *, kicker: bool = False, credits: bool = False) -> float:
+    """The card's length. 9:16: SECONDS, held on, in whole frames, until every line has been read once at the reading
+    pace (reading_need over card_lines). The share line's hold is a design choice, not a caption's (operator,
+    2026-11-19): 2.9 s showed the real 56-character line and the follow line at 33 characters a second. 16:9: the end
+    screen's own END_SCREEN_SECONDS (YouTube's element template; its lines need under half of it), its reading
+    recorded by held_layout."""
+    if lay["landscape"]:
+        return END_SCREEN_SECONDS
+    need = reading_need(card_lines(lay, kicker=kicker, credits=credits))
+    return max(SECONDS, float(np.ceil(round(need * FPS, 6)) / FPS))
+
+
+def card_room(vo_dur: float) -> float:
+    """The most a 9:16 card may last after a narration of `vo_dur` seconds: what the release gate leaves of the master
+    (config.RELEASE_DURATION_MAX, the Reel master's ceiling, re-measured at publish)."""
+    from . import config
+    return max(0.0, float(config.RELEASE_DURATION_MAX) - float(vo_dur))
 
 
 def _word_xs(lay: dict[str, Any], width: int) -> list[tuple[int, int, str, float, int]]:
@@ -558,11 +631,48 @@ def end_screen_problems(lay: dict[str, Any], width: int = LANDSCAPE_WIDTH, *, cr
             for name, (box, zs) in items.items() for zone, z in zs.items() if _overlap(box, z)]
 
 
+def held_layout(text: str, width: int, height: int, *, credits: bool = False,
+                room: float | None = None) -> tuple[str, dict[str, Any], float, dict[str, Any]]:
+    """(the line drawn, its layout, the card's length, the reading record). The card holds until its lines read at the
+    reading pace (card_seconds). `room` (9:16: card_room, what the release gate leaves after the narration) bounds it:
+    where the line cannot be read inside it, the card takes the shorter verified line, the plain fallback's share half
+    (script_engine.SHARE_FALLBACK, never new wording), when that one can; else it keeps the line, lasts `room` and the
+    record says the pace it is shown at (recorded, not failed: the copy is the fix)."""
+    landscape = width > height
+    lay = layout(text, width, height)
+    seconds = card_seconds(lay, kicker=landscape, credits=credits and landscape)
+    line = "as given"
+    if room is not None and seconds > room + 1e-9 and not landscape:
+        from .script_engine import SHARE_FALLBACK
+        alt = card_text(SHARE_FALLBACK)
+        if len(alt) < len(" ".join(text.split())):
+            alt_lay = layout(alt, width, height)
+            alt_s = card_seconds(alt_lay)
+            if alt_s <= room + 1e-9:
+                text, lay, seconds, line = alt, alt_lay, alt_s, "shorter verified line (the fallback's)"
+    lines = card_lines(lay, kicker=landscape, credits=credits and landscape)
+    need = reading_need(lines)
+    if room is not None and seconds > room + 1e-9:
+        seconds = max(1.0 / FPS, float(np.floor(round(room * FPS, 6)) / FPS))
+    chars = sum(len(" ".join(t.split())) for _, t in lines)
+    window = seconds - lines[0][0]
+    rec = {"target_cps": float(tok("motion.caption_cps")), "need_s": round(need, 3), "seconds": round(seconds, 3),
+           "room_s": None if room is None else round(room, 3), "line": line, "chars": chars,
+           "shown_cps": round(chars / window, 1) if window > 0 else None}
+    rec["over_pace"] = need > seconds + 1e-9
+    if rec["over_pace"]:
+        log.warning("End card: its lines need %.2f s to read at %s cps; the card lasts %.2f s (%s cps)", need,
+                    rec["target_cps"], seconds, rec["shown_cps"])
+    return text, lay, seconds, rec
+
+
 def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *, slot_frames: bool = False,
-           credits: bool = False, handoff: bool = True) -> Iterator[Image.Image]:
-    """The card's frames (RGB, FPS) over the narration's last frame: WIDTHxHEIGHT for SECONDS when `last` is
-    upright, the 16:9 YouTube end screen (1920x1080, END_SCREEN_SECONDS) when it is wide (`last` is cropped to
-    the size, never stretched). `stats`, when given, receives the measured dim, the layout and each line's contrast
+           credits: bool = False, handoff: bool = True, room: float | None = None) -> Iterator[Image.Image]:
+    """The card's frames (RGB, FPS) over the narration's last frame: WIDTHxHEIGHT when `last` is upright, the 16:9
+    YouTube end screen (1920x1080) when it is wide (`last` is cropped to the size, never stretched), for
+    card_seconds: SECONDS (9:16) or END_SCREEN_SECONDS (16:9), held on until every line reads at the reading pace
+    (held_layout; `room` bounds a 9:16 card, see there; stats["reading"] records it). `stats`, when given, receives
+    the measured dim, the layout and each line's contrast
     on the last frame. 16:9 only: the dim is a scrim behind the text column (the right side, under YouTube's video
     element, lighter and sharper), the push is at most LANDSCAPE_PUSH and the WATCH NEXT kicker fades in above the
     video slot after the share line (its contrast in stats["contrast_kicker"]); `slot_frames` draws GOLD_DIM
@@ -573,7 +683,6 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     from .typography import plan_text
     landscape = last.width > last.height
     width, height = (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT) if landscape else (WIDTH, HEIGHT)
-    seconds = END_SCREEN_SECONDS if landscape else SECONDS
     base = _cover(last, (width, height))
     shape, soften_w, dim = fit_dim(base)
     if landscape:   # (rows,) -> (rows, columns): the dim and softening concentrate in the text column
@@ -581,17 +690,17 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         shape, soften_w = shape * cols, soften_w * cols
     soft_base = base.filter(ImageFilter.GaussianBlur(14))
     text = brand.HANDOFF_LINE if landscape and handoff else share
-    lay = layout(text, width, height)
+    text, lay, seconds, reading = held_layout(text, width, height, credits=credits, room=room)
     mast = lay["masthead"]
     total = round(seconds * FPS)
     ink = np.array(brand.INK, np.float32)
 
     def ground(t: float) -> Image.Image:
-        z = landscape_zoom_at(t) if landscape else zoom_at(t)
+        z = landscape_zoom_at(t) if landscape else zoom_at(t, seconds)
         im = _pushed(base, z, width, height)
-        sw = (ease(t / 0.6) * soften_w)[..., None]
+        sw = (ease(t / SOFTEN_IN) * soften_w)[..., None]
         im = im * (1 - sw) + _pushed(soft_base, z, width, height) * sw
-        dark = (ease(t / 0.45) * shape)[..., None]
+        dark = (ease(t / DIM_IN) * shape)[..., None]
         return Image.fromarray((im * (1 - dark) + ink * dark).clip(0, 255).astype(np.uint8))
 
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
@@ -614,7 +723,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         worst_frame = None
         for i in range(total):
             t = i / FPS
-            if ease((t - 0.15) / 0.4) < 1.0:
+            if ease((t - MAST_AT) / MAST_IN) < 1.0:
                 continue
             frame_rec: dict[str, Any] = dict(plan_rec)
             if masthead.verify(ground(t), brand_plate, diamond, edge, frame_rec) is None:
@@ -674,13 +783,13 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         follow_plate = None
     if "credits" in refused_lines:
         credits_plate = None
-    share_done = 0.45 + 0.055 * max(0, len(word_plates) - 1) + 0.3   # the last word has risen
+    done = share_done(len(word_plates))   # the last word has risen
     if stats is not None:
         stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
                      size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text,
-                     masthead=mast_rec, refused_lines=refused_lines)
+                     masthead=mast_rec, refused_lines=refused_lines, reading=reading)
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
@@ -688,29 +797,29 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     for i in range(total):
         t = i / FPS
         frame = ground(t)
-        a = ease((t - 0.15) / 0.4)
+        a = ease((t - MAST_AT) / MAST_IN)
         if mast_shown:
             frame = brand_plate.draw(frame, a)
         layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         d = ImageDraw.Draw(layer)
-        _mark(d, lay, a if mast_shown else 0.0, ease((t - 0.25) / 0.5))
+        _mark(d, lay, a if mast_shown else 0.0, ease((t - RULE_AT) / RULE_IN))
         if extras and slot_frames:   # hairline reservations: fade in after the share line, then hold still
-            fa = int(255 * ease((t - share_done - 0.1) / 0.5))
+            fa = int(255 * ease((t - done - 0.1) / 0.5))
             if fa > 0:
                 d.rectangle(extras["frames"]["video"], outline=(*brand.GOLD_DIM, fa), width=1)
                 d.rectangle(extras["frames"]["video2"], outline=(*brand.GOLD_DIM, fa), width=1)
                 d.ellipse(extras["frames"]["subscribe"], outline=(*brand.GOLD_DIM, fa), width=1)
         frame = Image.alpha_composite(frame.convert("RGBA"), layer).convert("RGB")
         for k, plate in enumerate(word_plates):   # the share line rises word by word
-            wa = ease((t - 0.45 - 0.055 * k) / 0.3)
+            wa = ease((t - SHARE_AT - WORD_STAGGER * k) / WORD_IN)
             if wa > 0:
-                frame = plate.draw(frame, wa, round(14 * (1 - wa)))
+                frame = plate.draw(frame, wa, round(SHARE_RISE * (1 - wa)))
         if follow_plate is not None:
-            fa = ease((t - (BELL_AT - 0.35)) / 0.35)   # the follow line lands with the bell
+            fa = ease((t - (BELL_AT - FOLLOW_IN)) / FOLLOW_IN)   # the follow line lands with the bell
             if fa > 0:
-                frame = follow_plate.draw(frame, fa, round(10 * (1 - fa)))
+                frame = follow_plate.draw(frame, fa, round(FOLLOW_RISE * (1 - fa)))
         if kicker_plate is not None:
-            ka = ease((t - share_done) / 0.5)
+            ka = ease((t - done) / 0.5)
             if ka > 0:
                 rise = kicker_rise(ka)
                 frame = kicker_plate.draw(frame, ka, rise)
@@ -720,7 +829,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                                              fill=(*kicker_plate.fill, int(255 * ka)))
                 frame = Image.alpha_composite(frame.convert("RGBA"), rl).convert("RGB")
         if credits_plate is not None:
-            ca = ease((t - share_done - 0.3) / 0.5)
+            ca = ease((t - done - 0.3) / 0.5)
             if ca > 0:
                 frame = credits_plate.draw(frame, ca)
         if stats is not None and i == total - 1:
@@ -757,34 +866,41 @@ def _gate_lines(ground, total: int, width: int, height: int, landscape: bool, wo
     inside its room (_line_room); else it is not drawn and the record says why. {line: reason} for those refused."""
     from . import masthead
     inside, clear = _line_room(width, height, landscape)
-    lines = {"share": (word_plates, lambda k: 0.45 + 0.055 * k, 0.3),
-             "follow": ([follow_plate] if follow_plate is not None else [], lambda k: BELL_AT - 0.35, 0.35),
-             "credits": ([credits_plate] if credits_plate is not None else [],
-                         lambda k: 0.45 + 0.055 * max(0, len(word_plates) - 1) + 0.3 + 0.3, 0.5)}
+    done = share_done(len(word_plates))
+    lines = {"share": (word_plates, word_at, WORD_IN),
+             "follow": ([follow_plate] if follow_plate is not None else [], lambda k: BELL_AT - FOLLOW_IN, FOLLOW_IN),
+             "credits": ([credits_plate] if credits_plate is not None else [], lambda k: done + 0.3, 0.5)}
     refused: dict[str, str] = {}
+    judged: list[tuple[str, int, Any]] = []   # (line, first fully opaque frame, plate)
     for name, (plates, start, dur) in lines.items():
         plates = [p for p in plates if p is not None and not p.empty]
         if not plates:
             continue
-        gate = tok(LINE_GATES[name])
         for p in plates:
             x0, y0, x1, y1 = p.box
             if not any(a <= x0 and b <= y0 and x1 <= c and y1 <= d for a, b, c, d in inside) or any(
                     x0 < c and a < x1 and y0 < d and b < y1 for a, b, c, d in clear):
                 refused[name] = f"{name} line not drawn: '{p.text}' ink {p.box} runs out of its room"
                 break
-        if name in refused:
+        if name not in refused:   # each plate from when it is fully opaque (frames()'s own timing) to the card's end
+            judged += [(name, max(0, int(np.ceil((start(k) + dur) * FPS))), p) for k, p in enumerate(plates)]
+    # every frame's ground is drawn once and every line opaque on it judged there (the card holds longer since lane E
+    # cycle 1: a ground per plate per frame cost the 9:16 card ~10x its frames)
+    first = min((i0 for _, i0, _ in judged), default=total)
+    for i in range(first, total):
+        live = [(name, p) for name, i0, p in judged if i0 <= i and name not in refused]
+        if not live:
             continue
-        for k, p in enumerate(plates):
-            t0 = start(k) + dur   # when this plate is fully opaque (frames()'s own timing)
-            for i in range(max(0, int(np.ceil(t0 * FPS))), total):
-                got = masthead.judge(ground(i / FPS), p)
-                if got < gate:
-                    refused[name] = (f"{name} line not drawn: '{p.text}' reaches {got:.2f}:1 on frame {i}, under the "
-                                     f"{gate}:1 gate")
-                    break
+        g = ground(i / FPS)
+        for name, p in live:
             if name in refused:
-                break
+                continue
+            gate = tok(LINE_GATES[name])
+            got = masthead.judge(g, p)
+            if got < gate:
+                refused[name] = (f"{name} line not drawn: '{p.text}' reaches {got:.2f}:1 on frame {i}, under the "
+                                 f"{gate}:1 gate")
+    refused = {name: refused[name] for name in lines if name in refused}
     for name, why in refused.items():
         log.warning("End card: %s", why)
     return refused
@@ -945,6 +1061,20 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
                      close_zoom=close_zoom, open_push=open_push, mix_last=round(mix, 4),
                      max_step_L=round(max(steps), 2))
         stats.setdefault("contrast", None)
+        # the bridge's one element against the reading pace (recorded, never failed: the bridge's second is the
+        # operator's, LOOP_SECONDS; a line over the pace is a copy matter). Shown: from its first frame up to the
+        # start of its fade (the share line: the crossfade's start; FOLLOW: its last full-opacity frame).
+        shown = None
+        if text is not None and follow_plate is not None:
+            up = [i for i in range(total) if follow_alpha(i, total) >= 1.0]
+            shown = (up[-1] + 1) / FPS
+        elif text is not None:
+            shown = t_out
+        if shown is not None:
+            need = reading_need([(0.0, text)])
+            stats["reading"] = {"target_cps": float(tok("motion.caption_cps")), "need_s": round(need, 3),
+                                "shown_s": round(shown, 3), "over_pace": need > shown + 1e-9,
+                                "shown_cps": round(len(" ".join(text.split())) / shown, 1)}
         if follow:
             vals = [v for v in follow_contrasts if v is not None]
             stats.update(follow_requested=True, follow_skipped=follow_skipped,

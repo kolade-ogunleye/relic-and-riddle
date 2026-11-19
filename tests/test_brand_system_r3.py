@@ -282,6 +282,7 @@ def test_the_end_card_masthead_fits_its_real_room_and_is_drawn(monkeypatch, size
     from src import end_card
     monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 1.0)
     monkeypatch.setattr(end_card, "SECONDS", 1.0)
+    monkeypatch.setattr(end_card, "reading_need", lambda *a, **k: 0.0)   # short: lane E tests the hold
     stats: dict = {}
     list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "Share this with a friend.", stats))
     m = stats["masthead"]

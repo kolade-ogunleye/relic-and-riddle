@@ -130,7 +130,7 @@ def test_the_card_never_says_follow_twice():
     assert end_card.says_follow(raw) and not end_card.says_follow(end_card.card_text(raw))
     stats = {}
     frames = list(end_card.frames(Image.new("RGB", (1080, 1920), (120, 110, 100)), raw, stats))
-    assert len(frames) == round(end_card.SECONDS * end_card.FPS)
+    assert len(frames) == round(stats["seconds"] * end_card.FPS) and stats["seconds"] >= end_card.SECONDS  # held to read
     assert "follow" not in stats["contrast"] and stats["follow"] is False
 
 

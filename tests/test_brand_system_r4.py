@@ -501,12 +501,13 @@ def test_a_longer_brand_name_steps_down_the_ladder_on_every_surface(name, expect
         else:
             assert not rec["shown"] and "floor" in rec["reason"]
         stats: dict = {}
-        old = end_card.SECONDS
+        old = (end_card.SECONDS, end_card.reading_need)
         end_card.SECONDS = 0.2
+        end_card.reading_need = lambda *a, **k: 0.0   # short: the reading hold is lane E's own test
         try:
             list(end_card.frames(Image.new("RGB", (1080, 1920), (60, 60, 60)), "Share this with a friend.", stats))
         finally:
-            end_card.SECONDS = old
+            end_card.SECONDS, end_card.reading_need = old
         m = stats["masthead"]
         start = brand_system.type_px("masthead", "tall")
         if expect == "fit":

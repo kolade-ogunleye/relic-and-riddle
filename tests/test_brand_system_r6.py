@@ -115,6 +115,7 @@ def test_the_shipped_and_test_palettes_pass_the_mark_check():
 def test_the_end_card_fails_closed_when_its_mark_misses_the_gate(size, monkeypatch):
     from src import end_card
     monkeypatch.setattr(end_card, "SECONDS", 0.2)
+    monkeypatch.setattr(end_card, "reading_need", lambda *a, **k: 0.0)   # short: lane E tests the hold
     monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 0.2)
     monkeypatch.setattr(masthead, "mark_contrast", lambda *a, **k: (1.38, {"fill": 5, "edge": 0}))
     stats: dict = {}
@@ -177,6 +178,7 @@ def test_every_masthead_name_and_mark_drawn_was_verified_first(tmp_path, monkeyp
         MultiFormatGenerator()._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", fb, subject="EYE")
     youtube_thumbnail.render(Image.open(photo), {"title": "THE EYE OF THE SAHARA"}, meta={})
     monkeypatch.setattr(end_card, "SECONDS", 0.2)
+    monkeypatch.setattr(end_card, "reading_need", lambda *a, **k: 0.0)   # short: lane E tests the hold
     monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 0.2)
     for size in ((1080, 1920), (1920, 1080)):
         list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "Share this with a friend.", {}))

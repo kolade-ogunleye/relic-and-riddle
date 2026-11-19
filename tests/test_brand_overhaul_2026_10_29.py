@@ -241,7 +241,7 @@ def test_end_card_lines_measure_on_its_last_frame():
     last = Image.new("RGB", (1080, 1920), (238, 232, 220))
     stats = {}
     frames = list(end_card.frames(last, "Send this to a friend who loves ancient engineering.", stats))
-    assert len(frames) == round(end_card.SECONDS * end_card.FPS)
+    assert len(frames) == round(stats["seconds"] * end_card.FPS) and stats["seconds"] >= end_card.SECONDS  # held to read
     assert all(v is not None and v >= 4.5 for v in stats["contrast"].values()), stats["contrast"]
 
 

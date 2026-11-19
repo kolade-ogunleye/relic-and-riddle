@@ -82,6 +82,18 @@ class Hasher:
         return {"sha256": self.h.hexdigest(), "frames": self.n}
 
 
+def card_share(fx, case) -> str:
+    """The 9:16 end card's line for a fixture case, as the composer makes it: script_engine.end_card_share of the run's
+    verified script (the writer's share half when it passes its checks, else the fallback's), or, without the run's
+    script, end_card.card_text of the recorded share line."""
+    from src.end_card import card_text
+    from src.script_engine import end_card_share
+    p = fx.run_file(case["run"], "verified_script.json")
+    if p.is_file():
+        return end_card_share(json.loads(p.read_text(encoding="utf-8")))[0]
+    return card_text(case["share_line"])
+
+
 def second_brand(brand, display: str | None = "Montserrat"):
     base = brand.DEFAULT_BRAND
     palette = {k: (v if isinstance(v, str) else (v[2], v[1], v[0])) for k, v in base.palette.items()}
@@ -348,7 +360,10 @@ def main() -> None:
                 frames_of(f"bridge__{i}_{case['topic']}", end_card.loop_bridge(last, first, share, {}))
                 frames_of(f"bridge_follow__{i}_{case['topic']}",
                           end_card.loop_bridge(last, first, share, {}, line=False, follow=True))
-                frames_of(f"endcard__{i}_{case['topic']}", end_card.frames(last, share, {}))
+                # what the composer passes the card (script_engine.end_card_share: the share half, the card says
+                # FOLLOW itself), never the raw share-and-follow line (freeze lane E cycle 1: the board drew 88
+                # characters and no follow line where a real run draws 56 and FOLLOW FOR THE NEXT RELIC)
+                frames_of(f"endcard__{i}_{case['topic']}", end_card.frames(last, card_share(fx, case), {}))
             else:
                 if last.width < last.height:
                     from PIL import ImageOps

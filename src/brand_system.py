@@ -207,6 +207,14 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "masthead.colour_light": "INK",   # the light-ground variant (only where bone cannot reach the gate)
     "masthead.fit_floor": 0.75,       # the fit ladder's floor, a share of the canvas's masthead size (round 5): a
                                       # longer brand name steps down 2 px at a time to it, then is refused
+    # SYS-B-2 (lane B cycle 2, panel 2 PL; rubric CD2 / PL3): where the masthead is stacked over a hook as one group
+    # (the YouTube thumbnail: the mark directly over the headline's first row), its drawn group is at most this share
+    # of that row; it takes the largest step of its fit ladder that holds it, never under fit_floor. Scope: YouTube
+    # only. Measured on 52 real carousel covers (both copies): the cover's masthead is the deck's fixed top band,
+    # 0.26-0.41 of the headline's widest row, set apart from it, not stacked over it; read against a first row of one
+    # short word (EYE / OF THE SAHARA: 1.55) the rule would shrink one deck's masthead slide 1 only (one masthead size
+    # per deck wins). The end card / end screen masthead is the card's sign-off over a share line, not over a hook.
+    "masthead.hook_ratio_max": 0.78,
     # ---- kicker
     "kicker.weight": 800,
     "kicker.track": 0.15,             # em
@@ -221,6 +229,12 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "band.body_gap_tall": 1.62,       # body em, tall (the Story: 46 px body, 75 px)
     # ---- the cover / YouTube lockup (round 7, F21): line 2's size over line 1's, fixed (never fitted per cover)
     "lockup.line_ratio": 1.0,
+    # SYS-B-3 (lane B cycle 2, panel 2 TY): the clear field between two stacked display lines of the YouTube lockup,
+    # a share of the lower line's cap: the lockup's line pitch is (1 + this) caps, and the figure row's lowest INK to
+    # the title's cap line (a descender in the unit no longer eats the gap). Scope: the YouTube lockup; the carousel,
+    # the Story and the Reel cover step their display lines at SPEC lead.display (1.13 caps), a separate written value
+    # (one display pitch across surfaces is a SPEC decision, not this token's).
+    "lockup.line_gap": 0.18,
     # ---- the 9:16 card block's vertical placement (round 7, F18): its centre as a share of the frame's height,
     # never past the graphics box's foot (design_cards._chapter_tall_block)
     "card.tall_centre": 0.45,
@@ -287,6 +301,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "masthead.gap": (0.10, 1.20),         # em
     "masthead.mark_edge": (0.02, 0.20),   # em
     "masthead.fit_floor": (0.70, 1.0),    # never under 70 % of the canvas's masthead size
+    "masthead.hook_ratio_max": (0.6, 0.9),   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em
     "kicker.rule": (0.5, 3.0),            # caps
@@ -296,6 +311,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "band.body_gap": (1.2, 3.0),          # body em
     "band.body_gap_tall": (1.2, 3.0),     # body em
     "lockup.line_ratio": (1.0, 1.6),
+    "lockup.line_gap": (0.10, 0.30),      # of the lower line's cap: never touching, never a paragraph
     "card.tall_centre": (0.30, 0.60),
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)

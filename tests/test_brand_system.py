@@ -427,6 +427,17 @@ def _bridge_crossfade(line: bool):
     return st["crossfade"]
 
 
+def _youtube_mark_room():
+    """SYS-B-2: the YouTube masthead's room over a wide hook row (the renderer's _mark_room)."""
+    from types import SimpleNamespace
+
+    from src import youtube_thumbnail
+    from src.typography import get_font
+    p = SimpleNamespace(empty=False, font=get_font(brand.DISPLAY_FONT, 190), text="THE STONE GIANTS", anchor="ls",
+                        track=0, xy=(96, 600))
+    return youtube_thumbnail._mark_room([("title_1", p)])
+
+
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "edge.slope_max": (0.6, _band_edge_profile),
     "halo.label_max": (0.04, lambda: _follow_label()[0]),
@@ -489,6 +500,8 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "motion.push_cap": (1.1, lambda: __import__("src.still_camera", fromlist=["x"]).endpoint_for("push", 300)),
     "motion.hook_hold": (0.9, lambda: __import__("src.design_cards", fromlist=["x"])._hook_ground_alpha(1.0)),
     "motion.hook_fade": (0.25, lambda: __import__("src.design_cards", fromlist=["x"])._hook_alpha(1.15)),
+    "masthead.hook_ratio_max": (0.62, _youtube_mark_room),
+    "lockup.line_gap": (0.25, lambda: __import__("src.youtube_thumbnail", fromlist=["x"]).line_pitch()),
 }
 
 

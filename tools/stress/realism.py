@@ -477,7 +477,7 @@ def mutation_inputs(fam: str, real: tuple, kind: str, rnd) -> tuple[dict | None,
         if not wj.is_file():
             return None, "no words.json"
         words = [dict(w) for w in json.loads(wj.read_text(encoding="utf-8"))]
-        inp = {"words": words}
+        inp = {"words": words, "narration": narration}
         targets = [("words", i) for i in range(len(words))]
     elif fam == "timeline":
         evs = [dict(e) for e in p.get("timeline") or []]
@@ -526,6 +526,31 @@ def mutation_inputs(fam: str, real: tuple, kind: str, rnd) -> tuple[dict | None,
                      "sections: 0 of 68 runs; then-and-now: no run fields)")
     if kind in ("control", "swap_photo"):
         return inp, kind
+    if fam in ("captions", "badge"):     # one spoken word changed, its time kept (never a word squeezed in)
+        words = inp["words"]
+        if kind == "swap_figure":
+            hits = [i for i, w in enumerate(words) if _NUM.search(str(w["word"]))]
+            if not hits:
+                return inp, "swap_figure: no figure in the narration (control)"
+            i = rnd.choice(hits)
+            new, old, nv = _swap_number(str(words[i]["word"]), rnd)
+            words[i]["word"] = new
+            if old and inp.get("narration"):
+                inp["narration"] = re.sub(r"(?<![\d,.])" + re.escape(old) + r"(?![\d,]|\.\d)", nv,
+                                          inp["narration"], count=1)
+            return inp, f"swap the figure {old} -> {nv} in word {i}"
+        i = rnd.randrange(len(words))
+        w = str(words[i]["word"])
+        if kind == "lengthen":
+            core = w.rstrip(".,;:!?")
+            words[i]["word"] = f"{core}-{rnd.choice(gen.LONG_WORDS).lower()}{w[len(core):]}"
+            what = f"lengthen word {i} into a long compound"
+        else:
+            words[i]["word"] = _accent(w, rnd)
+            what = f"add an accent to word {i}"
+        if inp.get("narration"):
+            inp["narration"] = inp["narration"].replace(w, words[i]["word"], 1)
+        return inp, what
     t = rnd.choice(targets)
     cur = inp
     for k in t[:-1]:

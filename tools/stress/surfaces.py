@@ -390,7 +390,11 @@ def d_captions(case, ctx: Ctx):
     if not words:
         words = _words("Silence")
         ctx.notes.append("every caption field was empty: one placeholder word")
-    ctx.payload = {"narration_script": " ".join(w["word"] for w in words), "topic_id": "stress_topic"}
+    # a real run's narration where the case carries one (mutation mode: what figure_gate reads the bursts against),
+    # else the spoken words themselves
+    ctx.payload = {"narration_script": inputs(case).get("narration") or " ".join(w["word"] for w in words),
+                   "topic_id": "stress_topic"}
+    ctx.spoken_words = " ".join(w["word"] for w in words)
     ctx.expect = []      # judged as the spoken sequence, in order (invariants: expect_sequence)
     wide = case["fmt"] == "169"
     kw = {"width": 1920, "height": 1080} if wide else {}
@@ -429,7 +433,8 @@ def d_captions(case, ctx: Ctx):
     ctx.lines.append(("captions", bursts))
     ctx.records.append({"surface": "captions.ass", "name": "ass_text",
                         "text": " ".join(" ".join(b) for b in bursts)})
-    ctx.expect_sequence = ctx.payload["narration_script"]
+    ctx.expect_sequence = ctx.spoken_words
+    ctx.recorded_never_end = list((getattr(comp, "last_reading_rate", None) or {}).get("never_end") or [])
     ctx.drawn_sequence = " ".join(" ".join(b) for b in bursts)
     w, h = (1920, 1080) if wide else (1080, 1920)
     if badge:

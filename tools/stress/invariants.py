@@ -14,7 +14,8 @@ LAYOUT_PROBLEM  the renderer recorded its own layout problem and delivered the s
 FIGURE_GATE     src/figure_gate.check_run faults (a drawn figure that is not a signed value) or unrecorded text
 LOGGED_DROP     a word of the input drawn nowhere, its leaving-out said only in a log line (no record carries it)
 HARNESS         the harness itself failed on the case (never a product finding; fix the harness)
-LINE_END        a caption line (not a burst's last) ending on a never-end word (brand_system.NEVER_END_WORDS)
+LINE_END        a caption burst (not the last) ending on a never-end word (brand_system.NEVER_END_WORDS)
+LINE_END_BREAK  a line break inside a caption burst after a never-end word (the board counts these; the composer does not)
 """
 from __future__ import annotations
 
@@ -316,15 +317,24 @@ def check(ctx) -> list[dict[str, Any]]:
             from src.brand_system import NEVER_END_WORDS
             spoken = str(exp_seq).split()
             pos = 0
-            all_lines = [ln for _s, bursts in ctx.lines for b in bursts for ln in b]
-            for n, ln in enumerate(all_lines):
+            rows = [(ln, k == len(b) - 1, " ".join(b)) for _s, bursts in ctx.lines for b in bursts
+                    for k, ln in enumerate(b)]
+            recorded = {" ".join(str(x).split()) for x in getattr(ctx, "recorded_never_end", []) or []}
+            for n, (ln, burst_end, burst) in enumerate(rows):
                 pos += len(ln.split())
-                if n == len(all_lines) - 1 or pos < 1 or pos > len(spoken):
+                if n == len(rows) - 1 or pos < 1 or pos > len(spoken):
                     continue
                 src_word = spoken[pos - 1]
                 bare = src_word.strip("\"'‘’“”").lower()
                 if bare in NEVER_END_WORDS and src_word[-1] not in ".,;:!?—–)…":
-                    fail("LINE_END", f"captions: a line ends on {src_word!r}: {ln!r}")
+                    if burst_end:   # the composer's own record (reading_rates never_end) counts burst ends
+                        fail("LINE_END", f"captions: a burst ends on {src_word!r}: {burst!r}"
+                                         + ("; recorded by the composer (reading_rates never_end)"
+                                            if " ".join(burst.split()) in recorded else
+                                            "; not in the composer's record"))
+                    else:           # a line break inside a burst: only the board's evidence counts these
+                        fail("LINE_END_BREAK", f"captions: a line inside a burst ends on {src_word!r}: {ln!r} "
+                                               f"(burst {burst!r})")
     return fails
 
 

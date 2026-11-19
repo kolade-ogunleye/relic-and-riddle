@@ -87,6 +87,8 @@ def run_case(args) -> dict:
     out = Path(out)
     work = out / "_work" / str(os.getpid()) / case["id"]
     t0 = time.perf_counter()
+    import realism
+    reach = realism.tag(case, out / "_work" / "_grounds")    # before rendering: would production ever send this?
     ctx = surfaces.drive(case, work)
     try:
         fails = invariants.check(ctx)
@@ -94,7 +96,8 @@ def run_case(args) -> dict:
         import traceback
         fails = [{"cls": "HARNESS", "detail": f"{type(e).__name__}: {e} {traceback.format_exc()[-600:]}"}]
     status = invariants.classify(ctx, fails)
-    res = {"id": case["id"], "surface": case["surface"], "status": status, "seconds": round(time.perf_counter() - t0, 2),
+    res = {"id": case["id"], "surface": case["surface"], "status": status, "mode": case.get("mode", "edge"),
+           "reach": reach, "mutation": case.get("mutation_what"), "real_run": case.get("real_run"), "seconds": round(time.perf_counter() - t0, 2),
            "refusal": ctx.refusal, "failures": fails, "notes": ctx.notes[:12], "recorded_drops": ctx.recorded_drops[:12],
            "warnings": [w for w in getattr(ctx, "warnings", []) if w.startswith("src.")][:8],
            "classes": {"hostile": case["copy"][case.get("hostile_field", 0)]["cls"],
@@ -149,6 +152,9 @@ def summarise(results: list[dict], meta: dict) -> dict:
                                          "failure_classes": {}, "refusal_classes": {}})
         s["cases"] += 1
         s["seconds"] = round(s["seconds"] + r["seconds"], 2)
+        tagged = (r.get("reach") or {}).get("tag", "UNTAGGED")
+        s.setdefault("reach", {}).setdefault(tagged, 0)
+        s["reach"][tagged] += 1
         if r["status"] == "pass":
             s["passes"] += 1
         elif r["status"] == "refused":
@@ -160,6 +166,8 @@ def summarise(results: list[dict], meta: dict) -> dict:
             for f in r["failures"]:
                 s["failure_classes"][f["cls"]] = s["failure_classes"].get(f["cls"], 0) + 1
             s["failures"].append({"id": r["id"], "failures": r["failures"], "classes": r["classes"],
+                                  "mode": r.get("mode", "edge"), "reach": r.get("reach"),
+                                  "mutation": r.get("mutation"), "real_run": r.get("real_run"),
                                   "notes": r["notes"], "recorded_drops": r["recorded_drops"],
                                   "repro": f"cases/{r['id']}.json", "frames": r["frames"]})
     return {**meta, "surfaces": by}
@@ -173,6 +181,10 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--quick", action="store_true", help="3 cases per surface")
+    ap.add_argument("--mode", choices=("edge", "realistic", "mutation"), default="edge",
+                    help="edge: the hostile generator; realistic: sampled from the corpus's measured distributions on "
+                         "real photos; mutation: real runs' own copy and photos with one controlled change")
+    ap.add_argument("--min-count", type=int, default=3, help="the fewest cases a surface runs under --budget")
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--scale-by-cost", action="store_true")
     ap.add_argument("--budget", type=float, default=0.0,
@@ -229,14 +241,24 @@ def main(argv=None) -> int:
         if a.scale_by_cost and not a.quick:
             n = max(3, round(a.count / max(1, surfaces.COST.get(s, 1))))
         if a.budget and not a.quick:
-            n = max(3, min(a.count, int(a.budget / max(0.1, surfaces.COST.get(s, 1)))))
-        cases += surfaces.build(s, n, a.seed)
+            n = max(a.min_count, min(a.count, int(a.budget / max(0.1, surfaces.COST.get(s, 1)))))
+        if a.mode == "edge":
+            cases += surfaces.build(s, n, a.seed)
+        elif a.mode == "realistic":
+            import realism
+            cases += realism.build_realistic(s, n, a.seed)
+        else:
+            import realism
+            got, why = realism.build_mutation(s, n, a.seed)
+            cases += got
+            if not got:
+                print(f"{s}: no mutation cases ({'; '.join(why)[:200]})", flush=True)
     workers = max(1, min(2, a.workers))
     t0 = time.perf_counter()
     results: list[dict] = []
     # slow surfaces first, so the two workers finish together
     order = sorted(cases, key=lambda c: -surfaces.COST.get(c["surface"], 1))
-    meta = {"tree": str(tree), "seed": a.seed, "count": a.count, "quick": a.quick, "workers": workers,
+    meta = {"tree": str(tree), "seed": a.seed, "count": a.count, "quick": a.quick, "workers": workers, "mode": a.mode,
             "cases": len(cases)}
     partial = out / "report.partial.jsonl"
     with partial.open("w", encoding="utf-8", newline="\n") as log, \

@@ -131,6 +131,14 @@ def render(spec: dict) -> Image.Image:
 def make(spec: dict, out_dir: Path) -> Path:
     """The ground written once (shared across workers; atomic rename) at out_dir/<name>.png (alpha) or .jpg."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    if spec["kind"] == "real":       # a real run's own photo (realistic / mutation modes): a copy, never the source
+        src = Path(spec["path"])     # (a renderer may write a sidecar beside the photo it reads)
+        dst = out_dir / f"real_{hashlib.sha256(str(src).encode()).hexdigest()[:12]}{src.suffix.lower()}"
+        if not dst.exists():
+            tmp = dst.with_suffix(f".{os.getpid()}.tmp")
+            tmp.write_bytes(src.read_bytes())
+            os.replace(tmp, dst)
+        return dst
     ext = ".png" if spec["kind"] == "alpha" else ".jpg"
     path = out_dir / (name_of(spec) + ext)
     if not path.exists():

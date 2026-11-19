@@ -121,6 +121,76 @@ BUILD_EXTRA: dict[str, Callable] = {"cover": _cover_extra, "youtube": _cover_ext
                                     "map": _map_extra}
 
 
+# ------------------------------------------------------------------------------------------------ the case's inputs
+def family(surface: str) -> str:
+    return surface.split("_")[0]
+
+
+def inputs(case) -> dict:
+    """What the surface is asked to draw, in the renderer's own terms: the case's explicit `inputs` (the realistic and
+    mutation modes, tools/stress/realism.py), else derived from its copy slots exactly as the edge generator always
+    has (so every edge repro replays as it was). The drivers draw these and the reachability gates judge these."""
+    if case.get("inputs"):
+        return case["inputs"]
+    fam, fig = family(case["surface"]), case["figure"]
+    if fam in ("cover", "youtube"):
+        copy = {"eyebrow": _t(case, 0), "line1": _t(case, 1), "line2": _t(case, 2),
+                "tagline": fig["text"] if case["rnd"] % 2 else _t(case, 3)}
+        return {"thumbnail": copy, "title": f"{copy['line1']} {copy['line2']}",
+                "narration": _signed(*copy.values(), fig["signed"]), "hook_sentence": _signed(copy["line1"]),
+                "closing_sentence": _signed(_t(case, 4))}
+    if fam == "carousel":
+        slides = [{"heading": _t(case, k), "body": fig["text"] + " " + _t(case, k + 1) if k == 2 else _t(case, k + 1)}
+                  for k in range(5 + case["rnd"] % 4)]
+        return {"carousel_slides": slides, "title": _t(case, 0),
+                "narration": _signed(*(f"{s['heading']}. {s['body']}" for s in slides), fig["signed"]),
+                "share_line": "Share this with a friend who loves a riddle.",
+                "closing_sentence": _signed(slides[-1]["body"])}
+    if fam == "story":
+        slides = [{"kicker": _t(case, 3 * k), "line1": _t(case, 3 * k + 1), "line2": _t(case, 3 * k + 2),
+                   "body": (fig["text"] + " " if k == 1 else "") + _t(case, 3 * k + 3)} for k in range(3)]
+        return {"story_slides": slides, "title": _t(case, 0),
+                "narration": _signed(*(f"{s['line1']} {s['line2']}. {s['body']}" for s in slides), fig["signed"])}
+    if fam in ("captions", "badge"):
+        text = " ".join([_t(case, 0), fig["text"] + ".", _t(case, 1), _t(case, 2) + "?", _t(case, 3)])
+        return {"words": _words(text)}
+    if fam == "hook":
+        claim = (fig["text"] if case["rnd"] % 2 else _t(case, 0)) or _t(case, 0)
+        return {"claim": claim, "eyebrow": _t(case, 1) if case["rnd"] % 3 == 0 else "",
+                "first_burst": _t(case, 2) or "In the desert"}
+    if fam == "chapter":
+        num = 1 + case["rnd"] % 9
+        return {"title": _t(case, 0), "number": num, "total": max(num, 1 + (case["rnd"] >> 4) % 12)}
+    if fam == "myth":
+        myth_t = _t(case, 0)
+        # the correction shares a content word with the myth (the card refuses a pair that shares none): the myth's
+        # longest word leads the generated fact copy
+        lead = max(myth_t.split(), key=len) if myth_t.split() else ""
+        return {"myth": myth_t, "fact": f"{lead} {_t(case, 1)}".strip()}
+    if fam == "callout":
+        return {"labels": [_t(case, 0), _t(case, 1), _t(case, 2)]}
+    if fam in ("endcard", "bridge", "endscreen"):
+        return {"share_line": " ".join(x for x in (_t(case, 0), _t(case, 1)) if x.strip()) or _t(case, 2)}
+    if fam == "map":
+        return {"place": dict(case["map"]["place"])}
+    if fam == "route":
+        return {"stops": _route_stops(case)}
+    if fam == "timeline":
+        return {"events": _timeline_events(case)}
+    if fam == "scale":
+        return {"fact": dict(case["scale"]["fact"])}
+    if fam == "section":
+        return {"cross_section": _section(case)}
+    if fam == "numbers":
+        return {"stat_cards": _stat_cards(case)}
+    if fam == "thennow":
+        rnd = random.Random(case["rnd"])
+        old_y = rnd.choice((1826, 1850, 1900, 1944, 2019, 1))
+        new_y = rnd.choice((2024, 2000, old_y, old_y - 10 if old_y > 20 else 2024))
+        return {"years": [old_y, new_y]}
+    raise ValueError(case["surface"])
+
+
 # ------------------------------------------------------------------------------------------------ helpers
 def _ground(case, k: int, work: Path) -> Path:
     return gr.make(case["ground"][k % len(case["ground"])], work.parent.parent / "_grounds")
@@ -204,11 +274,12 @@ def d_cover(case, ctx: Ctx):
     from PIL import Image
 
     from src.visual_engine import VisualEngine, cover_text_zone
-    copy = {"eyebrow": _t(case, 0), "line1": _t(case, 1), "line2": _t(case, 2),
-            "tagline": case["figure"]["text"] if case["rnd"] % 2 else _t(case, 3)}
-    ctx.payload = {"title": f"{copy['line1']} {copy['line2']}", "thumbnail": copy, "topic_id": "stress_topic",
-                   "narration_script": _signed(*copy.values(), case["figure"]["signed"]),
-                   "hook_sentence": _signed(copy["line1"]), "closing_sentence": _signed(_t(case, 4))}
+    inp = inputs(case)
+    copy = dict(inp["thumbnail"])
+    ctx.payload = {"title": inp["title"], "thumbnail": copy, "topic_id": "stress_topic",
+                   "narration_script": inp["narration"], "hook_sentence": inp.get("hook_sentence") or "",
+                   "closing_sentence": inp.get("closing_sentence") or "",
+                   **({"youtube_title": inp["youtube_title"]} if inp.get("youtube_title") else {})}
     ctx.expect = [(k, v) for k, v in copy.items()]
     hero = _ground(case, 0, ctx.work)
     if case["surface"] == "cover":
@@ -264,17 +335,12 @@ def d_carousel(case, ctx: Ctx):
 
     from src.multi_format import MultiFormatGenerator
     MultiFormatGenerator._match_photos = _no_match
-    n = 5 + case["rnd"] % 4
-    slides = []
-    for k in range(n):
-        body = case["figure"]["text"] + " " + _t(case, k + 1) if k == 2 else _t(case, k + 1)
-        slides.append({"heading": _t(case, k), "body": body})
+    inp = inputs(case)
+    slides = [dict(s) for s in inp["carousel_slides"]]
     fb = case["surface"] == "carousel_fb"
-    ctx.payload = {"title": _t(case, 0), "carousel_slides": slides, "topic_id": "stress_topic",
-                   "narration_script": _signed(*(f"{s['heading']}. {s['body']}" for s in slides),
-                                               case["figure"]["signed"]),
-                   "share_line": "Share this with a friend who loves a riddle.",
-                   "closing_sentence": _signed(slides[-1]["body"]), "poll": {}}
+    ctx.payload = {"title": inp["title"], "carousel_slides": slides, "topic_id": "stress_topic",
+                   "narration_script": inp["narration"], "share_line": inp.get("share_line") or "",
+                   "closing_sentence": inp.get("closing_sentence") or "", "poll": {}}
     for k, s in enumerate(slides):
         ctx.expect += [(f"slide{k + 1}.heading", s["heading"]), (f"slide{k + 1}.body", s["body"])]
     photos = gr.credited([_ground(case, k, ctx.work) for k in range(4)], ctx.work / "photos")
@@ -293,11 +359,10 @@ def d_story(case, ctx: Ctx):
 
     from src.multi_format import MultiFormatGenerator
     MultiFormatGenerator._match_photos = _no_match
-    slides = [{"kicker": _t(case, 3 * k), "line1": _t(case, 3 * k + 1), "line2": _t(case, 3 * k + 2),
-               "body": (case["figure"]["text"] + " " if k == 1 else "") + _t(case, 3 * k + 3)} for k in range(3)]
-    ctx.payload = {"title": _t(case, 0), "story_slides": slides, "topic_id": "stress_topic",
-                   "narration_script": _signed(*(f"{s['line1']} {s['line2']}. {s['body']}" for s in slides),
-                                               case["figure"]["signed"]), "poll": {}}
+    inp = inputs(case)
+    slides = [dict(s) for s in inp["story_slides"]]
+    ctx.payload = {"title": inp["title"], "story_slides": slides, "topic_id": "stress_topic",
+                   "narration_script": inp["narration"], "poll": {}}
     for k, s in enumerate(slides[:2]):    # STORY_FRAMES: hook and reveal (the poll frame is not drawn: QF-80)
         ctx.expect += [(f"story{k + 1}.{f}", s[f]) for f in ("kicker", "line1", "line2", "body")]
     photos = gr.credited([_ground(case, k, ctx.work) for k in range(3)], ctx.work / "photos")
@@ -321,8 +386,7 @@ def _words(text: str, t0: float = 0.1, rate: float = 2.6) -> list[dict]:
 
 def d_captions(case, ctx: Ctx):
     from src import video_composer as vc
-    text = " ".join([_t(case, 0), case["figure"]["text"] + ".", _t(case, 1), _t(case, 2) + "?", _t(case, 3)])
-    words = _words(text)
+    words = [dict(w) for w in inputs(case)["words"]]
     if not words:
         words = _words("Silence")
         ctx.notes.append("every caption field was empty: one placeholder word")
@@ -420,31 +484,25 @@ def d_card(case, ctx: Ctx):
     photo = _ground(case, 0, ctx.work)
     out_dir = ctx.work / "graphics"
     out_dir.mkdir(parents=True, exist_ok=True)
+    inp = inputs(case)
     if kind == "hook":
-        claim = (case["figure"]["text"] if case["rnd"] % 2 else _t(case, 0)) or _t(case, 0)
+        claim, eyebrow = inp["claim"], inp.get("eyebrow") or ""
         sheet["facts"].append(T.fact("s_hook", claim if claim.strip() else "x"))
-        eyebrow = _t(case, 1) if case["rnd"] % 3 == 0 else ""
         spec = T.hook(photo, sheet=sheet, claim=claim, fact_ids=("s_hook",), eyebrow=eyebrow,
-                      first_burst=_t(case, 2) or "In the desert")
+                      first_burst=inp.get("first_burst") or "In the desert")
         ctx.expect = [("claim", claim)] + ([("eyebrow", eyebrow)] if eyebrow else [])
         ctx.payload = {"narration_script": _signed(claim, eyebrow), "topic_id": "stress_topic"}
         made = dc.render_hook_frame(spec, sheet, out_dir)
         out = out_dir / "hook_frame.mp4"
     elif kind == "chapter":
-        title = _t(case, 0)
-        num = 1 + case["rnd"] % 9
-        spec = T.chapter(sheet=sheet, number=num, total=max(num, 1 + (case["rnd"] >> 4) % 12), title=title,
-                         photo=photo)
+        title, num = inp["title"], int(inp["number"])
+        spec = T.chapter(sheet=sheet, number=num, total=int(inp["total"]), title=title, photo=photo)
         ctx.expect = [("title", title)]
         ctx.payload = {"narration_script": _signed(title), "topic_id": "stress_topic"}
         out = out_dir / "graphic_chapter_01.mp4"
         made = dc.render_chapter_card(spec, sheet, out, w, h)
     else:
-        myth_t = _t(case, 0)
-        # the correction shares a content word with the myth (the card refuses a pair that shares none): the myth's
-        # longest word leads the generated fact copy
-        lead = max(myth_t.split(), key=len) if myth_t.split() else ""
-        fact_t = f"{lead} {_t(case, 1)}".strip()
+        myth_t, fact_t = inp["myth"], inp["fact"]
         sheet = {"topic": "Stress topic", "facts": []}
         sheet["facts"].append(T.fact("s_myth", fact_t if fact_t.strip() else "x",
                                      evidence=[T.ev("https://www.britannica.com/s_myth", 2,
@@ -489,9 +547,9 @@ def d_callout(case, ctx: Ctx):
         x, y, fw, fh = x * sx, y * sy, fw * sx, fh * sy
         box = (x - fw / 2, y - fh / 2, x + fw / 2, y + fh / 2)
         return (label, x, y, fw * fh / (w * h), fw, fh, kind, tuple(round(v) for v in box))
-    labels = [_t(case, 0), _t(case, 1), _t(case, 2)]
-    pts = [pt(labels[0], 600, 900, 260, 300), pt(labels[1], 300, 1010, 300, 380, "extent"),
-           pt(labels[2], 760, 640, 160, 200)]
+    labels = list(inputs(case)["labels"])[:3]
+    spots = [(600, 900, 260, 300, "point"), (300, 1010, 300, 380, "extent"), (760, 640, 160, 200, "point")]
+    pts = [pt(lab, *spot[:4], spot[4]) for lab, spot in zip(labels, spots)]
     ctx.expect = [(f"label{k + 1}", t) for k, t in enumerate(labels)]
     ctx.payload = {"narration_script": _signed(*labels), "topic_id": "stress_topic", "photo_labels": labels}
     kept = callouts.declutter(callouts.clear_of_captions(pts, w, h), w, h)
@@ -539,7 +597,7 @@ def d_endcard(case, ctx: Ctx):
 
     from src import end_card
     _memo_end_card()
-    share = " ".join(x for x in (_t(case, 0), _t(case, 1)) if x.strip()) or _t(case, 2)
+    share = inputs(case)["share_line"]
     ctx.payload = {"share_line": share, "narration_script": _signed(share), "topic_id": "stress_topic"}
     with Image.open(_ground(case, 0, ctx.work)) as src:
         last = src.convert("RGB")
@@ -596,39 +654,39 @@ def _graphic(case, ctx: Ctx, kind: str):
     narration = ""
     with using(0.0):
         if kind == "map":
-            place = dict(case["map"]["place"])
+            place = dict(inputs(case)["place"])
             ctx.expect = [("label", place["label"])] if place.get("label") else []
             ctx.payload = {"narration_script": _signed(place["label"]), "topic_id": "stress_topic",
                            "location": {"name": place["label"], "country": place.get("country") or ""}}
             made = graphics.render_map(place, out, width=w, height=h, narration="")
         elif kind == "route":
-            stops = _route_stops(case)
+            stops = [dict(x) for x in inputs(case)["stops"]]
             ctx.expect = [(f"stop{k + 1}", s["label"]) for k, s in enumerate(stops)]
             ctx.payload = {"narration_script": _signed(*(s["label"] for s in stops)), "route": stops,
                            "topic_id": "stress_topic"}
             made = graphics.render_route(stops, out, width=w, height=h, narration="")
         elif kind == "timeline":
-            evs = _timeline_events(case)
+            evs = [dict(x) for x in inputs(case)["events"]]
             ctx.expect = [(f"event{k + 1}", e["label"]) for k, e in enumerate(evs)]
             ctx.payload = {"narration_script": _signed(*(e["label"] for e in evs)), "timeline": evs,
                            "topic_id": "stress_topic"}
             made = graphics.render_timeline(evs, out, width=w, height=h, photo=_ground(case, 0, ctx.work))
         elif kind == "scale":
-            fact = dict(case["scale"]["fact"])
+            fact = dict(inputs(case)["fact"])
             ctx.expect = [("subject", fact["subject"])]
             narration = f"The {fact['subject']} is {'about ' if fact['approximate'] else ''}{fact['value']:g} " \
                         f"{'metres' if fact['unit'] == 'm' else 'feet'} tall."
             ctx.payload = {"narration_script": narration, "scale_fact": fact, "topic_id": "stress_topic"}
             made = graphics.render_scale(fact, out, width=w, height=h)
         elif kind == "section":
-            cs = _section(case)
+            cs = inputs(case)["cross_section"]
             ctx.expect = [("subject", cs["subject"])] + [(f"level{k + 1}", lv["label"])
                                                          for k, lv in enumerate(cs["levels"])]
             ctx.payload = {"narration_script": _signed(cs["subject"], *(lv["label"] for lv in cs["levels"])),
                            "cross_section": cs, "topic_id": "stress_topic"}
             made = graphics.render_cross_section(cs, out, width=w, height=h)
         elif kind == "numbers":
-            cards = _stat_cards(case)
+            cards = [dict(x) for x in inputs(case)["stat_cards"]]
             ctx.expect = [(f"card{k + 1}.label", c["label"]) for k, c in enumerate(cards)]
             narration = _signed(*(f"{c['label']} {c['value']}" for c in cards))
             ctx.payload = {"narration_script": narration, "stat_cards": cards, "topic_id": "stress_topic"}
@@ -703,9 +761,7 @@ def _stat_cards(case) -> list[dict]:
 def d_thennow(case, ctx: Ctx):
     from src import then_now
     w, h = _size(case)
-    rnd = random.Random(case["rnd"])
-    old_y = rnd.choice((1826, 1850, 1900, 1944, 2019, 1))
-    new_y = rnd.choice((2024, 2000, old_y, old_y - 10 if old_y > 20 else 2024))
+    old_y, new_y = (int(y) for y in inputs(case)["years"])
     gdir = ctx.work / "graphics"
     gdir.mkdir(parents=True, exist_ok=True)
     out = gdir / "graphic_thennow.mp4"

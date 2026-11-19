@@ -189,17 +189,21 @@ def test_no_slide_chrome_on_either_copy(gen, tmp_path, monkeypatch):
 
 
 def test_facebooks_grid_copy_never_says_swipe_on_a_slide(gen, tmp_path, monkeypatch):
-    drawn = []
+    from src import multi_format
+    drawn = []   # (the copy being drawn, text): a deck's first copy also surveys the other copy's kickers (r8 ruling 3)
     real_text = ImageDraw.ImageDraw.text
-    monkeypatch.setattr(ImageDraw.ImageDraw, "text", lambda self, xy, text, *a, **k: drawn.append(str(text)) or real_text(self, xy, text, *a, **k))
+    monkeypatch.setattr(ImageDraw.ImageDraw, "text", lambda self, xy, text, *a, **k: drawn.append(
+        (bool(getattr(multi_format._render_state, "facebook", False)), str(text))) or real_text(self, xy, text, *a, **k))
     cards = [dict(CARDS[0], body="Swipe to see how ancient engineers sculpted a temple 👉")] + CARDS[1:]
     photos = _photos(tmp_path)
     gen.generate_carousel_sequence(photos, dict(PAYLOAD, carousel_slides=cards), tmp_path, facebook=True)
-    assert not any("swip" in t.lower() or _DIRECTION_MARKS.search(t) for t in drawn), drawn
-    assert any(t.startswith("See how ancient") for t in drawn)
+    fb = [t for copy, t in drawn if copy]
+    assert not any("swip" in t.lower() or _DIRECTION_MARKS.search(t) for t in fb), fb
+    assert any(t.startswith("See how ancient") for t in fb)
     drawn.clear()
     gen.generate_carousel_sequence(photos, dict(PAYLOAD, carousel_slides=cards), tmp_path, facebook=False)
-    assert any(t.startswith("Swipe to see how") for t in drawn) and not any(_DIRECTION_MARKS.search(t) for t in drawn)
+    ig = [t for copy, t in drawn if not copy]
+    assert any(t.startswith("Swipe to see how") for t in ig) and not any(_DIRECTION_MARKS.search(t) for t in ig)
 
 
 def test_nothing_lies_under_instagrams_counter_and_every_check_passes(gen, tmp_path):

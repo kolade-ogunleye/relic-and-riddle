@@ -501,6 +501,53 @@ def deck_kicker_step(lays) -> tuple[str, int] | None:
     return set_step(label_ladder((0, 1)), [r.get("passes") or [r["step"]] for r in recs])
 
 
+_DECK_STEPS: dict[str, tuple[str, int] | None] = {}
+_DECK_STEPS_LOCK = threading.Lock()
+DECK_STEPS_KEPT = 64
+
+
+def deck_set_key(output_dir, cards, archetypes, photos, diagram, *rest) -> str:
+    """The identity of a deck as both its copies draw it (SYS-R8 integration, ruling 3): the run folder, the cards as
+    drawn, the slides' kinds and photographs (path, size and time) and the diagram, the shared inputs and the active
+    brand, so a deck's kicker step is reused only by a copy of the very same slides."""
+    import hashlib
+
+    def stat(p) -> list:
+        try:
+            st = Path(p).stat()
+            return [str(p), st.st_size, st.st_mtime_ns]
+        except (OSError, TypeError):
+            return [str(p)]
+    blob = json.dumps([str(Path(output_dir).resolve()), cards, archetypes, [stat(p) for p in photos],
+                       stat(diagram[1]) if diagram else None, list(rest), brand.fingerprint()],
+                      sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def deck_set_step(key: str) -> tuple[bool, tuple[str, int] | None]:
+    """(planned, step): the kicker step a copy of this deck was planned on, when one was."""
+    with _DECK_STEPS_LOCK:
+        if key in _DECK_STEPS:
+            return True, _DECK_STEPS[key]
+    return False, None
+
+
+def keep_deck_set_step(key: str, step) -> None:
+    """Keeps a deck's planned kicker step for its other copy (the last DECK_STEPS_KEPT decks)."""
+    with _DECK_STEPS_LOCK:
+        _DECK_STEPS[key] = tuple(step) if step else None
+        while len(_DECK_STEPS) > DECK_STEPS_KEPT:
+            _DECK_STEPS.pop(next(iter(_DECK_STEPS)))
+
+
+def clear_deck_steps() -> None:
+    with _DECK_STEPS_LOCK:
+        _DECK_STEPS.clear()
+
+
+brand.on_change(clear_deck_steps)
+
+
 def kickers_on(lays, step) -> bool:
     """Whether every drawn kicker of `lays` is on `step`."""
     from .typography import step_key
@@ -2294,20 +2341,30 @@ class MultiFormatGenerator:
         lead = deck_lead(script_payload)
         cards = [dict(card, **{k: spoken_units(card[k], narration, lead) for k in ("heading", "body")
                                if isinstance(card.get(k), str)}) for card in cards]
-        frame = self._deck_heading_frame(cards, archetypes, facebook)   # one frame for every slide of this copy
-        # Instagram's swipe strip (round 4): slide 2 is drawn first, so slide 1's strip meets slide 2's kicker rule.
-        strips: dict[int, dict[str, Any]] = {}
-        order = list(range(total))
-        if not facebook and total > 2 and archetypes[0] == "cover" and archetypes[1] not in self.NON_CONTENT_ARCHETYPES:
-            order = [1, 0] + order[2:]
-            strips[1] = {"side": "left"}
+        def copy_layout(fb: bool) -> tuple[int, dict[int, dict[str, Any]], list[int]]:
+            """A copy's heading frame (one for every slide of the copy), its swipe strips and its drawing order."""
+            frame_ = self._deck_heading_frame(cards, archetypes, fb)
+            # Instagram's swipe strip (round 4): slide 2 is drawn first, so slide 1's strip meets slide 2's kicker rule.
+            strips_: dict[int, dict[str, Any]] = {}
+            order_ = list(range(total))
+            if not fb and total > 2 and archetypes[0] == "cover" and archetypes[1] not in self.NON_CONTENT_ARCHETYPES:
+                order_ = [1, 0] + order_[2:]
+                strips_[1] = {"side": "left"}
+            return frame_, strips_, order_
+
+        layouts = {facebook: copy_layout(facebook)}
+        frame, _strips, order = layouts[facebook]
         drawn_paths: dict[int, Path] = {}
         # the deck window rule (cycle 0 round 8): how many earlier slides show each slide's photograph
         shown = [None if archetypes[j] == "diagram" else Path(photos[j]) for j in range(total)]
         showing = [sum(1 for q in shown[:j] if q is not None and q == shown[j]) for j in range(total)]
 
-        def draw_deck(kicker_step):
-            """Every slide drawn (not saved) with the deck's kicker step (None: each kicker its own, surveyed)."""
+        def draw_deck(kicker_step, fb: bool = facebook):
+            """Every slide of the copy `fb` drawn (not saved) with the deck's kicker step (None: each kicker its own,
+            surveyed)."""
+            if fb not in layouts:
+                layouts[fb] = copy_layout(fb)
+            frame, strips, order = layouts[fb]
             done: dict[int, tuple] = {}
             strips_now = {k: dict(v) for k, v in strips.items()}
             for i in order:
@@ -2320,7 +2377,7 @@ class MultiFormatGenerator:
                     im, lay, attempts = still_layout.drawn(
                         lambda tight, strip=strip, window=showing[i], card=card, archetype=archetype, photo=photo,
                         photo_next=photo_next, i=i: self._render_carousel_slide(
-                            archetype, photo, photo_next, card, i, total, poll, share, facebook, tight=tight,
+                            archetype, photo, photo_next, card, i, total, poll, share, fb, tight=tight,
                             subject=subject, heading_frame=frame, strip=strip, lead=lead, window=window))
                 drew = lay.meta.get("swipe_strip") or {}
                 if i == 1 and drew.get("box"):
@@ -2332,10 +2389,21 @@ class MultiFormatGenerator:
         # kicker on its own step and every step its ground holds surveyed; when the kickers' steps differ, the deck
         # is drawn again with the least intrusive step that holds on every kicker's ground (deck_kicker_step),
         # colour kept wherever it holds for the whole deck. No such step: each keeps its own (gates never traded).
-        drawn_deck = draw_deck(None)
-        deck_step = deck_kicker_step([drawn_deck[i][1] for i in order])
-        if deck_step is not None and not kickers_on([drawn_deck[i][1] for i in order], deck_step):
+        # SYS-R8 integration (lander ruling 3): the Instagram and Facebook copies are the SAME slides, so they are
+        # one set: the step is planned once over both copies' kickers (the first copy drawn surveys the other copy
+        # too) and kept for the deck (deck_set_step), so the second copy draws on it without planning again.
+        key = deck_set_key(output_dir, cards, archetypes, photos, diagram, poll, share, subject, lead, showing)
+        planned, deck_step = deck_set_step(key)
+        if planned:
             drawn_deck = draw_deck(deck_step)
+        else:
+            drawn_deck = draw_deck(None)
+            sibling = draw_deck(None, not facebook)
+            deck_step = deck_kicker_step([drawn_deck[i][1] for i in order]
+                                         + [entry[1] for entry in sibling.values()])
+            keep_deck_set_step(key, deck_step)
+            if deck_step is not None and not kickers_on([drawn_deck[i][1] for i in order], deck_step):
+                drawn_deck = draw_deck(deck_step)
         for i in order:
             im, lay, attempts, archetype, photo, photo_next, card, drew = drawn_deck[i]
             if isinstance(getattr(lay, "meta", None), dict):

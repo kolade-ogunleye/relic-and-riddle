@@ -5,6 +5,7 @@ a. drawn == signed: a signed scale value is drawn at its signed precision (6.5 m
    gate's conversion tolerance never passes a figure in the signed value's own unit (it passed "6 M" for 6.1 m).
 b. the number card draws in the one gold scope (ruling 8): a span with "TO" is the figure whole, a bracketed qualifier
    the bone hedge, every row coloured by figures.gold_runs (Damascus "62 TO 67 (ESTIMATED)").
+c. a deck's Instagram and Facebook copies are the same slides: one kicker set, its step planned once for both.
 """
 from __future__ import annotations
 
@@ -118,4 +119,57 @@ def test_b_every_number_card_row_is_coloured_by_the_one_gold_scope(tmp_path, mon
     assert not ({w for w in bone_words if any(c.isdigit() for c in w)}), bone_words
     if "ESTIMATED" in value:
         assert "ESTIMATED" in bone_words and "ESTIMATED" not in gold_words
+
+
+# ------------------------------------------------------------------ c. one kicker set across a deck's two copies
+def _deck(tmp_path):
+    from PIL import Image
+    photos = []
+    for i, colour in enumerate(((250, 250, 246), (20, 22, 26), (200, 170, 60), (20, 22, 26))):
+        p = tmp_path / f"0{i}.jpg"
+        Image.new("RGB", (1200, 1500), colour).save(p)
+        photos.append(p)
+    cards = [{"heading": "The dome", "body": "Built in concrete."}, {"heading": "The mix", "body": "Lime clasts."},
+             {"heading": "The pour", "body": "Layer by layer."}, {"heading": "Your view", "body": "Which mattered more?"}]
+    return photos, {"carousel_slides": cards, "title": "T", "poll": {}}
+
+
+def _kickers(tmp_path, copy):
+    import json
+    rec = json.loads((tmp_path / copy / "still_layout.json").read_text(encoding="utf-8"))
+    kickers = [e for s in sorted(rec) for e in rec[s]["elements"] if e["name"] == "kicker"]
+    steps = {tuple(rec[s]["recipe"].get("kicker_step") or ()) for s in rec}
+    return kickers, steps
+
+
+@pytest.mark.parametrize("first", [False, True], ids=["instagram_first", "facebook_first"])
+def test_c_both_copies_of_a_deck_take_one_kicker_step_planned_once(tmp_path, monkeypatch, first):
+    from src import multi_format
+    multi_format.clear_deck_steps()
+    calls = []
+    real = multi_format.deck_kicker_step
+    monkeypatch.setattr(multi_format, "deck_kicker_step", lambda lays: calls.append(len(lays)) or real(lays))
+    photos, payload = _deck(tmp_path)
+    gen = multi_format.MultiFormatGenerator()
+    for fb in (first, not first):
+        gen.generate_carousel_sequence(photos, payload, tmp_path, facebook=fb)
+    assert len(calls) == 1                        # planned once, over both copies' kickers
+    ig, ig_steps = _kickers(tmp_path, "carousel")
+    fb, fb_steps = _kickers(tmp_path, "carousel_fb")
+    assert ig and fb
+    assert ig_steps == fb_steps and len(ig_steps) == 1
+    assert len({(k["variant"], tuple(k["step"]), tuple(k["fill"])) for k in ig + fb}) == 1, ig + fb
+
+
+def test_c_a_changed_deck_is_planned_again(tmp_path):
+    from src import multi_format
+    photos, payload = _deck(tmp_path)
+    key = multi_format.deck_set_key(tmp_path, payload["carousel_slides"], ["a"], photos, None)
+    changed = multi_format.deck_set_key(tmp_path, payload["carousel_slides"][:3], ["a"], photos, None)
+    assert key != changed
+    multi_format.keep_deck_set_step(key, ("plate", 0))
+    assert multi_format.deck_set_step(key) == (True, ("plate", 0))
+    assert multi_format.deck_set_step(changed) == (False, None)
+    multi_format.clear_deck_steps()
+    assert multi_format.deck_set_step(key) == (False, None)
 

@@ -170,3 +170,40 @@ def test_the_documentary_split_prefers_lines_within_the_youtube_line_budget(tmp_
     cover = documentary_cover(title, hero=hero)
     assert f"{cover['line1']} {cover['line2']}".split() == title.upper().split()
     assert all(len(cover[k].split()) <= yt.LINE_WORDS for k in ("line1", "line2")), cover
+
+
+def test_the_reel_lockup_never_stacks_a_one_word_middle_row():
+    """SYS-R8-2 open question 5 (the Reel's part of R2): a field set valid alone can leave a one-word middle row once
+    stacked under the other field; the Reel lockup never draws that on the ladder (next tier, else the recorded last
+    resort, which the grid proof refuses)."""
+    from PIL import ImageDraw
+
+    from src import heading
+    m = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    for l1, l2 in (("THE 1,200-TON", "BEDROCK MONSTER"), ("ROMAN CONCRETE", "HEALS ITSELF"),
+                   ("CARVED FROM", "SOLID SALT"), ("THE 6-TON ROOM", "STOLEN IN 36 HOURS")):
+        for width in (420, 560, 700, 912):
+            out, rec = cover_design._lockup(m, {"line1": l1, "line2": l2}, width, 108)
+            if rec.get("tier") is None:
+                continue   # the last resort: off the ladder, refused by the grid proof
+            rows = [" ".join(t for t, _ in lr) for k in ("line1", "line2") if k in out for lr in out[k][1]]
+            assert all(len(r.split()) >= 2 for r in rows[1:-1]), rows
+            assert all(heading.end_ok(r.split()[-1]) for r in rows[:-1]), rows
+
+
+def test_the_youtube_headline_never_repeats_the_video_title_where_the_copy_has_another_line():
+    """Lane findings 2026-11-16: the no-figure headline was not checked against the video title (THE RICHAT STRUCTURE
+    over a video titled the same). The figure path's rule now holds on the headline path: the line that repeats it
+    gives way to the pair's other line, else another verified line, else it stays and is recorded."""
+    flat = Image.new("RGB", (1920, 1080), (96, 92, 88))
+    title = "The Richat Structure Explained"
+    copy = {"eyebrow": "DESERT ANOMALY", "line1": "THE RICHAT STRUCTURE", "line2": "SAHARA EYE", "tagline": "WHY"}
+    meta = {}
+    _, plates = yt.render(flat, copy, meta=meta, youtube_title=title)
+    drawn = " ".join(p.text for n, p in plates if n.startswith("title"))
+    assert len(yt._content(drawn) & yt._content(title)) < 2, drawn
+    assert meta.get("tension_from") == "line2"
+    copy = {"eyebrow": "RICHAT STRUCTURE MAURITANIA", "line1": "THE RICHAT STRUCTURE", "line2": "", "tagline": ""}
+    meta = {}
+    yt.render(flat, copy, meta=meta, youtube_title=title)
+    assert meta.get("title_overlap") is True   # nothing else stands: drawn as written, recorded

@@ -359,6 +359,8 @@ def _lockup(measure, copy, width, size, single_gold=True):
                     grown, sz, runs = {"from": sz, "to": grid_px}, grid_px, big
                     s2 = grid_px
             out[key] = (get_font(brand.DISPLAY_FONT, sz), runs)
+        if ok and l1 and l2 and not _stack_valid(measure, out, len(l1.split())):
+            ok = False   # lane B cycle 1 (SYS-R8-2 open question 5): the stacked rows obey the heading rules too
         if ok:
             return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
                          **({"line2_grown": grown} if grown else {})}
@@ -371,6 +373,25 @@ def _lockup(measure, copy, width, size, single_gold=True):
         off.append("title_1" if key == "line1" else "title_2")
         out[key] = (font, [[(ln, "accent" if gold else "plain")] for ln in lines])
     return out, {"tier": None, "off_ladder": off, "ratio": ratio, "line1": l1, "line2": l2}
+
+
+def _stack_valid(measure, out, seam):
+    """Lane B cycle 1 (SYS-R8-2's open question 5, the Reel's part of R2): a two-field lockup's drawn rows, every field
+    stacked, obey the heading rules (heading.lockup_valid: no one-word middle row, THE 1,200-TON / BEDROCK / MONSTER;
+    the phrase exception on the last row only) and no row but the last ends on a never-end word (the field boundary
+    included, as on YouTube). A lockup that fails takes the next tier, then the recorded last resort, which the
+    grid proof refuses and the copy stage (cover_fit) sends to the copy edit."""
+    from .heading import end_ok, lockup_valid
+    rows, widths = [], []
+    for key in ("line1", "line2"):
+        if key in out:
+            font, runs = out[key]
+            for line_runs in runs:
+                text = " ".join(t for t, _ in line_runs)
+                rows.append(text)
+                widths.append(measure.textlength(text, font=font))
+    return (lockup_valid(rows, widths, seam, fields=True)
+            and all(end_ok(r.split()[-1]) for r in rows[:-1] if r.split()))
 
 
 def _height(rows):

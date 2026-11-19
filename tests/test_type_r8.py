@@ -184,6 +184,12 @@ def test_the_reel_lockup_never_steps_under_the_grid_floor():
     assert got["line2"][0].size >= got["line1"][0].size
     with brand.use(_second(), validate=False):
         got, rec = cover_design._lockup(_draw(), {"line1": "BRICK DOME", "line2": "FLATTENED FOREST"}, 912, 86)
+        # lane B cycle 1: in this face the pair stacks only as BRICK DOME / FLATTENED / FOREST, a one-word middle row
+        # (R2), so it takes the recorded last resort the grid proof refuses; where a pair stacks validly the floor holds
+        if not rec.get("off_ladder"):
+            for key in ("line1", "line2"):
+                assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor
+        got, rec = cover_design._lockup(_draw(), {"line1": "OLD DOME", "line2": "LOST CITY"}, 912, 86)
         assert not rec.get("off_ladder")
         for key in ("line1", "line2"):
             assert cap_height(got[key][0]) * cover_design.GRID_SCALE[0] >= floor

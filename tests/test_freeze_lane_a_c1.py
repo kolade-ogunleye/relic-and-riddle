@@ -385,3 +385,43 @@ def test_a_region_line_with_no_place_is_not_drawn_and_says_why():
     out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, tiny)
     assert out is lay and not graphics.LAST_REGION_LINE["shown"] and graphics.LAST_REGION_LINE["reason"]
     assert graphics.with_region_line(lay, "", *TALL, graphics.get_text_box(*TALL)) is lay
+
+
+# ------------------------------------------------------------------------------------------------ referent note
+
+@pytest.mark.parametrize("size", [TALL, WIDE], ids=["9x16", "16x9"])
+@pytest.mark.parametrize("fact", [OBELISK, KAILASA, MONOLITH, DERINKUYU, WIELICZKA],
+                         ids=["aswan-length", "m-height", "ft-height", "ft-depth", "m-depth"])
+def test_a_landmarks_referent_note_is_drawn_whole_at_its_floor_or_recorded_refused(tmp_path, plan_only, fact, size):
+    """Regression (cycle-1 before/after, Aswan 9:16): "GROUND TO TORCH TIP" stopped being drawn (it would have set at
+    24 px against its 30). A referent note is meaning: on the board's real scale facts it is drawn, whole, at or
+    above the label floor on both formats (else it is refused with a recorded reason, never silently dropped)."""
+    from src.reference_facts import reference_note
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    ref = graphics.pick_reference(feet)
+    rec = _record(graphics.render_scale(fact, tmp_path / "s.mp4", *size))
+    note = reference_note(ref[0]) if fact["dimension"] != "depth" else ""
+    rows = [e for e in rec["elements"] if e["name"].startswith("ref_note")]
+    if not note:
+        assert not rows
+        return
+    got = graphics.LAST_REFERENT_NOTE
+    assert got.get("note") == note
+    real = fact in (OBELISK,)          # the board's real height/length scale fact: must be drawn
+    if real or got.get("shown"):
+        assert got["shown"], got
+        assert " ".join(" ".join(e["text"] for e in rows).split()) == " ".join(note.split())   # whole
+        from src.brand_system import label_floor_px
+        floor = max(label_floor_px(*size), 30)        # the note's own floor: 30 px on both canvases
+        texts = {e["text"] for e in rows}
+        for pl in plan_only["_plates"]:
+            if pl.text in texts:
+                assert pl.font.size >= floor - 0.5, (pl.text, pl.font.size, floor)
+    else:
+        assert got["reason"], got
+
+
+def test_the_referent_note_keeps_off_the_landmarks_drawn_pixels():
+    m = graphics.landmark_mask(TALL, "Statue of Liberty (ground to torch)", 600, 900, 400)
+    assert m.any() and not graphics.off_mask(m, (590, 700, 610, 720))     # inside the statue's body
+    assert graphics.off_mask(m, (100, 100, 200, 150))                       # open air

@@ -1622,14 +1622,14 @@ class MultiFormatGenerator:
         two = heading_lines > 1
         lines = self.BODY_LINES_TWO_LINE_FRAME if two else self.BODY_LINES_ONE_LINE_FRAME
         first_body = last - (lines - 1) * step
-        spec = self.CONTENT_HEADING   # both copies (lane D cycle 2): one frame, one form
-        h = get_font(brand.DISPLAY_FONT, fx(spec[0]))
+        top = self._deck_size()   # the deck's one content size (SYS-D-5): its cap and pitch set the frame
+        h = get_font(brand.DISPLAY_FONT, fx(top))
         h_last = first_body - round(b_size * tok("band.body_gap"))
         hb = h_last
         if two:
             # The second heading line at the design size (round 3: at its floor the two-line "IMPACT THEORY /
             # DISPROVED" missed the frame by a few px and dropped to bottom-aligned); both copies since lane D cycle 2.
-            second = spec[0]
+            second = top
             hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * 1.13)
         k_size = fx(type_px("kicker", "carousel") * 3 / 4)
         return {"kicker": hb - cap_height(h) - kicker_gap(k_size), "heading": hb, "heading_last": h_last,
@@ -1639,6 +1639,52 @@ class MultiFormatGenerator:
         """(kicker baseline, heading first-line baseline) of the content slides on a `heading_lines` deck frame."""
         f = self._content_frame(px, facebook, heading_lines)
         return f["kicker"], f["heading"]
+
+    @staticmethod
+    def _deck_tier() -> int:
+        """The deck's content-heading tier the slide being drawn sits on (_render_state, per thread): 0, the design
+        size (display_l); 1, the fallback tier for every content slide (SYS-D-5). 0 when drawn alone."""
+        return 1 if int(getattr(_render_state, "heading_tier", 0) or 0) > 0 else 0
+
+    def _deck_size(self) -> float:
+        """The deck's one content-heading size, design px (CONTENT_HEADING at _deck_tier)."""
+        return self.CONTENT_HEADING[self._deck_tier()]
+
+    def _deck_heading_tier(self, cards: list[dict[str, Any]], archetypes: list[str]) -> int:
+        """SYS-D-5 (lander ruling c; RUBRIC CD3: one display size per deck): the tier the deck sets EVERY content
+        heading at, over both copies (one form per heading, SYS-D-4). 0 when every content heading sets at the design
+        size (the engine already prefers two balanced lines there over one line at the fallback); 1 when any one
+        takes the fallback tier or a recorded last resort under it, so the deck takes the fallback deck-wide (a last
+        resort keeps its own size: it is under the tier either way). Measured on the design canvas as each copy
+        cleans and typesets its words (_render_carousel_slide)."""
+        from .script_engine import facebook_photo_caption, neutral_cues
+        cw = self.CAROUSEL_SIZE[0]
+        px = self._px(cw)
+        d = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        width = cw - 2 * px(self.MARGIN)
+        prev = (getattr(_render_state, "facebook", False), getattr(_render_state, "heading_tier", 0),
+                getattr(_render_state, "heading_form", None))
+        _render_state.heading_tier = 0
+        try:
+            for fb in (False, True):
+                clean = facebook_photo_caption if fb else neutral_cues
+                _render_state.facebook = fb
+                for card, archetype in zip(cards, archetypes):
+                    if archetype in self.NON_CONTENT_ARCHETYPES:
+                        continue
+                    heading = typeset(clean(card.get("heading") or "")).upper()
+                    heading = " ".join(drawable(heading, get_font(brand.DISPLAY_FONT, 100)).split())
+                    if not heading.strip():
+                        continue
+                    try:
+                        form, _ = self._set_heading(d, px, heading, width, "wrap", 1.0, self.CONTENT_HEADING, True)
+                    except TextFitError:
+                        continue   # refused at every size: the deck tier cannot help it (QF-23 refuses the slide)
+                    if form.tier != 0:
+                        return 1
+        finally:
+            _render_state.facebook, _render_state.heading_tier, _render_state.heading_form = prev
+        return 0
 
     @staticmethod
     def _frame_lines() -> int:
@@ -1728,8 +1774,12 @@ class MultiFormatGenerator:
                                    last_resort_floor=fallback["display_xl"], final_floor=h_spec[1])
         elif content:
             spec = self.CONTENT_HEADING   # both copies (lane D cycle 2, SYS-D-4)
-            form = set_heading(heading, measure, design_w, spec, extra_lines=3, last_resort_floor=round(spec[1] * 0.9),
-                               final_floor=round(spec[1] * 0.6))
+            tier = self._deck_tier()   # SYS-D-5: the deck's one tier (the fallback only deck-wide)
+            form = set_heading(heading, measure, design_w, spec[tier:], extra_lines=3,
+                               last_resort_floor=round(spec[1] * 0.9), final_floor=round(spec[1] * 0.6))
+            if form is not None and tier:
+                form.tier = None if form.tier is None else form.tier + tier
+                form.record["deck_tier"] = tier
         elif two_tone is True:
             form = set_heading(heading, measure, design_w, (design["display_m"] * scale, fallback["display_m"] * scale),
                                lockup=True, extra_lines=3, last_resort_floor=round(fallback["display_m"] * scale * 0.9),
@@ -1917,8 +1967,8 @@ class MultiFormatGenerator:
             out = [dict(r, y=r["y"] + shift) for r in rows]
             first = min(r["y"] for r in heads) + shift
             kb = None
-            if kick:   # the kicker from the frame's top tier cap, so a fallback-tier heading does not move it
-                spec = self.CONTENT_HEADING   # both copies (lane D cycle 2, SYS-D-4)
+            if kick:   # the kicker from the deck size's cap (SYS-D-5), so a last-resort heading does not move it
+                spec = (self._deck_size(),)   # both copies (lane D cycle 2, SYS-D-4): the deck's one size
                 # the gap is to the heading's highest ink: an accented capital ("ÇATALHÖYÜK") rises above the cap line
                 ink_top = min(ink(r, shift, 1) for r in heads if r["y"] + shift == first)
                 cap_top = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0])))
@@ -2336,7 +2386,7 @@ class MultiFormatGenerator:
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
-                               lead: str | None = None, window: int = 0):
+                               lead: str | None = None, window: int = 0, heading_tier: int = 0):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -2344,7 +2394,8 @@ class MultiFormatGenerator:
         `tight`: smaller type, and the brand on a solid pill so it reads over any photo (Richat 2's header
         "collides with the spacecraft's solar panel"). `heading_frame`: the deck's content frame (1 or 2 heading
         lines, _deck_heading_frame); 2, round 2's frame, when the slide is drawn alone. `strip`: the Instagram copy's
-        swipe strip on slide 1 or 2 (swipe_strip)."""
+        swipe strip on slide 1 or 2 (swipe_strip). `heading_tier`: the deck's content-heading tier
+        (_deck_heading_tier, SYS-D-5); 0, the design size, when drawn alone."""
         from .script_engine import facebook_photo_caption, neutral_cues
         from .still_layout import Layout
         clean = facebook_photo_caption if facebook else neutral_cues
@@ -2357,6 +2408,7 @@ class MultiFormatGenerator:
         _render_state.subject = typeset(subject).upper() if i > 0 else ""
         _render_state.facebook = bool(facebook)
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
+        _render_state.heading_tier = 1 if int(heading_tier or 0) > 0 else 0
         _render_state.lead = lead
         cw, chh = self.CAROUSEL_SIZE
         # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
@@ -2490,8 +2542,12 @@ class MultiFormatGenerator:
             words = slide_drawing(diagram[1])
             cards[diagram[0]] = dict(cards[diagram[0]], heading=words["heading"], body=words["body"])
 
+        # SYS-D-5: the deck's one content-heading tier, over both copies (one size per deck, one form per heading)
+        tier = self._deck_heading_tier(cards, archetypes)
+
         def copy_layout(fb: bool) -> tuple[int, dict[int, dict[str, Any]], list[int]]:
             """A copy's heading frame (one for every slide of the copy), its swipe strips and its drawing order."""
+            _render_state.heading_tier = tier   # the frame is measured at the deck's tier
             frame_ = self._deck_heading_frame(cards, archetypes, fb)
             # Instagram's swipe strip (round 4): slide 2 is drawn first, so slide 1's strip meets slide 2's kicker rule.
             strips_: dict[int, dict[str, Any]] = {}
@@ -2527,7 +2583,8 @@ class MultiFormatGenerator:
                         lambda tight, strip=strip, window=showing[i], card=card, archetype=archetype, photo=photo,
                         photo_next=photo_next, i=i: self._render_carousel_slide(
                             archetype, photo, photo_next, card, i, total, poll, share, fb, tight=tight,
-                            subject=subject, heading_frame=frame, strip=strip, lead=lead, window=window))
+                            subject=subject, heading_frame=frame, strip=strip, lead=lead, window=window,
+                            heading_tier=tier))
                 drew = lay.meta.get("swipe_strip") or {}
                 if i == 1 and drew.get("box"):
                     strips_now[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
@@ -2563,7 +2620,8 @@ class MultiFormatGenerator:
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
-                                          "subject": subject, "heading_frame": frame, "lead": lead,
+                                          "subject": subject, "heading_frame": frame, "heading_tier": tier,
+                                          "lead": lead,
                                           "window": showing[i],
                                           **({"kicker_step": list(deck_step)} if deck_step else {}),
                                           **({"diagram_withheld": withheld}
@@ -3645,6 +3703,7 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                              bool(recipe.get("facebook")),
                                              tight=tight, subject=recipe.get("subject") or "",
                                              heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
+                                             heading_tier=int(recipe.get("heading_tier") or 0),
                                              strip=_redraw_strip(recipe.get("strip"), path),
                                              window=int(recipe.get("window") or 0))
     gen._save_slide(im, path)

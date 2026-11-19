@@ -582,12 +582,30 @@ def _edge_density(rgb: Any) -> float:
 
 def _load_clean(path: Path) -> Image.Image:
     """The photo as cover_crop reads it: EXIF-rotated, any caption strip cut off, RGBA."""
-    from PIL import ImageOps
+    return _load_clean_subject(path)[0]
 
+
+def _load_clean_subject(path: Path) -> tuple[Image.Image, Image.Image | None]:
+    """(_load_clean's photo, its subject mask: an "L" image of the same size, 255 inside the photo system's subject
+    box (hero_window.subject_box, read on the whole photo and moved through the caption-strip crop), or None when the
+    photo system knows no subject). SYS-A-3."""
+    from PIL import ImageDraw, ImageOps
+
+    from .hero_window import subject_box
     from .photo_hygiene import without_caption_strip
     with Image.open(path) as im:
-        clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGBA"))
-    return clean
+        whole = ImageOps.exif_transpose(im).convert("RGBA")
+    clean, kept = without_caption_strip(whole)
+    box = subject_box(whole, path)
+    if box is None:
+        return clean, None
+    x0, y0, x1, y1 = box[0] - kept[0], box[1] - kept[1], box[2] - kept[0], box[3] - kept[1]
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(clean.width, x1), min(clean.height, y1)
+    if x1 <= x0 or y1 <= y0:
+        return clean, None
+    mask = Image.new("L", clean.size, 0)
+    ImageDraw.Draw(mask).rectangle((x0, y0, x1 - 1, y1 - 1), fill=255)
+    return clean, mask
 
 
 def _trim_pass(im: Image.Image, outer: tuple | None = None) -> tuple[list[int], list]:
@@ -735,13 +753,24 @@ def _subject_top(src: Image.Image, big: tuple[int, int]) -> float | None:
     return float(rows[0] / len(prof)) if rows.size else None
 
 
-def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
+def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | None = None
+               ) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     """Both photos cover-cropped at (1 + PUSH) x the frame, scan borders trimmed and (9:16) re-anchored on one
-    shared window when the THEN pane would show nothing; and what was done (trims, zoom, subject row)."""
+    shared window when the THEN pane would show nothing; and what was done (trims, zoom, subject row). `subjects`:
+    a list the caller passes to receive each photo's subject mask (SYS-A-3) through the same trims and window as
+    the photo (an "L" image at the returned photos' size, or None where no subject is known)."""
     import numpy as np
     from PIL import ImageOps
     big = (round(width * (1 + PUSH)), round(height * (1 + PUSH)))
-    ims = [_load_clean(old), _load_clean(new)]
+    loaded = [_load_clean_subject(old), _load_clean_subject(new)]
+    ims = [im for im, _ in loaded]
+    masks = [m for _, m in loaded]
+
+    def _out(a: Image.Image, b: Image.Image, geo) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
+        if subjects is not None:
+            subjects[:] = [None if m is None else geo(m) for m in masks]
+        return a, b, info
+
     trims = [scan_trims(im) for im in ims]
     share = [max(t[k] / (im.width if k % 2 == 0 else im.height) for t, im in zip(trims, ims)) for k in range(4)]
     info: dict[str, Any] = {"trims_px": {"old": list(trims[0]), "new": list(trims[1])},
@@ -749,13 +778,19 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
     if any(share):
         info["trimmed_px"] = {k: [round(share[0] * im.width), round(share[1] * im.height), round(share[2] * im.width),
                                   round(share[3] * im.height)] for k, im in zip(("old", "new"), ims)}
-        ims = [im.crop((round(share[0] * im.width), round(share[1] * im.height),
-                        im.width - round(share[2] * im.width), im.height - round(share[3] * im.height))) for im in ims]
+        def _trim(im: Image.Image) -> Image.Image:
+            return im.crop((round(share[0] * im.width), round(share[1] * im.height),
+                            im.width - round(share[2] * im.width), im.height - round(share[3] * im.height)))
+        ims = [_trim(im) for im in ims]
+        masks = [None if m is None else _trim(m) for m in masks]
     from .photo_grade import grade
     # both photos graded as the master grades a bare photo, before anything is drawn on them (QF-86)
     srcs = [grade(ImageOps.fit(im, big, Image.LANCZOS)) for im in ims]
+
+    def _fitted(m: Image.Image) -> Image.Image:
+        return ImageOps.fit(m, big, Image.NEAREST)
     if width > height:
-        return srcs[0], srcs[1], info
+        return _out(srcs[0], srcs[1], _fitted)
     size = (width, height)
     split = _split_at(width, height)
 
@@ -769,7 +804,7 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
     info.update({"then_pane_edge": round(dens, 4), "then_pane_flat_rows": round(flat, 3),
                  "now_pane_edge": round(_edge_density(low_pane), 4)})
     if dens >= FRAME_EDGE_MIN and flat <= FRAME_FLAT_SHARE:
-        return srcs[0], srcs[1], info
+        return _out(srcs[0], srcs[1], _fitted)
     info["gate"] = "THEN pane empty"
     subject = _subject_top(ims[0], big)
     per_px = min(_cover_window(im.size, big)[3] - _cover_window(im.size, big)[1] for im in ims) / big[1]
@@ -779,7 +814,7 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
         log.info("Then-and-now 9:16: the THEN pane is empty and no shared window fixes it (%s); centred crop kept.",
                  "no subject found" if subject is None else f"zoom limit {z_max:.2f}")
         info["window"] = "centred (no window found)"
-        return srcs[0], srcs[1], info
+        return _out(srcs[0], srcs[1], _fitted)
     ch = big[1] / (1 + PUSH)                      # the big image's rows the frame shows at rest
     lead = (big[1] - ch) / 2
     want = sum(SUBJECT_TOP) / 2 * split
@@ -810,7 +845,8 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
                          "source_px_per_frame_px": round(per_px / z, 3)})
             log.info("Then-and-now 9:16: shared window at zoom %.2f, the subject top at %.1f%% of the THEN pane.",
                      z, 100 * row / split)
-            return cand[0], cand[1], info
+            return _out(cand[0], cand[1], lambda m, z=z, v=v: m.resize(big, Image.NEAREST,
+                                                                        box=_cover_window(m.size, big, z, v)))
     # Review round 3 (T7a): a soft old print (Colossi then_0, an 1876 albumen print) never reaches FRAME_EDGE_MIN
     # under Canny(50, 150), so no window passed and the pane stayed sky. The in-band window (the subject's top at
     # SUBJECT_TOP of the pane) with the most THEN structure is taken when it carries at least FRAME_BEST_GAIN x the
@@ -823,11 +859,12 @@ def frame_pair(old: Path, new: Path, width: int, height: int) -> tuple[Image.Ima
                      "source_px_per_frame_px": round(per_px / z, 3)})
         log.info("Then-and-now 9:16: no window reaches edge density %.2f; the subject-top window at zoom %.2f "
                  "(THEN pane %.3f against %.3f centred) is used.", FRAME_EDGE_MIN, z, dt, dens)
-        return cand[0], cand[1], info
+        return _out(cand[0], cand[1], lambda m, z=z, v=v: m.resize(big, Image.NEAREST,
+                                                                    box=_cover_window(m.size, big, z, v)))
     log.info("Then-and-now 9:16: the THEN pane is empty and no zoom up to %.2f places the subject; centred crop kept.",
              z_max)
     info["window"] = "centred (no window found)"
-    return srcs[0], srcs[1], info
+    return _out(srcs[0], srcs[1], _fitted)
 
 
 KEYLINE_W, KEYLINE_ALPHA = 2, 170   # the INK keyline either side of the bone divider (freeze panel 2026-11-04)
@@ -1454,6 +1491,32 @@ def marker_sides(width: int, height: int, half_w: float) -> tuple[str, ...]:
     return ("left", *(f"centre:{x}" for x in xs), "right")
 
 
+SUBJECT_TIE = 0.01         # of a plate's area: subject shares this close are one share (the edge sum decides)
+
+
+def subject_share(mask: Image.Image | None, box: tuple) -> float:
+    """The share of `box` (frame px) over the subject mask (255 inside the subject), 0 when no mask."""
+    if mask is None:
+        return 0.0
+    import numpy as np
+    x0, y0, x1, y1 = (int(round(v)) for v in box)
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(mask.width, x1), min(mask.height, y1)
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    return float((np.asarray(mask.crop((x0, y0, x1, y1))) > 127).mean())
+
+
+def subject_side(shares: dict[str, float], sums: dict[str, float]) -> str:
+    """SYS-A-3 (lane A ruling 2): the 9:16 markers' side when a subject is known: the sides whose markers' plates
+    lie least over the subject (within SUBJECT_TIE), then among those the edge-sum rule (quieter_side, left the
+    default when left is among them; else the lowest edge sum)."""
+    best = min(shares.values())
+    tied = [s for s in shares if shares[s] <= best + SUBJECT_TIE]
+    if "left" in tied:
+        return quieter_side({s: sums[s] for s in tied})
+    return min(tied, key=lambda s: (sums.get(s, 0.0), tied.index(s)))
+
+
 def quieter_side(sums: dict[str, float]) -> str:
     """The 9:16 markers' one side from the edge sums under both markers per side (marker_sides): left unless
     another side's sum is at least SIDE_MARGIN below left's, then the lowest of those (left's order on a tie)."""
@@ -1505,7 +1568,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     photos under one slow push (push_at)."""
     import json
     size = (width, height)
-    a_src, b_src, framing = frame_pair(old, new, width, height)
+    subjects: list = []
+    a_src, b_src, framing = frame_pair(old, new, width, height, subjects=subjects)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     key = "landscape" if width > height else "portrait"
     k_font, y_font, track = kicker_font(key), year_font(key), kicker_track(key)
@@ -1544,6 +1608,20 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
             sums[s] = round(total, 4)
         side = quieter_side(sums)
         side_meta = {"side": side, "edge_sum": sums}
+        if any(m is not None for m in subjects):
+            # SYS-A-3: the markers placed against the photo system's subject (its mask through the same trims,
+            # window and push as the photo), the plates' share over it first, the edge sum second
+            blank = Image.new("L", b_src.size, 0)
+            masks = [m if m is not None else blank for m in subjects]
+            subj = compose(pushed(masks[0], CLIP_SECONDS, size), pushed(masks[1], CLIP_SECONDS, size), split,
+                           divider=False)
+            shares = {}
+            for s in sums:
+                plates = [padded(ink_boxes(w, marker_lines(w, years[w], width, height, words[w], s)), PAPER_PAD,
+                                 panel_box(w, width, height)) for w in ("then", "now")]
+                shares[s] = round(sum(subject_share(subj, b) for b in plates) / len(plates), 4)
+            side = subject_side(shares, sums)
+            side_meta = {"side": side, "edge_sum": sums, "subject_share": shares}
     lines = {w: marker_lines(w, years[w], width, height, words[w], side) for w in years}
     gate = {}
     for w in years:

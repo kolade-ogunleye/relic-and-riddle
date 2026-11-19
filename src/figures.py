@@ -710,3 +710,25 @@ def converted_number(value: float, unit: str, to: str, max_decimals: int = 6) ->
         if within_tol(float(text.replace(",", "")), to, value, unit):
             break
     return "0" if float(text.replace(",", "")) == 0 else text
+
+
+def converted_numbers(values, unit: str, to: str, max_decimals: int = 6) -> list[str]:
+    """Every member of `values` (in `unit`) written in `to` at ONE decimal count (freeze SYS-A-1: one precision per
+    drawing column, TY6): the least count that puts every member within CONVERT_TOL of its value (within_tol, the
+    gate's own test, applied to the set), so a column reads 4.6 / 10.7 / 42.7 / 85.3, or all whole where the
+    tolerance allows. A one-member set is converted_number's."""
+    vals = [float(v) for v in values]
+    a, b = in_base(1.0, unit), in_base(1.0, to)
+    if not a or not b or a[0] != b[0]:
+        raise ValueError(f"no conversion from {unit!r} to {to!r}")
+    trues = [v * a[1] / b[1] for v in vals]
+    dp = max_decimals
+    for d in range(max_decimals + 1):
+        if all(within_tol(float(f"{t:.{d}f}"), to, v, unit) for t, v in zip(trues, vals)):
+            dp = d
+            break
+    out = []
+    for t in trues:
+        text = f"{t:,.{dp}f}"
+        out.append("0" if float(text.replace(",", "")) == 0 else text)
+    return out

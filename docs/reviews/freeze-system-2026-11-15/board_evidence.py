@@ -272,7 +272,7 @@ def line_never_end(word: str) -> bool:
 def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, Any] | None) -> dict[str, Any]:
     # rules2 F4: the composer's own never-end predicate (video_composer.never_end_end, the closed class the breakers
     # weigh), never a second list: the record counts what the breaker sees (it counted LINE_END_NEVER only)
-    from src.video_composer import never_end_end
+    from src.video_composer import _line_break_defect, never_end_end
     # cycle 0 round 8i (N3): each burst is all of its lines (ass_bursts), so its characters and shown CPS are the
     # whole burst's, and every line ending is checked too (line_never_end: OF / ARMY GROUP NORTH ends line 1 on OF)
     def bare(word: str) -> str:
@@ -292,18 +292,24 @@ def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, 
         secs = b["hide"] - b["show"]
         said = [w for w in words if b["show"] - 0.2 <= float(w["start"]) < b["hide"]]
         spoken = (float(said[-1]["start"]) + float(said[-1].get("dur", 0.0)) - float(said[0]["start"])) if said else 0
-        ends = []
+        ends, shown, cuts = [], [], []
         for ln in b["lines"]:
             forms = [spoken_form(w) for w in ln["text"].split()]
             ends.append(forms[-1] if forms else "")
+            shown += forms
+            cuts.append(len(shown))
         last_word = ends[-1] if ends else ""
         lines = []
         for k, ln in enumerate(b["lines"]):
             end = ends[k]
-            # never_end: the derived set (brand_system.NEVER_END_WORDS); dangling: the breakers' own burst-end
-            # predicate (video_composer.never_end_end: that set with DANGLING_ENDS, which holds WHEN), read at a line
-            lines.append({**ln, "chars": len(ln["text"]), "ends_on": bare(end), "never_end": line_never_end(end),
-                          "dangling": never_end_end(end), "burst_end": k == len(b["lines"]) - 1})
+            last = k == len(b["lines"]) - 1
+            # never_end: at a line BREAK, the composer's own break predicate (SYS-C-1: video_composer._line_break_defect,
+            # the never-end class and the figure-unit bond, a whole hedge phrase accepted: MORE THAN / 830 SQUARE
+            # MILES), never a second list; at the burst's end, the derived set (brand_system.NEVER_END_WORDS).
+            # dangling: the breakers' own burst-end predicate (video_composer.never_end_end), read at a line
+            never_end = line_never_end(end) if last else _line_break_defect(shown, cuts[k])
+            lines.append({**ln, "chars": len(ln["text"]), "ends_on": bare(end), "never_end": never_end,
+                          "dangling": never_end_end(end), "burst_end": last})
         rows.append({**b, "lines": lines, "on_screen_s": round(secs, 3), "chars": len(b["text"]),
                      "shown_cps": round(len(b["text"]) / secs, 1) if secs > 0 else None,
                      "spoken_window_s": round(spoken, 3), "ends_on": bare(last_word),
@@ -321,6 +327,7 @@ def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, 
             "line_never_end_count": sum(ln["never_end"] for r in rows for ln in r["lines"]),
             "line_break_never_end_count": sum(ln["never_end"] for ln in inner), "line_break_never_end": breaks("never_end"),
             "line_break_dangling_count": sum(ln["dangling"] for ln in inner), "line_break_dangling": breaks("dangling"),
+            "composer_line_defect": (record or {}).get("line_defect"),   # SYS-C-1: the composer's own count, beside
             "composer_record": record}
 
 

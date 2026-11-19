@@ -261,6 +261,46 @@ class BrandConfig:
         return family
 
 
+# The map fills (SYS batch 2, panel 2 BC F3: in the blue test brand the home country was filled blue and read as
+# water beside the dark sea). Land, home and sea are their own palette roles (LAND / HOME / SEA on the flat map,
+# LAND_TINT / HOME_TINT / SEA_TOP / SEA_DEEP on the relief map: the roles any brand sets apart); a brand is refused
+# when configured (configure, BrandRefused, beside the display fit corpus) if its home could read as water: a home
+# with hue (saturation >= MAP_SAT_MIN) in the water hues (MAP_WATER_HUES: blue to cyan, what a map reader takes for
+# sea, whatever this brand's sea is) or within MAP_HUE_APART degrees of a sea role's hue, or the relief home under the
+# mark gate (WCAG 1.4.11, 3:1) against either sea stop. The default brand: home hue 38-39, its sea 214-220; relief home
+# 5.5 / 6.0:1 on the sea stops. The second test brand (its palette's R and B swapped): HOME_TINT hue 201, refused.
+MAP_HUE_APART = 45.0
+MAP_SAT_MIN = 0.15
+MAP_WATER_HUES = (170.0, 250.0)
+MAP_HOME_SEA = (("HOME", ("SEA",)), ("HOME_TINT", ("SEA_TOP", "SEA_DEEP")))
+
+
+def _hue_sat(rgb: RGB) -> tuple[float, float]:
+    import colorsys
+    h, s, _ = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    return h * 360.0, s
+
+
+def map_fill_problems(cfg: "BrandConfig") -> list[str]:
+    """Why `cfg`'s home country could read as its sea ([]: it cannot)."""
+    from .brand_system import GATES
+    out = []
+    for home, seas in MAP_HOME_SEA:
+        hc = cfg.colour(home)
+        hh, hs = _hue_sat(hc)
+        if hs >= MAP_SAT_MIN and MAP_WATER_HUES[0] <= hh <= MAP_WATER_HUES[1]:
+            out.append(f"map {home} {hc} has a water hue ({hh:.0f} deg, {MAP_WATER_HUES[0]:.0f}-{MAP_WATER_HUES[1]:.0f})")
+        for sea in seas:
+            sc = cfg.colour(sea)
+            sh, ss = _hue_sat(sc)
+            apart = abs((hh - sh + 180) % 360 - 180)
+            if hs >= MAP_SAT_MIN and ss >= MAP_SAT_MIN and apart < MAP_HUE_APART:
+                out.append(f"map {home} {hc} reads as {sea} {sc}: hues {apart:.0f} deg apart (< {MAP_HUE_APART:.0f})")
+            if home == "HOME_TINT" and _ratio(hc, sc) < GATES["contrast.mark"]:
+                out.append(f"map {home} on {sea} is {_ratio(hc, sc):.2f}:1, under the {GATES['contrast.mark']}:1 mark gate")
+    return out
+
+
 class DisplayFace(str):
     """The display role's family name when the brand's display face resolves the system's reference sizes to its own
     px (cycle 0 round 8, operator ruling 6): it equals the family name (a comparison, a record, a registry lookup
@@ -338,7 +378,7 @@ def configure(config: BrandConfig | None, validate: bool = True) -> BrandConfig:
     global _active
     if validate and config is not None and config is not DEFAULT_BRAND:
         from .brand_system import validate_display
-        fails = validate_display(config)
+        fails = validate_display(config) + map_fill_problems(config)   # SYS batch 2: and the map fills
         if fails:
             raise BrandRefused(config.name, fails)
     previous, _active = _active, config or DEFAULT_BRAND

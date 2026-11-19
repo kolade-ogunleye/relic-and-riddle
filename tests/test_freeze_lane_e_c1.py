@@ -90,15 +90,18 @@ def test_the_room_is_what_the_release_gate_leaves():
     assert end_card.card_room(config.RELEASE_DURATION_MAX + 1) == 0.0
 
 
-def test_one_reveal_timeline_held_to_the_written_motion_tokens():
-    """Until the motion.* tokens drive (SYS-E-1), the end card's timeline constants are the written values, and
-    frames() and _gate_lines() read the constants, not inline literals."""
-    assert end_card.MAST_IN == SPEC["motion.reveal"]
-    assert end_card.WORD_STAGGER == SPEC["motion.word_stagger"]
-    assert end_card.SHARE_RISE == SPEC["motion.rise_l"]
-    assert end_card.FOLLOW_RISE == end_card.LOOP_FOLLOW_RISE == SPEC["motion.rise_m"]
-    assert end_card.LOOP_CROSSFADE[0] == SPEC["motion.loop_crossfade"]
-    assert end_card.LOOP_PUSH == SPEC["motion.push_per_frame"] and end_card.LOOP_PUSH_CAP == SPEC["motion.push_cap"]
+def test_one_reveal_timeline_read_from_the_motion_tokens():
+    """Since SYS-E-1 the end card's reveal names are the system's motion tokens, read now (a brand that sets one moves
+    the name: tests/test_freeze_sys_2.py measures the frames), and frames() and _gate_lines() read no inline
+    literal."""
+    from src.brand_system import tok
+    assert end_card.MAST_IN == tok("motion.reveal")
+    assert end_card.WORD_STAGGER == tok("motion.word_stagger")
+    assert end_card.SHARE_RISE == tok("motion.rise_l")
+    assert end_card.FOLLOW_RISE == end_card.LOOP_FOLLOW_RISE == tok("motion.rise_m")
+    assert end_card.LOOP_CROSSFADE == (tok("motion.loop_crossfade"), tok("motion.loop_crossfade_visual"))
+    assert end_card.LOOP_PUSH == tok("motion.push_per_frame") and end_card.LOOP_PUSH_CAP == tok("motion.push_cap")
+    assert not {k for k in SPEC if k in ("motion.reveal", "motion.word_stagger", "motion.rise_l", "motion.rise_m")}
     for fn in (end_card.frames, end_card._gate_lines):
         src = inspect.getsource(fn)
         for literal in ("0.055", "0.45 ", "(t - 0.15)", "BELL_AT - 0.35", "round(14 *", "round(10 *"):

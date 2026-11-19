@@ -408,3 +408,62 @@ def _fit_box(src: tuple[int, int], out: tuple[int, int], centering: tuple[float,
 def window_problems(window: Image.Image, detectors: Iterable[Detector] | None = None) -> list[Band]:
     """The forbidden bands a delivered window (a crop as drawn) still contains: [] when it is clean."""
     return forbidden(window, detectors)
+
+
+# ---- the subject box (freeze SYS batch 2, SYS-A-3; lane A ruling 2): the one subject source for overlay placement
+# (then-and-now markers, and any card, cover or callout that sets type over a photograph). The photo system knows a
+# subject only where it was REVIEWED (cover_design.reviewed_focus: a box bound to the photo's bytes) or where a
+# registered subject detector says so; otherwise it says nothing, and the caller keeps its own rule. The centre is
+# never taken for the subject here (the deck window keeps the centre in view, a different rule: on a photo framed by
+# two subjects the centre is the gap between them). Generic: no topic, no photo list.
+SubjectDetector = Callable[[Image.Image], "tuple[int, int, int, int] | None"]
+SUBJECT_DETECTORS: list[SubjectDetector] = []   # none is shipped: no measured detector is reliable (cover_design)
+
+
+def register_subject(detector: SubjectDetector) -> None:
+    """Adds a subject detector, called as detector(image) -> (x0, y0, x1, y1) in image px, or None."""
+    if detector not in SUBJECT_DETECTORS:
+        SUBJECT_DETECTORS.append(detector)
+
+
+def unregister_subject(detector: SubjectDetector) -> None:
+    if detector in SUBJECT_DETECTORS:
+        SUBJECT_DETECTORS.remove(detector)
+
+
+def _valid_box(box, size: tuple[int, int]) -> tuple[int, int, int, int] | None:
+    try:
+        x0, y0, x1, y1 = (int(round(float(v))) for v in box)
+    except (TypeError, ValueError):
+        return None
+    w, h = size
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
+    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
+
+
+def subject_box(image: Image.Image, path=None) -> tuple[int, int, int, int] | None:
+    """The photograph's subject (x0, y0, x1, y1) in `image` px, `image` being the photo read whole from `path`
+    (EXIF-rotated, before any crop; a caller that crops maps the box itself, photo_hygiene.remap_focus): the reviewed
+    focus when `path`'s bytes match one (cover_design.reviewed_focus), else the first registered subject detector's
+    box, else None (the caller keeps its current rule)."""
+    if path is not None:
+        from pathlib import Path
+
+        from .cover_design import reviewed_focus
+        found = reviewed_focus(Path(path))
+        if found is not None:
+            w, h = image.size
+            fx0, fy0, fx1, fy1 = found["focus_box"]
+            box = _valid_box((fx0 * w, fy0 * h, fx1 * w, fy1 * h), image.size)
+            if box is not None:
+                return box
+    for det in tuple(SUBJECT_DETECTORS):
+        try:
+            box = det(image)
+        except Exception:                                   # a detector that fails leaves the caller's rule
+            log.exception("subject detector %s failed", getattr(det, "__name__", det))
+            continue
+        box = _valid_box(box, image.size) if box is not None else None
+        if box is not None:
+            return box
+    return None

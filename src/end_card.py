@@ -46,19 +46,29 @@ SECONDS = 2.9            # the 9:16 card's shortest length after the narration; 
 FPS = 30                 # at the reading pace (card_seconds, freeze lane E cycle 1)
 WIDTH, HEIGHT = 1080, 1920
 WHOOSH_AT, BELL_AT = 0.0, 1.95   # seconds into the card
-# The card's reveal, seconds into it (one timeline for frames() and its gates, _gate_lines). The values the written
-# motion.* tokens name (src/brand_system.py SPEC: motion.reveal, motion.word_stagger, motion.rise_l, motion.rise_m)
-# are held equal to them by tests/test_freeze_lane_e_c1.py until the tokens drive (queue SYS-E-1).
+# The card's reveal, seconds into it (one timeline for frames() and its gates, _gate_lines). Since SYS batch 2
+# (SYS-E-1) the reveal's durations and rises are the system's motion.* tokens, read when drawn (never at import):
+# MAST_IN (motion.reveal), WORD_STAGGER (motion.word_stagger), WORD_IN (motion.word_in), SHARE_RISE
+# (motion.rise_l), FOLLOW_IN (motion.line_in), FOLLOW_RISE and LOOP_FOLLOW_RISE (motion.rise_m), LOOP_CROSSFADE
+# (motion.loop_crossfade, motion.loop_crossfade_visual), LOOP_PUSH (motion.push_per_frame), LOOP_PUSH_CAP
+# (motion.push_cap): the names are served by __getattr__ below for their readers. The rest are this card's own.
 DIM_IN = 0.45            # the dim comes in (ease_out over this)
 SOFTEN_IN = 0.6          # the softening comes in
-MAST_AT, MAST_IN = 0.15, 0.40    # the masthead and its mark fade in (motion.reveal)
+MAST_AT = 0.15           # the masthead and its mark start to fade in (over MAST_IN)
 RULE_AT, RULE_IN = 0.25, 0.5     # the gold rule draws out
 SHARE_AT = 0.45          # the share line's first word starts to rise
-WORD_STAGGER = 0.055     # each next word (motion.word_stagger)
-WORD_IN = 0.3            # a word's rise
-SHARE_RISE = 14          # px (motion.rise_l: a share block)
-FOLLOW_IN = 0.35         # the follow line rises in, landing with the bell (BELL_AT)
-FOLLOW_RISE = 10         # px (motion.rise_m: a single line)
+_MOTION_NAMES = {"MAST_IN": "motion.reveal", "WORD_STAGGER": "motion.word_stagger", "WORD_IN": "motion.word_in",
+                 "SHARE_RISE": "motion.rise_l", "FOLLOW_IN": "motion.line_in", "FOLLOW_RISE": "motion.rise_m",
+                 "LOOP_FOLLOW_RISE": "motion.rise_m", "LOOP_PUSH": "motion.push_per_frame",
+                 "LOOP_PUSH_CAP": "motion.push_cap"}
+
+
+def motion(name: str):
+    """A reveal / push value this card draws with (a _MOTION_NAMES name, or LOOP_CROSSFADE: (with the share line,
+    without)), the active brand's token now."""
+    if name == "LOOP_CROSSFADE":
+        return (tok("motion.loop_crossfade"), tok("motion.loop_crossfade_visual"))
+    return tok(_MOTION_NAMES[name])
 # The masthead, the follow line (FOLLOW), the 16:9 hand-off (HANDOFF) and the colours (#D4AF37 gold until
 # 2026-10-29) are the active brand's (src/brand.py), read when drawn (QF-35a); the names below serve their readers.
 _BRAND_NAMES = {"BRAND": "MASTHEAD", "FOLLOW": "FOLLOW_LINE", "HANDOFF": "HANDOFF_LINE", "GOLD": "GOLD", "WHITE": "BONE",
@@ -69,6 +79,8 @@ def __getattr__(name: str):
     """A brand string or colour this module bound at import before QF-35a: the active brand's, read now."""
     if name in _BRAND_NAMES:
         return getattr(brand, _BRAND_NAMES[name])
+    if name in _MOTION_NAMES or name == "LOOP_CROSSFADE":   # SYS-E-1: the motion tokens, read now
+        return motion(name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -121,10 +133,11 @@ LOOP_SECONDS = 1.0
 LOOP_TIMES = {"in": 0.25, "out": 0.5}   # the line is up by "in"; with the line, the crossfade starts at "out"
 LOOP_DIM = 0.4                          # of the end card's measured dim (panel round 3: 0.8 read as a black dip that
                                         # flashed on every loop)
-LOOP_CROSSFADE = (0.5, 0.7)             # the crossfade's length: with the share line, without (the purely visual bridge)
-LOOP_PUSH = 0.0016                      # zoom per frame: the composer's forward drift on the closing and opening shots
-                                        # (still_camera "push"/"hook": the speed they keep at the loop seam, QF-22)
-LOOP_PUSH_CAP = 1.24                    # the furthest the composer's push goes (still_camera.endpoint_for)
+# LOOP_CROSSFADE (the crossfade's length: with the share line, without: the purely visual bridge), LOOP_PUSH (zoom
+# per frame: the composer's forward drift on the closing and opening shots, still_camera "push" / "hook", the speed
+# they keep at the loop seam, QF-22) and LOOP_PUSH_CAP (the furthest that push goes, still_camera.endpoint_for) are
+# motion tokens (motion(); SYS-E-1).
+LOOP_LINE_RISE = 12                     # px the bridge's share line rises (line=True; not shipped: LOOP_LINE False)
 LOOP_MAX_STEP_L = 25.0                  # the largest mean-L* change allowed between consecutive frames of the seam
 LOOP_MAX_MAD = 8.0                      # the bridge's last frame against frame 0: mean absolute difference, 0-255
 LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
@@ -142,7 +155,7 @@ FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its s
 LOOP_FOLLOW = "FOLLOW"
 LOOP_FOLLOW_SIZE = 64
 LOOP_FOLLOW_FRAMES = (6, 8)
-LOOP_FOLLOW_RISE = 10                   # px it rises while it comes in (the end card's follow line: 10)
+# LOOP_FOLLOW_RISE: px it rises while it comes in, the end card's follow line's (motion.rise_m; SYS-E-1)
 LOOP_FOLLOW_MIN = 4.5                   # WCAG AA on every full-opacity frame (the plan aims for brand.PLACE_TARGET)
 
 _FOLLOW_CLAUSE = re.compile(r"[\s,;:—–-]*(?:and\s+|then\s+|&\s+)?(?:please\s+)?follow\b.*$", re.IGNORECASE)
@@ -434,12 +447,12 @@ def zoom_at(t: float, seconds: float | None = None) -> float:
 
 def word_at(k: int) -> float:
     """When the share line's word k (0-based) starts to rise."""
-    return SHARE_AT + WORD_STAGGER * k
+    return SHARE_AT + motion("WORD_STAGGER") * k
 
 
 def share_done(n_words: int) -> float:
     """When the last of `n_words` share words has risen (the 16:9 extras follow it)."""
-    return word_at(max(0, n_words - 1)) + WORD_IN
+    return word_at(max(0, n_words - 1)) + motion("WORD_IN")
 
 
 def reading_need(lines: list[tuple[float, str]], cps: float | None = None) -> float:
@@ -464,7 +477,7 @@ def card_lines(lay: dict[str, Any], *, kicker: bool = False, credits: bool = Fal
     n = sum(len(ln) for ln in lay["lines"])
     out = [(SHARE_AT, " ".join(" ".join(ln) for ln in lay["lines"]))]
     if lay.get("follow"):
-        out.append((BELL_AT - FOLLOW_IN, brand.FOLLOW_LINE))
+        out.append((BELL_AT - motion("FOLLOW_IN"), brand.FOLLOW_LINE))
     if kicker:
         out.append((share_done(n), KICKER))
     if credits:
@@ -723,7 +736,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         worst_frame = None
         for i in range(total):
             t = i / FPS
-            if ease((t - MAST_AT) / MAST_IN) < 1.0:
+            if ease((t - MAST_AT) / motion("MAST_IN")) < 1.0:
                 continue
             frame_rec: dict[str, Any] = dict(plan_rec)
             if masthead.verify(ground(t), brand_plate, diamond, edge, frame_rec) is None:
@@ -794,10 +807,13 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
                          layout_problems=end_screen_problems(lay, width, credits=credits))
+    # the reveal's motion tokens, read once per card when it is drawn (SYS-E-1)
+    mast_in, stagger, word_in = motion("MAST_IN"), motion("WORD_STAGGER"), motion("WORD_IN")
+    share_rise, follow_in, follow_rise = motion("SHARE_RISE"), motion("FOLLOW_IN"), motion("FOLLOW_RISE")
     for i in range(total):
         t = i / FPS
         frame = ground(t)
-        a = ease((t - MAST_AT) / MAST_IN)
+        a = ease((t - MAST_AT) / mast_in)
         if mast_shown:
             frame = brand_plate.draw(frame, a)
         layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -811,13 +827,13 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                 d.ellipse(extras["frames"]["subscribe"], outline=(*brand.GOLD_DIM, fa), width=1)
         frame = Image.alpha_composite(frame.convert("RGBA"), layer).convert("RGB")
         for k, plate in enumerate(word_plates):   # the share line rises word by word
-            wa = ease((t - SHARE_AT - WORD_STAGGER * k) / WORD_IN)
+            wa = ease((t - SHARE_AT - stagger * k) / word_in)
             if wa > 0:
-                frame = plate.draw(frame, wa, round(SHARE_RISE * (1 - wa)))
+                frame = plate.draw(frame, wa, round(share_rise * (1 - wa)))
         if follow_plate is not None:
-            fa = ease((t - (BELL_AT - FOLLOW_IN)) / FOLLOW_IN)   # the follow line lands with the bell
+            fa = ease((t - (BELL_AT - follow_in)) / follow_in)   # the follow line lands with the bell
             if fa > 0:
-                frame = follow_plate.draw(frame, fa, round(FOLLOW_RISE * (1 - fa)))
+                frame = follow_plate.draw(frame, fa, round(follow_rise * (1 - fa)))
         if kicker_plate is not None:
             ka = ease((t - done) / 0.5)
             if ka > 0:
@@ -867,8 +883,9 @@ def _gate_lines(ground, total: int, width: int, height: int, landscape: bool, wo
     from . import masthead
     inside, clear = _line_room(width, height, landscape)
     done = share_done(len(word_plates))
-    lines = {"share": (word_plates, word_at, WORD_IN),
-             "follow": ([follow_plate] if follow_plate is not None else [], lambda k: BELL_AT - FOLLOW_IN, FOLLOW_IN),
+    word_in, follow_in = motion("WORD_IN"), motion("FOLLOW_IN")
+    lines = {"share": (word_plates, word_at, word_in),
+             "follow": ([follow_plate] if follow_plate is not None else [], lambda k: BELL_AT - follow_in, follow_in),
              "credits": ([credits_plate] if credits_plate is not None else [], lambda k: done + 0.3, 0.5)}
     refused: dict[str, str] = {}
     judged: list[tuple[str, int, Any]] = []   # (line, first fully opaque frame, plate)
@@ -955,8 +972,8 @@ def _pulled(im: Image.Image, z: float, width: int, height: int) -> np.ndarray:
 
 def loop_bridge(last: Image.Image, first: Image.Image, share: str,
                 stats: dict[str, Any] | None = None, *, line: bool = True, follow: bool = False,
-                crossfade: float | None = None, close_zoom: float = 1.0, close_push: float = LOOP_PUSH,
-                open_push: float = LOOP_PUSH) -> Iterator[Image.Image]:
+                crossfade: float | None = None, close_zoom: float = 1.0, close_push: float | None = None,
+                open_push: float | None = None) -> Iterator[Image.Image]:
     """The 9:16 Reel's ending (operator, 2026-11-02): a loop bridge of LOOP_SECONDS instead of the end card.
 
     `last` is the narration's graded last frame and `first` the Reel's real frame 0 as the composer renders it
@@ -981,13 +998,15 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     over its full-opacity frames), the dim, the crossfade and the largest mean-L* step over the seam."""
     from .typography import plan_text
     width, height = WIDTH, HEIGHT
+    close_push = motion("LOOP_PUSH") if close_push is None else close_push   # default: the token, read now
+    open_push = motion("LOOP_PUSH") if open_push is None else open_push
     if first.size != (width, height):
         raise ValueError(f"loop_bridge needs the Reel's rendered frame 0 at {width}x{height}, not {first.size[0]}x"
                          f"{first.size[1]} (a resized still is not the frame the loop lands on)")
     if close_zoom <= 0 or close_push < 0 or open_push < 0:
         raise ValueError("loop_bridge: close_zoom must be > 0 and the pushes >= 0")
     a_rate = close_push / close_zoom     # relative zoom per frame on `last`, which is already at close_zoom
-    lo, hi = LOOP_CROSSFADE
+    lo, hi = motion("LOOP_CROSSFADE")
     cf = float(crossfade if crossfade is not None else (lo if line and not follow else hi))
     cf = max(lo, min(hi, cf))
     a_img = _cover(last, (width, height))
@@ -1020,6 +1039,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
             x = lay["centre_x"] - probe.textlength(s, font=lay["share_font"]) / 2
             plates.append(plan_text(held, (round(x), top + li * line_h), s, lay["share_font"], brand.BONE))
     mix_at = _seam_curve(n_cf, 1 - 1 / total)
+    follow_rise = motion("LOOP_FOLLOW_RISE")
     hold_i = min(range(total), key=lambda k: abs(k / FPS - t_hold))
     prev_l = mean_lstar(a_img)
     steps: list[float] = []
@@ -1037,11 +1057,11 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         if plates:
             la = ease(t / t_in) * (1 - ease_io((t - t_out) / (0.4 * cf)))
             for p in plates:
-                frame = p.draw(frame, la, round(12 * (1 - ease(t / t_in))))
+                frame = p.draw(frame, la, round(LOOP_LINE_RISE * (1 - ease(t / t_in))))
         if follow_plate is not None:
             fa = follow_alpha(i, total)
             rise = ease(i / LOOP_FOLLOW_FRAMES[0])
-            frame = follow_plate.draw(frame, fa, round(LOOP_FOLLOW_RISE * (1 - rise)))
+            frame = follow_plate.draw(frame, fa, round(follow_rise * (1 - rise)))
             if fa >= 1.0:   # measured where it is fully up, on the frame as drawn
                 follow_contrasts.append(follow_plate.measure(frame))
         if stats is not None:

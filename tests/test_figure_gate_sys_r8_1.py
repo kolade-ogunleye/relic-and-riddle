@@ -331,7 +331,9 @@ def test_the_cross_sections_metres_pass_the_gate(tmp_path, plan_only, size):
     assert out is not None
     rec = _record(out)
     metres = {e["text"] for e in rec["elements"] if e["name"].endswith("_metres")}
-    assert metres == {f"{figures.converted_number(lv['depth_ft'], 'FT', 'M')} M" for lv in SECTION["levels"]}
+    # SYS-A-1: the level column is converted as one set (one precision, each member within the gate's tolerance)
+    column = figures.converted_numbers([lv["depth_ft"] for lv in SECTION["levels"]], "FT", "M")
+    assert metres == {f"{m} M" for m in column}
     res = figure_gate.check_run(run, {"cross_section": SECTION})
     assert res["faults"] == [], res["faults"]
 

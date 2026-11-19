@@ -39,6 +39,7 @@ from PIL import Image, ImageDraw, ImageOps
 from . import brand
 from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
 from .brand_system import LINE_END_NEVER
+from .brand_system import tok as _mtok
 from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
 from .cover_design import (
     EYEBROW_PX,
@@ -51,7 +52,6 @@ from .cover_design import (
     grid_proof,
     reviewed_focus,
 )
-from .end_card import LOOP_PUSH
 from .graphics import (
     FIGURE_SETTLE,
     FIGURE_SETTLE_FROM,
@@ -104,15 +104,15 @@ HOOK_SECONDS = 1.5
 # Fix round 1 (review: measure at the spec time, not a chosen instant): the frame on screen at 1.22 s is frame 36
 # (1.200 s), which a 1.09 hold left at 0.21 alpha; 1.07 puts frame 36 at 0.092 and keeps frames 0-32 whole (32 is
 # 1.067 s), gone by frame 37 (1.233 s)
-HOOK_HOLD = 1.07            # = brand_system SPEC motion.hook_hold (written; SYS-F-1 asks for it to drive)
-HOOK_FADE = 0.16            # s: freeze panel H6 (5): then a smoothstep dissolve of the type (= SPEC motion.hook_fade)
+# HOOK_HOLD (motion.hook_hold, 1.07) and HOOK_FADE (s: freeze panel H6 (5): then a smoothstep dissolve of the type;
+# motion.hook_fade, 0.16) are system tokens since SYS batch 2 (SYS-F-1), read when drawn: served by __getattr__.
 # Freeze lane F cycle 1 (panel 2 MO, clips\hook__obelisk__916 f037-f039): the plate and wash held to 1.22 s and left
 # over 0.18 s, so for three frames after the type had gone (1.233 s) an empty INK band stood across the photo at
 # 0.98-0.58 alpha. The ground now leaves WITH its type: from the same HOOK_HOLD, over one frame longer than the type's
 # fade, so (1) the ground is never thinner than the type it carries (ground alpha >= type alpha at every t) and (2) on
 # the first frame without type the ground is at most HOOK_EMPTY_MAX (it is 0.064 at frame 37, gone at frame 38).
-HOOK_GROUND_HOLD = HOOK_HOLD
-HOOK_GROUND_FADE = HOOK_FADE + 1.0 / VIDEO_FPS
+# HOOK_GROUND_HOLD = HOOK_HOLD and HOOK_GROUND_FADE = HOOK_FADE + one frame: derived from the tokens when read
+# (hook_timing), so the plate can neither outlast nor undercut its type.
 HOOK_EMPTY_MAX = 0.10       # the ground's alpha on any frame whose type is gone (the type's own 0.10 rule, mirrored)
 CAPTION_CLEAR = 1.40        # s: the composer's first caption burst may start here
 HOOK_TARGET = 5.1           # the hook's planned contrast (the brand's own plate keeps PLACE_TARGET)
@@ -349,15 +349,25 @@ def _smoothstep(x: float) -> float:
     return x * x * (3 - 2 * x)
 
 
-def _hook_alpha(t: float, hold: float = HOOK_HOLD, fade: float | None = None) -> float:
+def hook_timing() -> dict[str, float]:
+    """The hook's timing now (SYS-F-1): the type's hold and fade (motion.hook_hold, motion.hook_fade), the ground's
+    (the same hold, one frame longer fade) and the push per frame (motion.push_per_frame)."""
+    hold, fade = float(_mtok("motion.hook_hold")), float(_mtok("motion.hook_fade"))
+    return {"HOOK_HOLD": hold, "HOOK_FADE": fade, "HOOK_GROUND_HOLD": hold, "HOOK_GROUND_FADE": fade + 1.0 / VIDEO_FPS,
+            "LOOP_PUSH": float(_mtok("motion.push_per_frame"))}
+
+
+def _hook_alpha(t: float, hold: float | None = None, fade: float | None = None) -> float:
     """Freeze panel H4: a real dissolve, 1 - smoothstep((t - hold) / fade): the type (claim, eyebrow, masthead) from
     HOOK_HOLD over HOOK_FADE (the default), the plate and wash through _hook_ground_alpha."""
-    return 1.0 - _smoothstep((t - hold) / (HOOK_FADE if fade is None else fade))
+    hold = _mtok("motion.hook_hold") if hold is None else hold
+    return 1.0 - _smoothstep((t - hold) / (_mtok("motion.hook_fade") if fade is None else fade))
 
 
 def _hook_ground_alpha(t: float) -> float:
     """The plate, wash and marks: from HOOK_GROUND_HOLD over HOOK_GROUND_FADE (they leave with the type)."""
-    return _hook_alpha(t, HOOK_GROUND_HOLD, HOOK_GROUND_FADE)
+    timing = hook_timing()
+    return _hook_alpha(t, timing["HOOK_GROUND_HOLD"], timing["HOOK_GROUND_FADE"])
 
 
 class _Geo:
@@ -1599,6 +1609,8 @@ def __getattr__(name: str):
     """A colour this module bound at import before QF-35a: computed from the active brand (src/brand.py) now."""
     if name in _BRAND_NAMES:
         return _BRAND_NAMES[name]()
+    if name in ("HOOK_HOLD", "HOOK_FADE", "HOOK_GROUND_HOLD", "HOOK_GROUND_FADE", "LOOP_PUSH"):   # SYS-F-1, read now
+        return hook_timing()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -4357,7 +4369,7 @@ def _over(im: Image.Image, layer: Image.Image, a: float) -> Image.Image:
 
 
 def _hook_compose(r: Mapping[str, Any], i: int) -> Image.Image:
-    im = _pushed_in(r["bg"], 1.0 + LOOP_PUSH * i)
+    im = _pushed_in(r["bg"], 1.0 + _mtok("motion.push_per_frame") * i)
     t = i / VIDEO_FPS
     a, g = _hook_alpha(t), _hook_ground_alpha(t)
     if g <= 0:

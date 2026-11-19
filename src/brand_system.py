@@ -207,6 +207,14 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "masthead.colour_light": "INK",   # the light-ground variant (only where bone cannot reach the gate)
     "masthead.fit_floor": 0.75,       # the fit ladder's floor, a share of the canvas's masthead size (round 5): a
                                       # longer brand name steps down 2 px at a time to it, then is refused
+    # SYS-B-2 (lane B cycle 2, panel 2 PL; rubric CD2 / PL3): where the masthead is stacked over a hook as one group
+    # (the YouTube thumbnail: the mark directly over the headline's first row), its drawn group is at most this share
+    # of that row; it takes the largest step of its fit ladder that holds it, never under fit_floor. Scope: YouTube
+    # only. Measured on 52 real carousel covers (both copies): the cover's masthead is the deck's fixed top band,
+    # 0.26-0.41 of the headline's widest row, set apart from it, not stacked over it; read against a first row of one
+    # short word (EYE / OF THE SAHARA: 1.55) the rule would shrink one deck's masthead slide 1 only (one masthead size
+    # per deck wins). The end card / end screen masthead is the card's sign-off over a share line, not over a hook.
+    "masthead.hook_ratio_max": 0.78,
     # ---- kicker
     "kicker.weight": 800,
     "kicker.track": 0.15,             # em
@@ -221,6 +229,12 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "band.body_gap_tall": 1.62,       # body em, tall (the Story: 46 px body, 75 px)
     # ---- the cover / YouTube lockup (round 7, F21): line 2's size over line 1's, fixed (never fitted per cover)
     "lockup.line_ratio": 1.0,
+    # SYS-B-3 (lane B cycle 2, panel 2 TY): the clear field between two stacked display lines of the YouTube lockup,
+    # a share of the lower line's cap: the lockup's line pitch is (1 + this) caps, and the figure row's lowest INK to
+    # the title's cap line (a descender in the unit no longer eats the gap). Scope: the YouTube lockup; the carousel,
+    # the Story and the Reel cover step their display lines at SPEC lead.display (1.13 caps), a separate written value
+    # (one display pitch across surfaces is a SPEC decision, not this token's).
+    "lockup.line_gap": 0.18,
     # ---- the 9:16 card block's vertical placement (round 7, F18): its centre as a share of the frame's height,
     # never past the graphics box's foot (design_cards._chapter_tall_block)
     "card.tall_centre": 0.45,
@@ -260,6 +274,21 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- the act dissolve (cycle 0 round 8, lander's scope: production drew 8 frames of xfade "dissolve", a per-pixel
     # dither, against the written 0.5 s): the only dissolve in a Reel or a master, at an act change, a true crossfade
     "motion.act_dissolve": 0.5,       # seconds (video_composer.act_dissolve_s, rounded to whole frames)
+    # ---- the reveal and the camera (freeze SYS batch 2, SYS-E-1 / SYS-F-1: written in SPEC until now; values
+    # unchanged): read at draw time by end_card (the 9:16 card, the 16:9 end screen, the loop bridge), design_cards
+    # (the hook) and video_composer (the hook's handover), and the composer's push (still_camera "push" / "hook")
+    "motion.reveal": 0.40,            # s: an element's entry (the end card's masthead and mark)
+    "motion.word_stagger": 0.055,     # s: a word's entry after the one before it (the share words)
+    "motion.word_in": 0.3,            # s: one word's rise (SYS-E-1 decision: a token, the rise's visibility lever)
+    "motion.line_in": 0.35,           # s: a single line's rise (the follow line, landing with the bell)
+    "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
+    "motion.rise_m": 10,              # px: a single line (the follow line, the bridge's FOLLOW)
+    "motion.loop_crossfade": 0.5,     # s: the loop bridge's crossfade with its share line
+    "motion.loop_crossfade_visual": 0.7,   # s: the purely visual bridge's (the shipped bridge: LOOP_LINE False)
+    "motion.push_per_frame": 0.0016,  # zoom per frame: the camera's forward drift (the opening and closing shots)
+    "motion.push_cap": 1.24,          # the furthest that push goes
+    "motion.hook_hold": 1.07,         # s: the hook's type hold (frames 0-32 whole)
+    "motion.hook_fade": 0.16,         # s: the hook type's fade (the ground leaves with it: one frame longer)
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -272,6 +301,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "masthead.gap": (0.10, 1.20),         # em
     "masthead.mark_edge": (0.02, 0.20),   # em
     "masthead.fit_floor": (0.70, 1.0),    # never under 70 % of the canvas's masthead size
+    "masthead.hook_ratio_max": (0.6, 0.9),   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em
     "kicker.rule": (0.5, 3.0),            # caps
@@ -281,6 +311,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "band.body_gap": (1.2, 3.0),          # body em
     "band.body_gap_tall": (1.2, 3.0),     # body em
     "lockup.line_ratio": (1.0, 1.6),
+    "lockup.line_gap": (0.10, 0.30),      # of the lower line's cap: never touching, never a paragraph
     "card.tall_centre": (0.30, 0.60),
     "motion.back": (0.0, 4.0),
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
@@ -302,6 +333,18 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "plate.label_pad": (0.15, 0.80),      # em
     "place.site_step": (1.15, 1.8),       # one step: above the tracked country names, never a second display voice
     "motion.act_dissolve": (0.2, 1.0),    # seconds: a dissolve, never a cut nor a held mix
+    "motion.reveal": (0.2, 0.8),          # s
+    "motion.word_stagger": (0.0, 0.15),   # s: 0 brings the words in together
+    "motion.word_in": (0.15, 0.6),        # s
+    "motion.line_in": (0.15, 0.6),        # s: never past the bell (BELL_AT 1.95)
+    "motion.rise_l": (0, 40),             # px
+    "motion.rise_m": (0, 30),             # px
+    "motion.loop_crossfade": (0.3, 0.9),  # s: inside the bridge's one second (30 frames)
+    "motion.loop_crossfade_visual": (0.3, 0.9),
+    "motion.push_per_frame": (0.0, 0.004),   # zoom per frame
+    "motion.push_cap": (1.05, 1.5),
+    "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
+    "motion.hook_fade": (0.1, 0.3),       # s
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
 # accepts the named word or a value in TOKEN_RANGES.
@@ -311,6 +354,7 @@ TOKEN_DERIVED: Mapping[str, str] = MappingProxyType({"type.display_cap": "measur
 # at all): (token, factor, other) means token <= factor x other. BrandConfig refuses a brand that breaks one.
 TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
     ("masthead.mark_edge", 0.35, "masthead.mark_r"),   # the INK edge leaves at least 65 % of the radius as gold fill
+    ("motion.loop_crossfade", 1.0, "motion.loop_crossfade_visual"),   # the line's bridge never fades longer
 )
 
 # The written system's remaining values: what each group ports its surfaces onto (CYCLE0 build note, section 5). NOT
@@ -334,22 +378,28 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     # ---- heading rules
     "heading.balance_min": 0.55,      # the shorter line's ink width over the longer's
     "heading.cover_over_interior": 1.08,   # the cover heading is at least this x the deck's largest interior one
+    # Declared (SYS batch 2, item 7): it binds the CAROUSEL, the one set with a cover and interior headings (the tall
+    # and wide canvases draw no cover beside interiors in one set: one Story title size, one YouTube lockup, so their
+    # display_xl / display_l pairs, 150 / 138 and 190 / 184 on the ladder, 124 / 120 and 160 / 152 on the fallback,
+    # are not a cover-over-interior pair). On the carousel the ladder holds it on both tiers (150 / 138 = 1.087, the
+    # deck-wide fallback 150 / 124 = 1.21; the cover is locked at display_xl). Not held where a cover takes its
+    # recorded last resort under display_xl: 7 of 52 real covers (both copies; 5 of them the Facebook copy's narrower
+    # column) set at 144 / 140 / 134 / 126 design px, 0.91-1.04 of a 138 deck interior. Holding it there would take
+    # the deck's interiors to the fallback tier for the cover's sake: feed legibility ranks above hierarchy, so no.
     # ---- figures
     "figure.dash_centre_em": 0.03,    # an en dash's centre within this of the figures' centre
+    # Declared (SYS batch 2, item 7): a target the faces do not meet and the system does not draw to yet. Measured on
+    # the bundled faces at 1000 px, the en dash's ink centre sits 0.15-0.18 em under the figures' (Anton 0.180,
+    # Montserrat 0.152, Cinzel 0.183, IBM Plex Mono 0.171: each draws U+2013 on the lowercase centre, as text
+    # dashes are), and the panel's 0.047 / 0.045 em (Cinzel, Plex Mono) is not reproduced by either reading of the
+    # token (vertical as above; horizontal, the dash between its figures' ink, is set by figure.dash_gap_em). Fixing
+    # it is a figure-span raise (the `case` form where a face has one, else a designed rule: panel 2 AD MG-5),
+    # pixels on every stated span in every face: a SPEC decision with its own evidence, not a batch-2 token.
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,
-    # ---- motion (seconds unless named)
-    "motion.reveal": 0.40,            # an element's entry
-    "motion.word_stagger": 0.055,     # a word's entry after the one before it
-    "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
-    "motion.rise_m": 10,              # a single line (the follow line, FOLLOW)
-    "motion.hook_hold": 1.07,         # the hook's type hold
-    "motion.hook_fade": 0.16,         # the hook type's fade-in (an element reveal, not a scene fade)
-    "motion.loop_crossfade": 0.5,     # the loop bridge's crossfade (0.7 for the purely visual bridge)
+    # ---- motion (seconds unless named; the reveal and push tokens drive since SYS batch 2: SYSTEM_TOKENS)
     "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
-    "motion.push_per_frame": 0.0016,  # the camera's forward drift
-    "motion.push_cap": 1.24,
 })
 
 # One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3): the system's
@@ -535,6 +585,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "masthead:plan": "system",
     "multi_format:MultiFormatGenerator._body": "D",
     "multi_format:MultiFormatGenerator._content_frame": "D",
+    "multi_format:MultiFormatGenerator._deck_heading_tier": "D",   # SYS-D-5: the deck's one content tier
     "multi_format:MultiFormatGenerator._fit_text": "D",
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",

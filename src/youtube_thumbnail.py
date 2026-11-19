@@ -42,10 +42,10 @@ FOCUS_MIN_X = 1250        # a clamped crop that leaves it left of here is enlarg
 FOCUS_LAND = (1300, 1380)  # ... until it lands in this band
 MAX_ZOOM = 1.35           # never more than this beyond the cover fill
 SHADE_ALPHA, SHADE_SOLID, SHADE_END = 0.85, 0.42 * W, 1040   # the left ink: 85% over the left 42%, then fading
-MARK_RATIO_MAX = 0.78     # lane B cycle 2 (panel 2, PL): the masthead group's drawn width at most this share of the
-                          # hook's first row (rubric CD2 / PL3: a mark at >= 80 % of the title competes with it); the
-                          # masthead takes the largest step of its own fit ladder that holds it, never under the
-                          # ladder's floor (proposed as the system token masthead.hook_ratio_max, SYS-B-2)
+# MARK_RATIO_MAX (lane B cycle 2, panel 2 PL): the masthead group's drawn width at most this share of the hook's first
+# row (rubric CD2 / PL3: a mark at >= 80 % of the title competes with it); the masthead takes the largest step of its
+# own fit ladder that holds it, never under the ladder's floor. The system token masthead.hook_ratio_max since SYS-B-2,
+# read when drawn (served by __getattr__ for its readers).
 BRAND_PX = 64             # the masthead's size (2026-11-02 round 2: 44 px read small); its track, mark and gap are
                           # the system's (src/brand_system.py masthead.*)
 MAX_WORDS = 4             # across the headline lines
@@ -59,7 +59,8 @@ QUAL_PX = 96              # the copy's qualifier over the figure (figure_qualifi
 # brand.DISPLAY_FONT: r7: the kicker's face when one word cannot hold the floor in the text face (_qual_font)
 QUAL_WEIGHT, QUAL_TRACK = 800, 3   # brand.TEXT_FONT, the covers' eyebrow face (r5 review: in IBM Plex Mono
                                                             # the period took a full cell, "EST ." with a gap)
-TITLE_LINE_GAP = 0.18     # lane B cycle 2: the clear field over the title's cap line, a share of its cap (pitch 1.18)
+# TITLE_LINE_GAP (lane B cycle 2): the clear field over the title's cap line, a share of its cap: the system token
+# lockup.line_gap since SYS-B-3 (the lockup's pitch is 1 + it), read when drawn (served by __getattr__).
 DIM_TITLE_GAP = 40        # px of clear field from the dimension word's baseline to the title's cap line
 PLATE_TARGET = 5.1        # every line's planned ratio at full size ...
 FEED_TARGET_STEP, FEED_TARGET_MAX = 1.0, 9.1   # ... raised per line until it holds 4.5 at 246 px wide
@@ -317,7 +318,8 @@ def _mark_room(plates) -> float | None:
     if row is None:
         return None
     floor = masthead.fit_ladder(BRAND_PX)[-1]
-    return max(MARK_RATIO_MAX * row, masthead.group_width(floor, LEFT) + 0.5)
+    from .brand_system import tok
+    return max(tok("masthead.hook_ratio_max") * row, masthead.group_width(floor, LEFT) + 0.5)
 
 
 def _low_contrast(meta: dict) -> list:
@@ -405,7 +407,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             return None
         if room is not None:
             ch = cap_height(get_font(brand.DISPLAY_FONT, s2))
-            if (len(rows) - 1) * int(ch * 1.18) + ch > room:
+            if (len(rows) - 1) * int(ch * line_pitch()) + ch > room:
                 return None
         phrase = [f.record["phrase_exception"] for f in forms_ if f.record.get("phrase_exception")]
         return rows, get_font(brand.DISPLAY_FONT, s1), get_font(brand.DISPLAY_FONT, s2), {
@@ -489,7 +491,7 @@ def _title_form(measure, title: str, width: float, room: float):
                 continue
             f = get_font(brand.DISPLAY_FONT, sz)
             ch = cap_height(f)
-            if (len(form.lines) - 1) * int(ch * 1.18) + ch > room:
+            if (len(form.lines) - 1) * int(ch * line_pitch()) + ch > room:
                 continue
             rec = {"size": sz, "tier": tier, "lines": list(form.lines)}
             if form.record.get("phrase_exception"):
@@ -540,6 +542,26 @@ def _kicker_font(text: str, width: float):
 # less a fixed 300 px reservation for the unit), each held at the hero's feed floor; the unit at UNIT_RATIO of the
 # figure, never under its line floor (LINE_FLOOR at 168 px wide: "SQ MI" drew 6.0 px against 7 in the second palette)
 from .brand_system import FIGURE_STEPS  # the system's one figure ladder (SYS-D-1)
+
+_TOKEN_NAMES = {"MARK_RATIO_MAX": "masthead.hook_ratio_max", "TITLE_LINE_GAP": "lockup.line_gap"}   # SYS-B-2 / SYS-B-3: module names read from tokens
+
+
+def _tok(name: str):
+    from .brand_system import tok
+    return tok(name)
+
+
+def line_pitch() -> float:
+    """The lockup's display line pitch in caps: 1 + lockup.line_gap (SYS-B-3; 1.18 at the default)."""
+    return 1 + _tok("lockup.line_gap")
+
+
+def __getattr__(name: str):
+    """A system token this module named as a constant before it became one: the active brand's value, read now."""
+    if name in _TOKEN_NAMES:
+        from .brand_system import tok
+        return tok(_TOKEN_NAMES[name])
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 FIGURE_UNIT_GAP = 20
 
@@ -818,15 +840,15 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         # where two lines fit, and its TextFitError aborted the run's whole cover job)
         t_lines, f_t, meta["title_form"] = _title_form(measure, title, width, band - q_h - cap_height(f_num) - (
             DIM_TITLE_GAP if dim_lines else 0)) if title else ([], None, None)
-        t_pitch = int(cap_height(f_t) * 1.18) if f_t else 0
+        t_pitch = int(cap_height(f_t) * line_pitch()) if f_t else 0
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
         if f_t:
             # lane B cycle 2 (panel 2, TY): the gap is measured from the figure row's lowest INK, not its baseline: the
             # tail of a Q in the unit ("SQ MI") hung 11 px under the baseline onto the title's cap top (0-1 px). The
-            # title's cap line sits one heading line gap (TITLE_LINE_GAP of its cap, the lockup's own 1.18 pitch) under
-            # that ink (proposed as a system spacing token, SYS-B-3)
+            # title's cap line sits one lockup line gap (lockup.line_gap of its cap, the lockup's own pitch) under that
+            # ink (SYS-B-3)
             foot = max(0, f_num.getbbox(number, anchor="ls")[3])
             if unit:
                 pitch_d = cap_height(f_dim) + 12
@@ -834,7 +856,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 foot = max(foot, f_unit.getbbox(unit, anchor="ls")[3] - raise_u)
                 if dim_lines:
                     foot = max(foot, f_dim.getbbox(dim_lines[-1], anchor="ls")[3])
-            gap_t = max(gap_t, foot + round(TITLE_LINE_GAP * cap_height(f_t)))
+            gap_t = max(gap_t, foot + round(_tok("lockup.line_gap") * cap_height(f_t)))
         stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) + (len(t_lines) - 1) * t_pitch if f_t else 0)
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):
@@ -944,7 +966,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         lines, f, f2, lock = _lockup(measure, typeset(l1), typeset(l2), width, kickerless=not (f_k or f_h),
                                     room=band - h_h)
         meta["lockup"] = lock
-        pitch = int(cap_height(f2) * 1.18)
+        pitch = int(cap_height(f2) * line_pitch())
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
         if f_k:
             im, p_k, meta["kicker"] = _draw_kicker(im, LEFT, y - cap_height(f) - _kicker_gap(f_k), kicker, f_k,

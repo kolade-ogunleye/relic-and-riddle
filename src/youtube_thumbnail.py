@@ -42,6 +42,10 @@ FOCUS_MIN_X = 1250        # a clamped crop that leaves it left of here is enlarg
 FOCUS_LAND = (1300, 1380)  # ... until it lands in this band
 MAX_ZOOM = 1.35           # never more than this beyond the cover fill
 SHADE_ALPHA, SHADE_SOLID, SHADE_END = 0.85, 0.42 * W, 1040   # the left ink: 85% over the left 42%, then fading
+MARK_RATIO_MAX = 0.78     # lane B cycle 2 (panel 2, PL): the masthead group's drawn width at most this share of the
+                          # hook's first row (rubric CD2 / PL3: a mark at >= 80 % of the title competes with it); the
+                          # masthead takes the largest step of its own fit ladder that holds it, never under the
+                          # ladder's floor (proposed as the system token masthead.hook_ratio_max, SYS-B-2)
 BRAND_PX = 64             # the masthead's size (2026-11-02 round 2: 44 px read small); its track, mark and gap are
                           # the system's (src/brand_system.py masthead.*)
 MAX_WORDS = 4             # across the headline lines
@@ -55,6 +59,7 @@ QUAL_PX = 96              # the copy's qualifier over the figure (figure_qualifi
 # brand.DISPLAY_FONT: r7: the kicker's face when one word cannot hold the floor in the text face (_qual_font)
 QUAL_WEIGHT, QUAL_TRACK = 800, 3   # brand.TEXT_FONT, the covers' eyebrow face (r5 review: in IBM Plex Mono
                                                             # the period took a full cell, "EST ." with a gap)
+TITLE_LINE_GAP = 0.18     # lane B cycle 2: the clear field over the title's cap line, a share of its cap (pitch 1.18)
 DIM_TITLE_GAP = 40        # px of clear field from the dimension word's baseline to the title's cap line
 PLATE_TARGET = 5.1        # every line's planned ratio at full size ...
 FEED_TARGET_STEP, FEED_TARGET_MAX = 1.0, 9.1   # ... raised per line until it holds 4.5 at 246 px wide
@@ -259,12 +264,14 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     targets: dict[str, float] = {}
     given = dict(meta or {})
     edge = None
+    mark_room = None
     while True:
         trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
         im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
-                             column)
+                             column, mark_room)
         if edge is None and _type_edge(plates) is not None:
             edge = _type_edge(plates)
+            mark_room = _mark_room(plates)
             continue
         low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
         if not low:
@@ -278,6 +285,39 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     if meta is not None:
         meta.update(trial)
     return im, plates
+
+
+def _ink_x(plate) -> tuple[float, float]:
+    """A plate's glyph ink, left and right on the canvas (its font's box at its anchor, tracked width added)."""
+    b = plate.font.getbbox(plate.text, anchor=plate.anchor)
+    extra = (plate.track or 0) * max(0, len(plate.text) - 1)
+    return plate.xy[0] + b[0], plate.xy[0] + b[2] + extra
+
+
+def hook_row(plates) -> float | None:
+    """The drawn width of the hook's first row: the headline's first row (every run on its baseline), else the figure
+    with its unit; the qualifier and kicker above it are not the hook. None when neither is drawn."""
+    drawn = [(n, p) for n, p in plates if not p.empty]
+    rows = [p for n, p in drawn if n in ("figure", "figure_unit")]
+    if not rows:
+        heads = [p for n, p in drawn if n in ("title_1", "title_2", "title")]
+        if not heads:
+            return None
+        top = min(p.xy[1] for p in heads)
+        rows = [p for p in heads if abs(p.xy[1] - top) < 1]
+    xs = [_ink_x(p) for p in rows]
+    return max(x for _, x in xs) - min(x for x, _ in xs)
+
+
+def _mark_room(plates) -> float | None:
+    """The masthead group's room (MARK_RATIO_MAX of the hook's first row), never under its fit ladder's floor size's
+    own width (the mark steps down, it is never refused for this); None with no hook drawn."""
+    from . import masthead
+    row = hook_row(plates)
+    if row is None:
+        return None
+    floor = masthead.fit_ladder(BRAND_PX)[-1]
+    return max(MARK_RATIO_MAX * row, masthead.group_width(floor, LEFT) + 0.5)
 
 
 def _low_contrast(meta: dict) -> list:
@@ -594,7 +634,7 @@ def type_column(focus_box) -> float:
 
 
 def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
-            column=None):
+            column=None, mark_room=None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -652,7 +692,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     f_brand = masthead.font_for(BRAND_PX)
     top = 72
     mode = im.mode
-    im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX)
+    # lane B cycle 2: the group within MARK_RATIO_MAX of the hook's first row (render's second pass), on the masthead's
+    # own fit ladder; the baseline and the band below keep the canvas size's, so the hero stack does not move
+    im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
+                                                  max_width=mark_room)
     im = im.convert(mode)
     if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
@@ -778,6 +821,19 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
+        if f_t:
+            # lane B cycle 2 (panel 2, TY): the gap is measured from the figure row's lowest INK, not its baseline: the
+            # tail of a Q in the unit ("SQ MI") hung 11 px under the baseline onto the title's cap top (0-1 px). The
+            # title's cap line sits one heading line gap (TITLE_LINE_GAP of its cap, the lockup's own 1.18 pitch) under
+            # that ink (proposed as a system spacing token, SYS-B-3)
+            foot = max(0, f_num.getbbox(number, anchor="ls")[3])
+            if unit:
+                pitch_d = cap_height(f_dim) + 12
+                raise_u = (len(dim_lines) * pitch_d + 6) if dim_lines else 0
+                foot = max(foot, f_unit.getbbox(unit, anchor="ls")[3] - raise_u)
+                if dim_lines:
+                    foot = max(foot, f_dim.getbbox(dim_lines[-1], anchor="ls")[3])
+            gap_t = max(gap_t, foot + round(TITLE_LINE_GAP * cap_height(f_t)))
         stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) + (len(t_lines) - 1) * t_pitch if f_t else 0)
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):

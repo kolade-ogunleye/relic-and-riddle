@@ -194,7 +194,7 @@ def test_the_reel_lockup_never_stacks_a_one_word_middle_row():
 def test_the_youtube_headline_never_repeats_the_video_title_where_the_copy_has_another_line():
     """Lane findings 2026-11-16: the no-figure headline was not checked against the video title (THE RICHAT STRUCTURE
     over a video titled the same). The figure path's rule now holds on the headline path: the line that repeats it
-    gives way to the pair's other line, else another verified line, else it stays and is recorded."""
+    gives way to the pair's other line where it stands alone, else it stays and is recorded."""
     flat = Image.new("RGB", (1920, 1080), (96, 92, 88))
     title = "The Richat Structure Explained"
     copy = {"eyebrow": "DESERT ANOMALY", "line1": "THE RICHAT STRUCTURE", "line2": "SAHARA EYE", "tagline": "WHY"}

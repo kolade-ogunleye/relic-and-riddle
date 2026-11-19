@@ -839,22 +839,15 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         elif long_lines:
             meta["headline_lines_dropped"] = long_lines   # the other line stands alone, whole
         if youtube_title and (l1 or l2) and len(_content(f"{l1} {l2}") & _content(youtube_title)) >= 2:
-            # lane B cycle 1 (lane findings 2026-11-16): the figure path's rule on the headline path too: a headline
-            # that repeats the video title gives way to another verified line of the copy (the eyebrow, else the
-            # tagline) that stands alone in the line budget and is new to the title, else it stays (title_overlap)
-            # a line of the pair that does not repeat the title and stands alone is kept alone first
+            # lane B cycle 1 (lane findings 2026-11-16): a headline line that repeats the video title gives way to
+            # the pair's other line where that one stands alone (the copy's own headline field); else it is drawn as
+            # written and recorded (title_overlap). The eyebrow and tagline are not taken here: on a documentary they
+            # are the claim-free labels (DOCUMENTARY, EXPLORE THE EVIDENCE), never a headline.
             fresh = [(k, t) for k, t in (("line1", l1), ("line2", l2))
                      if t and len(_content(t) & _content(youtube_title)) < 2 and _alone(t)]
-            alt = next(((k, _alone(_words(str(copy.get(k) or ""), LINE_WORDS))) for k in ("eyebrow", "tagline")
-                        if _alone(_words(str(copy.get(k) or ""), LINE_WORDS))
-                        and len(_content(copy.get(k)) & _content(youtube_title)) < 2), None)
             if l1 and l2 and len(fresh) == 1:
                 meta["tension_from"] = fresh[0][0]
                 l1, l2 = ("", _alone(fresh[0][1])) if fresh[0][0] == "line2" else (_alone(fresh[0][1]), "")
-            elif alt:
-                meta["tension_from"] = alt[0]
-                l1, l2 = alt[1], ""
-                meta.pop("headline_lines_dropped", None)
             else:
                 meta["title_overlap"] = True
         kicker = ""

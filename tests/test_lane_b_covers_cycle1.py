@@ -115,3 +115,58 @@ def test_the_article_before_a_withheld_figure_stays_when_words_follow_it():
     fig = {"number": "144", "unit": "FT", "conflict": True}
     assert cover_design.withhold_figure({"line1": "THE 144 FT (WOW) SHAFT"}, fig)["line1"].startswith("THE ")
     assert cover_design.withhold_figure({"line1": "THE MINE (THE 144 FT)"}, fig)["line1"] == "THE MINE"
+
+
+# ------------------------------------------------------------------ QF-144: photo-borne text bands on lane B surfaces
+def _banded_hero(path):
+    """A photograph (warm, never green) with a source caption bar burned in across its top (QF-144's class: the
+    Sentinel credit band), saved to `path`."""
+    import numpy as np
+    from PIL import ImageDraw
+
+    from src import brand
+    from src.typography import get_font
+    rng = np.random.default_rng(3)
+    grey = rng.normal(150, 30, (64, 96, 1)).clip(40, 230)
+    im = Image.fromarray((grey * np.array([1.0, 0.75, 0.6])).astype("uint8")).resize((2400, 1350), Image.BICUBIC)
+    d = ImageDraw.Draw(im)
+    d.rectangle((0, 0, 2400, 110), fill=(180, 196, 0))
+    d.text((20, 20), "Richat Structure, Mauritania - 6 January 2023 - Enhanced natural colors - Contains",
+           font=get_font(brand.TEXT_FONT, 60), fill=(0, 0, 0))
+    im.save(path, quality=95)
+
+
+def _band_pixels(im):
+    import numpy as np
+    a = np.asarray(im.convert("RGB"), np.int16)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    return int(((g > r + 12) & (g > 3 * b + 10) & (g > 40)).sum())
+
+
+def test_no_lane_b_surface_shows_a_burned_in_caption_band(tmp_path):
+    """QF-144 (lane B part): the Reel cover, the profile grid tile and the YouTube thumbnail all crop their hero
+    through the hero window (photo_hygiene.clean_hero: hero_window.clean, the round-8 photo_text detector among its
+    detectors), so a source caption band never reaches a delivered frame (target 0 band pixels)."""
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "banded.jpg"
+    _banded_hero(hero)
+    payload = {"thumbnail": {"eyebrow": "DESERT ANOMALY", "line1": "SAHARA EYE", "line2": "",
+                             "tagline": "CARVED BY NATURE"}, "title": "T", "narration_script": "x."}
+    reel, grid = VisualEngine().generate_thumbnails(hero, payload, tmp_path / "c", variants=False, style="badge")
+    yt_path = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    for p in (reel, grid, yt_path):
+        with Image.open(p) as im:
+            assert _band_pixels(im) < 50, (p.name, _band_pixels(im))
+    assert _band_pixels(Image.open(hero)) > 10000   # the probe holds the band (else this test proves nothing)
+
+
+def test_the_documentary_split_prefers_lines_within_the_youtube_line_budget(tmp_path):
+    """QF-109 (split part): of the title's whole-word splits that set, one whose two lines each hold the YouTube
+    headline's line budget (youtube_thumbnail.LINE_WORDS) is preferred: a longer line is left out of the thumbnail."""
+    from main import documentary_cover
+    hero = tmp_path / "hero.jpg"
+    Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
+    title = "The Ice Man Of The Alps"   # its 22-character split leaves a five-word line 1
+    cover = documentary_cover(title, hero=hero)
+    assert f"{cover['line1']} {cover['line2']}".split() == title.upper().split()
+    assert all(len(cover[k].split()) <= yt.LINE_WORDS for k in ("line1", "line2")), cover

@@ -45,6 +45,8 @@ SHADE_ALPHA, SHADE_SOLID, SHADE_END = 0.85, 0.42 * W, 1040   # the left ink: 85%
 BRAND_PX = 64             # the masthead's size (2026-11-02 round 2: 44 px read small); its track, mark and gap are
                           # the system's (src/brand_system.py masthead.*)
 MAX_WORDS = 4             # across the headline lines
+LINE_WORDS = 3            # a headline line's budget on the no-figure path (QF-23 option 1: a longer line is left out
+                          # whole, never cut); main.documentary_cover prefers a title split within it (QF-109)
 UNIT_RATIO = 0.5          # the unit beside the figure, at half its size
 TITLE_GAP_EM = 0.08       # the figure's baseline to the title's caps, in title ems
 DIM_PX = 44               # the claim's dimension word under the unit (figure_dim)
@@ -812,7 +814,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             if found_h:
                 withhold_here(f"the hedge {hedge[0]!r} does not fit at feed size", found_h)
             hedge = None
-        l1, l2 = _words(copy.get("line1", ""), 3), _words(copy.get("line2", ""), 3)
+        l1, l2 = _words(copy.get("line1", ""), LINE_WORDS), _words(copy.get("line2", ""), LINE_WORDS)
         long_lines = [k for k, t in (("line1", l1), ("line2", l2)) if str(copy.get(k) or "").strip() and not t]
         if l1 and l2:
             l2 = _end(l2)   # QF-143: the headline never ends on a mark that leads on

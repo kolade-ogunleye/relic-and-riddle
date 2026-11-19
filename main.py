@@ -160,12 +160,18 @@ def documentary_cover(title: str, max_line: int = 22, payload: Dict[str, Any] | 
     def problems(cand):
         return cover_fit.fit_problems(youtube_cover_copy(dict(ctx, thumbnail=cand)),
                                       str(ctx.get("youtube_title") or ""), payload=ctx, hero=hero)
+    from src.youtube_thumbnail import LINE_WORDS
+
+    def within(c):
+        return all(len(c[k].split()) <= LINE_WORDS for k in ("line1", "line2"))
     all_words = title.upper().split()
-    if not problems(split) or len(all_words) < 2:
+    if len(all_words) < 2 or (within(split) and not problems(split)):
         return split
     cands = [dict(split, line1=" ".join(all_words[:k]), line2=" ".join(all_words[k:])) for k in
              sorted(range(1, len(all_words)), key=lambda k: abs(len(" ".join(all_words[:k])) - len(" ".join(all_words[k:]))))]
-    for cand in cands:
+    # QF-109 (lane B cycle 1, the split part): a split whose two lines both hold the YouTube headline's line budget
+    # first (youtube_thumbnail.LINE_WORDS: a longer line is left out of the thumbnail whole), most even first
+    for cand in [c for c in cands if within(c)] + [split] + [c for c in cands if not within(c)]:
         if not problems(cand):
             return cand
     # lane B cycle 1: no split sets on both (the YouTube check without a hero holds every column a hero can leave):

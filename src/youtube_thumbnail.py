@@ -461,7 +461,8 @@ def _kicker_font(text: str, width: float):
 # The figure's size steps (reference units; round 8: they were a continuous fit from NUM_MAX down to 160 in a column
 # less a fixed 300 px reservation for the unit), each held at the hero's feed floor; the unit at UNIT_RATIO of the
 # figure, never under its line floor (LINE_FLOOR at 168 px wide: "SQ MI" drew 6.0 px against 7 in the second palette)
-FIGURE_STEPS = (300, 260, 220, 190, 160)
+from .brand_system import FIGURE_STEPS  # the system's one figure ladder (SYS-D-1)
+
 FIGURE_UNIT_GAP = 20
 
 

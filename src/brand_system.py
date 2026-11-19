@@ -373,6 +373,12 @@ TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
     # (youtube_thumbnail.HERO_FLOOR: 12 px of cap at 168 px wide; 150 gave 11.3)
     "wide": MappingProxyType({"display_xl": 160, "display_l": 152, "display_m": 112, "body": 46, "credit": 22}),
 })
+# The figure role's one step ladder (reference display units; freeze SYS-D-1): a stated quantity drawn as a hero
+# figure takes the largest step its surface's measure holds, never a size fitted between steps. Its head is the tall
+# canvas's figure size. Read by youtube_thumbnail.FIGURE_STEPS (each step held at the hero's feed floor) and the
+# Story reveal (multi_format.STORY_FIGURE_STEPS: the largest step whose numeral fits the title measure); declared
+# in DEVIATIONS (the role's one size is TYPE's, the steps under it are this ladder's).
+FIGURE_STEPS: tuple[int, ...] = (300, 260, 220, 190, 160)
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
     "tall": MappingProxyType({"label": 27, "data_label": 27, "credit": 22}),
@@ -423,11 +429,15 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                "2 px steps through the engine"), (84, 52, 2), "D"),
     "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px) on the tall display ladder's "
                     "steps (150, 138, 124, 120, 112; round 8), one line a field down to heading.story_one_line_floor "
-                    "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn"),
+                    "106; a wrapped title never under heading.story_floor 120; below them refused, never drawn; the "
+                    "reveal frame's title at the Story size, its qualifier and unit at display_m's fallback step (96)"),
                     (150, 106, 120), "D"),
-    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS (round 8: was a fit 300 -> 160), held at the "
-                       "hero's feed floor; the unit at UNIT_RATIO, at least its line floor"), (300, 260, 220, 190, 160),
-                       "B"),
+    "YouTube figure": ("figure", ("youtube_thumbnail.FIGURE_STEPS: brand_system.FIGURE_STEPS (round 8: was a fit "
+                       "300 -> 160), held at the hero's feed floor; the unit at UNIT_RATIO, at least its line floor"),
+                       FIGURE_STEPS, "B"),
+    "Story reveal figure": ("figure", ("multi_format.STORY_FIGURE_STEPS: brand_system.FIGURE_STEPS (cycle 1: was a "
+                            "fit 276 -> 160), the largest step whose numeral fits the title measure"), FIGURE_STEPS,
+                            "D"),
 })
 
 # Every SITE that sets a type size off the ladder (a function of a surface module calling a font loader with a

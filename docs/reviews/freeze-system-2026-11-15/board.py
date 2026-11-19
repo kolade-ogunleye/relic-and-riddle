@@ -577,7 +577,8 @@ CAPTION_CACHE: dict = {}
 
 def row7_cps(out: Path, work: Path) -> str:
     """The caption reading record (round 8, MO-1): per case and burst, on-screen seconds, characters, shown CPS, the
-    spoken window and the word it ends on (never-end words flagged), beside the composer's own record."""
+    spoken window and the word it ends on (never-end words flagged), every line of a two-line burst in it and each
+    line ending checked (round 8i, N3), beside the composer's own record."""
     import board_evidence as be
     rows = [("case", "burst", "on screen (s)", "chars", "shown CPS", "spoken window (s)", "ends on", "text")]
     record = {}
@@ -586,13 +587,18 @@ def row7_cps(out: Path, work: Path) -> str:
         r = be.caption_rates(c["words"], c["ass"], c["record"])
         record[key] = r
         for k, b in enumerate(r["bursts"]):
+            # round 8i (N3): the whole burst, its lines split by " / "; a line that ends on a never-end word is named
+            inner = [(ln["ends_on"], "NEVER-END" if ln["never_end"] else "DANGLING") for ln in b["lines"]
+                     if (ln["never_end"] or ln["dangling"]) and not ln["burst_end"]]
             rows.append((key if k == 0 else "", f"{k + 1} @ {b['show']:.2f}s", f"{b['on_screen_s']:.2f}", b["chars"],
                          f"{b['shown_cps']}" + (" OVER 17" if (b["shown_cps"] or 0) > 17 else ""),
-                         f"{b['spoken_window_s']:.2f}", b["ends_on"] + (" NEVER-END" if b["never_end"] else ""),
-                         b["text"]))
+                         f"{b['spoken_window_s']:.2f}", b["ends_on"] + (" NEVER-END" if b["never_end"] else "")
+                         + "".join(f" (a line ends on {w}: {what})" for w, what in inner),
+                         " / ".join(ln["text"] for ln in b["lines"])))
         rec = r["composer_record"] or {}
         rows.append(("", "composer record", "", "", f"max {r['max_shown_cps']} (over 17: {r['over_17']})", "",
-                     f"never-end endings: {r['never_end_count']}",
+                     f"never-end endings: {r['never_end_count']} burst, {r['line_break_never_end_count']} line break "
+                     f"(NEVER_END_WORDS; {r['line_break_dangling_count']} by never_end_end)",
                      f"VideoComposer.last_reading_rate: bursts {rec.get('bursts')}, over_max {rec.get('over_max')}, "
                      f"worst {rec.get('worst')}"))
     draw_table(rows, (330, 170, 130, 80, 170, 170, 220, 900)).save(out / "row07_captions_cps.png")
@@ -878,7 +884,7 @@ def main() -> None:
             tiles.append((be.label(item["name"], item["label"]), item["image"]))
             manifest["labels"][item["name"]] = be.label(item["name"], item["label"])
         if r in (3, 4):
-            for c in extra("covers", lambda: bx.covers(dev, work), []):
+            for c in extra("covers", lambda: bx.covers(dev, work, HEROES), []):
                 if r == 3:
                     for k in ("reel", "grid"):
                         add({"name": c["name"] + f"__{k}", "label": c["label"], "image": c[k],
@@ -886,6 +892,8 @@ def main() -> None:
                 else:
                     add({"name": c["name"] + "__youtube", "label": c["label"], "image": c["youtube"],
                          "refused": (c.get("refused") or {}).get("youtube")})
+                    for item in c.get("standins") or []:   # round 8i (N4): the refused ground judged on passing copy
+                        add(item)
         if r == 3:   # each Reel cover as the profile grid shows it
             reels = [(n, im) for n, im in tiles if n.split(" | ")[0].endswith("reel")]
             sheets["row03_reel_cover_grid_crops"] = (
@@ -975,7 +983,7 @@ def main() -> None:
         if r == 11:
             for item in extra("callout held frame", lambda: bx.callout_held(work), []):
                 add(item)
-            for item in extra("cover badges", lambda: bx.cover_badges(dev, work), []):
+            for item in extra("cover badges", lambda: bx.cover_badges(dev, work, HEROES), []):
                 add(item)
         for surface, what, why in be.REFUSED[n_refused:]:   # round 8: a refusal on its row, never a gap or an abort
             if surface.startswith(("youtube ", "reel cover + grid ")):

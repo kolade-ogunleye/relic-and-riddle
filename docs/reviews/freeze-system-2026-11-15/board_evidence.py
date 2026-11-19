@@ -5,9 +5,10 @@
   tile through it and stops on a probe name that has no rule (UNCLASSIFIED).
 - caption_ground(): a caption case's ground at narration time t, re-drawn by THIS tree when the run's timeline puts a
   stored graphic there (the Amber Room's graphic_numbers at 2.09 s read "EST. OVER 11,722 LBS" from retired code).
-- caption_rates(): each burst as the built ASS shows it (on-screen seconds, characters, shown CPS, the spoken window,
-  the word it ends on and whether that word is on the never-end list) beside the composer's own record
-  (VideoComposer.last_reading_rate).
+- caption_rates(): each burst as the built ASS shows it, every line of it (on-screen seconds, characters, shown CPS,
+  the spoken window, the word it ends on and whether that word is on the never-end list), and each line of it (its
+  text, characters and the word it ends on, checked against brand_system.NEVER_END_WORDS), beside the composer's own
+  record (VideoComposer.last_reading_rate).
 - refusals(): one table per palette: every surface or element refused, raised or not drawn, with its reason.
 - peer_feed(): a feed sheet per feed surface at real pixel size, our tile among 8 peer slots; peer posts come from
   --peers <dir>/<feed>/ when supplied, else the slots hold the channel's other runs' tiles labelled STAND-IN.
@@ -88,6 +89,14 @@ def _endcard_labels() -> dict[int, str]:
 def pairing(name: str) -> tuple[str, str]:
     """(class, why) for a tile name."""
     n = name.split(" | ")[0]
+    m = re.search(r"__copy_(\w+)$", n)   # round 8i (N4): board_extras.STANDIN_COPY_TAG, a refused surface's probe
+    if m:
+        forced = " (the illustration flag forced on)" if n.startswith(("cover_badge__", "thumbnail_badge__")) else ""
+        if m.group(1) == "none":
+            return STAND_IN, f"cross-run copy probe{forced}: no board hero's copy passes cover_fit for this surface"
+        return STAND_IN, (f"cross-run copy: run {m.group(1)}'s verified copy on this ground{forced}, a board hero's "
+                          "copy that passes cover_fit for this surface, taken in board order (the run's own copy is "
+                          "refused)")
     m = re.match(r"card__(\w+?)__(richat|amber|obelisk)__", n)
     if m:
         maker, g = m.groups()
@@ -216,9 +225,15 @@ def _ts(s: str) -> float:
     return int(h) * 3600 + int(m) * 60 + float(sec)
 
 
+_POS_Y = re.compile(r"\\pos\(\s*[-\d.]+\s*,\s*([-\d.]+)\s*\)")
+
+
 def ass_bursts(ass_text: str) -> list[dict[str, Any]]:
-    """The bursts as the ASS shows them: each CapBox event's start and end, and the text of the last CapText event
-    inside it (the whole burst; earlier events hold the words not yet said at alpha 0)."""
+    """The bursts as the ASS shows them: each CapBox event's start and end, and its whole text: every line of the
+    burst, joined in reading order. A 9:16 two-line burst sets each line as its own CapText event at its own \\pos y
+    (cycle 0 round 8i, N3: the record read only the last event, so it dropped line 1), and each line is re-emitted
+    as its words are said (the words not yet said at alpha 0), so a line's text is that of the last event at its y
+    inside the box. Each burst also carries `lines` (top to bottom: y, text)."""
     boxes, texts = [], []
     for line in ass_text.splitlines():
         if not line.startswith("Dialogue:"):
@@ -228,30 +243,84 @@ def ass_bursts(ass_text: str) -> list[dict[str, Any]]:
         if style == "CapBox":
             boxes.append((start, end))
         elif style == "CapText":
-            texts.append((start, end, " ".join(re.sub(r"\{[^}]*\}", "", text).split())))
+            m = _POS_Y.search(text)
+            texts.append((start, end, float(m.group(1)) if m else 0.0,
+                          " ".join(re.sub(r"\{[^}]*\}", "", text).split())))
     out = []
     for s, e in boxes:
-        inside = [x for x in texts if s - 1e-3 <= x[0] < e - 1e-3]
-        out.append({"show": round(s, 3), "hide": round(e, 3), "text": inside[-1][2] if inside else ""})
+        at_y: dict[float, str] = {}
+        for _s, _e, y, t in (x for x in texts if s - 1e-3 <= x[0] < e - 1e-3):   # in file order: the last one wins
+            at_y[y] = t
+        lines = [{"y": y, "text": at_y[y]} for y in sorted(at_y) if at_y[y]]
+        out.append({"show": round(s, 3), "hide": round(e, 3), "text": " ".join(ln["text"] for ln in lines),
+                    "lines": lines})
     return out
+
+
+def line_never_end(word: str) -> bool:
+    """A caption LINE ending on `word` ends on the derived never-end set (brand_system.NEVER_END_WORDS: the closed
+    class RUBRIC TY2 names, "no line ends on an article or preposition"), unless punctuation closes it (as
+    video_composer.never_end_end reads a burst's end)."""
+    from src.brand_system import NEVER_END_WORDS
+    from src.video_composer import CLAUSE_PUNCT, TERMINAL_PUNCT
+    word = str(word or "")
+    if CLAUSE_PUNCT.search(word) or TERMINAL_PUNCT.search(word):
+        return False
+    return re.sub(r"[^\w]", "", word).lower() in NEVER_END_WORDS
 
 
 def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, Any] | None) -> dict[str, Any]:
     # rules2 F4: the composer's own never-end predicate (video_composer.never_end_end, the closed class the breakers
     # weigh), never a second list: the record counts what the breaker sees (it counted LINE_END_NEVER only)
     from src.video_composer import never_end_end
+    # cycle 0 round 8i (N3): each burst is all of its lines (ass_bursts), so its characters and shown CPS are the
+    # whole burst's, and every line ending is checked too (line_never_end: OF / ARMY GROUP NORTH ends line 1 on OF)
+    def bare(word: str) -> str:
+        return re.sub(r"[^\w'-]", "", word).lower()
+    raw = [str(w.get("word", "")) for w in words]
+    cursor = [0]
+
+    def spoken_form(shown: str) -> str:
+        """The narration's own word for the next shown word (the caption drops its punctuation; the never-end
+        predicates read it, so "both." closes a line as the breaker reads it); the shown word if they part."""
+        k = cursor[0]
+        cursor[0] += 1
+        return raw[k] if k < len(raw) and re.sub(r"[^\w]", "", raw[k]).lower() == re.sub(r"[^\w]", "", shown).lower() \
+            else shown
     rows = []
     for b in ass_bursts(ass_text):
         secs = b["hide"] - b["show"]
         said = [w for w in words if b["show"] - 0.2 <= float(w["start"]) < b["hide"]]
         spoken = (float(said[-1]["start"]) + float(said[-1].get("dur", 0.0)) - float(said[0]["start"])) if said else 0
-        last = re.sub(r"[^\w'-]", "", (b["text"].split() or [""])[-1]).lower()
-        rows.append({**b, "on_screen_s": round(secs, 3), "chars": len(b["text"]),
+        ends = []
+        for ln in b["lines"]:
+            forms = [spoken_form(w) for w in ln["text"].split()]
+            ends.append(forms[-1] if forms else "")
+        last_word = ends[-1] if ends else ""
+        lines = []
+        for k, ln in enumerate(b["lines"]):
+            end = ends[k]
+            # never_end: the derived set (brand_system.NEVER_END_WORDS); dangling: the breakers' own burst-end
+            # predicate (video_composer.never_end_end: that set with DANGLING_ENDS, which holds WHEN), read at a line
+            lines.append({**ln, "chars": len(ln["text"]), "ends_on": bare(end), "never_end": line_never_end(end),
+                          "dangling": never_end_end(end), "burst_end": k == len(b["lines"]) - 1})
+        rows.append({**b, "lines": lines, "on_screen_s": round(secs, 3), "chars": len(b["text"]),
                      "shown_cps": round(len(b["text"]) / secs, 1) if secs > 0 else None,
-                     "spoken_window_s": round(spoken, 3), "ends_on": last,
-                     "never_end": never_end_end((b["text"].split() or [""])[-1])})
+                     "spoken_window_s": round(spoken, 3), "ends_on": bare(last_word),
+                     "never_end": never_end_end(last_word)})
+
+    def breaks(key: str) -> list[str]:   # the bursts whose line break (not the burst's end) falls on `key`
+        return [" / ".join(ln["text"] for ln in r["lines"]) for r in rows
+                if any(ln[key] for ln in r["lines"] if not ln["burst_end"])]
+    inner = [ln for r in rows for ln in r["lines"] if not ln["burst_end"]]
     return {"bursts": rows, "max_shown_cps": max((r["shown_cps"] or 0 for r in rows), default=None),
             "over_17": sum((r["shown_cps"] or 0) > 17 for r in rows), "never_end_count": sum(r["never_end"] for r in rows),
+            "lines": sum(len(r["lines"]) for r in rows), "two_line_bursts": sum(len(r["lines"]) > 1 for r in rows),
+            "one_word_lines_in_two_line_bursts": sum(len(ln["text"].split()) == 1 for r in rows if len(r["lines"]) > 1
+                                                     for ln in r["lines"]),
+            "line_never_end_count": sum(ln["never_end"] for r in rows for ln in r["lines"]),
+            "line_break_never_end_count": sum(ln["never_end"] for ln in inner), "line_break_never_end": breaks("never_end"),
+            "line_break_dangling_count": sum(ln["dangling"] for ln in inner), "line_break_dangling": breaks("dangling"),
             "composer_record": record}
 
 

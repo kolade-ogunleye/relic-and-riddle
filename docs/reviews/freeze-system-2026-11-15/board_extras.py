@@ -53,10 +53,11 @@ def _rgb(p: Path):
 
 
 # ---------------------------------------------------------------------------------------------- covers (rows 3, 4)
-def covers(dev: Path, work: Path) -> list[dict[str, Any]]:
+def covers(dev: Path, work: Path, heroes=()) -> list[dict[str, Any]]:
     """The bright run's Reel cover, grid tile and YouTube thumbnail, and the near-white stand-in: VisualEngine's
     generate_thumbnails / generate_youtube_thumbnail as render_surfaces.py calls them (style "badge": the run kept no
-    cover recipe). Each: {name, label, reel, grid, youtube, masthead (the thumbnail's record)}."""
+    cover recipe). Each: {name, label, reel, grid, youtube, masthead (the thumbnail's record), refused, standins (a
+    refused YouTube thumbnail's probe with stand-in copy, N4)}."""
     if "covers" in _cache:
         return _cache["covers"]
     cases = [("cover__unfinished_obelisk_aswan__bright", dev / BRIGHT_HERO, f"bright hero, run {ASWAN_COVER_RUN[4:]}"),
@@ -67,9 +68,33 @@ def covers(dev: Path, work: Path) -> list[dict[str, Any]]:
             continue
         d = work / name
         made = _thumbnails(hero, _payload(dev, ASWAN_COVER_RUN), d)
-        out.append({"name": name, "label": why, **made})
+        out.append({"name": name, "label": why, **made,
+                    "standins": youtube_standins(dev, heroes, hero, made, f"{name}__youtube", why, d)})
     _cache["covers"] = out
     return out
+
+
+def youtube_standins(dev: Path, heroes, hero: Path, made: dict[str, Any], name: str, why: str,
+                     d: Path) -> list[dict[str, Any]]:
+    """N4: when `made`'s YouTube thumbnail was refused, the same ground and surface with the stand-in copy
+    (standin_copies' first): [{name, label, image, refused}]. cover_fit's copy-stage check does not see everything
+    render does (the hero figure's form, the photo), so a stand-in the render still refuses is kept as its refusal
+    tile (evidence that the check and the render disagree) and the next passing hero's copy is drawn after it."""
+    if not heroes or "youtube" not in (made.get("refused") or {}):
+        return []
+    import board_evidence as be
+    out = []
+    for k, (run, payload) in enumerate(standin_copies(dev, heroes, "youtube", ASWAN_COVER_RUN)):
+        n = len(be.REFUSED)
+        yt = youtube(hero, payload, d / f"yt{STANDIN_COPY_TAG}{run}.jpg")
+        out.append({"name": f"{name}{STANDIN_COPY_TAG}{run[4:]}", "image": yt["image"], "masthead": yt["masthead"],
+                    "label": f"{why}; {standin_label(run, 'youtube', k)}",
+                    "refused": (be.REFUSED[-1][2] if len(be.REFUSED) > n else "refused") if yt["image"] is None
+                    else None})
+        if yt["image"] is not None:
+            return out
+    return out + [{"name": f"{name}{STANDIN_COPY_TAG}none", "image": None, "label": why,
+                   "refused": "no board hero's copy passes cover_fit and draws on this ground"}]
 
 
 def youtube(hero: Path, payload: dict[str, Any], path: Path) -> dict[str, Any]:
@@ -92,6 +117,56 @@ def youtube(hero: Path, payload: dict[str, Any], path: Path) -> dict[str, Any]:
     finally:
         youtube_thumbnail.render = real_render
     return {"image": _rgb(yt) if yt else None, "masthead": meta.get("masthead")}
+
+
+# ---------------------------------------------------------------------------------------------- stand-in copy (N4)
+# Cycle 0 round 8i (N4): the bright and near-white grounds' YouTube thumbnail (and the forced-badge one) carry run
+# 1792985912's copy, which src/cover_fit.py refuses at the copy stage (production rewrites it before render), so the
+# board's refusal tile is real evidence but leaves the worst grounds unjudged. Beside each such refusal the board draws
+# the same ground and surface with another real run's verified copy, chosen by rule (never written for the board):
+# the first board hero (board.HEROES, in order) whose copy passes cover_fit for that surface, skipping the refused
+# run. Each such tile is named <surface>__copy_<run> and labelled STAND-IN (cross-run copy) by board_evidence.pairing.
+STANDIN_COPY_TAG = "__copy_"
+
+
+def hero_copies(dev: Path, heroes) -> list[tuple[str, dict[str, Any]]]:
+    """(run, verified payload) per board hero, in board order: the covers catalogue's case for that topic (the copy
+    its row 3 / 4 tiles carry), else the bright run for the bright hero."""
+    import fixtures as fx
+    cases = {c["topic"]: c for c in fx.load("covers")}
+    out = []
+    for topic in heroes:
+        if topic in cases:
+            out.append((Path(str(cases[topic]["run"])).name, fx.payload(cases[topic])))
+        elif ASWAN_COVER_RUN.startswith(f"run_{topic}_"):
+            out.append((ASWAN_COVER_RUN, _payload(dev, ASWAN_COVER_RUN)))
+    return out
+
+
+def fits(payload: dict[str, Any], surface: str) -> list[str]:
+    """cover_fit's problems for `payload` on `surface` ("youtube", or "reel" / "grid": the Reel cover's lockup), on
+    the copy that surface's renderer sets (visual_engine.youtube_cover_copy, the one copy the fit check reads)."""
+    from src import cover_fit
+    from src.visual_engine import youtube_cover_copy
+    yt = surface == "youtube"
+    return cover_fit.fit_problems(youtube_cover_copy(payload), str(payload.get("youtube_title") or "") if yt else "",
+                                  youtube=yt, reel=not yt)
+
+
+def standin_copies(dev: Path, heroes, surface: str, refused_run: str) -> list[tuple[str, dict[str, Any]]]:
+    """[(run, payload)]: the board heroes' copies, other than `refused_run`'s, that pass cover_fit on `surface`, in
+    board order (the first is the stand-in; the next ones are drawn only while the render still refuses one)."""
+    key = ("standin", tuple(heroes), surface, refused_run)
+    if key not in _cache:
+        _cache[key] = [(run, p) for run, p in hero_copies(dev, heroes) if run != refused_run and not fits(p, surface)]
+    return _cache[key]
+
+
+def standin_label(run: str, surface: str, k: int = 0) -> str:
+    what = "YouTube thumbnail" if surface == "youtube" else "Reel cover"
+    return (f"copy: run {run[4:]}'s verified copy, the first board hero whose copy passes cover_fit for the {what}"
+            + (f" and draws (the {k} before it pass cover_fit but the render refuses them)" if k else "")
+            + "; beside the refused tile")
 
 
 def _thumbnails(hero: Path, payload: dict[str, Any], d: Path) -> dict[str, Any]:
@@ -428,16 +503,21 @@ def _illustrated():
         scene_planner.is_illustration = real
 
 
-def cover_badges(dev: Path, work: Path) -> list[dict[str, Any]]:
+def cover_badges(dev: Path, work: Path, heroes=()) -> list[dict[str, Any]]:
     """The disclosure badge as the cover and the YouTube thumbnail draw it over an illustrated hero: the bright run's
-    cover and thumbnail with is_illustration answering yes (FORCED: no run has had an illustrated hero)."""
+    cover and thumbnail with is_illustration answering yes (FORCED: no run has had an illustrated hero). A refused
+    surface is kept as its refusal (round 8i, N4) and a refused thumbnail gets its stand-in-copy probe beside it."""
     hero = dev / BRIGHT_HERO
+    name = "thumbnail_badge__unfinished_obelisk_aswan__youtube"
+    why = f"FORCED illustration flag: run {ASWAN_COVER_RUN[4:]}'s hero and copy (no run had an illustrated hero)"
     with _illustrated():
         made = _thumbnails(hero, _payload(dev, ASWAN_COVER_RUN), work / "badge")
-    why = f"FORCED illustration flag: run {ASWAN_COVER_RUN[4:]}'s hero and copy (no run had an illustrated hero)"
-    return [x for x in ({"name": "cover_badge__unfinished_obelisk_aswan__reel", "image": made["reel"], "label": why},
-                        {"name": "thumbnail_badge__unfinished_obelisk_aswan__youtube", "image": made["youtube"],
-                         "label": why}) if x["image"] is not None]
+        extra = youtube_standins(dev, heroes, hero, made, name, "FORCED illustration flag", work / "badge")
+    refused = made.get("refused") or {}
+    return [x for x in ({"name": "cover_badge__unfinished_obelisk_aswan__reel", "image": made["reel"], "label": why,
+                         "refused": refused.get("reel")},
+                        {"name": name, "image": made["youtube"], "label": why, "refused": refused.get("youtube")},
+                        *extra) if x["image"] is not None or x.get("refused")]
 
 
 if __name__ == "__main__":   # pragma: no cover

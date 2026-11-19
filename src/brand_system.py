@@ -366,9 +366,11 @@ TYPE: Mapping[str, Mapping[str, float | None]] = MappingProxyType({
     "wide": MappingProxyType({"display_xl": 190, "display_l": 184, "display_m": 136, "figure": 360, "kicker": 40,
                               "body": 52, "label": 34, "data_label": 34, "credit": 24, "masthead": 64}),
 })
-# At most one fallback tier per role (a size the role may drop to when the first does not set the copy).
+# At most one fallback tier per role (a size the role may drop to when the first does not set the copy). Each tier
+# keeps the display hierarchy (display_xl > display_l > display_m on every canvas, in TYPE and here: SYS batch 1,
+# the tall tier had the cover role's fallback under the interior heading's, 120 < 124).
 TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
-    "tall": MappingProxyType({"display_xl": 120, "display_l": 124, "display_m": 96, "body": 40, "credit": 22}),
+    "tall": MappingProxyType({"display_xl": 124, "display_l": 120, "display_m": 96, "body": 40, "credit": 22}),
     "carousel": MappingProxyType({k: v * 4 / 3 for k, v in {"display_xl": 138, "display_l": 124, "display_m": 96,
                                                             "body": 34}.items()}),
     # wide display_xl 160 (round 7, was 150): the YouTube headline's one fallback tier holds its feed floor

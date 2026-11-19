@@ -2,6 +2,7 @@
 measurements.
 
 - SYS-D-1: one figure-step ladder in the system (brand_system.FIGURE_STEPS), read by every surface's figure ladder.
+- The display ladder (TYPE, TYPE_FALLBACK) keeps display_xl > display_l > display_m on every tier.
 """
 from __future__ import annotations
 
@@ -12,7 +13,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tests"))
 
-from src import brand_system  # noqa: E402
+import pytest
+
+from src import brand_system
 
 
 # ------------------------------------------------------------------------------------ SYS-D-1: one figure ladder
@@ -38,3 +41,18 @@ def test_every_surface_figure_ladder_is_the_systems():
     for name, steps in found.items():
         assert tuple(steps) == brand_system.FIGURE_STEPS, name
         assert name in declared, name
+
+
+# ------------------------------------------------------------- the display ladder keeps its hierarchy on every tier
+@pytest.mark.parametrize("canvas", sorted(brand_system.TYPE))
+def test_the_display_ladder_is_ordered_on_every_tier(canvas):
+    """SYS batch 1: on each canvas, in TYPE and in TYPE_FALLBACK, display_xl (cover, hook, Story title) > display_l
+    (interior heading) > display_m: a role's fallback never drops under the role below's (9:16 had 120 < 124)."""
+    for table in (brand_system.TYPE, brand_system.TYPE_FALLBACK):
+        xl, l, m = (table[canvas][r] for r in ("display_xl", "display_l", "display_m"))
+        assert xl > l > m, (canvas, xl, l, m)
+
+
+def test_the_tall_display_steps_are_the_ones_the_story_and_the_scan_read():
+    """The 9:16 fix reorders roles only: the step set the Story title and the size scan read is unchanged."""
+    assert set(brand_system.display_steps("tall")) == {150, 138, 124, 120, 112, 96}

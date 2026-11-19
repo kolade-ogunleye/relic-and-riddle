@@ -125,6 +125,17 @@ def _carousel(arche, copy):
     return go
 
 
+def _deck_tier(ctx, size):
+    """A whole deck's content-heading tier (SYS-D-5): a cover, four content slides and the debate, both copies."""
+    from src.multi_format import MultiFormatGenerator
+    gen = MultiFormatGenerator()
+    cards = [{"heading": "THE EYE OF THE SAHARA", "body": "A cover."}]
+    cards += [{"heading": h, "body": "A plain fact about the site, told in one short line."}
+              for h in ("MAGMATIC UPLIFT", "IMPACT THEORY DISPROVED", "GLOBAL HERITAGE", "ORBITAL LANDMARK")]
+    cards += [{"heading": "WHAT DO YOU THINK?", "body": "Tell us below?"}]
+    gen._deck_heading_tier(cards, gen.sequence_archetypes(cards))
+
+
 CARD_PLANS = ("plan_chapter_card", "plan_myth_fact", "plan_quote_card", "plan_hook_frame")
 
 
@@ -551,6 +562,9 @@ def branches() -> dict[str, dict[str, Callable]]:
         rules, reached and drawn). LONG_ET's own card refusal is tested past the gate (conftest.card_last_guard)."""
         return long_wide(ctx, size)
     out["design_cards.plan_myth_fact"]["long"] = long_myth
+    # SYS-D-5: a carousel deck sets every content heading at ONE tier (MultiFormatGenerator._deck_heading_tier,
+    # measured over both copies before any slide is drawn); the single-slide renders above never reach it
+    out.setdefault("carousel.immersive.instagram", {})["deck_tier"] = _deck_tier
     out["design_cards.plan_chapter_card"]["accented"] = _card_plan("plan_chapter_card",
                                                                    title="The Rings Around the Ténéré Desert")
     return out

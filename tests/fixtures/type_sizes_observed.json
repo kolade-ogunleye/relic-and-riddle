@@ -819,6 +819,9 @@
  "masthead:plan_on.at": [
   67.0
  ],
+ "multi_format:MultiFormatGenerator._deck_heading_tier": [
+  100.0
+ ],
  "multi_format:MultiFormatGenerator._render_carousel_slide": [
   37.333
  ],

@@ -56,6 +56,21 @@ PRESETS = {
     "splice": Preset(1.0, 0.0014, 1.20, True),
     "hook": Preset(1.0, 0.0016, 1.24, False),
 }
+# The forward push ("push", the opening and closing shots at the loop seam, and "hook") runs at the system's motion
+# tokens (SYS batch 2, SYS-E-1: motion.push_per_frame, motion.push_cap), read when a shot is planned; the values
+# above are their defaults. The other moves keep their own data.
+TOKEN_PUSH = ("push", "hook")
+
+
+def preset_of(name: str) -> Preset:
+    """The move `name` as it runs now: PRESETS, with the push presets' rate and cap the active brand's tokens."""
+    p = PRESETS[name]
+    if name not in TOKEN_PUSH:
+        return p
+    from dataclasses import replace
+
+    from .brand_system import tok
+    return replace(p, rate=float(tok("motion.push_per_frame")), cap=float(tok("motion.push_cap")))
 
 
 # Transient disk: an FFV1 frame of a real photograph measured up to 2.04 MB at 1080x1920 (0.98 B/px); the check
@@ -117,7 +132,7 @@ def endpoint_for(preset: str, frames: int) -> float:
     """The zoom the old move had reached at the shot's last frame: each shot keeps its travel."""
     if frames < 1:
         raise ValueError("Camera frame count must be positive")
-    p = PRESETS[preset]
+    p = preset_of(preset)
     if frames == 1:
         return p.start                     # a single frame has no move
     steps = frames if p.pzoom else frames - 1
@@ -156,7 +171,7 @@ class Motion:
 def motion_for(preset: str, frames: int, lead: bool = False, trail: bool = False) -> Motion:
     """The shot's Motion: the old extent (endpoint_for), at rest at both ends except a seam end (`lead` the first
     frame, `trail` the last), which moves at the old rate (a push only)."""
-    p = PRESETS[preset]
+    p = preset_of(preset)
     start, end = p.start, endpoint_for(preset, frames)
     travel = abs(end - start)
     if frames < 2 or travel <= 0 or p.rate <= 0:

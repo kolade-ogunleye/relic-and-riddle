@@ -10,7 +10,7 @@ import pytest
 
 from src import brand
 from src import design_cards as dc
-from src.brand_system import SPEC
+from src.brand_system import tok
 from src.config import VIDEO_FPS
 
 import tests.test_freeze_cards_2026_11_04 as F
@@ -18,9 +18,13 @@ import tests.test_freeze_cards_2026_11_04 as F
 FRAMES = range(round(dc.HOOK_SECONDS * VIDEO_FPS) + 1)
 
 
-def test_hook_motion_equals_the_written_tokens():
-    """Until SYS-F-1 makes them runtime tokens, the module values stay equal to the written SPEC ones."""
-    assert dc.HOOK_HOLD == SPEC["motion.hook_hold"] and dc.HOOK_FADE == SPEC["motion.hook_fade"]
+def test_hook_motion_reads_the_runtime_tokens():
+    """SYS-F-1: the hook's hold and fade are the system's runtime tokens, read now; the ground derives from them."""
+    assert dc.HOOK_HOLD == tok("motion.hook_hold") and dc.HOOK_FADE == tok("motion.hook_fade")
+    assert dc.HOOK_GROUND_HOLD == dc.HOOK_HOLD and dc.HOOK_GROUND_FADE == pytest.approx(dc.HOOK_FADE + 1 / VIDEO_FPS)
+    with brand.use(brand.DEFAULT_BRAND.derive("hook probe", system={"motion.hook_hold": 0.9, "motion.hook_fade": 0.2})):
+        assert dc.HOOK_HOLD == 0.9 and dc.HOOK_GROUND_FADE == pytest.approx(0.2 + 1 / VIDEO_FPS)
+        assert dc._hook_alpha(0.95) < 1.0 and dc._hook_ground_alpha(0.95) >= dc._hook_alpha(0.95)
 
 
 def test_lane_f_hook_ground_leaves_with_type():

@@ -260,6 +260,21 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- the act dissolve (cycle 0 round 8, lander's scope: production drew 8 frames of xfade "dissolve", a per-pixel
     # dither, against the written 0.5 s): the only dissolve in a Reel or a master, at an act change, a true crossfade
     "motion.act_dissolve": 0.5,       # seconds (video_composer.act_dissolve_s, rounded to whole frames)
+    # ---- the reveal and the camera (freeze SYS batch 2, SYS-E-1 / SYS-F-1: written in SPEC until now; values
+    # unchanged): read at draw time by end_card (the 9:16 card, the 16:9 end screen, the loop bridge), design_cards
+    # (the hook) and video_composer (the hook's handover), and the composer's push (still_camera "push" / "hook")
+    "motion.reveal": 0.40,            # s: an element's entry (the end card's masthead and mark)
+    "motion.word_stagger": 0.055,     # s: a word's entry after the one before it (the share words)
+    "motion.word_in": 0.3,            # s: one word's rise (SYS-E-1 decision: a token, the rise's visibility lever)
+    "motion.line_in": 0.35,           # s: a single line's rise (the follow line, landing with the bell)
+    "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
+    "motion.rise_m": 10,              # px: a single line (the follow line, the bridge's FOLLOW)
+    "motion.loop_crossfade": 0.5,     # s: the loop bridge's crossfade with its share line
+    "motion.loop_crossfade_visual": 0.7,   # s: the purely visual bridge's (the shipped bridge: LOOP_LINE False)
+    "motion.push_per_frame": 0.0016,  # zoom per frame: the camera's forward drift (the opening and closing shots)
+    "motion.push_cap": 1.24,          # the furthest that push goes
+    "motion.hook_hold": 1.07,         # s: the hook's type hold (frames 0-32 whole)
+    "motion.hook_fade": 0.16,         # s: the hook type's fade (the ground leaves with it: one frame longer)
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -302,6 +317,18 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "plate.label_pad": (0.15, 0.80),      # em
     "place.site_step": (1.15, 1.8),       # one step: above the tracked country names, never a second display voice
     "motion.act_dissolve": (0.2, 1.0),    # seconds: a dissolve, never a cut nor a held mix
+    "motion.reveal": (0.2, 0.8),          # s
+    "motion.word_stagger": (0.0, 0.15),   # s: 0 brings the words in together
+    "motion.word_in": (0.15, 0.6),        # s
+    "motion.line_in": (0.15, 0.6),        # s: never past the bell (BELL_AT 1.95)
+    "motion.rise_l": (0, 40),             # px
+    "motion.rise_m": (0, 30),             # px
+    "motion.loop_crossfade": (0.3, 0.9),  # s: inside the bridge's one second (30 frames)
+    "motion.loop_crossfade_visual": (0.3, 0.9),
+    "motion.push_per_frame": (0.0, 0.004),   # zoom per frame
+    "motion.push_cap": (1.05, 1.5),
+    "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
+    "motion.hook_fade": (0.1, 0.3),       # s
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
 # accepts the named word or a value in TOKEN_RANGES.
@@ -311,6 +338,7 @@ TOKEN_DERIVED: Mapping[str, str] = MappingProxyType({"type.display_cap": "measur
 # at all): (token, factor, other) means token <= factor x other. BrandConfig refuses a brand that breaks one.
 TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
     ("masthead.mark_edge", 0.35, "masthead.mark_r"),   # the INK edge leaves at least 65 % of the radius as gold fill
+    ("motion.loop_crossfade", 1.0, "motion.loop_crossfade_visual"),   # the line's bridge never fades longer
 )
 
 # The written system's remaining values: what each group ports its surfaces onto (CYCLE0 build note, section 5). NOT
@@ -339,17 +367,8 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,
-    # ---- motion (seconds unless named)
-    "motion.reveal": 0.40,            # an element's entry
-    "motion.word_stagger": 0.055,     # a word's entry after the one before it
-    "motion.rise_l": 14,              # px an element rises while it enters: a heading / share block
-    "motion.rise_m": 10,              # a single line (the follow line, FOLLOW)
-    "motion.hook_hold": 1.07,         # the hook's type hold
-    "motion.hook_fade": 0.16,         # the hook type's fade-in (an element reveal, not a scene fade)
-    "motion.loop_crossfade": 0.5,     # the loop bridge's crossfade (0.7 for the purely visual bridge)
+    # ---- motion (seconds unless named; the reveal and push tokens drive since SYS batch 2: SYSTEM_TOKENS)
     "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
-    "motion.push_per_frame": 0.0016,  # the camera's forward drift
-    "motion.push_cap": 1.24,
 })
 
 # One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3): the system's

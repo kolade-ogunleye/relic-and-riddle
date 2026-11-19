@@ -409,6 +409,24 @@ def _card_centre():
     return design_cards._chapter_tall_block(120, ["A B"])[2]
 
 
+def _end_card_frame(k: int):
+    """Frame k of the 9:16 end card over a mid ground (SYS-E-1: the reveal's tokens move it)."""
+    from src import end_card
+    for i, f in enumerate(end_card.frames(Image.new("RGB", (1080, 1920), (90, 96, 104)), "Send this to a friend.")):
+        if i == k:
+            return np.asarray(f).tobytes()
+    return None
+
+
+def _bridge_crossfade(line: bool):
+    from src import end_card
+    ground = Image.new("RGB", (1080, 1920), (90, 96, 104))
+    st: dict = {}
+    for _ in end_card.loop_bridge(ground, ground, "Send this to a friend.", st, line=line):
+        pass
+    return st["crossfade"]
+
+
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "edge.slope_max": (0.6, _band_edge_profile),
     "halo.label_max": (0.04, lambda: _follow_label()[0]),
@@ -457,6 +475,20 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "plate.label_pad": (0.6, _held_label),
     "place.site_step": (1.2, lambda: _graphics().site_steps(1080, 1920)),
     "motion.act_dissolve": (0.8, lambda: __import__("src.video_composer", fromlist=["x"]).act_dissolve_s()),
+    # SYS batch 2 (SYS-E-1 / SYS-F-1): the reveal, the bridge, the push and the hook, live
+    "motion.reveal": (0.7, lambda: _end_card_frame(6)),                 # the masthead's fade at 0.2 s
+    "motion.word_stagger": (0.1, lambda: __import__("src.end_card", fromlist=["x"]).word_at(3)),
+    "motion.word_in": (0.5, lambda: __import__("src.end_card", fromlist=["x"]).share_done(4)),
+    "motion.line_in": (0.5, lambda: _end_card_frame(51)),               # the follow line rising into the bell
+    "motion.rise_l": (30, lambda: _end_card_frame(16)),                 # the share words rising
+    "motion.rise_m": (24, lambda: _end_card_frame(52)),                 # the follow line rising
+    "motion.loop_crossfade": (0.6, lambda: _bridge_crossfade(True)),
+    "motion.loop_crossfade_visual": (0.8, lambda: _bridge_crossfade(False)),
+    "motion.push_per_frame": (0.002, lambda: __import__("src.still_camera", fromlist=["x"]).motion_for(
+        "push", 150, lead=True).start_velocity),
+    "motion.push_cap": (1.1, lambda: __import__("src.still_camera", fromlist=["x"]).endpoint_for("push", 300)),
+    "motion.hook_hold": (0.9, lambda: __import__("src.design_cards", fromlist=["x"])._hook_ground_alpha(1.0)),
+    "motion.hook_fade": (0.25, lambda: __import__("src.design_cards", fromlist=["x"])._hook_alpha(1.15)),
 }
 
 

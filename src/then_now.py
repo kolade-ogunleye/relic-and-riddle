@@ -959,7 +959,9 @@ def marker_xy(which: str, width: int, height: int, side: str = "left", word: str
         _, y0, _, _ = get_text_box(width, height)
         return (split - 64, y0 + 40, "rt") if which == "then" else (split + 64, y0 + 40, "lt")
     x0, y0, x1, _ = safe_zones.graphics_box(width, height)
-    x, anchor = (x1 - 18, "rt") if side == "right" else (x0 + 18, "lt")
+    # lane A cycle 1: side "centre:<x>" centres the marker on the line x (marker_lines centres each line on it)
+    x, anchor = ((x1 - 18, "rt") if side == "right" else (int(side.split(":")[1]), "mt")
+                 if side.startswith("centre:") else (x0 + 18, "lt"))
     if which == "then":
         return x, max(y0 + 42, TEXT_TOP), anchor
     return x, split + NOW_DROP - kicker_font("portrait").getbbox(word or "NOW", anchor="lt")[1], anchor
@@ -1013,6 +1015,11 @@ def marker_lines(which: str, year: int, width: int, height: int, word: str | Non
         fy = y + round(kicker_px()[key] * YEAR_OFFSET)
     if anchor[0] == "r":
         return ((x - _ink(kicker, word, track, "rt")[2], y), (x - _ink(figure, str(year), 0, "rt")[2], fy), anchor)
+    if anchor[0] == "m":    # centred (9:16 side "centre"): each line's drawn ink, the kicker's rule included, on x
+        k_ink, f_ink = _ink(kicker, word, track), _ink(figure, str(year))
+        k_left = x - (rule + gap + k_ink[2] - k_ink[0]) / 2
+        f_left = x - (f_ink[2] - f_ink[0]) / 2
+        return ((round(k_left + rule + gap - k_ink[0]), y), (round(f_left - f_ink[0]), fy), "lt")
     return (x + rule + gap - _ink_left(kicker, word), y), (x - _ink_left(figure, str(year)), fy), anchor
 
 
@@ -1428,6 +1435,34 @@ def group_alpha(clear: list) -> list:
 # photos' structure under them (the summed Canny edge density under THEN's and NOW's padded groups, split frame,
 # unshaded); the right only when it is at least SIDE_MARGIN lower.
 SIDE_MARGIN = 0.15
+# Design-freeze lane A cycle 1 (r8 AD backlog, Memnon 9:16: the left-set NOW plate sat over the colossus): centred
+# columns across the box are candidates too (MARKER_CENTRES of them, evenly spaced, each keeping the widest marker
+# inside the box), so a pair framed by two subjects (two colossi, two towers) sets its markers in the air between
+# them. Left stays the default; another side only when its sum is SIDE_MARGIN lower, the quietest such side.
+MARKER_CENTRES = 9
+KICKER_PLATE_ROOM = 24     # px: a held plate's pad round the widest line, kept inside the box with it
+
+
+def marker_sides(width: int, height: int, half_w: float) -> tuple[str, ...]:
+    """The 9:16 markers' candidate sides: "left", the centred columns "centre:<x>" (x on the box, `half_w` the
+    widest marker's half ink width plus 18 px from either box edge) and "right"."""
+    x0, _y0, x1, _ = safe_zones.graphics_box(width, height)
+    lo, hi = x0 + 18 + half_w, x1 - 18 - half_w
+    if hi <= lo:
+        return ("left", "right")
+    xs = sorted({round(lo + (hi - lo) * k / (MARKER_CENTRES - 1)) for k in range(MARKER_CENTRES)})
+    return ("left", *(f"centre:{x}" for x in xs), "right")
+
+
+def quieter_side(sums: dict[str, float]) -> str:
+    """The 9:16 markers' one side from the edge sums under both markers per side (marker_sides): left unless
+    another side's sum is at least SIDE_MARGIN below left's, then the lowest of those (left's order on a tie)."""
+    base = sums.get("left", 0.0)
+    if base <= 0:
+        return "left"
+    order = list(sums)
+    better = [s for s in order if s != "left" and sums[s] <= (1 - SIDE_MARGIN) * base]
+    return min(better, key=lambda s: (sums[s], order.index(s))) if better else "left"
 
 # What the last render() did (type modes, halo, glow steps, side, framing); also written into the contrast sidecar.
 last_meta: dict[str, Any] = {}
@@ -1498,15 +1533,16 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     side, side_meta = "left", None
     if key == "portrait":
         sums = {}
-        for s in ("left", "right"):
+        half_w = max((b[2] - b[0]) / 2 for w in years for b in ink_boxes(w, marker_lines(w, years[w], width,
+                                                                                         height, words[w])))
+        for s in marker_sides(width, height, half_w + KICKER_PLATE_ROOM):
             total = 0.0
             for w in ("then", "now"):
                 st = paper_stats(split0, padded(ink_boxes(w, marker_lines(w, years[w], width, height, words[w], s)),
                                                 PAPER_PAD, panel_box(w, width, height)))
                 total += st["edge"] if st else 0.0
             sums[s] = round(total, 4)
-        if sums["left"] > 0 and sums["right"] <= (1 - SIDE_MARGIN) * sums["left"]:
-            side = "right"
+        side = quieter_side(sums)
         side_meta = {"side": side, "edge_sum": sums}
     lines = {w: marker_lines(w, years[w], width, height, words[w], side) for w in years}
     gate = {}

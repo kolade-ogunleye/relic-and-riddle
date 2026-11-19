@@ -109,7 +109,8 @@ def run_case(args) -> dict:
                                                           encoding="utf-8", newline="\n")
         (out / "frames").mkdir(parents=True, exist_ok=True)
         label = f"{case['id']} {','.join(sorted({f['cls'] for f in fails}))}"
-        for im in ctx.images[:4]:
+        named = " ".join(f["detail"] for f in fails)
+        for im in sorted(ctx.images, key=lambda i: i["name"] not in named)[:4]:   # the failing frames first
             p = out / "frames" / f"{case['id']}__{im['name']}.jpg"
             _thumb(im["im"], label).save(p, quality=85)
             res["frames"].append(p.name)

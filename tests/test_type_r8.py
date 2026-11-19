@@ -148,11 +148,17 @@ def test_the_kickerless_headline_takes_the_larger_size_on_two_lines():
 
 def test_one_form_per_run_and_a_recorded_divergence():
     """Ruling 4 / panel BC-8: the YouTube lockup sets the run's ruled form (the Reel cover's CARVED / FROM SOLID
-    SALT) wherever it holds the feed floor; Wieliczka's does not at Anton's widths, so the authored whole lines are
-    drawn and the record says why (never a silent second form)."""
+    SALT) wherever it holds the feed floor. Lane B cycle 1 (r8i AD final): where it does not, the authored whole lines
+    are no longer drawn (CARVED FROM / ends on a never-end word): no valid form sets, a recorded refusal that the
+    copy stage (cover_fit) sends to the copy edit."""
+    from src import heading
     from src import youtube_thumbnail as yt
-    _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 904)
-    assert rec["form_diverges"]["ruled"] == ["CARVED", "FROM SOLID SALT"]
+    try:
+        _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 904)
+    except LayoutError:
+        pass
+    else:
+        assert all(heading.end_ok(t.split()[-1]) for t in rec["drawn_rows"][:-1]), rec
     _, _, _, rec = yt._lockup(_draw(), "CARVED FROM", "SOLID SALT", 1400)
     assert (rec["line1"], rec["line2"]) == ("CARVED", "FROM SOLID SALT") and "form_diverges" not in rec
 
@@ -230,13 +236,17 @@ def test_the_cover_job_refuses_per_surface_and_records_it():
     assert main.cover_job_results(main.cover_job((("a", lambda: 1), ("b", lambda: 2))), {}) == [1, 2]
 
 
-def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule():
+def test_the_cover_copy_is_fit_checked_before_render_with_the_renderers_rule(tmp_path):
     """Lander ruling (round 8): a headline that cannot set at its floors is found at the copy stage by the renderers'
-    own functions (src/cover_fit.py), a thumbnail-only copy problem for the copy edit, never a draft rewrite."""
+    own functions (src/cover_fit.py), a thumbnail-only copy problem for the copy edit, never a draft rewrite. Lane B
+    cycle 1: judged on the hero when given (a flat unreviewed hero leaves the full column), else at every column a
+    hero can leave."""
     from src import cover_fit, script_engine
-    bad = cover_fit.fit_problems({"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"})
+    hero = tmp_path / "hero.jpg"
+    Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
+    bad = cover_fit.fit_problems({"line1": "BEHIND ONE WALL...", "line2": "A FORGOTTEN CITY"}, hero=hero)
     assert bad and bad[0].startswith(cover_fit.COVER_FIT_PROBLEM + "YouTube thumbnail") and "feed floor" in bad[0]
-    assert cover_fit.fit_problems({"line1": "ONE WALL...", "line2": "A LOST CITY"}) == []
+    assert cover_fit.fit_problems({"line1": "ONE WALL...", "line2": "A LOST CITY"}, hero=hero) == []
     assert script_engine.copy_problem_fields(bad[0], None) == ("thumbnail",)
     assert script_engine.blocking_problems(bad) == []
 

@@ -35,6 +35,7 @@ from .typography import cap_height, get_font, plan_text, tracked_width
 W, H = 1920, 1080
 LEFT = 96
 TEXT_RIGHT = 1000
+COLUMN_MIN = 640          # the narrowest type column a reviewed feature leaves (its left edge - 48 px, never less)
 TIMESTAMP_ZONE = (1620, 950, 1920, 1080)
 FOCUS_X = 1340            # where the reviewed feature's centre is placed
 FOCUS_MIN_X = 1250        # a clamped crop that leaves it left of here is enlarged ...
@@ -239,12 +240,15 @@ def _type_edge(plates) -> float | None:
 
 def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
            meta: dict | None = None, figure: dict | None = None, youtube_title: str | None = None,
-           illustration: bool = False, reveal: str | None = None) -> tuple[Image.Image, list]:
+           illustration: bool = False, reveal: str | None = None,
+           column: float | None = None) -> tuple[Image.Image, list]:
     """(the 1920x1080 thumbnail, its text plates) from a hero photograph and the cover copy. `meta`, when given,
     receives the crop's zoom and the reviewed feature's box on the canvas (`focus_box`). `figure`: the fact
     sheet's word on the hero figure (cover_design.figure_check); `youtube_title`: the video's title, so the
     thumbnail does not repeat it; `illustration`: the photo is a generated illustration (the disclosure label);
-    `reveal`: the script's reveal or takeaway line (a tagline that answers it is never drawn).
+    `reveal`: the script's reveal or takeaway line (a tagline that answers it is never drawn). `column`: the type
+    column's width, forced (lane B cycle 1: the copy-stage check, src/cover_fit.py, probes the widths a hero can
+    leave, type_column, without the hero); None: the column the photo's reviewed feature leaves.
 
     The feed-size gate closes the loop (r5 review, 2026-11-02: the delivered Gol Gumbaz sample planned its title
     at 5.1 full size and measured 4.43 at 246 px wide, failing its own gate): a line whose ratio falls under 4.5
@@ -255,7 +259,8 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     edge = None
     while True:
         trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
-        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal)
+        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
+                             column)
         if edge is None and _type_edge(plates) is not None:
             edge = _type_edge(plates)
             continue
@@ -297,18 +302,18 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     One form per run (ruling 4, panel BC-8): the two fields are set in the RULED form every other surface sets
     (heading.lockup_fields: line 1's closing function words open line 2, CARVED / FROM SOLID SALT), each field one
     line, else (ruling 7) two lines (the two-line tier, valid forms; the phrase exception keeps a payoff word alone:
-    THE SECRET / WEAPON), at most three rows in all. Where the ruled form cannot hold the feed floor on the ladder,
-    the authored whole lines (QF-23 / QF-143) are set instead and the record says why (form_diverges: legibility at
-    feed size outranks one form across surfaces). Where neither field form sets without a one-word middle row (R2),
-    the headline's words are set as one heading (SYS-R8-3: every valid break of the whole, up to three rows, the
-    payoff gold from the copy's field seam), recorded the same way (record["form"]: ruled / authored / one heading).
+    THE SECRET / WEAPON), at most three rows in all. Where the ruled form does not set without a one-word middle row
+    (R2) or under the floor, the headline's words are set as one heading (SYS-R8-3: every valid break of the whole, up
+    to three rows, the payoff gold from the copy's field seam), recorded (record["form"]: ruled / one heading;
+    form_diverges says why). Lane B cycle 1: the authored whole lines are no longer a form (they differ from the
+    ruled form only by a never-end line end, CARVED FROM /); no row but the last ends on a never-end word.
     The kickerless variant (ruling 5): with no kicker drawn above it,
     the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
     room). Nothing is set below the ladder held at the feed floor (lander ruling, round 8: round 7's 4 px last resort
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
     column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, field_runs, lockup_fields, lockup_valid, set_field, set_heading
+    from .heading import GOLD_ROLES, end_ok, field_runs, lockup_fields, lockup_valid, set_field, set_heading
     from .typography import LayoutError
     ratio = tok("lockup.line_ratio")
 
@@ -352,6 +357,10 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
         if not lockup_valid([t for t, _ in drawn_rows], [width_at(t, sz) for t, sz in drawn_rows], seam,
                             fields=bool(f1 and f2)):
             return None
+        # lane B cycle 1: the field boundary is a line end like any other (lockup_valid exempts it from the never-end
+        # check): no row but the last ends on a never-end word, in any form
+        if any(not end_ok(t.split()[-1]) for t, _ in drawn_rows[:-1]):
+            return None
         if room is not None:
             ch = cap_height(get_font(brand.DISPLAY_FONT, s2))
             if (len(rows) - 1) * int(ch * 1.18) + ch > room:
@@ -376,8 +385,12 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     if l1 and l2:
         r1, r2, _ = lockup_fields(l1, l2)
         forms.append(("ruled", r1, r2, order, None, None))
-        if (r1, r2) != (l1, l2):
-            forms.append(("authored", l1, l2, order, None, "the ruled form does not hold the feed floor on the ladder"))
+        # Freeze lane B cycle 1 (r8i AD final, LANE-AB carry-in): no "authored" form. The ruled form differs from the
+        # authored lines only where line 1 ends on a never-end word (heading.lockup_fields moves exactly those words),
+        # so the authored lines drawn whole were always a never-end line end (CARVED FROM / SOLID SALT) that
+        # heading.lockup_valid's field-boundary exemption let through: one copy in two forms, one of them breaking the
+        # heading rule. Every form tried here obeys the never-end rule on every row but the last; where none sets at
+        # the floor the headline is refused and goes to the copy edit (cover_fit).
         # SYS-R8-3 (cycle 0 round 8): a two-word field the column cannot hold whole must break, and stacked under the
         # other field it leaves a one-word middle row (R2, heading.lockup_valid: ROMAN / CONCRETE / HEALS ITSELF), so
         # each field form is refused. Before the run's headline is refused, the copy's words are set as ONE heading
@@ -443,6 +456,29 @@ def _title_form(measure, title: str, width: float, room: float):
     raise LayoutError(f"the YouTube title {title!r} sets in no form of {round(width)} px at {sizes[-1]} px or more")
 
 
+# Lane B cycle 1 (cover_fit and the render, one decision): the helpers whose result depends on the type column's
+# width beyond a plain fit (they choose a branch, a form or a size that changes the height left for the headline).
+# Each call is reported to the hooks (fn, bound arguments) so the copy-stage check can find every width at which the
+# render's choice changes and set the copy there (src/cover_fit.py); nothing else reads them.
+_WIDTH_GATES: list = []
+
+
+def _width_gate(fn):
+    import functools
+    import inspect
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def gated(*args, **kw):
+        if _WIDTH_GATES:
+            bound = sig.bind(*args, **kw)
+            for hook in tuple(_WIDTH_GATES):
+                hook(gated, fn, bound)
+        return fn(*args, **kw)
+    return gated
+
+
+@_width_gate
 def _kicker_font(text: str, width: float):
     """F20 on YouTube: the system kicker's face and weight at the least size whose cap holds LINE_FLOOR at 168 px
     wide, when its rule, gap and tracked words fit `width` there; else None (not drawn, recorded by the caller).
@@ -465,6 +501,7 @@ FIGURE_STEPS = (300, 260, 220, 190, 160)
 FIGURE_UNIT_GAP = 20
 
 
+@_width_gate
 def _figure_fonts(measure, number: str, unit: str, width: float, dim_w: float = 0.0):
     """(figure font, unit font, record): the largest FIGURE_STEPS size, held at the hero's feed floor, at which the
     numeral, the gap and its unit (or the dimension words under the unit, `dim_w`, whichever is wider) fit `width`,
@@ -511,6 +548,7 @@ def _draw_kicker(im, x, baseline, text, font, feed_kw):
     return plate.draw(im), plate, rec
 
 
+@_width_gate
 def _qual_font(text: str, width: float):
     """(lines, font, track) for a qualifier or event kicker at LINE_FLOOR px of cap height at 168 px wide: one line
     (tracked, else untracked), else two at the word break that balances them (16:9 has the height the 9:16 cover
@@ -543,7 +581,18 @@ def _qual_font(text: str, width: float):
     return None
 
 
-def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None):
+def type_column(focus_box) -> float:
+    """The type column's width: TEXT_RIGHT - LEFT, ending 48 px short of the reviewed feature on the canvas
+    (`focus_box`, as _photo places it) where that leaves at least COLUMN_MIN; a feature reaching further left is wider
+    than the frame's right side and the type keeps its column (recorded as text_over_focus)."""
+    right = TEXT_RIGHT
+    if focus_box and LEFT + COLUMN_MIN <= focus_box[0] - 48 < right:
+        right = focus_box[0] - 48
+    return right - LEFT
+
+
+def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
+            column=None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -609,12 +658,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
     band = (H - BAND_PAD[1]) - (top + cap_height(f_brand) + BAND_PAD[0])   # the stack's height (round 8)
 
-    # The type never reaches the reviewed feature: its column ends 48 px short of it.
-    right = TEXT_RIGHT
+    # The type never reaches the reviewed feature: its column ends 48 px short of it (type_column).
     fb = meta.get("focus_box")
-    if fb and LEFT + 640 <= fb[0] - 48 < right:   # a feature reaching further left than that is wider than the
-        right = fb[0] - 48                       # frame's right side: the type keeps its column (recorded below)
-    width = right - LEFT
+    width = float(column) if column is not None else type_column(fb)
     found = monument_figure(copy)
     q_raw = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
     same = bool(figure and found and str(figure.get("number")) == found[0])
@@ -666,6 +712,13 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         rest = dict(copy)
         if field in ("line1", "line2"):
             rest[field] = _without(str(copy[field]), span)
+        elif field in ("tagline", "eyebrow"):
+            # lane B cycle 1 (QF-143 review finding 3): the year that became the hero leaves the line it came from,
+            # so a fallback headline from that line never draws it twice ("1963 / FOUND IN 1963"); what is left is a
+            # line only when it still stands on its own (QF-141 withheld_fragment)
+            from .cover_design import withheld_fragment
+            left = _without(str(copy.get(field) or ""), span)
+            rest[field] = "" if withheld_fragment(left) else left
         named = [(k, str(rest.get(k) or "")) for k in ("line1", "line2")]
         if not unit:   # a year: the payoff line (the second) under it, else the first
             named = [(k, ln) for k, ln in named[::-1] if ln.strip()][:1]

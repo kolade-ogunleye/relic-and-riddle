@@ -535,6 +535,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "masthead:plan": "system",
     "multi_format:MultiFormatGenerator._body": "D",
     "multi_format:MultiFormatGenerator._content_frame": "D",
+    "multi_format:MultiFormatGenerator._deck_heading_tier": "D",   # SYS-D-5: the deck's one content tier
     "multi_format:MultiFormatGenerator._fit_text": "D",
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",

@@ -95,11 +95,13 @@ def test_a_value_never_splits_from_its_unit_and_a_stated_quantity_is_gold():
     assert _gold(interior) == ["25+ MILES"]                       # ruling 3: Anton gold; the rest bone (F5)
 
 
-def test_the_ladder_order_one_line_first_then_the_fallback_then_a_break():
-    # one line at L when it fits; else one line at the fallback tier; else a two-line break at L
+def test_the_ladder_order_one_line_first_then_a_balanced_break_then_the_fallback():
+    # one line at L when it fits; else a balanced two-line break at L; only then the fallback tier (SYS-D-5)
     short = heading.set_heading("ORBITAL LANDMARK", _measure, COVER_W, (L, L_FB))
-    assert len(short.lines) == 1 and short.size in (L, L_FB)
-    assert short.tier == (0 if _measure("ORBITAL LANDMARK", L) <= COVER_W else 1)
+    if _measure("ORBITAL LANDMARK", L) <= COVER_W:
+        assert len(short.lines) == 1 and short.tier == 0
+    else:
+        assert short.size == L and short.lines == ("ORBITAL", "LANDMARK")
     long_ = heading.set_heading("BUILT BY HAND WITHOUT MORTAR", _measure, COVER_W, (L, L_FB))
     assert len(long_.lines) == 2 and long_.size in (L, L_FB)
     # no valid form on the ladder: the recorded last resort (off the ladder, then a lone row), never a refusal

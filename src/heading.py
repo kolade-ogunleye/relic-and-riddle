@@ -17,9 +17,11 @@ The rules (src/brand_system.py "Heading rules" and "Accent"; operator rulings FR
   two words or more ("SEEN FROM / SPACE" is refused; LINES / IN THE SAND is a phrase, kept).
 - Balance: a two-line form prefers its shorter line >= heading.balance_min (0.55) of the longer.
 - Ladder, never a continuous fit: a heading is tried at its role's size, then at most ONE recorded fallback tier
-  (the caller passes the ladder; brand_system.TYPE / TYPE_FALLBACK); the order is one line at the size, then one
-  line at the fallback tier, then a balanced break at the size, then at the fallback, then any valid break at the
-  size, then at the fallback (a heading keeps its one line while the ladder holds it: two values, never a fit).
+  (the caller passes the ladder; brand_system.TYPE / TYPE_FALLBACK); the order is one line at the size, then a
+  balanced break at the size, then one line at the fallback tier, then a balanced break there, then any valid break
+  at the size, then at the fallback (SYS-D-5, lander ruling c: the design size before the fallback tier; two values,
+  never a fit). A carousel deck then sets its interior headings at ONE tier (multi_format._deck_heading_tier): the
+  fallback applies deck-wide, never to one slide.
   A cover passes one size only (display_xl is locked: the break and the band give way, never the cover size).
 
 Accent (F5, decided in round 7; brand_system "Accent"): the payoff run is gold on a LOCKUP (the carousel cover, the
@@ -351,9 +353,11 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         return lambda lines: all(measure(t, size) <= width for t in lines)
 
     stages = []
+    # SYS-D-5 (lander ruling c): the design size first, whole: one line, then a balanced break AT the size, before
+    # any form at the fallback tier (MAGMATIC / UPLIFT at 138 beats MAGMATIC UPLIFT at 124, 3 px over). An
+    # unbalanced break keeps its place after both tiers' balanced forms.
     for tier, size in enumerate(sizes):
         stages.append((tier, size, [()], 0.0, True))
-    for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, balance_min, True))
     for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, 0.0, False))

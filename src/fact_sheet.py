@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .config import DATA_DIR
-from . import fact_quantities, free_llm, prompt_fence
+from . import fact_descriptions, fact_quantities, free_llm, prompt_fence
 from .llm import research_with_evidence, structured_call, task as llm_task
 from .models import FactSheetDraft, Source
 
@@ -49,7 +49,8 @@ MIN_VERIFIED_FACTS = 6
 RULES_VERSION = 2
 # Bump when a fact gains a field (never a reason to rebuild: a sheet of an older schema stays valid as it is).
 # 2: a fact may carry "quantities", its structured counts and measures signed with it (src/fact_quantities.py, QF-61).
-FACT_SCHEMA_VERSION = 2
+# 3: a fact may carry "description", a number-free sentence signed with it (src/fact_descriptions.py, QF-61b).
+FACT_SCHEMA_VERSION = 3
 
 
 class FactStarvedTopicError(ValueError):
@@ -96,7 +97,8 @@ CARD FIELDS (cards): copy for on-screen cards, proposed only from the facts abov
 QUANTITIES (counts, measures on each fact): the only numbers an illustration may show. Leave both empty unless the statement itself says how many of a physical thing the subject has, or how big it is.
 - counts: {element: the counted thing's singular noun, as the statement words it; count: the whole number the statement gives; qualifier; source: the statement's own words holding that number and noun}.
 - measures: {element: what is measured; measure: the statement's own words for the number and its unit; qualifier}.
-- qualifier is "exact" only when the statement gives the number as exact for the subject itself; "approximate" for about, nearly, some, over, an estimate or any hedge; "minimum"/"maximum" for at least/up to; "range" for a range or alternatives; "per_unit" for each, every, per or a side; "comparison_set" for a set the subject belongs to or is compared with ("among the 34 monuments", "one of 7 temples"). A label number ("Cave 16", "Pillar 43") is never a count. Never total, split, infer or round a number."""
+- qualifier is "exact" only when the statement gives the number as exact for the subject itself; "approximate" for about, nearly, some, over, an estimate or any hedge; "minimum"/"maximum" for at least/up to; "range" for a range or alternatives; "per_unit" for each, every, per or a side; "comparison_set" for a set the subject belongs to or is compared with ("among the 34 monuments", "one of 7 temples"). A label number ("Cave 16", "Pillar 43") is never a count. Never total, split, infer or round a number.
+DESCRIPTION (description on each fact): only for a fact whose statement states a number, one sentence that states NO number of any kind (no digit, number word, ordinal, "both", "pair", "dozen", roman numeral or era) and says what the thing looks like: its form, material or setting, in words its cited quotes use. No source names, no quotation marks. Leave it "" when the quotes describe nothing."""
 
 
 def tier(url: str) -> int:
@@ -371,6 +373,13 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
             log.info("Fact sheet: %s: quantity not kept (%s).", f.id, why)
         if record:
             fact["quantities"] = record
+        # QF-61b: a counted fact's number-free description, checked against its own evidence and signed with it (an
+        # illustration of a fact whose only sentence states its count is no longer lost to the number rule)
+        described, why = fact_descriptions.check(fact, getattr(f, "description", ""))
+        if why:
+            log.info("Fact sheet: %s: description not kept (%s).", f.id, why)
+        if described:
+            fact["description"] = described
         facts.append(fact)
     return facts, dropped
 

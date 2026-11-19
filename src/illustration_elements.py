@@ -673,7 +673,8 @@ def values_in(text: str) -> set[float]:
 # Prose is never edited. A sentence that states any number is left out of the generator prompt whole; every other
 # sentence is passed exactly as the fact writes it. Fewer sentences, never an altered meaning.
 _ROMAN = re.compile(r"M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})")
-_SENTENCE_WORD = re.compile(r"[A-Za-z]+(?:['’][A-Za-z]+)*(?:-[A-Za-z]+)*")
+# QF-61b (review 7 note): any letter, so an accented name is one word ("Vézelay" read as the roman numeral "V")
+_SENTENCE_WORD = re.compile(r"[^\W\d_]+(?:['’][^\W\d_]+)*(?:-[^\W\d_]+)*")
 _ERA_DOTTED = re.compile(r"\b(?:A\.\s?D|B\.\s?C(?:\.\s?E)?|C\.\s?E)\.")
 # characters that write a number or a quantity: every character with a Unicode numeric value (0-9, other scripts'
 # digits, superscripts "²", vulgar fractions "½", roman numeral signs "Ⅻ", circled digits) and these symbols
@@ -689,7 +690,13 @@ _FRACTIONS = {"half", "halves", "halved", "quarter", "quarters", "thirds", "four
 _COLLECTIVES = {"pair", "pairs", "paired", "couple", "couples", "twin", "twins", "trio", "trios", "triple", "triples",
                 "tripled", "triplet", "triplets", "quartet", "quartets", "quintet", "quintets", "sextet", "sextets",
                 "double", "doubles", "doubled", "quadruple", "quadrupled", "duo", "duos", "dual", "triad", "triads",
-                "both", "single", "twice", "thrice", "dozen", "score"}
+                "both", "single", "twice", "thrice", "dozen", "score",
+                # QF-61b (review 7 note): the number words the rule missed
+                "brace", "braces", "treble", "trebles", "trebled", "lakh", "lakhs", "crore", "crores"}
+# QF-61b (review 7 note: over-drops that cost pictures for no safety reason): names that hold a numeral but state no
+# count ("World War II"), and "both" as the correlative of "and" ("both stone and wood": two kinds, not two things)
+_NAMED_NUMERALS = re.compile(r"\bWorld\s+War\s+(?:I{1,2}|One|Two)\b")
+_BOTH_AND = 6                 # words: "both" followed by "and" within this many is the correlative
 _SPANS = {"decade", "century", "millennium", "fortnight"}                   # "a century later"
 _SUPERLATIVE = {"most", "least", "best", "worst", "foremost", "utmost", "uppermost", "innermost", "outermost"}
 _NOT_SUPERLATIVE = {"west", "midwest", "southwest", "northwest", "forest", "honest", "dishonest", "modest",
@@ -768,7 +775,7 @@ def number_reasons(sentence: str) -> list[str]:
     roman numeral ("XII", "IV", "V", "X", and "I" after a capitalised word: "Edward I"); an era marker ("AD",
     "B.C."). "one" is a number except in the idioms of _one_is_a_number. Ordinals are numbers too ("the second floor"
     is dropped)."""
-    s = str(sentence or "")
+    s = _NAMED_NUMERALS.sub("World War", str(sentence or ""))
     out = [f"the character {ch!r}" for ch in dict.fromkeys(s)
            if ch in _NUMBER_SYMBOLS or (not ch.isspace() and unicodedata.numeric(ch, None) is not None)]
     if _ERA_DOTTED.search(s):
@@ -781,6 +788,8 @@ def number_reasons(sentence: str) -> list[str]:
         if low == "one":
             if _one_is_a_number(words, k):
                 out.append("the word 'one'")
+        elif low == "both" and "and" in (w.lower() for w in words[k + 2:k + 2 + _BOTH_AND]):
+            continue                                       # "both X and Y": a correlative, not a count
         elif any(p in _CARDINALS or p in _CARDINAL_PLURALS or p in _ORDINALS or p in _FRACTIONS or p in _COLLECTIVES
                  or (p.endswith("fold") and p[:-4] in _CARDINALS)
                  or (p.endswith("score") and p[:-5] in _CARDINALS) for p in parts):

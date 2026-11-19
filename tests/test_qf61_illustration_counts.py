@@ -317,7 +317,7 @@ def test_the_fact_sheet_rules_write_and_sign_the_structured_counts():
     plain, _ = fact_sheet._apply_rules([DraftFact(id="F2", statement=SHIP, kind="number", quote_ids=[1],
                                                   disputed=False, hedge="")], quotes)
     assert "quantities" not in plain[0]          # a fact without the field is valid and countless
-    assert getattr(fact_sheet, "FACT_SCHEMA_VERSION", None) == 2
+    assert getattr(fact_sheet, "FACT_SCHEMA_VERSION", None) >= 2   # QF-61b made it 3 (a description)
 
 
 # ------------------------------------------------------------------ no structured count: no number to draw or check

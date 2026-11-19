@@ -521,10 +521,13 @@ _UNSAFE_CHARS = re.compile(r"[\"“”<>{}\[\]`]")
 
 def _subject(facts: Sequence[dict[str, Any]]) -> str:
     """The generator's subject: the facts' number-free sentences (illustration_elements.number_free_sentences), each
-    whole and unaltered (only runs of white space become one space), as many as fit; never a clipped sentence."""
+    whole and unaltered (only runs of white space become one space), and after each fact's own, its signed
+    number-free description (QF-61b, fact_descriptions.sentence_of: a counted fact whose only sentence states its
+    count still describes the thing), as many as fit; never a clipped sentence."""
+    from .fact_descriptions import sentence_of
     from .illustration_elements import number_free_sentences
     kept = dict.fromkeys(" ".join(s.split()) for f in facts
-                         for s in number_free_sentences(str(f.get("statement") or "")))
+                         for s in [*number_free_sentences(str(f.get("statement") or "")), sentence_of(f)[0]] if s)
     out: list[str] = []
     for s in kept:
         if _UNSAFE_CHARS.search(s):

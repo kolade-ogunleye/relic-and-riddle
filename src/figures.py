@@ -54,6 +54,14 @@ DIMENSION_WORDS = ("tall", "high", "deep", "wide", "long", "across", "thick", "a
                    "in circumference")
 # A sentence's lead that hedges the whole sentence ("By one estimate, ..."): drawn as its one word.
 LEAD_HEDGES = (("estimat", "ESTIMATED"), ("approximat", "APPROXIMATELY"))
+# The lead phrases that hedge their sentence WHATEVER follows them (SYS-R8-1, cycle 0 round 8: "By one estimate the
+# text ..." without its comma, and a caption's words, which carry no punctuation at all, lost the hedge): a
+# preposition's lead ("by one estimate", "according to some estimates", "on current estimates"), "estimates suggest /
+# put / place ...", "it is estimated". Matched at the sentence's start, followed by a comma, a dash, a colon or nothing.
+LEAD_HEDGE_PHRASE = re.compile(
+    r"^\s*(?:(?:by|according\s+to|on|in|from)\s+(?:[a-z']+\s+){0,3}?(?P<a>estimat\w*|approximat\w*)"
+    r"|(?P<b>estimat\w*)\s+(?:suggest|put|place|say|indicate|show)\w*"
+    r"|it\s+is\s+(?P<c>estimat\w*))(?![\w])", re.IGNORECASE)
 
 
 def _measure_units() -> Mapping[str, tuple]:
@@ -95,6 +103,21 @@ class Figure:
     lead_hedge: bool = False       # the hedge is the sentence's lead ("By one estimate,"), not beside the number
     measured: bool = False         # the unit is a measurement unit (FT, M, KM ...), not a count
     era: str = ""                  # "BC", "BCE", "AD", "CE" (a date's era; never gold, never dropped)
+    era_hi: str = ""               # the far end's era when it differs from the near end's ("500 BC to 500 AD"); else
+    #                                "" and `era` is both ends' (SYS-R8-1: an era-crossing span read as "AD 500-500")
+
+    @property
+    def eras(self) -> tuple[str, str]:
+        """Each end's era, canonical (BCE = BC, CE = AD; "" for none): ("BC", "AD") for "500 BC to 500 AD"."""
+        lo = _ERA_CANON.get(self.era, self.era)
+        hi = _ERA_CANON.get(self.era_hi, self.era_hi) if self.era_hi else lo
+        return lo, (hi if self.hi else lo)
+
+    @property
+    def years(self) -> tuple[float, ...]:
+        """The values on one time line: a BC end negative ("500 BC to 500 AD" = (-500, 500)); without an era, the
+        values."""
+        return tuple(-v if e == "BC" else v for v, e in zip(self.values, self.eras))
 
     @property
     def values(self) -> tuple[float, ...]:
@@ -118,7 +141,15 @@ class Figure:
         20,000 PEOPLE", "ROUGHLY 137–138 FT", "94–104 MILLION YEARS AGO", "9500–9000 BCE", "AD 43"). The era is
         kept so a re-parse reads the same figure (a descending BCE span without it read as two numbers). `era`
         False: without it (the stat slide's drawn figure, unchanged in round-8 integration: drawing an era there is
-        a design change for the panel)."""
+        a design change for the panel). An era-crossing span is written with each end's era ("500 BC–AD 500") when
+        `era` is True; without its eras ("500–500") it is no longer the figure, so a surface that draws figures without
+        eras (the stat slide) withholds it on its own truth check."""
+        if era and self.era_hi:
+            def end(x: str, e: str) -> str:
+                return f"AD {x}" if e == "AD" else f"{x} {e}" if e else x
+            n = f"{end(self.lo, self.era)}–{end(self.hi, self.era_hi)}"
+            n = f"{n} {self.scale}" if self.scale else n
+            return " ".join(x for x in (self.hedge, n, self.unit, self.tail) if x)
         pre = "AD" if era and self.era == "AD" else ""
         post = self.era if era and self.era not in ("", "AD") else ""
         return " ".join(x for x in (self.hedge, pre, self.quantity, self.tail, post) if x)
@@ -126,7 +157,10 @@ class Figure:
     def record(self) -> dict[str, Any]:
         return {"hedge": self.hedge, "number": self.number, "unit": self.unit, "span": bool(self.hi),
                 "conversion": self.conv.quantity if self.conv else "", "tail": self.tail,
-                "values": list(self.values), "era": self.era, "drawn": self.drawn(era=False)}
+                "values": list(self.values), "era": self.era, "era_hi": self.era_hi, "drawn": self.drawn(era=False)}
+
+
+_ERA_CANON = {"BCE": "BC", "CE": "AD"}
 
 
 def _value(raw: str) -> float:
@@ -216,9 +250,13 @@ def _sentence_lead_hedge(text: str, pos: int) -> str:
     start = max(text.rfind(". ", 0, pos), text.rfind("! ", 0, pos), text.rfind("? ", 0, pos))
     sentence = text[start + 2 if start >= 0 else 0:pos]
     m = re.match(r"\s*([A-Za-z][A-Za-z ]{1,40}?)\s*,\s", sentence)
-    if m and len(m.group(1).split()) <= 4:
+    leads = [m.group(1)] if m and len(m.group(1).split()) <= 4 else []
+    p = LEAD_HEDGE_PHRASE.match(sentence)     # the closed lead phrases, whatever punctuation follows them
+    if p:
+        leads.append(p.group("a") or p.group("b") or p.group("c") or "")
+    for lead in leads:
         for stem, word in LEAD_HEDGES:
-            if stem in m.group(1).lower():
+            if stem in lead.lower():
                 return word
     return ""
 
@@ -254,9 +292,10 @@ def parse(text: str) -> list[Figure]:
     return out
 
 
-def _number_after_sep(toks, j: int, between: bool = False) -> tuple[str, int, int] | None:
-    """(separator, the number token's index, its index after) for "- 18" / "to 18" / "and 18" (and only after
-    "between") at token j, or None."""
+def _number_after_sep(toks, j: int, between: bool = False) -> tuple[str, int, int, str] | None:
+    """(separator, the number token's index, its index after, the era written before it) for "- 18" / "to 18" /
+    "and 18" (and only after "between") at token j, or None. The far end may lead with its era ("500 BC to AD 500",
+    "500 BC–AD 500": its era "AD")."""
     if j >= len(toks):
         return None
     sep = toks[j][0].lower()
@@ -265,24 +304,29 @@ def _number_after_sep(toks, j: int, between: bool = False) -> tuple[str, int, in
         hb = _match_phrase(toks, k, HEDGES)   # "and roughly 138"
         if hb:
             k = hb[1]
+        pre = ""
+        if k + 1 < len(toks) and toks[k][0].lower() in ("ad", "ce") and _is_num(toks[k + 1][0]):
+            pre, k = toks[k][0].upper(), k + 1
         if k < len(toks) and _is_num(toks[k][0]):
-            return sep, k, k + 1
+            return sep, k, k + 1, pre
     return None
 
 
 def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
     """The figure whose number starts at token i, and the token index after it."""
     hedge, h_start = "", None
-    hb = _hedge_before(toks, i)
+    # the figure's lead starts before an era written ahead of its number ("between AD 500 and 500 BC", "about AD 43")
+    lead_at = i - 1 if i > 0 and toks[i - 1][0].lower() in ("ad", "ce") else i
+    hb = _hedge_before(toks, lead_at)
     between = False
     if hb:
         hedge, h_start = hb
         if h_start > 0 and toks[h_start - 1][0].lower() == "between":
             between = True
-    elif i > 0 and toks[i - 1][0].lower() == "between":
-        between, h_start = True, i - 1
+    elif lead_at > 0 and toks[lead_at - 1][0].lower() == "between":
+        between, h_start = True, lead_at - 1
     if between and hb is None:
-        h_start = i - 1
+        h_start = lead_at - 1
     lo, j = _number_at(toks, i, True)
     gold = [(toks[i][1], toks[j - 1][2])]
     plus = ""
@@ -300,22 +344,23 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
         gold[-1] = (gold[-1][0], toks[u_after - 1][2])
         j = u_after
     conv1, j = _conversion(text, toks, j)
-    era = ""
+    era, era_hi, lo_suffix = "", "", False
     if i > 0 and toks[i - 1][0].lower() == "ad":            # "AD 43"
         era = "AD"
     if j < len(toks) and toks[j][0].lower() in ERAS:        # "205 BC to 87 BC", "9500 BCE"
-        era, j = toks[j][0].upper(), j + 1
+        era, j, lo_suffix = toks[j][0].upper(), j + 1, True
     hi = ""
     sep = _number_after_sep(toks, j, between=between)
     if sep and not plus:
-        s, k, after = sep
+        s, k, after, pre = sep
         h_lo, h_hi = _value(lo), _value(toks[k][0])
-        if h_lo < h_hi or _counts_down(toks, after) or era in ("BC", "BCE"):
+        crossing = bool(pre and era and _ERA_CANON.get(pre, pre) != _ERA_CANON.get(era, era))
+        if h_lo < h_hi or _counts_down(toks, after) or era in ("BC", "BCE") or crossing:
             hi = toks[k][0]
-            if s in ("-", "–", "—") and not unit1:
+            if s in ("-", "–", "—") and not unit1 and not lo_suffix and not pre:
                 gold[-1] = (gold[-1][0], toks[k][2])   # "137-138": one gold run with its dash
             else:
-                gold.append((toks[k][1], toks[k][2]))
+                gold.append((toks[k][1], toks[k][2]))   # an era between the ends is never gold
             j = after
             if j < len(toks) and toks[j][0].lower() in SCALE_WORDS and not scale:
                 scale = toks[j][0].upper()
@@ -332,8 +377,15 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
                                start=conv1.start, end=conv2.end, gold=conv1.gold + conv2.gold)
             elif conv2 and not conv1:
                 conv1 = conv2
+            far = pre
             if j < len(toks) and toks[j][0].lower() in ERAS:
-                era, j = toks[j][0].upper(), j + 1
+                far, j = toks[j][0].upper(), j + 1
+            # SYS-R8-1: each end keeps its own era ("between 500 BC and 500 AD" is BC 500 to AD 500, never "AD
+            # 500-500"); one era after the far end alone is both ends' ("9500-9000 BCE"), as before
+            if far and era and _ERA_CANON.get(far, far) != _ERA_CANON.get(era, era):
+                era_hi = far
+            elif far:
+                era = far
     end = toks[j - 1][2]
     tail = ""
     m = _match_phrase(toks, j, DIMENSION_WORDS)
@@ -349,7 +401,7 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
     if not _is_num(toks[i][0]) and scale:
         gold = []   # a spelled-out scaled number ("two thousand years ago"): judged, never gilded (no pixel change)
     fig = Figure(lo=lo_drawn, hi=hi, unit=unit, hedge=drawn_hedge, scale=scale, conv=conv1, tail=tail, start=start,
-                 end=end, gold=gold, lead_hedge=lead, measured=measured, era=era)
+                 end=end, gold=gold, lead_hedge=lead, measured=measured, era=era, era_hi=era_hi)
     return fig, j
 
 
@@ -451,6 +503,13 @@ def _era_ok(a: str, b: str) -> bool:
     return not a or not b or canon.get(a, a) == canon.get(b, b)
 
 
+def _eras_ok(d: Figure, v: Figure) -> bool:
+    """Two figures' eras agree end by end (an era-crossing span against itself, never against a one-era span)."""
+    if len(d.values) != len(v.values) and (d.era_hi or v.era_hi):
+        return False
+    return all(_era_ok(a, b) for a, b in zip(d.eras, v.eras))
+
+
 def signed_figures(texts: Iterable[str]) -> list[Figure]:
     out: list[Figure] = []
     for t in texts:
@@ -467,7 +526,7 @@ def truth_faults(drawn: str, signed: Iterable[str] | Iterable[Figure]) -> list[s
     faults = []
     for d in parse(drawn):
         views = [(s, v) for s in figs for v in (s, s.conv) if v is not None
-                 and _canon(v.unit) == _canon(d.unit) and _era_ok(d.era, v.era)]
+                 and _canon(v.unit) == _canon(d.unit) and _eras_ok(d, v)]
         exact = [(s, v) for s, v in views if v.values == d.values]
         if exact:
             if not d.hedge and all(s.hedge for s, _v in exact):
@@ -575,3 +634,79 @@ def counts(value: str) -> bool:
     raw = f.lo.rstrip("+")
     year = not f.unit and not f.scale and re.fullmatch(r"[0-9]{3,4}", raw) and 1000 <= float(raw) <= 2199
     return not year    # a year (or what reads as one) never counts; a plain quantity, a duration included, does
+
+
+# ------------------------------------------------------------------ derived figures (SYS-R8-1, cycle 0 round 8)
+# A timeline's gap label ("53 YEARS LATER", "ABOUT 1,500 YEARS LATER") is DERIVED from the two signed years it spans:
+# one rule, here, which the timeline renderers draw (graphics.gap_text) and the drawn-figure gate re-computes from
+# the operands the renderers record (figure_gate), so a correct gap is never judged as a claim and a wrong one fails.
+def years_between(a: int, b: int) -> int:
+    """Calendar years from year `a` to year `b` (negative years are BC; there is no year 0)."""
+    return (b - a) - (1 if a < 0 < b else 0)
+
+
+def elapsed(a: int, b: int, approximate: bool) -> tuple[int, bool] | None:
+    """The elapsed years a gap label states between years `a` and `b`, and whether it is hedged ("ABOUT"): exact
+    when both dates are exact; when either is approximate, rounded to what the dates support (the nearest 100 from 500
+    years, 10 from 50, else 1; never under one step). None under two years (no label)."""
+    years = years_between(int(a), int(b))
+    if years < 2:
+        return None
+    if approximate:
+        step = 100 if years >= 500 else 10 if years >= 50 else 1
+        return max(step, round(years / step) * step), True
+    return years, False
+
+
+def gap_record(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The layout record of a gap label's derivation: its rule and operands (the two entries' years and whether
+    either is approximate) and the figure the rule gives; None when the rule draws no label."""
+    approx = bool(a.get("approximate") or b.get("approximate"))
+    got = elapsed(int(a["year"]), int(b["year"]), approx)
+    if got is None:
+        return None
+    return {"rule": "elapsed_years", "from": int(a["year"]), "to": int(b["year"]), "approximate": approx,
+            "years": got[0], "hedged": got[1]}
+
+
+# ------------------------------------------------------------------ converted units (SYS-R8-1, cycle 0 round 8)
+# A unit drawn as a conversion of a signed value ("4.6 M" under "15 FT") is drawn at the precision that keeps it
+# within CONVERT_TOL of the signed value: the fewest decimals that do (whole metres drew "5 M" for 15 ft, 9 % over).
+# The drawn-figure gate judges a conversion with this same tolerance and these same factors (figure_gate imports
+# them), so the renderer's rule and the gate's can never disagree.
+CONVERT_TOL = 0.02
+LENGTH_PER_FT = {"FT": 1.0, "M": 3.28084, "KM": 3280.84, "MILES": 5280.0, "MI": 5280.0, "CM": 0.0328084,
+                 "IN": 1 / 12, "YD": 3.0}
+MASS_PER_LB = {"LB": 1.0, "KG": 2.20462, "TONNES": 2204.62, "TONS": 2000.0}
+
+
+def in_base(value: float, unit: str) -> tuple[str, float] | None:
+    """(dimension, the value in feet or pounds) for a measured unit, or None."""
+    u = _canon(unit)
+    if u in LENGTH_PER_FT:
+        return "length", value * LENGTH_PER_FT[u]
+    if u in MASS_PER_LB:
+        return "mass", value * MASS_PER_LB[u]
+    return None
+
+
+def within_tol(drawn: float, drawn_unit: str, signed: float, signed_unit: str) -> bool:
+    """Whether `drawn` in `drawn_unit` states the signed value `signed` in `signed_unit` within CONVERT_TOL (one
+    dimension, the error relative to the signed value)."""
+    x, y = in_base(drawn, drawn_unit), in_base(signed, signed_unit)
+    return bool(x and y and x[0] == y[0] and abs(x[1] - y[1]) <= CONVERT_TOL * max(abs(y[1]), 1e-9) + 1e-9)
+
+
+def converted_number(value: float, unit: str, to: str, max_decimals: int = 6) -> str:
+    """`value` in `unit` written in the unit `to` ("15", "FT", "M" -> "4.6"; "140" -> "43"), with thousands commas, at
+    the fewest decimals whose figure is within CONVERT_TOL of the value (within_tol: the gate's own test)."""
+    a, b = in_base(1.0, unit), in_base(1.0, to)
+    if not a or not b or a[0] != b[0]:
+        raise ValueError(f"no conversion from {unit!r} to {to!r}")
+    true = value * a[1] / b[1]
+    text = f"{true:,.{max_decimals}f}"
+    for dp in range(max_decimals + 1):
+        text = f"{true:,.{dp}f}"
+        if within_tol(float(text.replace(",", "")), to, value, unit):
+            break
+    return "0" if float(text.replace(",", "")) == 0 else text

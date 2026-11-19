@@ -24,7 +24,7 @@ from typing import Any
 
 import pytest
 
-from src import brand, brand_system, graphics, typography
+from src import brand, brand_system, figures, graphics, typography
 
 ROOT = Path(__file__).resolve().parents[1]
 TALL, WIDE = (1080, 1920), (1920, 1080)
@@ -192,7 +192,9 @@ def test_a_number_cards_conversion_is_the_figure_face_in_gold(tmp_path, plan_onl
 @pytest.mark.parametrize("size", [TALL, WIDE], ids=["9x16", "16x9"])
 def test_the_cross_sections_depths_and_metres_stay_gold(tmp_path, plan_only, size):
     graphics.render_cross_section(SECTION, tmp_path / "section.mp4", *size)
-    for text in ("15 FT", "35 FT", "140 FT", "280 FT", "5 M", "11 M", "43 M", "85 M"):
+    # the metres by the one conversion rule (SYS-R8-1: whole metres drew "5 M" for 15 ft, outside the gate's tolerance)
+    metres = [f"{figures.converted_number(lv['depth_ft'], 'FT', 'M')} M" for lv in SECTION["levels"]]
+    for text in ("15 FT", "35 FT", "140 FT", "280 FT", *metres):
         plates = _plates_with(plan_only, text)
         assert plates and all(p.fill == tuple(brand.GOLD) for p in plates), text
 

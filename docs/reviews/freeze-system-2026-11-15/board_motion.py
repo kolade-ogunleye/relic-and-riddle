@@ -181,6 +181,18 @@ def _still(fx, src):
     return (Image.open(fx.frame(src, last=True)) if str(src).endswith(".mp4") else Image.open(fx.path(src))).convert("RGB")
 
 
+def _card_share(fx, case) -> str:
+    """The 9:16 end card's line as the composer makes it (QF-35a render_surfaces.card_share)."""
+    import json
+
+    from src.end_card import card_text
+    from src.script_engine import end_card_share
+    p = fx.run_file(case["run"], "verified_script.json")
+    if p.is_file():
+        return end_card_share(json.loads(p.read_text(encoding="utf-8")))[0]
+    return card_text(case["share_line"])
+
+
 def _case(fx, topic: str, fmt: str):
     cases = fx.load("endcard")
     i, c = next((i, c) for i, c in enumerate(cases) if c["topic"] == topic and c.get("format") == fmt)
@@ -206,7 +218,8 @@ def end_sequences(clips: Path, topic: str = "unfinished_obelisk_aswan") -> dict[
     first = Image.open(fx.frame(tall["first_frame"]["from"], 0.0)).convert("RGB")
     jobs = {
         "endscreen_169": ((1920, 1080), lambda st: end_card.frames(last_w, wide["share_line"], st), iw, wide),
-        "endcard_916": ((1080, 1920), lambda st: end_card.frames(last_t, tall["share_line"], st), it, tall),
+        # the line the composer passes (render_surfaces.card_share: end_card_share of the run), not the raw one
+        "endcard_916": ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall),
         "bridge_follow_916": ((1080, 1920), lambda st: _then(end_card.loop_bridge(last_t, first, tall["share_line"], st,
                                                                                  line=False, follow=True), first), it, tall),
     }

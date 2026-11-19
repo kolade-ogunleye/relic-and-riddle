@@ -40,6 +40,12 @@ ALLOW = {
     ("graphics", "name_places", "(0, 3, 4)"): "an empty array's shape",
     ("graphics", "_rock_ground", "[3, 3, 4]"): "a brightness ramp added to the brand INK sky, not a colour",
     ("graphics", "__init__", "(0, 0, 1, 1)"): "a bounding box fallback",
+    # the landmark style (landmark proto): the Statue of Liberty's foundation steps and pedestal courses, in the
+    # drawing's own units (y0, y1, half widths / shade split), not colours
+    ("graphics", "_draw_liberty", "(45, 105, 148, 138)"): "foundation step geometry (y0, y1, half widths)",
+    ("graphics", "_draw_liberty", "(105, 160, 128, 118)"): "foundation step geometry (y0, y1, half widths)",
+    ("graphics", "_draw_liberty", "(160, 213, 110, 102)"): "foundation step geometry (y0, y1, half widths)",
+    ("graphics", "_draw_liberty", "(98, 213, 250, 56)"): "pedestal course geometry (half width, y0, y1, shade x)",
     ("design_cards", "plan_chapter_card", "(120, 112, 104, 96)"): "type sizes",
     ("multi_format", "MAP_FADE", "(160, 110, 56)"): "fade lengths",
     ("multi_format", "STRENGTH_FIGURE", "(3, 2, 1)"): "ranks",

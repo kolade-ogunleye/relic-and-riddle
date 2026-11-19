@@ -55,7 +55,7 @@ log = logging.getLogger(__name__)
 
 DOMAIN = b"relic-and-riddle/fact-record/v1"
 KINDS = frozenset(("check_run", "card_check", "gate_check", "fact_review", "human_review", "fact_recheck",
-                   "fact_quantities", "design_card_asset"))
+                   "fact_quantities", "design_card_asset", "fact_description"))
 SIGNATURE = "signature"
 # A key under MIN_KEY_BYTES, or an .env.example placeholder ("your_..."), is treated as unset (review 2026-11-03,
 # round 4): it is never used to sign, so every record stays untrusted and production fails closed. 32 bytes is the

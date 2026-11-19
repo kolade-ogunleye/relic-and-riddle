@@ -105,6 +105,8 @@ class DraftFact(BaseModel):
     hedge: str                # if disputed or estimated: the safe wording (e.g. "about 85 m; sources range 60-85 m"); else ""
     counts: list[DraftCount] = []      # QF-61: structured counts of physical things the statement states
     measures: list[DraftMeasure] = []  # QF-61: structured measures the statement states
+    description: str = ""     # QF-61b: for a fact that states a number, one number-free sentence of what its quotes
+    #                           say the thing looks like (form, material, setting); "" when they describe nothing
 
 
 CARD_TEXT_MAX = 84   # characters: a card-ready statement or a myth's correction

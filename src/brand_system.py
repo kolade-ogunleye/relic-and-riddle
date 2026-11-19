@@ -425,8 +425,6 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                            "px_for_cap of the 9 px cap at the 124 px tile, 92 in Anton; line 2 grows to it); a "
                            "recorded last resort the grid proof refuses under that floor (visual_engine."
                            "_grid_enforced)"), (100, 120, 0.8, 92), "B"),
-    "carousel content heading": ("display_l", "multi_format: FB 150 / 140 design px (IG is on the ladder, round 7)",
-                                 (150, 140), "D"),
     "carousel stat heading": ("display_m", ("multi_format: the colossal-stat slide's heading, 84 to 52 design px in "
                                "2 px steps through the engine"), (84, 52, 2), "D"),
     "Story title": ("display_xl", ("multi_format: one size per Story (story_title_px) on the tall display ladder's "

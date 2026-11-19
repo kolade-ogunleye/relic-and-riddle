@@ -284,7 +284,8 @@ def test_the_documentary_plans_first_and_a_resumed_one_keeps_its_held_music_line
     monkeypatch.setattr(sp, "plan_and_mood", lambda words, title="": plans.append(1) or (None, sp.no_mood("429 quota")))
     from src.audio_engine import rights_file
     monkeypatch.setattr(audio_provenance, "record_voice", lambda path, *a, **k: rights_file(path).write_text("{}"))
-    monkeypatch.setattr(main, "documentary_cover", lambda title: {"title": title})
+    # lane B cycle 1: the deep dive passes the run payload and hero (cover_fit and the render one decision)
+    monkeypatch.setattr(main, "documentary_cover", lambda title, **k: {"title": title})
     monkeypatch.setattr(main, "ensure_all", lambda media: (_ for _ in ()).throw(Stop()))   # stop after the bed
     coordinator = object.__new__(main.PipelineCoordinator)
     coordinator.db, coordinator.telegram_bot = db, None

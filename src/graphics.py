@@ -2178,17 +2178,36 @@ def place_plates(rest: Image.Image, rows: Sequence[tuple[tuple[float, float], st
     drawn frame keeps the 4.5 gate) as planned and as drawn; else the INK light-ground variant (no halo); else a held
     INK plate behind the label, bone on it. The halo exception (bone at a halo past the cap, 0.24-0.95: a cloud) is
     retired. One variant per label (round 7 integration: an INK row beside bone rows sat in their halos and drew at
-    3.1:1). A label no variant carries is returned empty (nothing drawn) and logged."""
+    3.1:1). A label no variant carries is returned empty (nothing drawn) and logged. A label is a set of one
+    (place_plate_set)."""
+    return place_plate_set(rest, [rows], track)[0]
+
+
+def place_plate_set(rest: Image.Image, labels: Sequence[Sequence[tuple[tuple[float, float], str, Any, str]]],
+                    track: float = 0) -> list[list[TextPlate]]:
+    """A map's place labels (each a list of rows, as place_plates takes) planned as ONE set (SYS-R8 integration,
+    lander ruling 4; operator ruling 2 applied per set, as the then-and-now pair and the end screen: typography.
+    plan_label_set): every label on one treatment, the least intrusive step that holds on every label's ground, each
+    on its own step only where no one step holds for all (the gates are never traded). Returns each label's plates,
+    in order; a label no step carries is returned empty (nothing drawn) and logged."""
     from .brand_system import tok
-    from .typography import plan_label
+    from .typography import plan_label_set
     target = GATES["contrast.place"]
-    plates, rec = plan_label(rest, [(xy, text, font, anchor, track) for xy, text, font, anchor in rows], (brand.BONE,),
-                             target=target, halo_px=tok("place.halo_px"), halo_max=tok("place.halo_max"))
-    if not rec["shown"]:
-        log.warning("Place label %r not drawn: %s.", " ".join(text for _xy, text, _f, _a in rows), rec["reason"])
-        return [TextPlate(text, font, brand.BONE, xy, anchor, track, 0, brand.INK, 0, False, (0, 0))
-                for xy, text, font, anchor in rows]   # empty plates (zero canvas): callers draw and record nothing
-    return plates
+    members = [{"ground": rest, "rows": [(xy, text, font, anchor, track) for xy, text, font, anchor in rows],
+                "colours": (brand.BONE,), "target": target, "halo_px": tok("place.halo_px"),
+                "halo_max": tok("place.halo_max")} for rows in labels]
+    planned, set_rec = plan_label_set(members) if members else ([], None)
+    if set_rec and not set_rec.get("uniform"):
+        log.warning("Map place labels: %s; each label keeps its own step %s.", set_rec.get("reason"),
+                    set_rec.get("own_steps"))
+    out = []
+    for rows, (plates, rec) in zip(labels, planned):
+        if not rec["shown"]:
+            log.warning("Place label %r not drawn: %s.", " ".join(text for _xy, text, _f, _a in rows), rec["reason"])
+            plates = [TextPlate(text, font, brand.BONE, xy, anchor, track, 0, brand.INK, 0, False, (0, 0))
+                      for xy, text, font, anchor in rows]   # empty plates (zero canvas): callers draw nothing
+        out.append(plates)
+    return out
 
 
 def place_plate(rest: Image.Image, xy: tuple[float, float], text: str, font, anchor: str = "la",
@@ -12049,8 +12068,12 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     by_name: dict[str, list[Any]] = {}
     for name, sp in plates:                 # review 5: only the chosen places are planned and measured
         by_name.setdefault(name, []).append(sp)
-    planned = {name: iter(place_plates(ground_last, [(sp[0], sp[1], sp[2], sp[3]) for sp in sps], track=2))
-               for name, sps in by_name.items()}      # one variant per stop's name (all its rows)
+    # one variant per stop's name (all its rows), and the route's names ONE set on one treatment (SYS-R8 integration,
+    # ruling 4: place_plate_set)
+    names = list(by_name)
+    sets = place_plate_set(ground_last, [[(sp[0], sp[1], sp[2], sp[3]) for sp in by_name[nm]] for nm in names],
+                           track=2)
+    planned = {name: iter(pls) for name, pls in zip(names, sets)}
     plates = [(name, next(planned[name])) for name, _sp in plates]
     stop_of = {id(pl): int(name[4:]) for name, pl in plates}
     bar_plates = (_scale_bar_plates(_with_bar(ground_last, bar, bar_x, bar_y), bar, bar_x, bar_y,

@@ -162,7 +162,7 @@ def test_a_kicker_on_a_bright_ground_takes_ink_type_or_the_plate_with_its_rule(b
 
 
 # The guard: every overlay-label renderer plans through typography.plan_label and none keeps a halo exception.
-OVERLAY_LABEL_RENDERERS = [end_card._follow_plate, end_card.frames, multi_format.plan_kicker, graphics.place_plates,
+OVERLAY_LABEL_RENDERERS = [end_card._follow_plate, end_card.frames, multi_format.plan_kicker, graphics.place_plate_set,
                            then_now.render]
 RETIRED = ("LOOP_FOLLOW_HALO", "HALO_EXCEPTION_CAP", "KICKER_HALO", "GLOW_HALO_CAP", "band_mask(", "_marker_plate(")
 

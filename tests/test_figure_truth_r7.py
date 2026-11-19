@@ -283,7 +283,7 @@ def test_no_place_label_is_planned_outside_the_role():
     for name in ("render_route", "label_plates_for"):
         fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == name)
         calls = [ast.unparse(c.func) for c in ast.walk(fn) if isinstance(c, ast.Call)]
-        assert "place_plates" in calls, name
+        assert "place_plates" in calls or "place_plate_set" in calls, name   # r8 integration: a map's labels, one set
         named = [c for c in ast.walk(fn) if isinstance(c, ast.Call) and ast.unparse(c.func) == "get_font"
                  and any(kw.arg == "weight" and ast.unparse(kw.value) == "800" for kw in c.keywords)]
         assert not named, name

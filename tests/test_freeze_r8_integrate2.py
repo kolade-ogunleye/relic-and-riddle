@@ -6,6 +6,7 @@ a. drawn == signed: a signed scale value is drawn at its signed precision (6.5 m
 b. the number card draws in the one gold scope (ruling 8): a span with "TO" is the figure whole, a bracketed qualifier
    the bone hedge, every row coloured by figures.gold_runs (Damascus "62 TO 67 (ESTIMATED)").
 c. a deck's Instagram and Facebook copies are the same slides: one kicker set, its step planned once for both.
+d. a map's place labels (graphics.place_plates) are one set: typography.plan_label_set, one treatment.
 """
 from __future__ import annotations
 
@@ -173,3 +174,44 @@ def test_c_a_changed_deck_is_planned_again(tmp_path):
     multi_format.clear_deck_steps()
     assert multi_format.deck_set_step(key) == (False, None)
 
+
+# ------------------------------------------------------------------ d. a map's place labels are one set
+def _split_ground():
+    from PIL import Image
+    im = Image.new("RGB", (1200, 400), (18, 20, 24))
+    im.paste((236, 232, 222), (600, 0, 1200, 400))   # one name on dark sea, one on bright sand
+    return im
+
+
+def test_d_a_maps_place_labels_take_one_treatment_that_holds_on_every_ground():
+    from src.brand_system import GATES
+    ground = _split_ground()
+    font = graphics.place_font(34)
+    labels = [[((80, 200), "ALEXANDRIA", font, "ls")], [((680, 200), "SIWA OASIS", font, "ls")]]
+    alone = [graphics.place_plates(ground, rows) for rows in labels]
+    assert len({p[0].variant for p in alone}) == 2          # each alone takes its own step (the case the set closes)
+    sets = graphics.place_plate_set(ground, labels)
+    assert len({(tuple(p.step), p.variant) for pls in sets for p in pls}) == 1
+    for pls in sets:
+        for p in pls:
+            assert not p.empty and p.measure(p.draw(ground)) >= GATES["contrast.place"] - 1e-6
+
+
+def test_d_one_label_is_a_set_of_one():
+    ground = _split_ground()
+    rows = [((80, 200), "ALEXANDRIA", graphics.place_font(34), "ls")]
+    a, b = graphics.place_plates(ground, rows)[0], graphics.place_plate_set(ground, [rows])[0][0]
+    assert (a.variant, a.step, a.box) == (b.variant, b.step, b.box)
+
+
+def test_d_every_map_renderer_plans_its_place_labels_as_one_set():
+    import ast
+    import inspect
+    import textwrap
+    for fn in (graphics.render_route, graphics.label_plates_for, graphics.place_plates):
+        tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
+        calls = {ast.unparse(c.func) for c in ast.walk(tree) if isinstance(c, ast.Call)}
+        assert "place_plate_set" in calls or "place_plates" in calls, fn.__name__
+        assert "plan_label" not in calls, fn.__name__
+    src = inspect.getsource(graphics.render_route)
+    assert "place_plate_set(" in src          # the route's several names: one set

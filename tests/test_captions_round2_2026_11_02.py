@@ -114,9 +114,20 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     # "an estimated | 200,000 tons" split is gone and AN ESTIMATED 200,000 TONS is one burst a little under the full
     # size (still above CAPTION_BURST_MIN_SIZE, asserted below). Only bursts holding no such bond count here.
     from src.video_composer import caption_bonds
-    unbonded = [int(m.group(1)) for e, m in zip(_events(ass, "CapText"), sizes)
-                if m and not caption_bonds(_plain(e[2]).split())]
-    assert len(unbonded) <= 0.1 * len(sizes), unbonded                  # nearly every word event at the full size
+    # Lane C cycle 1 (N1): a burst whose every full-size form ends line 1 on a never-end word draws a rung smaller
+    # where a valid form is there (RISE / WITHOUT ASSEMBLING at 74, not RISE WITHOUT / ASSEMBLING at 80): legibility
+    # before rhythm. So the count is per burst: nearly every burst that is no bond and has a valid full-size form is
+    # at the full size (was: word events, <= 10% shrunk)
+    from src import video_composer as vc
+
+    def forced(p) -> bool:   # no full-size form without a line defect
+        options = vc._two_line_options(tuple(w["word"] for w in p))
+        return all(rank[0] or rank[1] for rank, _k, rung, _w in options if rung == FONT_SIZE)
+    bursts = vc.caption_phrases(words, ["Kailasa"])
+    unbonded = [" ".join(w["word"] for w in p) for p in bursts
+                if len(p) > 1 and _caption_fit_size(p) < FONT_SIZE and not caption_bonds(p) and not forced(p)]
+    assert len(unbonded) <= 0.1 * len(bursts), unbonded
+    assert sizes
     # freeze pass C4 (2026-11-04): the ladder 80 -> 74 -> 66 px, 66 only for a bonded burst (a name with its lead-in,
     # a hedge with its figure); was every shrunk event at 74 or more
     from src.video_composer import CAPTION_BOND_MIN_SIZE

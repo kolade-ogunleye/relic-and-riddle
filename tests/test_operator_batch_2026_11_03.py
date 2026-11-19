@@ -279,7 +279,8 @@ def test_a_bonded_run_shrinks_rather_than_leave_its_figure_at_80_px(text, run, t
     texts = [" ".join(w["word"] for w in p) for p in phrases]
     assert any(run in t for t in texts), texts
     assert all(len(p) > 1 for p in phrases), texts          # no lone AN before ESTIMATED 200,000 TONS
-    assert "an estimated 200,000 tons" not in " | ".join(texts) or "between" in text
+    # lane C cycle 1: AN ESTIMATED 200,000 TONS is one two-line burst at 80 (AN ESTIMATED / 200,000 TONS, broken
+    # after its whole hedge: video_composer._hedge_break), no longer a 67 px one-liner (was: never one burst)
     from src.video_composer import _relax_figure_bonds
     bonds = _relax_figure_bonds(words, caption_bonds(words))
     for p in phrases:

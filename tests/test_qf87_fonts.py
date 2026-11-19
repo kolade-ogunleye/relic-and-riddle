@@ -295,8 +295,10 @@ def test_the_hook_frame_draws_no_masthead_under_nine_pixels(tmp_path, fact_recor
 
 
 @pytest.mark.parametrize("text,lines", [
-    ("of Army Group North", (["of"], ["Army", "Group", "North"])),                       # amber: the name whole
-    ("when Königsberg Castle", (["when"], ["Königsberg", "Castle"])),                    # amber: whole, at 80
+    # lane C cycle 2 (lander ruling 2): a proper name is a bond, never split where it fits one line: WHEN KÖNIGSBERG
+    # CASTLE is too wide for one line even at 66, so the name stays whole on line 2 (a recorded line defect); OF ARMY
+    # GROUP NORTH sets on one line at 66 (test_a_name_and_its_lead_in_take_one_line_at_the_floor)
+    ("when Königsberg Castle", (["when"], ["Königsberg", "Castle"])),                    # amber
     ("to Central Asian traditions", (["to", "Central", "Asian"], ["traditions"])),       # gol gumbaz
     ("near the Podkamennaya", (["near"], ["the", "Podkamennaya"])),                      # tunguska: no other break
 ])
@@ -309,15 +311,24 @@ def test_two_line_breaks_keep_names_and_phrases_whole(text, lines):
     assert (words[:k], words[k:]) == lines and size == 80
 
 
-@pytest.mark.parametrize("text,lines", [
-    ("of Mohenjo Daro Citadel", (["of", "Mohenjo"], ["Daro", "Citadel"])),
-    ("at Angkor Wat Temple", (["at", "Angkor"], ["Wat", "Temple"])),
-])
-def test_a_two_line_burst_never_shrinks_to_keep_a_name_whole(text, lines):
-    """QF-87 round 3 (lander ruling 2026-11-13): size first. A "lone function word | long name" burst draws at the
-    largest rung any break fits, splitting the name there, never a smaller size to keep it whole (ranked name-first,
-    OF | MOHENJO DARO CITADEL drew at 66 and AT | ANGKOR WAT TEMPLE at 74 next to bursts at 80; the production
-    sample had 8 such 66 px bursts, 2 at size-first). The review-1 bursts above keep their names at 80."""
+def test_a_name_and_its_lead_in_take_one_line_at_the_floor():
+    """Lane C cycle 2 (lander ruling 2): OF ARMY GROUP NORTH draws whole on one line at the bond floor (was OF /
+    ARMY GROUP NORTH at 80, then OF ARMY / GROUP NORTH in cycle 1)."""
+    words = "of Army Group North".split()
+    assert video_composer.reel_caption_lines(words) is None and video_composer.reel_floor_line(words)
+    assert video_composer._caption_fit_size(words) == video_composer.CAPTION_BOND_MIN_SIZE
+
+
+@pytest.mark.parametrize("text", ["of Mohenjo Daro Citadel", "at Angkor Wat Temple"])
+def test_a_name_is_kept_whole_before_the_rung(text):
+    """Lane C cycle 2 (lander ruling 2, 2026-11-20, over the QF-87 round-3 ruling of 2026-11-13): a proper name is a
+    bond like a figure and its unit and ranks above the rung. A "lead-in | long name" burst never splits the name
+    where a form keeps it whole: one line at the bond floor where it fits, else the name whole on line 2 (was the
+    name split at 80: OF MOHENJO / DARO CITADEL, AT ANGKOR / WAT TEMPLE)."""
     words = text.split()
-    k, size = video_composer.reel_caption_lines(words)
-    assert size == 80 and (words[:k], words[k:]) == lines
+    lines = video_composer.reel_caption_lines(words)
+    assert not video_composer.reel_name_split(words)
+    if lines is None:
+        assert video_composer.reel_floor_line(words)
+    else:
+        assert lines[0] == 1, lines

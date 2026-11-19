@@ -781,6 +781,29 @@ def _bare(word: str) -> str:
     return re.sub(r"[^\w]", "", word).lower()
 
 
+def unit_link(w1_raw: str, w2_raw: str) -> bool:
+    """Lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): w1 is a figure and w2 its unit or the
+    SQUARE / CUBIC of its unit (830 SQUARE, 15 MEGATONS, 36 HOURS), or w1 is SQUARE / CUBIC and w2 its unit (SQUARE
+    MILES). No caption burst and no caption line breaks here, on either format: unlike the rest of
+    _is_atomic_boundary it is never loosened to keep a round-4 cut (_base_yields) nor released to fit a figure group
+    (_relax_figure_bonds). IN after a figure is the preposition (IN 1941 IN), never a unit here."""
+    if _ends_clause(w1_raw):
+        return False
+    a, b = _bare(w1_raw), _bare(w2_raw)
+    if not a or not b:
+        return False
+    if a in AREA_QUALIFIERS:
+        return b in MEASURE_UNITS
+    figure = any(c.isdigit() for c in a) or a in SPELLED_NUMBERS
+    return figure and (b in AREA_QUALIFIERS or (b in MEASURE_UNITS and b != "in"))
+
+
+def unit_links(words: list[Any]) -> set[int]:
+    """The positions k whose boundary with word k + 1 is a unit_link."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    return {k for k in range(len(raw) - 1) if unit_link(raw[k], raw[k + 1])}
+
+
 def _function_only(chunk: List[Dict[str, Any]]) -> bool:
     """A burst made only of FUNCTION_WORDS (OF THE, AND THEY)."""
     words = [_bare(w.get("word", "")) for w in chunk]
@@ -849,7 +872,9 @@ def _relax_figure_bonds(words: List[Dict[str, Any]], bonds: set[int], prefer: se
                 if holdable(lo, hi) and holdable(ext, hi):
                     continue
                 joiners = [j for j in range(lo + 1, hi) if _norm(raw[j]) in RANGE_JOINERS and j - 1 in out]
-                area = [j for j in range(lo, hi) if j in out and _norm(raw[j + 1]) in AREA_QUALIFIERS]
+                # lane C cycle 1 (N2): a figure never leaves its SQUARE unit (unit_link); the group shrinks whole
+                area = [j for j in range(lo, hi) if j in out and _norm(raw[j + 1]) in AREA_QUALIFIERS
+                        and not unit_link(raw[j], raw[j + 1])]
                 lead = lo in out and lo not in atomic and _norm(raw[lo]) in LEAD_IN_WORDS
                 if prefer is not None and (lead or joiners or area):
                     # fix round 1: with a base, every such link at once (after a joiner only where the base cuts
@@ -1716,7 +1741,7 @@ def _fits_caption_burst(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool
     draws on two lines (reel_caption_lines, QF-87)."""
     if _caption_ink_width(_phrase_words(phrase), CAPTION_BURST_MIN_SIZE) <= _ink_budget(max_width):
         return True
-    return max_width == MAX_CAPTION_WIDTH and reel_caption_lines(phrase) is not None
+    return max_width == MAX_CAPTION_WIDTH and (reel_caption_lines(phrase) is not None or reel_floor_line(phrase))
 
 
 def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
@@ -1724,7 +1749,7 @@ def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> boo
     CAPTION_BOND_MIN_SIZE (partition_words_grammatical), or draws on two lines (reel_caption_lines, QF-87)."""
     if _caption_ink_width(_phrase_words(phrase), CAPTION_BOND_MIN_SIZE) <= _ink_budget(max_width):
         return True
-    return max_width == MAX_CAPTION_WIDTH and reel_caption_lines(phrase) is not None
+    return max_width == MAX_CAPTION_WIDTH and (reel_caption_lines(phrase) is not None or reel_floor_line(phrase))
 
 
 CAPTION_LADDER = (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE)   # px: the 9:16 sizes a burst draws at
@@ -1742,11 +1767,77 @@ def _two_line_clears_graphics(size: float, height: int = VIDEO_HEIGHT) -> bool:
     return two_line_top >= _caption_band_top(VIDEO_WIDTH, height)
 
 
+def _hedge_break(shown: list[str], k: int) -> bool:
+    """Lane C cycle 1 (N2): a break before shown word k, a figure, right after its whole hedge phrase, which only its
+    lead-in words (at most LEAD_IN_MAX) precede on line 1: MORE THAN / 830 SQUARE MILES, FROM NEARLY / 1,090 TONNES.
+    The quantifier phrase and the value with its unit each stay whole where no line holds both. A one-word hedge that
+    is itself a never-end word (ABOUT, OVER, BETWEEN) is no such break: line 1 would end on it."""
+    if not 0 < k < len(shown) or not any(c.isdigit() for c in shown[k]):
+        return False
+    toks = [_norm(w) for w in shown[:k]]
+    if any(_ends_clause(w) for w in shown[:k]):
+        return False
+    for hedge in HEDGE_PHRASES:
+        lead = k - len(hedge)
+        if (0 <= lead <= LEAD_IN_MAX and tuple(toks[lead:]) == hedge and all(t in LEAD_IN_WORDS for t in toks[:lead])
+                and (len(hedge) > 1 or not never_end_end(shown[k - 1]))):
+            return True
+    return False
+
+
+def _line_break_defect(shown: list[str], k: int) -> bool:
+    """Lane C cycle 1 (N1, N2; RUBRIC TY2): whether a two-line 9:16 burst broken before shown word k ends line 1 on a
+    never-end word (never_end_end: the one closed class every burst end reads, OF / WHEN / NEAR / THAT / MOST) or
+    splits a figure from its unit (unit_link). A break after a whole hedge phrase (_hedge_break: MORE THAN / 830
+    SQUARE MILES) is none."""
+    if not 0 < k < len(shown):
+        return False
+    if _hedge_break(shown, k):
+        return False
+    return never_end_end(shown[k - 1]) or unit_link(shown[k - 1], shown[k])
+
+
+def reel_name_split(phrase: Any) -> bool:
+    """Lane C cycle 2 (lander ruling 2): whether the 9:16 burst draws on two lines broken inside a proper name."""
+    layout = reel_caption_lines(phrase)
+    if layout is None:
+        return False
+    words = phrase.split() if isinstance(phrase, str) else phrase
+    shown = _phrase_words(list(words))
+    return (layout[0] - 1) in name_bonds(list(shown))
+
+
+def name_split_bursts(phrases) -> list[str]:
+    """The 9:16 bursts (" / " between the lines) whose two lines split a proper name: each where no line holds the
+    name whole at the bond floor (a name too wide for one line: PODKAMENNAYA TUNGUSKA RIVER)."""
+    out = []
+    for p in phrases:
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        if reel_name_split(ws):
+            k = reel_caption_lines(ws)[0]
+            out.append(" ".join(ws[:k]) + " / " + " ".join(ws[k:]))
+    return out
+
+
+def reel_line_defect(phrase: Any) -> bool:
+    """Whether the 9:16 burst draws on two lines (reel_caption_lines) with a line defect (_line_break_defect)."""
+    layout = reel_caption_lines(phrase)
+    if layout is None:
+        return False
+    words = phrase.split() if isinstance(phrase, str) else phrase
+    return _line_break_defect(_phrase_words(list(words)), layout[0])
+
+
 def _two_line_structure(shown: list[str], k: int, named: set[int]) -> tuple[int, int, int]:
     """How a break before word k reads (lower is better; QF-87 review 1): (it splits a proper name (name_bonds), line
     1 ends on a word that dangles (a preposition, a pre-modifier, a possessive: _dangles), line 1 is one function
-    word alone)."""
-    return ((k - 1) in named, _dangles(shown[k - 1]), k == 1 and _bare(shown[0]) in FUNCTION_WORDS)
+    word alone, else one word alone on either line: lane C cycle 1, N1, a one-word line only where no break without
+    one is valid)."""
+    lone = 2 if k == 1 and _bare(shown[0]) in FUNCTION_WORDS else int(k == 1 or k == len(shown) - 1)
+    # lane C cycle 1: a line 1 that ends one word into the noun phrase an article opened (THE COMPLETED / ROOM
+    # COVERED) dangles as a burst end does (_open_phrase_end)
+    dangles = _dangles(shown[k - 1]) or bool(_open_phrase_end(list(shown), 0, k - 1, False))
+    return ((k - 1) in named, dangles, lone)
 
 
 @lru_cache(maxsize=4096)
@@ -1757,7 +1848,10 @@ def _two_line_options(words: tuple[str, ...]) -> tuple[tuple[tuple, int, int, fl
     never shrinks to keep a name whole: lander ruling 2026-11-13, QF-87 round 3), then at that rung
     (_two_line_structure) a break that keeps a proper name whole, then a line 1 that does not end on a dangling word
     (a preposition, a pre-modifier) and is not one function word alone, then the narrower wider line, then a break
-    before a connector (OF, DE)."""
+    before a connector (OF, DE). Lane C cycle 1: a line defect (_line_break_defect: line 1 on a never-end word, a
+    figure apart from its unit) ranks before everything, the rung included (legibility before rhythm in the freeze
+    trade-off order); a break after a whole hedge phrase (_hedge_break) is a soft break, ranked as a dangling one;
+    a one-word line ranks after the dangling tier (_two_line_structure)."""
     shown = _phrase_words(list(words))
     if len(shown) < 2:
         return ()
@@ -1769,13 +1863,24 @@ def _two_line_options(words: tuple[str, ...]) -> tuple[tuple[tuple, int, int, fl
         if not _two_line_clears_graphics(rung):
             continue   # fix round 1: never above the caption band (under the graphics box); split instead
         for k in range(1, len(shown)):
-            if _bare(shown[k - 1]) in _ARTICLES or _is_atomic_boundary(shown[k - 1], shown[k]) or (k - 1) in links:
+            hedge = (k - 1) in links and _hedge_break(shown, k)   # lane C cycle 1: a soft break after its hedge
+            if _bare(shown[k - 1]) in _ARTICLES or _is_atomic_boundary(shown[k - 1], shown[k]) or (
+                    (k - 1) in links and not hedge):
                 continue
             wide = max(_caption_ink_width(shown[:k], rung), _caption_ink_width(shown[k:], rung))
             if wide > budget:
                 continue
             name, dangles, lone = _two_line_structure(shown, k, named)
-            rank = (-rung, name, dangles, lone, round(wide), 0 if _bare(shown[k]) in NAME_PARTICLES else 1)
+            dangles = dangles or hedge
+            # lane C cycle 1 (N1, N2): a line 1 ending on the never-end set (OF / ARMY GROUP NORTH) or a figure apart
+            # from its unit (MORE THAN 830 / SQUARE) is a line defect (_line_break_defect), ranked before the rung:
+            # a break without one at any rung comes first; with none, the burst is set another way where it can be
+            # (_reel_caption_lines: one line at CAPTION_BOND_MIN_SIZE; caption_phrases' _break_repair re-cuts it)
+            # lane C cycle 2 (lander ruling 2, 2026-11-20): a proper name is a bond like a figure and its unit, so a
+            # break inside one (name_bonds) ranks first, above the line defect and the rung: the lead-in and the whole
+            # name take one line down to the bond floor (_reel_form) before a name splits (was: rung first)
+            rank = (name, _line_break_defect(shown, k), -rung, dangles, lone, round(wide),
+                    0 if _bare(shown[k]) in NAME_PARTICLES else 1)
             out.append((rank, k, rung, wide))
     return tuple(sorted(out))
 
@@ -1817,6 +1922,24 @@ def reel_caption_lines(phrase: Any) -> tuple[int, int] | None:
 
 @lru_cache(maxsize=8192)
 def _reel_caption_lines(raw: tuple[str, ...]) -> tuple[int, int] | None:
+    form = _reel_form(raw)
+    return (form[1], form[2]) if form and form[0] == "two" else None
+
+
+def reel_floor_line(phrase: Any) -> bool:
+    """Lane C cycle 1 (N1): whether a 9:16 burst too wide for one line at CAPTION_BURST_MIN_SIZE, every two-line
+    break of which has a line defect (_line_break_defect), draws on one line at CAPTION_BOND_MIN_SIZE instead (THAT
+    THE MANUSCRIPT'S: 611 px at 66). Such a burst is formed wherever its two-line form was (_fits_caption_burst)."""
+    raw = tuple(w if isinstance(w, str) else str(w.get("word", "")) for w in (
+        phrase.split() if isinstance(phrase, str) else phrase))
+    form = _reel_form(raw)
+    return bool(form) and form[0] == "floor"
+
+
+@lru_cache(maxsize=8192)
+def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
+    """("two", k, size) for a two-line 9:16 burst (reel_caption_lines), ("floor", 0, CAPTION_BOND_MIN_SIZE) for one
+    drawn on one line at the bond floor (reel_floor_line), else None."""
     words = list(raw)
     if len(words) < 2:
         return None
@@ -1848,10 +1971,36 @@ def _reel_caption_lines(raw: tuple[str, ...]) -> tuple[int, int] | None:
     # two-line burst (a whole figure group then tries its range or bracket break)
     options = [(k, rung) for _, k, rung, _ in _two_line_options(tuple(words)) if rung >= floor and plate_fits(k, rung)]
     if options and max(rung for _, rung in options) >= minimum:
-        return options[0]
-    split = _figure_two_line(words, minimum) if whole_figure else None
+        shown_named = name_bonds(list(shown))
+
+        def bad(k: int) -> bool:   # lane C cycle 2: a break inside a proper name, or a line defect
+            return (k - 1) in shown_named or _line_break_defect(shown, k)
+        if not bad(options[0][0]):
+            return ("two", *options[0])
+        # lane C cycle 1 (N1): every break here has a line defect. A whole figure group's own break (a range joiner,
+        # after its hedge) comes first, then one line at CAPTION_BOND_MIN_SIZE (THAT THE MANUSCRIPT'S); only where
+        # neither holds is the defect kept (NEAR / THE PODKAMENNAYA: no valid break exists), and every record names
+        # it (line_defect_bursts)
+        # lane C cycle 2: likewise a burst every break of which splits a name sets on one line at the bond floor where
+        # it fits (OF ARMY GROUP NORTH at 66); only where nothing else holds does a name split (a name too wide
+        # for any one line), and every record names it (line_defect_bursts, name_split_bursts)
+        split = _figure_split(words, shown, minimum, floor, plate_fits) if whole_figure else None
+        if split is not None and not bad(split[0]):
+            return ("two", *split)
+        if _caption_ink_width(shown, CAPTION_BOND_MIN_SIZE) <= budget:
+            return ("floor", 0, CAPTION_BOND_MIN_SIZE)
+        return ("two", *options[0])
+    split = _figure_split(words, shown, minimum, floor, plate_fits) if whole_figure else None
+    return ("two", *split) if split is not None else None
+
+
+def _figure_split(words: list[str], shown: list[str], minimum: int, floor: int, plate_fits) -> tuple[int, int] | None:
+    """A whole figure group's two-line break (_figure_two_line) at the largest rung, no lower than `floor`, at which
+    both lines fit the ink budget and the plate the caption band."""
+    split = _figure_two_line(words, minimum)
     if split is None:
         return None
+    budget = _ink_budget()
     for rung in CAPTION_LADDER:
         if rung > split[1] or rung < floor:
             continue
@@ -2183,7 +2332,21 @@ def rate_defect(phrases: list[list[dict[str, Any]]], i: int, show: float, hide: 
             and hide - show < _speech_window(phrases, i) - CAPTION_CPS_TIMING_SLACK_S - 1e-6)
 
 
-def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]]) -> dict[str, Any]:
+def line_defect_bursts(phrases) -> list[str]:
+    """Lane C cycle 1 (N1, N2): the 9:16 bursts (text, " / " between the lines) drawn on two lines with a line
+    defect (reel_line_defect): line 1 on a never-end word, or a figure apart from its unit. Each is one where the
+    repair found no valid break (_never_end_repair); the records name every one."""
+    out = []
+    for p in phrases:
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        if reel_line_defect(ws):
+            k = reel_caption_lines(ws)[0]
+            out.append(" ".join(ws[:k]) + " / " + " ".join(ws[k:]))
+    return out
+
+
+def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]],
+                  widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
     ("shown"), against the rate its own words are spoken at: over the time they hold the narration, from its first
     word's start to the next burst's first word where that follows without a pause (CAPTION_PAUSE_GAP), else to its
@@ -2213,7 +2376,14 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             "worst": {k: worst[k] for k in ("at", "text", "shown_cps", "spoken_cps")} if worst else None,
             "timing_defects": [{k: r[k] for k in ("at", "text", "shown_cps", "spoken_cps")} for r in rows if r["defect"]],
             # rules2 F4: the bursts ending mid-sentence on a never-end word, counted by the breakers' own predicate
-            "never_end": never_end_bursts(phrases)}
+            "never_end": never_end_bursts(phrases),
+            # lane C cycle 1: and the 9:16 two-line bursts whose line break the repair could not make valid
+            "line_defect": [] if widescreen else line_defect_bursts(phrases),
+            # lane C cycle 2: and those whose line break splits a proper name (recorded, as ruled)
+            "name_split": [] if widescreen else name_split_bursts(phrases),
+            # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
+            # the defect it removed (caption_phrases' bond_extra)
+            "bond_extra": list(bond_extra or [])}
 
 
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:
@@ -2691,7 +2861,8 @@ def _rejoin_base(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]
 
 
 def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = None, widescreen: bool = False,
-                    max_width: int | None = None) -> list[list[dict[str, Any]]]:
+                    max_width: int | None = None,
+                    bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """The bursts build_subtitles draws (9:16 Reel bursts, or 16:9 one-line bursts): the grammatical partition
     with every bond (caption_bonds, and the key terms with their hedges: emphasis_bonds), then merge_short_bursts.
     9:16 joins also keep each burst on screen for its dwell (freeze pass C10). Fix round 1 (operator decision
@@ -2700,9 +2871,11 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     if widescreen:
         wide_max = max_width if max_width is not None else min(int(1920 * 0.75), CAPTION_WIDE_MAX_PLATE)
         base = round4_burst_cuts(words, emphasis, True, wide_max)
-        loose = _base_yields(words, emphasis, base)
-        bonds = (caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
-                                                   lambda ph: _fits_wide(ph, wide_max, max_chars=None))) - loose
+        units = unit_links(words)   # lane C cycle 1 (N2): a figure and its unit hold on every path
+        loose = _base_yields(words, emphasis, base) - units
+        bonds = ((caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
+                                                    lambda ph: _fits_wide(ph, wide_max, max_chars=None))) - loose
+                 ) | units
 
         def fits(ph: list[dict[str, Any]]) -> bool:
             return _fits_wide(ph, wide_max)
@@ -2719,9 +2892,10 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         return _never_end_repair(phrases, words, lambda ph: (
             2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
     base = round4_burst_cuts(words, emphasis)
-    loose = _base_yields(words, emphasis, base)
-    bonds = (caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
-                                               _fits_caption_bonded)) - loose
+    units = unit_links(words)   # lane C cycle 1 (N2): MORE THAN 590 SQUARE FEET is one value, never cut
+    loose = _base_yields(words, emphasis, base) - units
+    bonds = ((caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
+                                                _fits_caption_bonded)) - loose) | units
     phrases = merge_short_bursts(partition_words_grammatical(words, bonds=bonds, base_cuts=base, loose=loose,
                                                              held_soft=_base_figure_links(words, base) & loose),
                                  _fits_caption_width, MAX_BURST_WORDS, dwell=True, dwell_fits=_fits_caption_burst, max_chars=MAX_BURST_CHARS)
@@ -2729,28 +2903,59 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and _fits_caption_burst(ph)))
     phrases = _two_line_phrasing(phrases, words, base)
-    return _never_end_repair(phrases, words, lambda ph: (
+
+    def strict(ph: list[dict[str, Any]]) -> bool:
+        return (2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
+                and not _function_only(ph) and _fits_caption_burst(ph) and not reel_line_defect(ph))
+
+    def relaxed(ph: list[dict[str, Any]]) -> bool:
+        """Lane C cycle 1: a repair the caps cannot make may use the bond extra and one line at the bond floor."""
+        shown = _phrase_words(ph)
+        return (2 <= len(ph) <= MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS
+                and len(" ".join(shown)) <= MAX_BURST_CHARS + CAPTION_BOND_EXTRA_CHARS and not _function_only(ph)
+                and not reel_line_defect(ph)
+                and (_fits_caption_burst(ph) or _caption_ink_width(shown, CAPTION_BOND_MIN_SIZE) <= _ink_budget()))
+    # `bond_extra` (lane C ruling 5): each burst the repair forms with the bond extra, and the defect it removed
+    out = _never_end_repair(phrases, words, strict, relaxed, line_defect=reel_line_defect, lenient=lambda ph: (
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
-        and not _function_only(ph) and _fits_caption_burst(ph)))
+        and not _function_only(ph) and _fits_caption_burst(ph)), bond_extra=bond_extra)
+    if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
+        kept = {" ".join(w["word"] for w in p) for p in out}
+        bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
+    return out
 
 
 CAPTION_REPAIR_DWELL_S = 0.5   # rules2 F4: a never-end repair never leaves a burst up for less than this
 
 
 def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
-                      allowed: Callable[[list[dict[str, Any]]], bool]) -> list[list[dict[str, Any]]]:
+                      allowed: Callable[[list[dict[str, Any]]], bool],
+                      relaxed: Callable[[list[dict[str, Any]]], bool] | None = None,
+                      line_defect: Callable[[list[dict[str, Any]]], bool] | None = None,
+                      lenient: Callable[[list[dict[str, Any]]], bool] | None = None,
+                      bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """Cycle 0 round 8 (rules2 F4): the last pass of both burst paths (9:16 and 16:9). A burst ending mid-sentence on
     a never-end word (never_end_end: the closed class, brand_system.NEVER_END_WORDS) takes the first words of the
     next burst, else gives its tail to it, else the two are one: the least change whose bursts both hold the path's
-    caps (`allowed`), split no bond or atomic pair (caption_bonds, name_bonds), end on no never-end word and add no
-    reading-rate defect (rate_defect). Where none holds (a bonded range too long for one burst) the end stays and
-    every record counts it (never_end_bursts). Every word keeps its order and time."""
+    caps (`allowed`), split no bond or atomic pair (caption_bonds, name_bonds, unit_links), end on no never-end word
+    and add no reading-rate defect (rate_defect). Every word keeps its order and time.
+
+    Lane C cycle 1 (N1, N2): a 9:16 burst whose two lines carry a line defect (`line_defect`: reel_line_defect, line
+    1 on a never-end word or a figure apart from its unit) is repaired the same way, with the burst before it too
+    where the sentence runs on into it, and `allowed` holds no such burst. What the path's own caps cannot repair is
+    tried again under `relaxed` (the bond extra, CAPTION_BOND_EXTRA_WORDS / _CHARS, and one line at
+    CAPTION_BOND_MIN_SIZE: THAT THE MANUSCRIPT'S). Where neither holds, no valid break exists in the window (NEAR /
+    THE PODKAMENNAYA: 656 px at 66 against a 640 px budget). Last, a burst END still on a never-end word may take
+    words under `lenient` (the path's caps, a line defect allowed): both lines are read at once, so WHERE THE MOST /
+    COMMON reads better than WHERE THE MOST | COMMON across a cut. What stays is named in every record
+    (never_end_bursts, line_defect_bursts)."""
     out = [list(p) for p in phrases if p]
-    if len(out) < 2:
+    if not out:
         return out
     pos = {id(w): k for k, w in enumerate(words)}
     raw = [w["word"] for w in words]
-    protected = name_bonds(raw) | caption_bonds(words)
+    protected = name_bonds(raw) | caption_bonds(words) | unit_links(words)
+    line_defect = line_defect or (lambda ph: False)
 
     def cut_ok(a: list[dict[str, Any]], b: list[dict[str, Any]]) -> bool:
         return (pos[id(a[-1])] not in protected and not never_end_end(a[-1]["word"])
@@ -2762,49 +2967,82 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
         return sum(rate_defect(trial, q, timing[q][0], timing[q][1])
                    + (timing[q][1] - timing[q][0] < CAPTION_REPAIR_DWELL_S - 1e-6) for q in at if 0 <= q < len(trial))
 
-    i = 0
-    while i < len(out) - 1:
-        left, right = out[i], out[i + 1]
-        if _ends_sentence(left) or not never_end_end(left[-1]["word"]):
-            i += 1
+    def broken(trial: list[list[dict[str, Any]]], q: int, lines: bool = True) -> bool:
+        p = trial[q]
+        return (lines and line_defect(p)) or (
+            q + 1 < len(trial) and not _ends_sentence(p) and never_end_end(p[-1]["word"]))
+
+    def pair_fix(trial: list[list[dict[str, Any]]], j: int, ok, lines: bool) -> list[list[dict[str, Any]]] | None:
+        """Bursts j and j + 1 of one sentence re-cut by moving words across their boundary, else joined; neither
+        burst it leaves is broken (the second's end included: CAN A QUIET | WHISPER TRAVEL ACROSS is no repair)."""
+        left, right = trial[j], trial[j + 1]
+        before = defects(trial, [j, j + 1])
+        moves = ([(left + right[:t], right[t:]) for t in range(1, len(right))]
+                 + [(left[:-t], left[-t:] + right) for t in range(1, len(left))])
+        for a, b in moves:
+            if ok(a) and ok(b) and cut_ok(a, b):
+                got = trial[:j] + [a, b] + trial[j + 2:]
+                if defects(got, [j, j + 1]) <= before and not broken(got, j + 1, lines):
+                    return got
+        if ok(left + right):
+            got = trial[:j] + [left + right] + trial[j + 2:]
+            if defects(got, [j]) <= before and not broken(got, j, lines):
+                return got
+        return None
+
+    for ok, lines in ((allowed, True), (relaxed, True), (lenient, False)):
+        if ok is None:
             continue
-        before = defects(out, [i, i + 1])
-        trials = ([(left + right[:t], right[t:]) for t in range(1, len(right))]
-                  + [(left[:-t], left[-t:] + right) for t in range(1, len(left))])
-        done = False
-        for a, b in trials:
-            if allowed(a) and allowed(b) and cut_ok(a, b):
-                trial = out[:i] + [a, b] + out[i + 2:]
-                if defects(trial, [i, i + 1]) <= before:
-                    out, done = trial, True
-                    break
-        if not done and allowed(left + right):
-            trial = out[:i] + [left + right] + out[i + 2:]
-            if defects(trial, [i]) <= before:
-                out, done = trial, True
-                continue   # the joined burst is checked again
-        if not done:   # the burst before it and the one after re-cut together (TRAVEL ACROSS | AN ESTIMATED 144-FOOT)
-            got = _window_recut(out, i, allowed, cut_ok, defects)
+        i = 0
+        while i < len(out):
+            if not broken(out, i, lines):
+                i += 1
+                continue
+            got = None
+            # the burst after (this burst runs on into it), then the burst before (it runs on into this one)
+            for j in (i, i - 1):
+                if 0 <= j < len(out) - 1 and not _ends_sentence(out[j]):
+                    got = pair_fix(out, j, ok, lines)
+                    if got is not None:
+                        break
+            if got is None:   # the burst before it and the one after re-cut together (TRAVEL ACROSS | AN ESTIMATED)
+                got = _window_recut(out, i, ok, cut_ok, defects)
             if got is not None:
+                if ok is relaxed and bond_extra is not None:
+                    # lane C ruling 5: every burst the relaxed tier forms past the caps, with the defect it removed
+                    removed = "line_defect" if lines and line_defect(out[i]) else "never_end_end"
+                    old = {tuple(id(w) for w in p) for p in out}
+                    for p in got:
+                        if tuple(id(w) for w in p) not in old and over_caps(p):
+                            bond_extra.append({"at": round(float(p[0].get("start", 0.0)), 2),
+                                               "text": " ".join(w["word"] for w in p), "removed": removed,
+                                               "was": " ".join(w["word"] for w in out[i])})
                 out = got
-        i += 1
+            i += 1
     if [w for p in out for w in p] != words:
         raise RuntimeError("caption never-end repair lost or reordered a word")
     return out
+
+
+def over_caps(phrase) -> bool:
+    """A 9:16 burst past MAX_BURST_WORDS words or MAX_BURST_CHARS characters (as shown)."""
+    return len(phrase) > MAX_BURST_WORDS or len(" ".join(_phrase_words(phrase))) > MAX_BURST_CHARS
 
 
 def _window_recut(out, i: int, allowed, cut_ok, defects):
     """_never_end_repair's last resort: bursts i-1, i and i+1 (those there are, inside burst i's sentence) re-cut
     into as many bursts (else one fewer, else one more), every cut allowed (cut_ok: no bond, no never-end end), every
     burst within the caps; the fewest soft ends (_dangles: a pre-modifier, a possessive), then the burst count kept,
-    then the fewest moved cuts; no added rate defect. None when no such cut holds."""
+    then the fewest moved cuts; no added rate defect. None when no such cut holds. Lane C cycle 1: where the sentence
+    runs on past the window, its last burst ends on no never-end word either."""
     lo = i - 1 if i > 0 and not _ends_sentence(out[i - 1]) else i
-    hi = i + 1
+    hi = i + 1 if i + 1 < len(out) and not _ends_sentence(out[i]) else i
     span = out[lo:hi + 1]
     flat = [w for p in span for w in p]
     n, k = len(flat), len(span)
     if n > 16:
         return None
+    after = out[hi + 1] if hi + 1 < len(out) and not _ends_sentence(out[hi]) else None
     old_cuts, at = set(), 0
     for p in span[:-1]:
         at += len(p)
@@ -2817,6 +3055,8 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
             bounds = (0, *cuts, n)
             parts = [flat[a:b] for a, b in zip(bounds, bounds[1:])]
             if not all(allowed(p) for p in parts) or not all(cut_ok(a, b) for a, b in zip(parts, parts[1:])):
+                continue
+            if after is not None and not cut_ok(parts[-1], after):
                 continue
             score = (sum(_dangles(p[-1]["word"]) for p in parts[:-1]), abs(m - k), len(set(cuts) ^ old_cuts))
             if best is None or score < best[0]:
@@ -4417,7 +4657,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         key = emphasis_indices(words, emphasis)
         hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
-        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width)
+        bond_extra: list[dict[str, Any]] = []
+        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width, bond_extra=bond_extra)
         # The whole first frame is a Reel (9:16) feature only: a 16:9 documentary's first line appears with its
         # narration, as in round 3 (round 4 fix: it jumped to 0.0, up to 0.6 s before the voice).
         if is_widescreen:
@@ -4428,7 +4669,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not is_widescreen:
             timings = snap_to_cuts(phrases, timings, cuts)
         # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
-        self.last_reading_rate = rates = reading_rates(phrases, timings)
+        self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen,
+                                                       bond_extra=bond_extra)
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
             # starts its captions timeline_offset_s late; the release gate prints these times for the operator)

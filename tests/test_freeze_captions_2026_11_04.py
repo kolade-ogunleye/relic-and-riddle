@@ -336,8 +336,10 @@ def test_reel_sizes_keep_to_the_ladder(nid):
             if size not in (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE):
                 off_ladder.append((" ".join(w["word"] for w in p), size))
             if size == CAPTION_BOND_MIN_SIZE:
+                # lane C cycle 1 (N1): or one line at the bond floor where every two-line break ends line 1 on a
+                # never-end word (ON THE NORTHWESTERN: was ON / THE NORTHWESTERN at 80)
                 assert _bonded_all(p, local) or any(k in local for k in range(len(p) - 1)) or \
-                    vc.reel_caption_lines(p), (nid, [w["word"] for w in p])
+                    vc.reel_caption_lines(p) or vc.reel_floor_line(p), (nid, [w["word"] for w in p])
         base += len(p)
     # N1 (operator decision, round 2): the 58/60 px whole-burst shrink is withdrawn, so no multi-word burst is off the
     # ladder (was: UNDER THE RASHTRAKUTA DYNASTY and UNESCO WORLD HERITAGE SITES); the two draw as UNDER | THE
@@ -461,9 +463,11 @@ def require_raqm():
 # (_libass_line), in whole pixels rounded down (measure_caption_phrase, QF-87 review 1); the pins are re-measured
 # (fit size, measure, libass ink). Was (80, 443, 444), (80, 402, 403), (80, 171, 172), (80, 639, 640), (80, 634, 635),
 # (80, 510, 511), (80, 550, 552), (77, 634, 635), (80, 593, 594), (80, 558, 560).
+# Lane C cycle 1 (N2): AN ESTIMATED 720 TONS left this one-line table: it draws on two lines at 80 now, broken after
+# its whole hedge (AN ESTIMATED / 720 TONS, video_composer._hedge_break; was one line at 66, (66, 617, 618)).
 REEL_MEASURE_RAQM = {
     "Wait, look here!": (80, 528, 528), "Beneath Odesa": (80, 472, 473), "It was": (80, 204, 205),
-    "an estimated 720 tons": (66, 617, 618), "shore of the Black Sea": (66, 625, 626),
+    "shore of the Black Sea": (66, 625, 626),
     "Amenhotep III was": (80, 596, 597), "WAVY Vault 7,000": (80, 579, 579), "COUNTERREVOLUTIONARIES": (64, 638, 639),
     "Incomprehensibilities": (71, 639, 640), "the mine's rock salt": (74, 633, 634),
 }
@@ -656,7 +660,10 @@ def test_figure_units_exact():
     # HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES. and (42 M), WITH WEIGHT, and colossi HEAD's (18 M) INCLUDING
     # (was: no burst ends on 1,090 or opens on TONNES or a bracket); ROUGHLY 137 FEET (41.75 M) is held (HEAD cut it)
     assert "ROUGHLY 137 FEET (41.75 M)" in aswan, aswan
-    assert "FROM NEARLY 1,090" in aswan and "TONNES TO 1,168 TONNES" in aswan, aswan
+    # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure keeps its unit on every path
+    # (video_composer.unit_link), so the range gives way at its joiner, FROM NEARLY 1,090 TONNES | TO 1,168 TONNES
+    # (was HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES)
+    assert "FROM NEARLY 1,090 TONNES" in aswan and "TO 1,168 TONNES" in aswan, aswan
     colossi = _texts(layout("singing_colossi_of_memnon", False)[1])
     assert "(18 M) INCLUDING" in colossi and "THEIR 13-FOOT (4 M)" in colossi, colossi
     # fix round 1 (gate): ROCK SALT is a key term, no figure link: at 9:16 it keeps HEAD's THE MINE'S ROCK | SALT
@@ -1501,7 +1508,10 @@ def test_review_sentence_voynich():
 
 # ---------------------------------------------------------------- A1: no burst ends on an article
 # The one exception class: an article right before a hedge and figure group that cannot hold it at the bond floor.
-A1_EXCEPTIONS = {"THEY REMOVED AN"}
+# Lane C cycle 1: none is left. AN ESTIMATED 200,000 TONS draws on two lines after its whole hedge
+# (video_composer._hedge_break), so the article goes with its group: THEY REMOVED | AN ESTIMATED / 200,000 TONS (was
+# {"THEY REMOVED AN"}).
+A1_EXCEPTIONS: set = set()
 
 
 def test_no_burst_ends_on_an_article():
@@ -1567,8 +1577,11 @@ def test_units_and_hedges_on_the_real_runs():
     # fix round 2 (review blocker 1, operator decision 2026-11-04 as written: a figure link forces no cut HEAD 0036b18
     # lacks): tunguska keeps HEAD's MORE THAN 830 SQUARE | MILES OF TAIGA FOREST and BETWEEN 10 AND 15 | MEGATONS OF
     # TNT (was: no burst ends on SQUARE or 10 AND 15, which cost BETWEEN 10 | AND 15 MEGATONS | OF TNT)
-    assert "MORE THAN 830 SQUARE" in tung and "MILES OF TAIGA FOREST" in tung, tung
-    assert "BETWEEN 10 AND 15" in tung and "MEGATONS OF TNT" in tung, tung
+    # lane C cycle 1 (N2, RUBRIC TY2 and the final round-8 AD check): a value never leaves its unit across a line or a
+    # burst (video_composer.unit_link, never loosened for HEAD's cut): MORE THAN 830 SQUARE MILES | OF TAIGA FOREST and
+    # BETWEEN 10 AND 15 MEGATONS | OF TNT (was HEAD's MORE THAN 830 SQUARE | MILES and BETWEEN 10 AND 15 | MEGATONS)
+    assert "MORE THAN 830 SQUARE MILES" in tung and "OF TAIGA FOREST" in tung, tung
+    assert "BETWEEN 10 AND 15 MEGATONS" in tung and "OF TNT" in tung, tung
     assert not any(t.endswith("BETWEEN 10") for t in tung), tung
     amber = _texts(run_layout("amber_room_heist")[1])
     # fix round 1 (gate): a fixed hedge phrase is no figure link, so amber keeps HEAD 0036b18's BY ONE | ESTIMATE,
@@ -1577,7 +1590,9 @@ def test_units_and_hedges_on_the_real_runs():
     # ends on MORE THAN 590 or opens on SQUARE FEET)
     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): SQUARE FEET AND CONTAINED is one two-line burst now (was SQUARE
     # FEET | AND CONTAINED); HEAD's COVERED MORE THAN 590 | SQUARE FEET cut stands, no lone COVERED
-    assert "COVERED MORE THAN 590" in amber and "SQUARE FEET AND CONTAINED" in amber and "COVERED" not in amber, amber
+    # lane C cycle 1 (N2): MORE THAN 590 SQUARE FEET is one value, so the cut before it moves: THE COMPLETED ROOM
+    # COVERED | MORE THAN 590 SQUARE FEET | AND CONTAINED (was HEAD's COVERED MORE THAN 590 | SQUARE FEET AND CONTAINED)
+    assert "MORE THAN 590 SQUARE FEET" in amber and "THE COMPLETED ROOM COVERED" in amber and "COVERED" not in amber, amber
     for topic in RUNS:
         words, phrases = run_layout(topic)
         head = _head_cuts(words, list(RUNS[topic].get("emphasis_words") or []), RUN_WIDE[topic])
@@ -1624,7 +1639,9 @@ HEAD_CUTS_FILE = ROOT / "docs/reviews/freeze-panel-2026-11-04/captions/regressio
 # two lines instead: names PUSHED | TOWARD, edge YEARS | AGO,, wieliczka UNDERGROUND | GALLERIES, richat DATING | OF,
 # THOUSANDS | OF, RECOGNIZED | THIS, HERITAGE | SITES. and voynich SCRIPT | WHERE.
 GATE_FORCED = {
-    ("run:gol_gumbaz_whispering_gallery", "9:16", "across", "an"): ("article", "HEAD's TRAVEL ACROSS AN"),
+    # lane C cycle 1: AN ESTIMATED 144-FOOT takes its lead-in on two lines (ACROSS AN ESTIMATED / 144-FOOT, after the
+    # whole hedge), so TRAVEL ends its burst (was across | an, kind "article")
+    ("run:gol_gumbaz_whispering_gallery", "9:16", "travel", "across"): ("never_end", "HEAD's burst ended on AN"),
     # QF-87 review 1: voynich SCRIPT | WHERE is gone (HEAD's SCRIPT WHERE AN ALPHABET draws on two lines at 80). One new
     # 9:16 cut keeps a figure range whole (kind "range", measured below: the burst it ends holds the whole range and
     # HEAD's burst does not): HEAD's AGO, BETWEEN 287 AND | 300 KILOMETRES BELOW cut inside the range
@@ -1642,7 +1659,9 @@ GATE_FORCED = {
     # never-end word within three words of the new cut)
     ("singing_colossi_of_memnon", "9:16", "monument", "became"): ("never_end", "window: FAMOUS THROUGHOUT"),
     ("singing_colossi_of_memnon", "9:16", "famous", "throughout"): ("never_end", "HEAD's burst ended on THROUGHOUT"),
-    ("run:richat_structure_sahara_eye", "9:16", "dating", "from"): ("never_end", "HEAD's burst ended on FROM"),
+    # lane C cycle 1: dating | from is gone (the line repair re-cut the burst after it); a thickness | of comes with
+    # OF AT LEAST 40 METRES, the lead-in with its figure (HEAD's burst ended on OF)
+    ("run:richat_structure_sahara_eye", "9:16", "thickness", "of"): ("never_end", "HEAD's burst ended on OF"),
     ("run:richat_structure_sahara_eye", "16:9", "artifacts", "alongside"): ("never_end", "HEAD's ended on ALONGSIDE"),
     ("run:richat_structure_sahara_eye", "16:9", "Aterian", "tools"): ("never_end", "window: ALONGSIDE"),
     ("run:gol_gumbaz_whispering_gallery", "9:16", "continuously", "along"): ("never_end", "HEAD's ended on ALONG"),
@@ -1653,6 +1672,16 @@ GATE_FORCED = {
     ("run:amber_room_heist", "16:9", "likely", "incinerated"): ("never_end", "HEAD's burst ended on MOST"),
     ("run:voynich_manuscript", "9:16", "common", "word"): ("never_end", "HEAD's burst ended on MOST"),
     ("run:richat_structure_sahara_eye", "cues", "situated", "near"): ("never", "HEAD's cue ended on NEAR"),
+    # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure and its unit hold on every burst
+    # path (video_composer.unit_link), so the cut HEAD made between them moves (kind "unit", checked below: HEAD cut a
+    # unit link within four words of the new cut)
+    ("run:amber_room_heist", "9:16", "covered", "more"): ("unit", "HEAD's MORE THAN 590 | SQUARE FEET"),
+    ("run:tunguska_event_1908", "9:16", "miles", "of"): ("unit", "HEAD's MORE THAN 830 SQUARE | MILES"),
+    ("run:tunguska_event_1908", "9:16", "megatons", "of"): ("unit", "HEAD's BETWEEN 10 AND 15 | MEGATONS"),
+    ("run:tunguska_event_1908", "16:9", "devastated", "more"): ("unit", "HEAD's 830 | SQUARE MILES"),
+    ("run:tunguska_event_1908", "16:9", "miles", "of"): ("unit", "HEAD's 830 | SQUARE MILES"),
+    ("unfinished_obelisk_aswan", "9:16", "tonnes", "to"): ("unit", "HEAD's FROM NEARLY 1,090 | TONNES"),
+    ("wieliczka_salt_mine", "9:16", "287", "and"): ("unit", "HEAD's 287 AND 300 | KILOMETERS."),
     # fix round 3 (review blocker: THIS CIRCULAR || GEOLOGICAL FORMATION split the noun phrase; was circular|geological
     # and structure|as): the forced end goes before the determiner, and the next cue ends before THE STRUCTURE
     ("run:richat_structure_sahara_eye", "cues", "formed", "this"):
@@ -1665,7 +1694,10 @@ GATE_FORCED = {
 # split ends on a function word (a hard defect, as at HEAD) or passes the width.
 # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): none is left. The six width-forced lone words (names PUSHED,
 # richat DATING, THOUSANDS, RECOGNIZED, SITES., wieliczka GALLERIES) are gone: HEAD's wide burst draws on two lines
-LONE_FORCED: dict = {}
+# Lane C cycle 1: one, where the never-end repair leaves the word alone: TRAVEL | ACROSS AN ESTIMATED / 144-FOOT (every
+# other split of CAN A QUIET WHISPER TRAVEL ACROSS ends a burst on ACROSS, or passes four words for CAN A QUIET WHISPER
+# TRAVEL)
+LONE_FORCED: dict = {("run:gol_gumbaz_whispering_gallery", "travel"): ("travel", "across")}
 
 
 def _gate_cases():
@@ -1735,6 +1767,9 @@ def test_head_regression_gate():
                     assert any(vc.never_end_end(raw[e]) for e in near) or any(
                         GATE_FORCED.get((case, fmt, raw[c], raw[c + 1]), ("",))[0] == "never_end" and c != k
                         for c in set(cuts) - set(h[fmt]) if abs(c - k) <= 6), (key, [raw[e] for e in near])
+                if kind == "unit":   # lane C cycle 1: HEAD split a figure from its unit next to this cut
+                    assert any(vc.unit_link(raw[e], raw[e + 1]) for e in h[fmt] if abs(e - k) <= 4
+                               and e < len(raw) - 1), (key, [raw[e] for e in h[fmt] if abs(e - k) <= 4])
                 if kind == "range":   # QF-87 review 1: the burst the new cut ends holds a whole figure range
                     ends = _ends(caption_phrases(words, emph))
                     start = max([e + 1 for e in ends if e < k] + [0])
@@ -2045,9 +2080,11 @@ def test_a_figure_unit_is_a_bond():
     """THEY REMOVED AN | ESTIMATED 200,000 TONS (tests/test_loop_seam_and_captions_2026_11_03.py, committed at HEAD,
     passes unchanged): the figure's unit is a bond of the figure, as U1 bonds 830 | SQUARE."""
     raw = "They removed an estimated 200,000 tons of rock.".split()
-    assert {3, 4} <= caption_bonds(raw) and 2 not in caption_bonds(raw)
+    assert {3, 4} <= caption_bonds(raw)
     texts = _texts(partition_words_grammatical(_even(" ".join(raw), 0.3, 0.25)))
-    assert texts == ["THEY REMOVED AN", "ESTIMATED 200,000 TONS", "OF ROCK"], texts
+    # lane C cycle 1: AN ESTIMATED 200,000 TONS draws on two lines after its whole hedge (_hedge_break), so the
+    # article leads into its group (lead_in_bonds) and no burst ends on AN (was THEY REMOVED AN | ESTIMATED ...)
+    assert 2 in caption_bonds(raw) and texts == ["THEY REMOVED", "AN ESTIMATED 200,000 TONS", "OF ROCK"], texts
 
 
 def test_king_krishna_and_the_rashtrakuta_dynasty_are_two_names():

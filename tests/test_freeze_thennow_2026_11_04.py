@@ -346,8 +346,14 @@ def test_the_kicker_sits_tight_on_the_year(tmp_path, monkeypatch, size, gap):
         assert gap[0] <= y[1] - k[3] <= gap[1], (w, k, y)
         assert k[3] < y[1]
     if size == PORTRAIT:
-        b = rows["then_year"].box                                  # the widest year fits the column, either side
-        assert (84 <= b[0] and b[2] <= 440) or (600 <= b[0] and b[2] <= 870)
+        b = rows["then_year"].box                                  # the widest year fits the column, any side
+        # lane A cycle 1: a centred column is a candidate too (then_now.marker_sides), so the year sits left-set,
+        # right-set or centred on its column, always inside the graphics box (checked below)
+        side = then_now.last_meta["side"]["side"]
+        if side.startswith("centre:"):
+            assert abs((b[0] + b[2]) / 2 - int(side.split(":")[1])) <= 2
+        else:
+            assert (84 <= b[0] and b[2] <= 440) or (600 <= b[0] and b[2] <= 870)
         x0, y0, x1, y1 = safe_zones.graphics_box(*size)
         for name, p in rows.items():
             assert p.box[0] >= x0 and p.box[1] >= y0 and p.box[2] <= x1 and p.box[3] <= y1, name
@@ -1230,13 +1236,21 @@ def test_the_916_markers_take_the_quieter_side(tmp_path, monkeypatch, busy_left,
     new = _half_busy(tmp_path / "n.png", busy_left, seed=10)
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, PORTRAIT, keep=(), stop=0)
     meta = then_now.last_meta
-    assert meta["side"]["side"] == side
+    got = meta["side"]["side"]
     sums = meta["side"]["edge_sum"]
-    assert sums[side] <= sums["left" if side == "right" else "right"]
+    # lane A cycle 1: centred columns are candidates too; the busy half is still never taken and the pick is the
+    # quietest candidate (left kept unless another is SIDE_MARGIN quieter)
+    if side == "left":
+        assert got == "left"
+    else:
+        assert got != "left" and sums[got] == min(sums.values())
+        side = "right" if got == "right" else got
     x0, y0, x1, y1 = safe_zones.safe_box("reel", *PORTRAIT)
     for t in ("THEN", "1925", meta["kicker"]["now"], "2019"):
         b = plates[t].box
         assert x0 <= b[0] and b[2] <= x1 and y0 <= b[1] and b[3] <= y1, t
+    if side.startswith("centre:"):
+        assert all(plates[t].box[0] >= PORTRAIT[0] // 2 for t in ("THEN", "1925"))   # on the quiet half
     if side == "right":
         assert abs(plates["THEN"].box[2] - plates["1925"].box[2]) <= 1
         assert abs(plates[meta["kicker"]["now"]].box[2] - plates["2019"].box[2]) <= 1

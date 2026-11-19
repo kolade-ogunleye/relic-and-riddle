@@ -378,8 +378,23 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     # ---- heading rules
     "heading.balance_min": 0.55,      # the shorter line's ink width over the longer's
     "heading.cover_over_interior": 1.08,   # the cover heading is at least this x the deck's largest interior one
+    # Declared (SYS batch 2, item 7): it binds the CAROUSEL, the one set with a cover and interior headings (the tall
+    # and wide canvases draw no cover beside interiors in one set: one Story title size, one YouTube lockup, so their
+    # display_xl / display_l pairs, 150 / 138 and 190 / 184 on the ladder, 124 / 120 and 160 / 152 on the fallback,
+    # are not a cover-over-interior pair). On the carousel the ladder holds it on both tiers (150 / 138 = 1.087, the
+    # deck-wide fallback 150 / 124 = 1.21; the cover is locked at display_xl). Not held where a cover takes its
+    # recorded last resort under display_xl: 7 of 52 real covers (both copies; 5 of them the Facebook copy's narrower
+    # column) set at 144 / 140 / 134 / 126 design px, 0.91-1.04 of a 138 deck interior. Holding it there would take
+    # the deck's interiors to the fallback tier for the cover's sake: feed legibility ranks above hierarchy, so no.
     # ---- figures
     "figure.dash_centre_em": 0.03,    # an en dash's centre within this of the figures' centre
+    # Declared (SYS batch 2, item 7): a target the faces do not meet and the system does not draw to yet. Measured on
+    # the bundled faces at 1000 px, the en dash's ink centre sits 0.15-0.18 em under the figures' (Anton 0.180,
+    # Montserrat 0.152, Cinzel 0.183, IBM Plex Mono 0.171: each draws U+2013 on the lowercase centre, as text
+    # dashes are), and the panel's 0.047 / 0.045 em (Cinzel, Plex Mono) is not reproduced by either reading of the
+    # token (vertical as above; horizontal, the dash between its figures' ink, is set by figure.dash_gap_em). Fixing
+    # it is a figure-span raise (the `case` form where a face has one, else a designed rule: panel 2 AD MG-5),
+    # pixels on every stated span in every face: a SPEC decision with its own evidence, not a batch-2 token.
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,

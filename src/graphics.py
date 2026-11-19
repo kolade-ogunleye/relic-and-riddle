@@ -9082,46 +9082,95 @@ def _bracket(d: ImageDraw.ImageDraw, x: float, y0: float, y1: float, tick: float
 
 
 # Lane A (regression found in the cycle-1 before/after, Aswan 9:16): the landmark's referent note ("GROUND TO TORCH
-# TIP") says what its figure measures, so it is meaning, not ornament: it is set at or above its floor in the first
-# form that holds, by the label rules, and only refused (recorded, logged) where none does; never under the floor,
-# never dropped silently. The forms, in order: under the landmark's figure label (its own column); under the tick, a
-# little left (the column widened by the label's lead); on the landmark's free side (right-set to the left of the
-# landmark's top, clear of the subject and every other word); each wrapped to at most REFERENT_ROWS rows at the note's
-# own size (30 px on 9:16, its floor: the form changes, never the size).
+# TIP") says what its figure measures, so it is meaning, not ornament, and it reads as one unit with its figure
+# (lander, cycle 2): referent_block places the figure and the note together on the figure's tick, at the note's own
+# size (its floor), in the first form that holds, and refuses the note (recorded, logged) only where none does;
+# never under the floor, never dropped silently, never split from its figure.
 REFERENT_ROWS = 3
 LAST_REFERENT_NOTE: dict[str, Any] = {}
 
 
-def referent_note_rows(note: str, forms: Sequence[tuple[str, float, float, str]], sizes: Sequence[int], top: float,
-                       clear: Callable[[Box], bool]) -> tuple[list[tuple[str, tuple[float, float], Any]], dict]:
-    """The referent note's rows ((text, (x, baseline), font), anchor "ls") in the first form and size that hold, and
-    the record: `forms` are (name, x, column width, "l" left-set at x | "r" right-set ending at x), `sizes` the label
-    ladder (largest first, none under the floor), `top` the first row's cap top, `clear(box)` whether a row's ink box
-    is free (inside the drawing's box, off every other element). ([], record with "reason") when none holds."""
+REFERENT_TICK, REFERENT_TICK_SHORT = 26, 8   # px of the hairline tick from the landmark's top to its figure
+REFERENT_TICK_AIR = 8                         # px from the tick's end to the figure's ink
+
+
+def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, note: str, note_px: int,
+                   tick_r: float, tick_l: float, tick_y: float, scale: float,
+                   clear: Callable[[Box], bool], note_track: float = 1.0) -> tuple[Any, list, tuple | None, dict]:
+    """The landmark's figure ("305 FT") and its referent note ("GROUND TO TORCH TIP") placed as ONE block (lander,
+    cycle 2: the note defines what the figure measures, so the two read as one unit), on the hairline tick from the
+    landmark's top, in the first form that holds:
+      "under its figure": the tick right from `tick_r`, the figure left-set after it, the note left-set under it;
+      "free side block":  the tick left from `tick_l`, the figure right-set before it, the note right-set under it;
+      "tick form":        a short tick right, the figure and the note left-set close after it.
+    The note at `note_px` (its floor), wrapped to at most REFERENT_ROWS rows, its first row's cap REFERENT_GAP under
+    the figure's ink, aligned to the figure's edge; every ink box passes `clear` (inside the drawing's box, off the
+    other words and off the landmark's pixels). Returns (figure plate | None, note rows [(text, (x, base), font)],
+    tick (x_from, y, x_to) | None, record). With no form for the note, the figure alone keeps its first form that
+    holds and the note is refused (recorded)."""
+    n = scale
+    forms = [("under its figure", "r", tick_r, REFERENT_TICK), ("free side block", "l", tick_l, REFERENT_TICK),
+             ("tick form", "r", tick_r, REFERENT_TICK_SHORT)]
+    font_n = get_font(brand.TEXT_FONT, note_px, weight=600) if note else None
+    first_fig = None
     tried = []
-    for name, x, width, side in forms:
-        if width <= 0:
-            tried.append(f"{name}: no column")
+    for name, way, x_t, tick in forms:
+        sgn = 1 if way == "r" else -1
+        x_end = x_t + sgn * tick * n
+        cap = cap_height(f_fig)
+        base = tick_y + cap / 2
+        w_fig = tracked_width(fig_text, f_fig, fig_track)
+        fx = x_end + REFERENT_TICK_AIR * n if way == "r" else x_end - REFERENT_TICK_AIR * n - w_fig
+        fig = quantity_plate(ground, (fx, base), fig_text, f_fig, "ls", track=fig_track)
+        if fig.empty or not clear(fig.box):
+            tried.append(f"{name}: the figure is not clear")
             continue
-        for px in sizes:
-            font = get_font(brand.TEXT_FONT, px, weight=600)
-            lines = tracked_wrap(note, font, width, 1)
-            if lines is None or len(lines) > REFERENT_ROWS:
-                continue
-            step = round(cap_height(font) * 1.6)
-            rows = []
-            for k, ln in enumerate(lines):
-                base = top + cap_height(font) + k * step
-                lx = x if side == "l" else x - tracked_width(ln, font, 1)
-                rows.append((ln, (lx, base), font))
-            boxes = [ink_box(xy, ln, f, "ls", 1) for ln, xy, f in rows]
-            if all(b is not None and clear(b) for b in boxes):
-                return rows, {"note": note, "shown": True, "form": name, "px": px, "rows": len(rows)}
-            tried.append(f"{name} at {px} px: not clear")
-            break                    # a smaller size in the same form only moves the clash: try the next form
+        if first_fig is None:
+            first_fig = (fig, (x_t, tick_y, x_end))
+        if not note:
+            return fig, [], (x_t, tick_y, x_end), {"note": "", "shown": False, "form": name}
+        col = (fig.box[0], None) if way == "r" else (None, fig.box[2])   # the note aligns to the figure's edge
+        lines = tracked_wrap(note, font_n, _block_measure(clear, fig.box, way, font_n), note_track)
+        if lines is None or len(lines) > REFERENT_ROWS:
+            tried.append(f"{name}: no wrap in {REFERENT_ROWS} rows at {note_px} px")
+            continue
+        step = round(cap_height(font_n) * 1.6)
+        top = fig.box[3] + REFERENT_GAP * cap_height(font_n)
+        rows = []
+        for k, ln in enumerate(lines):
+            b = top + cap_height(font_n) + k * step
+            lx = col[0] if way == "r" else col[1] - tracked_width(ln, font_n, note_track)
+            rows.append((ln, (lx, b), font_n))
+        boxes = [ink_box(xy, ln, f, "ls", note_track) for ln, xy, f in rows]
+        if not all(bx is not None and clear(bx) for bx in boxes):
+            tried.append(f"{name}: the note is not clear")
+            continue
+        return fig, rows, (x_t, tick_y, x_end), {"note": note, "shown": True, "form": name, "px": note_px,
+                                                  "rows": len(rows), "figure_box": list(fig.box),
+                                                  "note_boxes": [list(bx) for bx in boxes]}
+    rec = {"note": note, "shown": False, "reason": "; ".join(tried) or "no form"}
+    if first_fig is not None:
+        return first_fig[0], [], first_fig[1], rec
+    return None, [], None, rec
+
+
+REFERENT_GAP = 0.5     # x the note's cap height: its first row's air under the figure's ink (within one row gap)
+
+
+def _block_measure(clear: Callable[[Box], bool], fig_box: Box, way: str, font, limit: float = 2000.0) -> float:
+    """The widest column a referent note may take from the figure's aligned edge (left edge for a right-going
+    block, right edge for a left-going one) before a probe row one cap tall under the figure stops being clear."""
+    cap = cap_height(font)
+    y0 = fig_box[3] + REFERENT_GAP * cap
+    lo, hi = 0.0, limit
+    for _ in range(14):
+        mid = (lo + hi) / 2
+        b = ((fig_box[0], y0, fig_box[0] + mid, y0 + cap) if way == "r" else (fig_box[2] - mid, y0, fig_box[2], y0 + cap))
+        if clear(b):
+            lo = mid
         else:
-            tried.append(f"{name}: no wrap in {REFERENT_ROWS} rows at {sizes[-1]} px or more")
-    return [], {"note": note, "shown": False, "reason": "; ".join(tried)}
+            hi = mid
+    return lo
 
 
 def landmark_mask(size: tuple[int, int], label: str, cx: float, base_y: float, h: float, pad: int = 6):
@@ -9384,46 +9433,33 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_blk, 2) / 2)
         plates.append(("block_label", quantity_plate(ground, (lab_cx, base_y - blk_h - 16),
                                                      blk_text, f_blk, "ms", track=2)))
-        # and the landmark's figure at its top, on a hairline tick (round 3)
+        # and the landmark's figure at its top, on a hairline tick (round 3), with its referent note ("GROUND TO TORCH
+        # TIP", what the figure measures) as ONE block (referent_block; lander, cycle 2): the text face (BC-3) at its
+        # own size (30 px, its floor), never dropped silently
         ref_top = base_y - ref_feet * px_ft
-        tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top
-        ref_note = quantity_plate(ground, (tick_x + 34, ref_top + cap_height(f_blk) / 2), _short(ref_feet, unit),
-                                  f_blk, "ls", track=2)
-        if ref_note.box[2] <= label_x1 and not LayoutConstraintSolver.boxes_intersect(ref_note.box, plates[-1][1].box, 8):
-            plates.append(("ref_label", ref_note))
-            bracket = (tick_x, ref_top, ref_top)
-            # round 4: what the landmark's figure measures, under it (reference_note: "GROUND TO TORCH TIP"), in
-            # the text face (a label) at the ruler's size, three lines at most (two until QF-24), inside the box or
-            # not at all
-            note = reference_note(ref_label)
-            LAST_REFERENT_NOTE.clear()
-            if note:
-                # lane A cycle 1 (panel 1 BC-3, still open in r8): a referent's description is a label, so the
-                # text face (FACE["label"]); the data face stays for rulers, axes and units only. Set by
-                # referent_note_rows at or above its floor in the first form that holds (never dropped silently).
-                # its floor is its own size (30 px, never under the 9:16 label floor): the forms change, not the size
-                own = max(SCALE_RULER_PX - 4, floor)
-                sizes = [own]
-                top_w = ref_feet * px_ft * width_per_px * 0.25     # the landmark's top is its narrow part
-                taken = [pl.box for _n, pl in plates if not getattr(pl, "empty", False)]
-                c_box = (x0, top, label_x1, base_y - 4)
-                forms = [("under its figure", ref_note.box[0], label_x1 - ref_note.box[0] - 4, "l"),
-                         ("under its tick", tick_x, label_x1 - tick_x - 4, "l"),
-                         ("free side", ref_cx - top_w / 2 - 16, ref_cx - top_w / 2 - 16 - x0, "r")]
+        reach = max(0.05 * ref_feet * px_ft, 6)
+        tick_r, tick_l = ref_cx + reach, ref_cx - reach          # just right / left of the landmark's top
+        note = reference_note(ref_label)
+        LAST_REFERENT_NOTE.clear()
+        taken = [pl.box for _n, pl in plates if not getattr(pl, "empty", False)]
+        c_box = (x0, top, label_x1, base_y - 4)
+        lm = landmark_mask((width, height), ref_label, ref_cx, base_y, ref_feet * px_ft)
 
-                lm = landmark_mask((width, height), ref_label, ref_cx, base_y, ref_feet * px_ft)
-
-                def clear_n(b: Box) -> bool:
-                    return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
-                            and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
-                            and off_mask(lm, b))
-                rows_n, rec_n = referent_note_rows(note, forms, sizes, ref_note.box[3] + 14, clear_n)
-                LAST_REFERENT_NOTE.update(rec_n)
-                if rows_n:
-                    plates += [(f"ref_note{k}", plan_text(ground, xy, ln, f, brand.STONE_LT, "ls", track=1))
-                               for k, (ln, xy, f) in enumerate(rows_n)]
-                else:
-                    log.warning("Scale: the referent note %r is refused: %s.", note, rec_n["reason"])
+        def clear_n(b: Box) -> bool:
+            return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
+                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
+                    and off_mask(lm, b))
+        fig_pl, rows_n, tick, rec_n = referent_block(ground, _short(ref_feet, unit), f_blk, 2, note,
+                                                     max(SCALE_RULER_PX - 4, floor), tick_r, tick_l, ref_top, 1.0,
+                                                     clear_n)
+        LAST_REFERENT_NOTE.update(rec_n)
+        if fig_pl is not None:
+            plates.append(("ref_label", fig_pl))
+            bracket = tick                                     # (x_from, y, x_to): the hairline tick
+            plates += [(f"ref_note{k}", plan_text(ground, xy, ln, f, brand.STONE_LT, "ls", track=1))
+                       for k, (ln, xy, f) in enumerate(rows_n)]
+        if note and not rows_n:
+            log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))
     line_spans = datum_spans(x0, x1, zero_boxes, 8)          # the ground line yields round its zero label (F11)
     ruler_rows = [ruler_record(f"ruler{j}", pl, round(ft * per_ft(unit), 6), at, line_spans if ft == 0 else ())
                   for j, (ft, at, pl) in enumerate(ruler_marks)]
@@ -9479,8 +9515,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                 grow = b0 + (b1 - b0) * (1 - ab) if b1 == line_y else b0
                 end = b1 if b1 == line_y else b0 + (b1 - b0) * ab
                 _bracket(d, bx, grow, end, 12, 3, (*brand.GOLD, 255))
-            else:       # the landmark's hairline tick
-                d.line([(bx, b0), (bx + 26 * ab, b0)], fill=(*brand.STONE_LT, 255), width=2)
+            else:       # the landmark's hairline tick, from its top towards its figure (bracket: x_from, y, x_to)
+                d.line([(bx, b0), (bx + (b1 - bx) * ab, b0)], fill=(*brand.STONE_LT, 255), width=2)
 
         def at_of(name: str) -> float:
             at = {"subject": 0.1, "figure": 0.4, "figure_metric": 0.5, "block_label": 1.5,
@@ -9686,12 +9722,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_blk, S(1)) / g.k / 2)
         ann.append(("block_label", blk_text, f_blk, brand.GOLD, lab_cx, base_y - blk_h - 18, "ms"))
         ref_top = base_y - ref_feet * px_ft
-        tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top
-        ann.append(("ref_label", _short(ref_feet, unit), f_blk, brand.STONE_LT, tick_x + 34,
-                    ref_top + cap_height(f_blk) / g.k / 2, "ls"))
-        note = reference_note(ref_label)             # round 4: what the landmark's figure measures (set below,
-        #                                              referent_note_rows, once the other words are placed)
-        bracket = (tick_x, ref_top, ref_top)
+        note = reference_note(ref_label)             # round 4: what the landmark's figure measures (set below with
+        #                                              its figure, referent_block, once the other words are placed)
         for j, (ft, text) in enumerate(height_ruler(max(feet, ref_feet), unit)):
             ann.append((f"ruler{j}", text, f_rule, brand.STONE_LT, rule_x - 14,
                         base_y + 1.5 if ft == 0 else base_y - ft * px_ft, "ruler"))   # F11: "0 FT" on the line
@@ -9744,14 +9776,16 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             if rr > 0:
                 _silhouette(d, ref_label, X(ref_cx), Y(base_y), S(ref_feet * px_ft * rr), brand.STONE_LT)
             ab = _ease((t - 2.4) / 0.4)
-            if bracket and ab > 0 and "ref_label" in shown:          # the landmark's hairline tick
-                d.line([(X(bracket[0]), Y(bracket[1])), (X(bracket[0] + 26 * ab), Y(bracket[1]))],
-                       fill=(*brand.STONE_LT, 255), width=max(1, round(S(2))))
+            if tick_px and ab > 0 and "ref_label" in shown:          # the landmark's hairline tick (frame px)
+                tx0, ty, tx1 = tick_px[0]
+                d.line([(tx0, ty), (tx0 + (tx1 - tx0) * ab, ty)], fill=(*brand.STONE_LT, 255),
+                       width=max(1, round(S(2))))
         return im
 
     def line_spans() -> list[tuple[float, float]]:
         return datum_spans(X(gx0), X(gx1), zero_boxes, S(8))
 
+    tick_px: list[tuple[float, float, float]] = []       # the landmark's hairline tick, set with its figure
     shown: set[str] = {"ref_label"} | {a[0] for a in ann if a[0].startswith("ruler")}
     final = drawing(1e9)
     plates = [(name, quantity_plate(final, (X(cx0 + 4), Y(col_top + yb)), text, font, "ls", track=track)
@@ -9773,36 +9807,34 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         plates.append((name, plate))
         if anchor == "ruler":
             ruler_rows.append((name, plate, Y(yb)))
-    # the landmark's referent note (lane A: meaning, never dropped silently), in the text face (BC-3), at or above
-    # the 16:9 label floor, in the first form that holds (referent_note_rows)
+    # the landmark's figure and its referent note as ONE block on its tick (referent_block; lane A: the note is
+    # meaning, never dropped silently), the note in the text face (BC-3) at or above the 16:9 label floor
     LAST_REFERENT_NOTE.clear()
-    ref_pl = next((pl for n_, pl in plates if n_ == "ref_label"), None)
-    if not depth and note and ref_pl is not None:
+    if not depth:
         from .brand_system import label_floor_px
         own = max(g.f(28), math.ceil(label_floor_px(width, height) - 1e-6))
-        top_w = S(ref_feet * px_ft * width_per_px * 0.25)
         lim = X(cx0 - 20)
         taken = [pl.box for _n, pl in plates]
         c_box = (X(WIDE_TITLE_SAFE[0]), Y(top_d) - S(40), lim, Y(base_y) - 4)
-        forms = [("under its figure", ref_pl.box[0], lim - ref_pl.box[0] - 4, "l"),
-                 ("under its tick", X(tick_x), lim - X(tick_x) - 4, "l"),
-                 ("free side", X(ref_cx) - top_w / 2 - S(16), X(ref_cx) - top_w / 2 - S(16) - X(WIDE_TITLE_SAFE[0]),
-                  "r")]
-
         lm = landmark_mask((width, height), ref_label, X(ref_cx), Y(base_y), S(ref_feet * px_ft), round(S(6)))
 
         def clear_w(b: Box) -> bool:
             return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
                     and off_mask(lm, b))
-        rows_n, rec_n = referent_note_rows(note, forms, [own], ref_pl.box[3] + S(16), clear_w)
+        reach = S(max(0.05 * ref_feet * px_ft, 6))
+        fig_pl, rows_n, tick, rec_n = referent_block(final, _short(ref_feet, unit), f_blk, S(1), note or "", own,
+                                                     X(ref_cx) + reach, X(ref_cx) - reach, Y(ref_top), g.k,
+                                                     clear_w, S(1))
         LAST_REFERENT_NOTE.update(rec_n)
-        if rows_n:
+        if fig_pl is not None:
+            plates.append(("ref_label", fig_pl))
+            tick_px.append(tick)
             plates += [(f"ref_note{k}", plan_text(final, xy, ln, f, brand.STONE_LT, "ls", track=S(1)))
                        for k, (ln, xy, f) in enumerate(rows_n)]
             shown.update(f"ref_note{k}" for k in range(len(rows_n)))
-        else:
-            log.warning("Scale: the referent note %r is refused: %s.", note, rec_n["reason"])
+        if note and not rows_n:
+            log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))
     shown.intersection_update(name for name, _ in plates)
     if "ruler0" not in shown:
         zero_boxes.clear()                                           # no zero drawn: the line runs whole

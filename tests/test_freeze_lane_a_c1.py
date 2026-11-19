@@ -417,6 +417,15 @@ def test_a_landmarks_referent_note_is_drawn_whole_at_its_floor_or_recorded_refus
         for pl in plan_only["_plates"]:
             if pl.text in texts:
                 assert pl.font.size >= floor - 0.5, (pl.text, pl.font.size, floor)
+        # one unit with its figure (lander, cycle 2): the note's first row directly under the figure, within one row
+        # gap, every row aligned to the figure's edge (left for a block going right, right for the free-side block)
+        fig = _el(rec, "ref_label")["box"]
+        boxes = sorted((e["box"] for e in rows), key=lambda b: b[1])
+        cap = boxes[0][3] - boxes[0][1]
+        assert 0 <= boxes[0][1] - fig[3] <= 1.6 * cap, (fig, boxes[0])
+        edge = 2 if got["form"] == "free side block" else 0
+        for b in boxes:
+            assert abs(b[edge] - fig[edge]) <= 4, (got["form"], fig, b)
     else:
         assert got["reason"], got
 

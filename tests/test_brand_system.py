@@ -442,6 +442,8 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "figure.colour": ("TEAL", lambda: _graphics().figure_fill()),
     "figure.conversion": (0.3, lambda: _graphics().conversion_px(76)),
     "data.unit_gap": (0.5, _ruler_zero_box),
+    "figure.dash_gap_em": (0.12, lambda: __import__("src.typography", fromlist=["x"]).get_font(
+        brand.DISPLAY_FONT, 200).getlength("94\u2013104")),
     "place.weight": (500, lambda: _graphics().place_font(34).getlength("CATHERINE PALACE")),
     "place.px": (40, lambda: _graphics().place_steps(1080, 1920)),
     "place.halo_px": (12, _place_plate),

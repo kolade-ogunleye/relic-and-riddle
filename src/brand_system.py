@@ -232,6 +232,8 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "figure.colour": "GOLD",          # a palette role
     "figure.conversion": 0.5,         # the conversion's px, at most this share of its lead figure's
     "data.unit_gap": 0.2,             # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6)
+    "figure.dash_gap_em": 0.06,       # em: a range's en dash keeps at least this ink gap to each figure (font_engine
+                                      # opens a face's span dash by the least spacing that holds it; SYS batch 1)
     # ---- place labels: a map's site name and a route's stop names (one role)
     "place.weight": 800,
     "place.px": 34,                   # design px (1080 wide on 9:16, 1920 on 16:9), stepping down to the canvas floor
@@ -284,6 +286,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
     "figure.conversion": (0.3, 1.0),
     "data.unit_gap": (0.0, 0.6),          # em
+    "figure.dash_gap_em": (0.03, 0.15),   # em: never touching, never a word space
     "place.weight": (400, 900),
     "place.px": (27, 48),                 # never under the 9:16 label floor
     "place.halo_px": (8, 31),
@@ -333,7 +336,6 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     "heading.cover_over_interior": 1.08,   # the cover heading is at least this x the deck's largest interior one
     # ---- figures
     "figure.dash_centre_em": 0.03,    # an en dash's centre within this of the figures' centre
-    "figure.dash_gap_em": 0.06,       # and at least this ink gap each side
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,

@@ -172,7 +172,8 @@ def test_every_overlay_label_renderer_goes_through_the_one_rule(fn):
     src = textwrap.dedent(inspect.getsource(fn))
     calls = [n for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Call)]
     names = {getattr(c.func, "id", getattr(c.func, "attr", None)) for c in calls}
-    assert "plan_label" in names or "plan_kicker" in names
+    # round 8 R1 (rules2): a renderer drawing a SET of labels plans them through plan_label_set (one rule, per set)
+    assert "plan_label" in names or "plan_kicker" in names or "plan_label_set" in names
     assert not [r for r in RETIRED if r in src], fn.__qualname__
     for c in calls:     # no plan_text past the cap in an overlay-label renderer
         for kw in c.keywords:

@@ -474,7 +474,10 @@ def test_h2_gold_rule(photos):
     assert golds == ["RING"]
     plan = hook_plan(photos["dark"], "About 40 km across", eyebrow="The Richat ring")
     e = els(plan)
-    assert e["title_0"].fill == brand.GOLD and e["title_1"].fill == brand.BONE
+    # rules2 F5 (ruling 8): the figure line draws its number and unit gold, ABOUT bone (it drew the whole line gold)
+    assert e["title_1"].fill == brand.BONE
+    assert [p.text.strip() for p in plan.meta["_r"]["plates"] if p.fill == brand.GOLD
+            and p.text.strip() in plan.drawn_text["title_0"]] == ["40 KM"]
     assert e["eyebrow"].fill == brand.BONE and plan.meta["eyebrow_alpha"] == 0.8
     eb = [p for p in plan.meta["_r"]["plates"] if p.text == plan.drawn_text["eyebrow"]]
     assert eb and all(p.alpha_scale == 0.8 for p in eb)

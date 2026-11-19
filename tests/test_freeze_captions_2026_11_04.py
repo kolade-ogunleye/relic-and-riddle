@@ -540,9 +540,12 @@ def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path,
     measure got most wrong; the kerned measure (raqm's layout, as before the decision) is more than 2 px short."""
     require_raqm()
     _, phrases = run_layout(run, False)
-    phrase = next(p for p in phrases if " ".join(vc._phrase_words(p)).upper() == text)
-    words = [{"word": w["word"], "start": 0.1 + 0.3 * k, "dur": 0.25} for k, w in enumerate(phrase)]
+    phrase = next((p for p in phrases if " ".join(vc._phrase_words(p)).upper() == text), None)
+    # rules2 F4: Amber's MOST | LIKELY INCINERATED moved off its never-end end; the measure is the text's own
+    shown = [w["word"] for w in phrase] if phrase else text.lower().split()
+    words = [{"word": w, "start": 0.1 + 0.3 * k, "dur": 0.25} for k, w in enumerate(shown)]
     assert len(caption_phrases(words)) == 1, text
+    phrase = phrase or words
     size = vc._caption_fit_size(phrase)
     a = _render_reel(words, tmp_path, words[-1]["start"] + 0.2)
     _, _, il, ir = _plate_and_ink(a)
@@ -1633,6 +1636,22 @@ GATE_FORCED = {
     # so the cut goes before it (THE RICHAT STRUCTURE IS SITUATED | NEAR OUADANE ...); the cue's PLATEAU | WITHIN
     # entry (HEAD's cue ended on WITHIN THE) is gone with it: the next cue now runs to MAURITANIA.
     ("run:richat_structure_sahara_eye", "16:9", "situated", "near"): ("never", "HEAD's burst ended on NEAR"),
+    # cycle 0 round 8 rules2 (F4, AD regression check): the one derived never-end set (brand_system.NEVER_END_WORDS)
+    # moves HEAD's bursts that ended on ALONG, UPON, ALONGSIDE, MOST and FROM (video_composer._never_end_repair); the
+    # cuts beside them move with the window re-cut (kind "never_end", checked below: HEAD ended a burst on a
+    # never-end word within three words of the new cut)
+    ("singing_colossi_of_memnon", "9:16", "monument", "became"): ("never_end", "window: FAMOUS THROUGHOUT"),
+    ("singing_colossi_of_memnon", "9:16", "famous", "throughout"): ("never_end", "HEAD's burst ended on THROUGHOUT"),
+    ("run:richat_structure_sahara_eye", "9:16", "dating", "from"): ("never_end", "HEAD's burst ended on FROM"),
+    ("run:richat_structure_sahara_eye", "16:9", "artifacts", "alongside"): ("never_end", "HEAD's ended on ALONGSIDE"),
+    ("run:richat_structure_sahara_eye", "16:9", "Aterian", "tools"): ("never_end", "window: ALONGSIDE"),
+    ("run:gol_gumbaz_whispering_gallery", "9:16", "continuously", "along"): ("never_end", "HEAD's ended on ALONG"),
+    ("run:gol_gumbaz_whispering_gallery", "9:16", "1656", "upon"): ("never_end", "HEAD's burst ended on UPON"),
+    ("run:gol_gumbaz_whispering_gallery", "16:9", "continuously", "along"): ("never_end", "HEAD's ended on ALONG"),
+    ("run:amber_room_heist", "9:16", "was", "most"): ("never_end", "HEAD's burst ended on MOST"),
+    ("run:amber_room_heist", "16:9", "conclude", "the"): ("never_end", "window: MOST LIKELY"),
+    ("run:amber_room_heist", "16:9", "likely", "incinerated"): ("never_end", "HEAD's burst ended on MOST"),
+    ("run:voynich_manuscript", "9:16", "common", "word"): ("never_end", "HEAD's burst ended on MOST"),
     ("run:richat_structure_sahara_eye", "cues", "situated", "near"): ("never", "HEAD's cue ended on NEAR"),
     # fix round 3 (review blocker: THIS CIRCULAR || GEOLOGICAL FORMATION split the noun phrase; was circular|geological
     # and structure|as): the forced end goes before the determiner, and the next cue ends before THE STRUCTURE
@@ -1711,6 +1730,11 @@ def test_head_regression_gate():
                 key = (case, fmt, raw[k], raw[k + 1])
                 new[key] = k
                 kind = GATE_FORCED.get(key, ("?",))[0]
+                if kind == "never_end":   # rules2 F4: HEAD ended a burst on a never-end word next to this cut
+                    near = [e for e in h[fmt] if abs(e - k) <= 3 and e < len(raw) - 1]
+                    assert any(vc.never_end_end(raw[e]) for e in near) or any(
+                        GATE_FORCED.get((case, fmt, raw[c], raw[c + 1]), ("",))[0] == "never_end" and c != k
+                        for c in set(cuts) - set(h[fmt]) if abs(c - k) <= 6), (key, [raw[e] for e in near])
                 if kind == "range":   # QF-87 review 1: the burst the new cut ends holds a whole figure range
                     ends = _ends(caption_phrases(words, emph))
                     start = max([e + 1 for e in ends if e < k] + [0])

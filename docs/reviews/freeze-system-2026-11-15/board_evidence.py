@@ -237,8 +237,9 @@ def ass_bursts(ass_text: str) -> list[dict[str, Any]]:
 
 
 def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, Any] | None) -> dict[str, Any]:
-    from src import brand_system as bs
-    never = {w.lower() for w in bs.LINE_END_NEVER}
+    # rules2 F4: the composer's own never-end predicate (video_composer.never_end_end, the closed class the breakers
+    # weigh), never a second list: the record counts what the breaker sees (it counted LINE_END_NEVER only)
+    from src.video_composer import never_end_end
     rows = []
     for b in ass_bursts(ass_text):
         secs = b["hide"] - b["show"]
@@ -247,7 +248,8 @@ def caption_rates(words: list[dict[str, Any]], ass_text: str, record: dict[str, 
         last = re.sub(r"[^\w'-]", "", (b["text"].split() or [""])[-1]).lower()
         rows.append({**b, "on_screen_s": round(secs, 3), "chars": len(b["text"]),
                      "shown_cps": round(len(b["text"]) / secs, 1) if secs > 0 else None,
-                     "spoken_window_s": round(spoken, 3), "ends_on": last, "never_end": last in never})
+                     "spoken_window_s": round(spoken, 3), "ends_on": last,
+                     "never_end": never_end_end((b["text"].split() or [""])[-1])})
     return {"bursts": rows, "max_shown_cps": max((r["shown_cps"] or 0 for r in rows), default=None),
             "over_17": sum((r["shown_cps"] or 0) > 17 for r in rows), "never_end_count": sum(r["never_end"] for r in rows),
             "composer_record": record}

@@ -994,6 +994,8 @@ class TextPlate:
             rec["fallback_px"] = round(float(self.font._rr_px), 1)   # px: the size asked for; this: as drawn
         if getattr(self, "variant", None):   # an overlay label (plan_label): bone / ink / plate, and its plate's box
             rec["variant"] = self.variant
+            if getattr(self, "step", None):   # its step on the rule's ladder (label_ladder): one per set (round 8 R1)
+                rec["step"] = list(self.step)
             if getattr(self, "backing", None) is not None:
                 rec["plate"] = self.backing.record()
         return rec
@@ -1115,9 +1117,18 @@ class _BackingBand:
         return self.parent.record()
 
 
+def label_ladder(colours, ink: bool = True) -> list[tuple[str, int]]:
+    """The overlay-label rule's steps, least intrusive first, as (stage, colour index) pairs: each colour on the
+    label halo ("halo", k), then INK type ("ink", -1) unless `ink` is False, then each colour on the held INK plate
+    ("plate", k). A step names a treatment exactly (its backing and its fill), so two labels on one step look alike."""
+    n = len(colours)
+    return ([("halo", k) for k in range(n)] + ([("ink", -1)] if ink else []) + [("plate", k) for k in range(n)])
+
+
 def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: int | None = None,
                halo_max: float | None = None, dark_ground: Image.Image | None = None, extra=(),
-               ink: bool = True, start: str = "colour") -> tuple[list[TextPlate], dict[str, Any]]:
+               ink: bool = True, start: str = "colour", only: tuple | None = None,
+               ) -> tuple[list[TextPlate], dict[str, Any]]:
     """An overlay label's rows ((xy, text, font, anchor, track) each) planned by the ONE rule above, every row in one
     variant: (plates, record). `colours` are the label's own fills in order (a kicker: gold, then bone); `ground` is
     the brightest picture it sits on (where bone is weakest), `dark_ground` the darkest (where INK type is weakest;
@@ -1126,8 +1137,10 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
     A variant holds when every row reaches `target` as planned AND drawn together, on every ground. `ink` False skips
     the light-ground INK variant (a label whose colour carries meaning there, or a ground with line art under it).
     A `colours` entry may be a list, one colour per row (a then-and-now marker: its kicker and its year). `start`
-    skips the variants before it (LABEL_VARIANTS order), so two labels shown as a pair take one variant. No variant:
-    ([], record with shown False and the reason; the caller draws nothing)."""
+    skips the variants before it (LABEL_VARIANTS order). `only` (a label_ladder step) tries that one step and no
+    other: the set planner's (plan_label_set) way to give every member of a set one treatment. The record names the
+    step drawn ("step": [stage, k]). No variant: ([], record with shown False and the reason; the caller draws
+    nothing)."""
     from .brand import BONE, INK
     from .brand_system import label_halo, tok
     rows = [(xy, drawable(text, font), font, anchor, track) for xy, text, font, anchor, track in rows]
@@ -1153,67 +1166,140 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
         tried.append((variant, round(worst, 3)))
         return worst >= target - 1e-9
 
-    def done(plates: list[TextPlate], name: str):
+    def done(plates: list[TextPlate], name: str, step: tuple[str, int]):
         for p in plates:
-            p.variant, p.halo_exception = name, False
+            p.variant, p.halo_exception, p.step = name, False, (str(step[0]), int(step[1]))
         vals = [p.contrast for p in plates if not p.empty and p.contrast is not None]
-        return plates, {"shown": True, "variant": name, "contrast": min(vals) if vals else None,
+        return plates, {"shown": True, "variant": name, "step": list(step), "contrast": min(vals) if vals else None,
                         "halo": max((p.halo for p in plates), default=0.0), "target": target,
                         "plate": plates[0].backing.record() if getattr(plates[0], "backing", None) else None}
 
     def per_row(colour) -> list:
         return [tuple(c[:3]) for c in colour] if isinstance(colour, list) else [tuple(colour[:3])] * len(rows)
 
+    def halo_variant(k: int) -> str:
+        fills = per_row(colours[k])
+        return "bone" if all(f == tuple(BONE) for f in fills) else ("colour" if k == 0 else "bone")
+
     order_of = {v: i for i, v in enumerate(LABEL_VARIANTS)}
-    first = order_of.get(start, 0)
+    skip_before = order_of.get(start, 0)
     many = [ground] if dark is ground else [ground, dark]
+    steps = label_ladder(colours, ink)
+    if only is not None:
+        steps = [s for s in steps if s == (str(only[0]), int(only[1]))]
+    else:   # `start` skips the variants before it (a halo step by its variant's name, INK and the plate by theirs)
+        steps = [s for s in steps if order_of[halo_variant(s[1]) if s[0] == "halo" else s[0]] >= skip_before]
     variant = ""
-    for k, colour in enumerate(colours):
-        fills = per_row(colour)
-        variant = "bone" if all(f == tuple(BONE) for f in fills) else ("colour" if k == 0 else "bone")
-        if order_of[variant] < first:
-            continue
-        plates = [plan_text(ground, xy, text, font, f, anchor, track, target=target, halo_px=sp, max_halo=cap,
-                            halo_pad=full_halo_pad(sp)) for (xy, text, font, anchor, track), f, sp in zip(rows, fills, spreads)]
-        if holds(plates, many):
-            return done(plates, variant)
-    if ink and order_of["ink"] >= first:
-        variant = "ink"
-        plates = [plan_text(dark, xy, text, font, INK, anchor, track, target=target, halo_px=0)
-                  for xy, text, font, anchor, track in rows]
-        if holds(plates, [dark] if dark is ground else [dark, ground]):
-            return done(plates, variant)
-    # the held plate: its box from the rows' ink (a bare TextPlate measures the ink) and the extra devices
-    bare = [TextPlate(text, font, INK, xy, anchor, track, 0, INK, 0, False, ground.size) for xy, text, font, anchor, track in rows]
-    boxes = [p.box for p in bare if not p.empty] + [tuple(b) for b in extra]
-    if boxes:
+    backed = bands = None
+
+    def held_plate():
+        """The held plate: its box from the rows' ink (a bare TextPlate measures the ink) and the extra devices;
+        (the ground with the plate on it, its band per row), or None when the label has no ink."""
+        bare = [TextPlate(text, font, INK, xy, anchor, track, 0, INK, 0, False, ground.size)
+                for xy, text, font, anchor, track in rows]
+        boxes = [p.box for p in bare if not p.empty] + [tuple(b) for b in extra]
+        if not boxes:
+            return None
         from .brand_system import scaled
         pad = tok("plate.label_pad") * size_px
         order = sorted(range(len(rows)), key=lambda i: bare[i].box[1])
         cuts = ([min(b[1] for b in boxes) - pad] + [round((bare[order[j]].box[3] + bare[order[j + 1]].box[1]) / 2)
                                                     for j in range(len(order) - 1)] + [max(b[3] for b in boxes) + pad])
-        bands = {}
-        backed = ground
+        out_bands = {}
+        out = ground
         for j, i in enumerate(order):   # one plate per row, hugging its ink (and the devices in its rows)
             own = [bare[i].box] + [tuple(b) for b in extra if cuts[j] <= (b[1] + b[3]) / 2 <= cuts[j + 1]]
-            first, last = j == 0, j == len(order) - 1
+            top_row, bottom_row = j == 0, j == len(order) - 1
             row = LabelBacking((min(b[0] for b in own) - pad, cuts[j], max(b[2] for b in own) + pad, cuts[j + 1]),
                                ground.size, float(tok("plate.held")), scaled(tok("plate.radius"), ground.size[0]),
-                               corners=(first, first, last, last))
-            bands[i] = row.band(row.box[1], row.box[3])
-            backed = row.draw(backed)
-        for colour in colours:
+                               corners=(top_row, top_row, bottom_row, bottom_row))
+            out_bands[i] = row.band(row.box[1], row.box[3])
+            out = row.draw(out)
+        return out, out_bands
+
+    for stage, k in steps:
+        if stage == "halo":
+            variant = halo_variant(k)
+            plates = [plan_text(ground, xy, text, font, f, anchor, track, target=target, halo_px=sp, max_halo=cap,
+                                halo_pad=full_halo_pad(sp))
+                      for (xy, text, font, anchor, track), f, sp in zip(rows, per_row(colours[k]), spreads)]
+            if holds(plates, many):
+                return done(plates, variant, (stage, k))
+        elif stage == "ink":
+            variant = "ink"
+            plates = [plan_text(dark, xy, text, font, INK, anchor, track, target=target, halo_px=0)
+                      for xy, text, font, anchor, track in rows]
+            if holds(plates, [dark] if dark is ground else [dark, ground]):
+                return done(plates, variant, (stage, k))
+        else:
+            if backed is None:
+                held = held_plate()
+                if held is None:
+                    continue
+                backed, bands = held
             variant = "plate"
             plates = []
-            for i, ((xy, text, font, anchor, track), f) in enumerate(zip(rows, per_row(colour))):
+            for i, ((xy, text, font, anchor, track), f) in enumerate(zip(rows, per_row(colours[k]))):
                 p = plan_text(backed, xy, text, font, f, anchor, track, target=target, halo_px=0)
                 p.backing = bands[i]   # holds() then reads it drawn, plate and all, on every ground
                 plates.append(p)
             if holds(plates, many):
-                return done(plates, variant)
+                return done(plates, variant, (stage, k))
     best = max((c for _, c in tried if c is not None), default=None)
     return [], {"shown": False, "target": target, "tried": tried, "best_tried": best,
-                "reason": f"under {target}:1 in every overlay-label variant (best {best})"}
+                "reason": f"under {target}:1 in every overlay-label variant (best {best})"
+                          + (f" (step {list(only)} only)" if only is not None else "")}
+
+
+def step_key(step) -> tuple[str, int] | None:
+    """A recorded step ([stage, k] or (stage, k)) as a comparable tuple; None for none."""
+    return (str(step[0]), int(step[1])) if step else None
+
+
+def set_step(ladder, passes) -> tuple[str, int] | None:
+    """The ONE step for a set of labels (operator ruling 2 applied per set, cycle 0 round 8 R1): the least intrusive
+    step of `ladder` that every member's `passes` (the steps its own ground holds) contains; None when no one step
+    holds for all (the members then keep their own steps: a gate is never traded for consistency)."""
+    sets = [{step_key(s) for s in p} for p in passes]
+    for s in ladder:
+        if all(step_key(s) in p for p in sets):
+            return step_key(s)
+    return None
+
+
+def label_passes(ground: Image.Image, rows, colours, *, ink: bool = True, **kw) -> list[tuple[str, int]]:
+    """Every label_ladder step that holds `rows` at the gate on `ground` (plan_label's own test, step by step)."""
+    return [s for s in label_ladder(colours, ink)
+            if plan_label(ground, rows, colours, ink=ink, only=s, **kw)[1]["shown"]]
+
+
+def plan_label_set(members: list[dict[str, Any]]) -> tuple[list[tuple[list[TextPlate], dict[str, Any]]], dict[str, Any]]:
+    """The overlay labels of ONE set (a then-and-now pair, an end screen's labels, ...) planned on one treatment: each
+    member a dict of plan_label's arguments (ground, rows, colours, target, and its own dark_ground / extra / ink).
+    Each member first takes its own step; a member no step carries is not drawn and does not hold the others back.
+    When the drawn members' steps differ, the set takes the least intrusive step that holds on EVERY drawn member's
+    ground (set_step; their ladders' common steps only: a member that may not take INK type keeps the set off it),
+    and every member is planned on it. When none holds for all, each keeps its own (the gates are never traded) and
+    the record says so. Returns ([(plates, record)] per member, the set's record)."""
+    own = [plan_label(**m) for m in members]
+    shown = [i for i, (_, r) in enumerate(own) if r["shown"]]
+    steps = {step_key(own[i][1]["step"]) for i in shown}
+    if len(steps) <= 1:
+        rec = {"members": len(members), "drawn": len(shown), "uniform": True,
+               "step": list(next(iter(steps))) if steps else None}
+        return own, rec
+    ladders = [label_ladder(members[i]["colours"], members[i].get("ink", True)) for i in shown]
+    common = [s for s in ladders[0] if all(s in L for L in ladders[1:])]
+    lowest = max(common.index(s) if s in common else 0 for s in steps)   # no member holds a step below its own
+    for s in common[lowest:]:
+        trial = {i: plan_label(**members[i], only=s) for i in shown}
+        if all(r["shown"] for _, r in trial.values()):
+            out = [trial.get(i, own[i]) for i in range(len(members))]
+            return out, {"members": len(members), "drawn": len(shown), "uniform": True, "step": list(s),
+                         "own_steps": [own[i][1].get("step") for i in shown]}
+    return own, {"members": len(members), "drawn": len(shown), "uniform": False, "step": None,
+                 "own_steps": [own[i][1].get("step") for i in shown],
+                 "reason": "no one overlay-label step holds the gate on every member's ground"}
 
 
 def record_contrast(layout, name: str, plates: List[TextPlate], zone=None):

@@ -596,6 +596,22 @@ LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by"
 LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
 
 
+def _never_end_words() -> frozenset:
+    """The caption never-end set (cycle 0 round 8, rules2 F4): the English closed class (prepositions, articles and
+    determiners, quantifiers, conjunctions) DERIVED from real word lists by scripts/derive_never_end.py into
+    data/never_end_words.json (never edited by hand), always holding LINE_END_NEVER. Every caption path (the 9:16
+    and 16:9 bursts, the round-4 base, the merges, the sidecar cues) and every caption record read it, so a record
+    can never count fewer never-end endings than the breaker sees."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[1] / "data" / "never_end_words.json"
+    words = json.loads(path.read_text(encoding="utf-8"))["words"]
+    return frozenset(w.lower() for w in words) | LINE_END_NEVER
+
+
+NEVER_END_WORDS = _never_end_words()
+
+
 def tok(name: str) -> Any:
     """A gate's value, or the active brand's value of token `name` (read now: never keep a token at import)."""
     if name in GATES:

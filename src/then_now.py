@@ -1518,29 +1518,32 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     # label, planned by typography.plan_label on the lightest and the darkest of the pictures it sits on (its split
     # and its alone frame): the kicker in kicker.colour and the year in figure.colour on the label halo (<= 0.16),
     # else bone, else INK type (only where the ground under it is paper: paper_gate keeps ink off line art), else a
-    # held INK plate holding the kicker's rule. The pair keeps one colour role: one marker in gold and the other in
-    # bone are both set in bone (round 4's rule); INK type on paper and a plate on a busy ground are each the one
-    # rule's answer to its own ground. The halo up to 1.0 and the glows are retired.
+    # held INK plate holding the kicker's rule. The pair takes ONE step (below: plan_label_set), so one marker in
+    # gold and the other in bone, or bare INK type beside a plate, no longer happens on one frame (round 8 R1).
+    # The halo up to 1.0 and the glows are retired.
     import numpy as np
 
     from .brand_system import colour_of
-    from .typography import plan_label
+    from .typography import plan_label_set
     rules = {w: marker_rule(lines[w][0], words[w], key, lines[w][2]) for w in years}
     lightest = {w: Image.fromarray(np.maximum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     darkest = {w: Image.fromarray(np.minimum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     fills = [colour_of("kicker.colour"), colour_of("figure.colour")]
 
-    def plan(which: str, start: str):
+    def member(which: str) -> dict:
         kxy, fxy, anchor = lines[which]
-        return plan_label(lightest[which], [(kxy, words[which], k_font, anchor, track),
-                                            (fxy, str(years[which]), y_font, anchor, 0)],
-                          ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), target=PLACE_TARGET,
-                          dark_ground=darkest[which], ink=INK_ON_PAPER and gate[which]["ok"], extra=[rules[which]],
-                          start=start)
+        return {"ground": lightest[which], "rows": [(kxy, words[which], k_font, anchor, track),
+                                                    (fxy, str(years[which]), y_font, anchor, 0)],
+                "colours": ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), "target": PLACE_TARGET,
+                "dark_ground": darkest[which], "ink": INK_ON_PAPER and gate[which]["ok"], "extra": [rules[which]]}
 
-    planned = {w: plan(w, "colour") for w in years}
-    if {rec["variant"] for _, rec in planned.values() if rec["shown"]} == {"colour", "bone"}:
-        planned = {w: (plan(w, "bone") if rec["variant"] == "colour" else (ps, rec)) for w, (ps, rec) in planned.items()}
+    # Cycle 0 round 8 (R1, one treatment per set): THEN and NOW are one twin pair on one frame, so they are planned
+    # as ONE set (typography.plan_label_set): the least intrusive step that holds on both markers' grounds, the
+    # same on both (bare INK type beside a gold plate read as two systems); each keeps its own only when no one step
+    # holds both (the gate is never traded).
+    order = [w for w in ("then", "now") if w in years]
+    results, set_rec = plan_label_set([member(w) for w in order])
+    planned = dict(zip(order, results))
     plates: dict[str, list] = {}
     mode: dict[str, str] = {}
     for w in years:
@@ -1578,6 +1581,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
 
     meta = {"type_mode": dict(mode), "kicker": dict(words), "halo": round(halo_h, 2),
             "label": {w: {k: v for k, v in planned[w][1].items() if k != "tried"} for w in years},
+            "label_set": set_rec,
             "rules": {w: list(rules[w]) for w in years},
             "paper_gate": gate, "side": side_meta,
             "framing": framing, "groups": {w: list(groups[w]) for w in years},

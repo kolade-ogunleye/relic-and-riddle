@@ -167,10 +167,11 @@ def lines_of(words: Sequence[str], cuts: Sequence[int]) -> tuple[str, ...]:
 
 
 def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] | None = None,
-          seam: int | None = None) -> bool:
+          seam: int | None = None, free_ends: Sequence[int] = ()) -> bool:
     """A drawn form obeys the engine's hard rules: no line but the last ends on a never word; no lone-word row (unless
     `lone_ok`: a locked cover's last resort, where the break gives way before the size does; or a last row the phrase
-    exception holds, phrase_row: ruling 4, measured on `widths` when given)."""
+    exception holds, phrase_row: ruling 4, measured on `widths` when given). `free_ends`: rows whose end is the copy's
+    own field boundary, not a break the engine chose (a lockup's authored lines drawn whole, QF-23 / QF-143)."""
     words = " ".join(lines).split()
     spans, k = [], 0
     for ln in lines:
@@ -179,7 +180,7 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
         k += m
     if any(not ln.split() for ln in lines):
         return False
-    if any(not end_ok(ln.split()[-1]) for ln in lines[:-1]):
+    if any(not end_ok(ln.split()[-1]) for i, ln in enumerate(lines[:-1]) if i not in free_ends):
         return False
     # cycle 0 round 8 (panel: "SACRED PATHS / OR / ASTRONOMY", "CARVED / FROM"): a row of function words only is
     # never a row, at any word count and in any last resort (it is the break's hinge, not a line of the heading)
@@ -187,7 +188,7 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
                                   for w in ln.split()) for ln in lines):
         return False
     bonded = _bonded(words)
-    if any(b in bonded for _, b in spans[:-1]):
+    if any(b in bonded for i, (_, b) in enumerate(spans[:-1]) if i not in free_ends):
         return False
     if lone_ok or not _lone_row(spans, len(words)):
         return True
@@ -426,6 +427,26 @@ def field_runs(text: str, cuts: Sequence[int], gold: bool) -> list[list[tuple[st
     """A lockup field's runs: the payoff field (gold) keeps its opening function words bone (LEAD)."""
     words = text.split()
     return runs(words, cuts, 0 if gold else None)
+
+
+def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, seam: int | None = None,
+                 fields: bool = False) -> bool:
+    """A whole lockup's drawn rows, every field stacked, obey the engine's hard rules (valid): a field set valid on its
+    own can still leave a one-word MIDDLE row once stacked under another field (cycle 0 round 8 R2: the YouTube
+    two-line tier set THE 1,200-TON / BEDROCK / MONSTER, the field BEDROCK MONSTER broken alone). `widths`: each
+    row's drawn width (the phrase exception's balance); `seam`: the word the copy's payoff field opens at (a
+    two-field lockup's line 2), whose last row the phrase exception may keep alone (ruling 4). `fields`: `seam` is a
+    boundary between two authored fields, so the row ending there is the copy's own line end (each field's own
+    breaks are the engine's and set_field already held them to the rules)."""
+    rows = [t for t in lines if t.strip()]
+    if len(rows) < 2:
+        return True
+    free, k = [], 0
+    for i, ln in enumerate(rows):
+        k += len(ln.split())
+        if fields and seam is not None and k == seam:
+            free.append(i)
+    return valid(rows, widths=widths, seam=seam, free_ends=free)
 
 
 def check_drawn(lines: Sequence[str]) -> bool:

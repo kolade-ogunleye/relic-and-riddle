@@ -305,7 +305,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
     column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
+    from .heading import GOLD_ROLES, field_runs, lockup_fields, lockup_valid, set_field, set_heading
     from .typography import LayoutError
     ratio = tok("lockup.line_ratio")
 
@@ -321,22 +321,31 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
 
     def attempt(f1, f2, s1, tier, n):
         s2 = max(s1, round(s1 * ratio))
-        rows, forms_ = [], []
+        rows, forms_, drawn_rows, seam = [], [], [], None
         for key, text, sz, gold in (("title_1", f1, s1, False), ("title_2", f2, s2, True)):
             if not text:
                 continue
             if not (f1 and f2):
                 form = set_heading(text, width_at, width, (sz,), max_lines=n, lockup=True)
                 line_runs = form.runs() if form else None
+                seam = form.seam if form else None
             else:
                 form = set_field(text, width_at, width, sz, max_lines=n)
                 line_runs = field_runs(text, form.cuts, gold) if form else None
+                if key == "title_2":
+                    seam = len(f1.split())   # the copy's payoff field opens here
             if line_runs is None:
                 return None
             forms_.append(form)
             font = get_font(brand.DISPLAY_FONT, sz)
             rows += [(key, runs_of(lr, font)) for lr in line_runs]
+            drawn_rows += [(" ".join(t for t, _ in lr), sz) for lr in line_runs]
         if len(rows) > 3:
+            return None
+        # cycle 0 round 8 (R2): the stacked lockup, every field together, obeys the heading rules (heading.lockup_valid):
+        # no one-word middle row (THE 1,200-TON / BEDROCK / MONSTER), the phrase exception on the last row only
+        if not lockup_valid([t for t, _ in drawn_rows], [width_at(t, sz) for t, sz in drawn_rows], seam,
+                            fields=bool(f1 and f2)):
             return None
         if room is not None:
             ch = cap_height(get_font(brand.DISPLAY_FONT, s2))

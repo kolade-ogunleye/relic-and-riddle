@@ -9,6 +9,7 @@ Companion assets derived from the Reel's script package, for manual posting:
 Stories and carousels are posted on their own schedule (src/post_schedule.py).
 """
 
+import contextlib
 import json
 import logging
 import re
@@ -406,27 +407,104 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
     (a box, drawn on the plate in the plate's fill); else no kicker (fail closed, like the masthead). The halo past
     the cap (plan_text's default 0.95: the end screen's WATCH NEXT cloud on bright stone) is retired. Returns (plate or
     None, record): the record names the variant drawn, its measured ratio, and the reason when none is."""
-    from .typography import plan_label
+    from .typography import label_passes, plan_label
     gate = GATES["contrast.kicker"]
     target = max(gate, float(kw.pop("target", gate)))
+    step = kw.pop("step", None)
     kw.pop("halo_px", None), kw.pop("max_halo", None), kw.pop("min_halo", None)   # the label rule sets the halo
     text = drawable(text, font)   # no emoji, no missing-glyph box (the old kicker path's rule, 2026-10-29)
     if not text.strip():
         return plan_text(im, xy, text, font, tuple(colour), anchor, track=track), {
             "variant": "colour", "contrast": None, "gate": gate, "shown": True}
+    member = kicker_label(im, xy, text, font, colour, anchor, track, rule, target)
+    # cycle 0 round 8 (R1, one treatment per set): a deck's kickers take ONE step (the deck's, kicker_step); the
+    # first drawing of a deck surveys every step each kicker's ground holds (kicker_survey) so the deck can choose
+    forced = step if step is not None else getattr(_render_state, "kicker_step", None)
+    broken = None
+    if forced is not None:
+        plates, rec = plan_label(**member, only=tuple(forced))
+        if not rec["shown"]:   # the set's step does not hold here (another fit, say): this kicker's own, recorded
+            broken = list(forced)
+            plates, rec = plan_label(**member)
+    else:
+        plates, rec = plan_label(**member)
+    passes = None
+    if getattr(_render_state, "kicker_survey", False):
+        passes = [list(s) for s in label_passes(**member)]
+    return finish_kicker(plates, rec, rule, gate, target, text, passes=passes, set_broken=broken,
+                         forced=forced is not None and broken is None)
+
+
+def kicker_label(im: Image.Image, xy, text: str, font, colour, anchor: str, track: float, rule, target: float) -> dict:
+    """A kicker as one member of the overlay-label rule (typography.plan_label's arguments): its colour, then bone,
+    on its words and its lead `rule` (a box the held plate also holds)."""
     colours = tuple(dict.fromkeys((tuple(colour[:3]), tuple(brand.BONE))))
-    plates, rec = plan_label(im, [(xy, text, font, anchor, track)], colours, target=target,
-                             extra=[rule] if rule is not None else ())
+    return {"ground": im, "rows": [(xy, drawable(text, font), font, anchor, track)], "colours": colours,
+            "target": target, "extra": [rule] if rule is not None else ()}
+
+
+def finish_kicker(plates, rec: dict, rule, gate: float, target: float, text: str, passes=None, set_broken=None,
+                  forced: bool = False):
+    """plan_label's answer for a kicker as plan_kicker returns it: (plate or None, record)."""
     if rec["shown"]:
         plate = plates[0]
         if rule is not None and getattr(plate, "backing", None) is not None:
             plate.backing.parent.devices.append((tuple(rule), tuple(plate.fill)))   # the rule rides on its plate
-        return plate, {"variant": rec["variant"], "contrast": plate.contrast, "gate": gate, "target": target,
-                       "shown": True, "halo": plate.halo, "plate": rec.get("plate")}
+        out = {"variant": rec["variant"], "step": rec.get("step"), "contrast": plate.contrast, "gate": gate,
+               "target": target, "shown": True, "halo": plate.halo, "plate": rec.get("plate")}
+        if passes is not None:
+            out["passes"] = passes
+        if forced:
+            out["set_step"] = rec.get("step")
+        if set_broken is not None:
+            out["set_broken"] = set_broken
+        return plate, out
     log.warning("Kicker %r not drawn: %s below the %.1f:1 kicker gate in every variant", text, rec["best_tried"], target)
     return None, {"shown": False, "gate": gate, "target": target, "best_tried": rec["best_tried"],
                   "tried": rec["tried"], "reason": f"under the {target}:1 kicker gate in every overlay-label variant "
                                                    f"(best {rec['best_tried']})"}
+
+
+@contextlib.contextmanager
+def kicker_set(step=None, survey: bool = False):
+    """Draws on this thread with a set's ONE kicker step (cycle 0 round 8 R1: every kicker of a deck or a Story in
+    one overlay-label treatment, deck_kicker_step), or with `survey` every step each kicker's ground holds recorded
+    (the record's "passes") so the set can choose one. Restored on exit."""
+    prev = getattr(_render_state, "kicker_step", None), getattr(_render_state, "kicker_survey", False)
+    _render_state.kicker_step = tuple(step) if step else None
+    _render_state.kicker_survey = bool(survey)
+    try:
+        yield
+    finally:
+        _render_state.kicker_step, _render_state.kicker_survey = prev
+
+
+def kicker_records(lays) -> list[dict]:
+    """Every drawn kicker's record across a set of drawn layouts (a deck's slides, a Story's frames)."""
+    out = []
+    for lay in lays:
+        for rec in ((getattr(lay, "meta", None) or {}).get("kickers") or {}).values():
+            if rec.get("shown") and rec.get("step") is not None:
+                out.append(rec)
+    return out
+
+
+def deck_kicker_step(lays) -> tuple[str, int] | None:
+    """The ONE kicker step for a deck (cycle 0 round 8 R1): the least intrusive step every drawn kicker's ground
+    holds (typography.set_step over the surveyed passes; the shared step when they already share one); None when
+    the deck draws no kicker, or no one step holds on every kicker's ground."""
+    from .typography import label_ladder, set_step, step_key
+    recs = kicker_records(lays)
+    steps = {step_key(r["step"]) for r in recs}
+    if len(steps) <= 1:
+        return next(iter(steps)) if steps else None
+    return set_step(label_ladder((0, 1)), [r.get("passes") or [r["step"]] for r in recs])
+
+
+def kickers_on(lays, step) -> bool:
+    """Whether every drawn kicker of `lays` is on `step`."""
+    from .typography import step_key
+    return all(step_key(r["step"]) == step_key(step) for r in kicker_records(lays))
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
@@ -697,16 +775,36 @@ class MultiFormatGenerator:
 
         from . import still_layout
         slides = []
+
+        def draw_frames(kicker_step):
+            """Every frame drawn (not saved) with the Story's kicker step (None: each its own, surveyed)."""
+            done = {}
+            for i, slide in enumerate(slides_data):
+                try:
+                    with surface(f"Story frame {i + 1}"), kicker_set(kicker_step, survey=kicker_step is None):
+                        done[i] = still_layout.drawn(
+                            lambda tight, i=i, slide=slide: self._render_story_frame(
+                                photos[i], slide, i, len(slides_data), poll, tight=tight, title_px=title_px,
+                                **({"pages": pages} if pages else {})))
+                except GlyphRefused as e:
+                    done[i] = e
+            return done
+
+        # Cycle 0 round 8 (R1, one treatment per set): a Story's kickers are one set, like a deck's
+        # (generate_carousel_sequence): one step that holds on every frame's ground, colour kept where it holds.
+        frames_drawn = draw_frames(None)
+        story_lays = [v[1] for v in frames_drawn.values() if not isinstance(v, GlyphRefused)]
+        story_step = deck_kicker_step(story_lays)
+        if story_step is not None and not kickers_on(story_lays, story_step):
+            frames_drawn = draw_frames(story_step)
         for i, (slide, name) in enumerate(zip(slides_data, names)):
             recipe = {"renderer": "multi_format.redraw_story_frame", "photo": str(photos[i]), "slide": slide,
-                      "index": i, "count": len(slides_data), "poll": poll, "title_px": title_px}
+                      "index": i, "count": len(slides_data), "poll": poll, "title_px": title_px,
+                      **({"kicker_step": list(story_step)} if story_step else {})}
             path = out_dir / name
-            try:
-                with surface(f"Story frame {i + 1}"):
-                    base, lay, attempts = still_layout.drawn(
-                        lambda tight: self._render_story_frame(photos[i], slide, i, len(slides_data), poll, tight=tight,
-                                                             title_px=title_px, **({"pages": pages} if pages else {})))
-            except GlyphRefused as e:
+            got = frames_drawn[i]
+            if isinstance(got, GlyphRefused):
+                e = got
                 # QF-94: a field on this frame (its copy, or its photo's credit) no bundled face can draw: the frame
                 # is refused, never drawn with a letter (or an author's name) missing. The run's glyph ledger
                 # carries the reason to the review card; the other frames go on.
@@ -715,6 +813,9 @@ class MultiFormatGenerator:
                 layout.append({"frame": name, "refused": e.reason, "chars": e.missing, "scripts": e.scripts,
                                "text": e.text})
                 continue
+            base, lay, attempts = got
+            if isinstance(getattr(lay, "meta", None), dict):
+                lay.meta["kicker_set"] = {"step": list(story_step) if story_step else None, "frames": len(slides_data)}
             layout.append({**lay.meta, "frame": name})
             base.save(path, quality=95)
             _delivered_contrast(lay, path)
@@ -877,11 +978,14 @@ class MultiFormatGenerator:
                     y += STORY_FIGURE_GAP + cap_height(f_unit)
                     # Under the numeral it measures (inline: indented past the qualifier, so "FT DEEP" reads with "280").
                     # Cycle 0 round 8 (ruling 8): the unit is gold with its number; the dimension word ("DEEP") bone.
-                    from .figures import DIMENSION_WORDS
+                    # rules2 F5: which unit words are gold is the one gold scope's word (figures.gold_word_indices on
+                    # the whole figure: qualifier, number and unit), never a local split
+                    from .figures import gold_word_indices
+                    lead = (hero["qualifier"].split() if hero["qualifier"] else []) + hero["number"].split()
                     uw = hero["unit"].split()
-                    n_unit = next((i for i, w in enumerate(uw) if w.lower() in DIMENSION_WORDS), len(uw))
+                    gold_set = {i - len(lead) for i in gold_word_indices(lead + uw) if i >= len(lead)}
                     ux = round(q_w) if inline else 0
-                    for part, is_gold in unit_runs(hero["unit"], n_unit):
+                    for part, is_gold in unit_runs(hero["unit"], gold_set):
                         out.append(("figure_unit", y, part, f_unit, figure_colour() if is_gold else brand.BONE, ux))
                         ux += round(d.textlength(part + " ", font=f_unit))
                 return out, y
@@ -2201,20 +2305,41 @@ class MultiFormatGenerator:
         # the deck window rule (cycle 0 round 8): how many earlier slides show each slide's photograph
         shown = [None if archetypes[j] == "diagram" else Path(photos[j]) for j in range(total)]
         showing = [sum(1 for q in shown[:j] if q is not None and q == shown[j]) for j in range(total)]
+
+        def draw_deck(kicker_step):
+            """Every slide drawn (not saved) with the deck's kicker step (None: each kicker its own, surveyed)."""
+            done: dict[int, tuple] = {}
+            strips_now = {k: dict(v) for k, v in strips.items()}
+            for i in order:
+                card = cards[i]
+                archetype = archetypes[i]
+                photo = diagram[1] if archetype == "diagram" else photos[i]
+                photo_next = photos[(i + 1) % len(photos)]
+                strip = strips_now.get(i)
+                with kicker_set(kicker_step, survey=kicker_step is None):
+                    im, lay, attempts = still_layout.drawn(
+                        lambda tight, strip=strip, window=showing[i], card=card, archetype=archetype, photo=photo,
+                        photo_next=photo_next, i=i: self._render_carousel_slide(
+                            archetype, photo, photo_next, card, i, total, poll, share, facebook, tight=tight,
+                            subject=subject, heading_frame=frame, strip=strip, lead=lead, window=window))
+                drew = lay.meta.get("swipe_strip") or {}
+                if i == 1 and drew.get("box"):
+                    strips_now[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
+                done[i] = (im, lay, attempts, archetype, photo, photo_next, card, drew)
+            return done
+
+        # Cycle 0 round 8 (R1, one treatment per set): the deck's kickers are ONE set. The deck is drawn with each
+        # kicker on its own step and every step its ground holds surveyed; when the kickers' steps differ, the deck
+        # is drawn again with the least intrusive step that holds on every kicker's ground (deck_kicker_step),
+        # colour kept wherever it holds for the whole deck. No such step: each keeps its own (gates never traded).
+        drawn_deck = draw_deck(None)
+        deck_step = deck_kicker_step([drawn_deck[i][1] for i in order])
+        if deck_step is not None and not kickers_on([drawn_deck[i][1] for i in order], deck_step):
+            drawn_deck = draw_deck(deck_step)
         for i in order:
-            card = cards[i]
-            archetype = archetypes[i]
-            photo = diagram[1] if archetype == "diagram" else photos[i]
-            photo_next = photos[(i + 1) % len(photos)]
-            strip = strips.get(i)
-            im, lay, attempts = still_layout.drawn(
-                lambda tight, strip=strip, window=showing[i]: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
-                                                                       poll, share, facebook, tight=tight,
-                                                                       subject=subject, heading_frame=frame,
-                                                                       strip=strip, lead=lead, window=window))
-            drew = lay.meta.get("swipe_strip") or {}
-            if i == 1 and drew.get("box"):
-                strips[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
+            im, lay, attempts, archetype, photo, photo_next, card, drew = drawn_deck[i]
+            if isinstance(getattr(lay, "meta", None), dict):
+                lay.meta["kicker_set"] = {"step": list(deck_step) if deck_step else None, "slides": total}
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
@@ -2223,6 +2348,7 @@ class MultiFormatGenerator:
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
                                           "subject": subject, "heading_frame": frame, "lead": lead,
                                           "window": showing[i],
+                                          **({"kicker_step": list(deck_step)} if deck_step else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
@@ -2259,12 +2385,13 @@ def figure_colour() -> tuple[int, int, int]:
     return colour_of("figure.colour")
 
 
-def unit_runs(line: str, gold_words: int, offset: int = 0) -> list[tuple[str, bool]]:
+def unit_runs(line: str, gold_words, offset: int = 0) -> list[tuple[str, bool]]:
     """A unit line's runs [(text, gold)]: its first `gold_words` words (counted from `offset`, the words of the
-    unit set on earlier lines) are the unit, gold; the rest (the dimension word: TALL, DEEP, AGO) bone (ruling 8)."""
+    unit set on earlier lines) are the unit, gold; the rest (the dimension word: TALL, DEEP, AGO) bone (ruling 8).
+    `gold_words` may be the set of the unit's gold word indices (figures.gold_word_indices)."""
     out: list[tuple[str, bool]] = []
     for i, w in enumerate(line.split()):
-        g = offset + i < gold_words
+        g = (offset + i in gold_words) if isinstance(gold_words, (set, frozenset)) else offset + i < gold_words
         if out and out[-1][1] == g:
             out[-1] = (out[-1][0] + " " + w, g)
         else:
@@ -3139,9 +3266,11 @@ def redraw_story_frame(path: Path, recipe: dict[str, Any]) -> dict[str, Any]:
     from . import still_layout
     from .credits import source_page_ids
     gen = MultiFormatGenerator()
-    im, lay = gen._render_story_frame(Path(recipe["photo"]), recipe["slide"], int(recipe["index"]), int(recipe["count"]),
-                                      recipe.get("poll") or {}, tight=True,
-                                      pages=source_page_ids(Path(path).parent.parent), title_px=recipe.get("title_px"))
+    with kicker_set(recipe.get("kicker_step")):   # the Story's one kicker step (round 8 R1)
+        im, lay = gen._render_story_frame(Path(recipe["photo"]), recipe["slide"], int(recipe["index"]),
+                                          int(recipe["count"]), recipe.get("poll") or {}, tight=True,
+                                          pages=source_page_ids(Path(path).parent.parent),
+                                          title_px=recipe.get("title_px"))
     im.save(path, quality=95)
     _delivered_contrast(lay, path)
     layout_file = Path(path).parent / "layout.json"
@@ -3234,13 +3363,15 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
     from . import still_layout
     path = Path(path)
     gen = MultiFormatGenerator()
-    im, lay = gen._render_carousel_slide(recipe["archetype"], Path(recipe["photo"]), Path(recipe["photo_next"]),
-                                         recipe["card"], int(recipe["index"]), int(recipe["total"]),
-                                         recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
-                                         tight=tight, subject=recipe.get("subject") or "",
-                                         heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
-                                         strip=_redraw_strip(recipe.get("strip"), path),
-                                         window=int(recipe.get("window") or 0))
+    with kicker_set(recipe.get("kicker_step")):   # the deck's one kicker step (round 8 R1)
+        im, lay = gen._render_carousel_slide(recipe["archetype"], Path(recipe["photo"]), Path(recipe["photo_next"]),
+                                             recipe["card"], int(recipe["index"]), int(recipe["total"]),
+                                             recipe.get("poll") or {}, recipe.get("share") or "",
+                                             bool(recipe.get("facebook")),
+                                             tight=tight, subject=recipe.get("subject") or "",
+                                             heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
+                                             strip=_redraw_strip(recipe.get("strip"), path),
+                                             window=int(recipe.get("window") or 0))
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}

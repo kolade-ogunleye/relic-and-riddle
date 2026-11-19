@@ -111,12 +111,14 @@ def test_one_paper_marker_makes_the_other_kicker_bone(tmp_path, monkeypatch):
     old = _flat(tmp_path / "old.png", base=234)
     new = _busy(tmp_path / "new.jpg")
     then_now.render(old, 1941, new, 1942, tmp_path / "x.mp4")
-    assert then_now.LAST_PAPER["then"]["mode"] == "ink" and then_now.LAST_PAPER["now"]["mode"] == "bone/gold"
+    # cycle 0 round 8 rules2 (R1, AD regression check: Memnon drew THEN bare INK beside a plated gold NOW): the pair is
+    # ONE set (typography.plan_label_set): the marker off paper may not take INK type, so neither does the pair; both
+    # markers take one step, the kicker and the year in one fill each, every gate held
+    assert then_now.LAST_PAPER["then"]["mode"] == then_now.LAST_PAPER["now"]["mode"] == "bone/gold"
+    label = then_now.last_meta["label"]
+    assert label["then"]["step"] == label["now"]["step"] and then_now.last_meta["label_set"]["uniform"]
     rows = dict(got["rows"])
-    # cycle 0 round 8 (panel consensus 7): the other marker is the system kicker in its colour (gold), its year gold
-    # (ruling 3); round 4's "two neutrals" pair rule is retired
-    assert rows["now_kicker"].fill == tuple(then_now.GOLD)
-    assert rows["now_year"].fill == tuple(then_now.GOLD)
+    assert rows["now_kicker"].fill == rows["then_kicker"].fill and rows["now_year"].fill == rows["then_year"].fill
 
 
 def test_a_non_paper_render_plans_as_before(tmp_path, monkeypatch):

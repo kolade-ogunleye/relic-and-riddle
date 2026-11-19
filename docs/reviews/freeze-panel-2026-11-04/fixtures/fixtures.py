@@ -112,9 +112,18 @@ def frame(mp4: str | Path, t: float | None = None, dst: str | Path | None = None
         f"{src.stem}_{tag}.png"
     if not out.exists():
         out.parent.mkdir(parents=True, exist_ok=True)
+        # written to a file of this process's own, then moved into place: board processes running side by side
+        # (board.py --workers) never read a frame another one is still writing (ffmpeg's frame is the same in each)
+        part = out.with_name(f"{out.stem}.{os.getpid()}.part.png")
         cmd = ["ffmpeg", "-loglevel", "error", "-y", *(["-sseof", "-0.2"] if last else ["-ss", tag]),
-               "-i", str(src), "-frames:v", "1", "-update", "1", str(out)]
+               "-i", str(src), "-frames:v", "1", "-update", "1", str(part)]
         subprocess.run(cmd, check=True, timeout=120, capture_output=True)
+        try:
+            os.replace(part, out)
+        except OSError:   # another process moved its own copy in first (and may hold it open)
+            if not out.exists():
+                raise
+            part.unlink(missing_ok=True)
     return out
 
 

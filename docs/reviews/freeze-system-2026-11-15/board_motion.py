@@ -199,16 +199,18 @@ def _case(fx, topic: str, fmt: str):
     return i, c
 
 
-def end_sequences(clips: Path, topic: str = "unfinished_obelisk_aswan") -> dict[str, Any]:
-    """The 16:9 end screen, the 9:16 end card and the 9:16 loop bridge with FOLLOW (into the Reel's frame 0) of the
-    catalogue's `topic` cases, each drawn once, encoded once, decoded once."""
-    if "end" in _cache:
-        return _cache["end"]
+END_TOPIC = "unfinished_obelisk_aswan"
+END_NAMES = ("endscreen_169", "endcard_916", "bridge_follow_916")
+PREFETCH: dict[tuple[str, str], Any] = {}   # (topic, name) -> Future of board_evidence.captured(draw_end, ...)
+
+
+def _end_jobs(topic: str) -> dict[str, Any]:
+    """name -> (size, make(stats) -> the frames, case index, case): the three end sequences of `topic` as
+    end_sequences draws them."""
     from PIL import Image, ImageOps
 
     from src import end_card
     fx = _fx()
-    out: dict[str, Any] = {}
     iw, wide = _case(fx, topic, "16:9")
     it, tall = _case(fx, topic, "9:16")
     last_w = _still(fx, wide.get("last_frame", {}).get("from") or wide.get("last"))
@@ -216,27 +218,57 @@ def end_sequences(clips: Path, topic: str = "unfinished_obelisk_aswan") -> dict[
         last_w = ImageOps.fit(last_w, (1920, 1080), Image.LANCZOS)
     last_t = _still(fx, tall.get("last_frame", {}).get("from") or tall.get("last"))
     first = Image.open(fx.frame(tall["first_frame"]["from"], 0.0)).convert("RGB")
-    jobs = {
+    return {
         "endscreen_169": ((1920, 1080), lambda st: end_card.frames(last_w, wide["share_line"], st), iw, wide),
         # the line the composer passes (render_surfaces.card_share: end_card_share of the run), not the raw one
         "endcard_916": ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall),
         "bridge_follow_916": ((1080, 1920), lambda st: _then(end_card.loop_bridge(last_t, first, tall["share_line"], st,
                                                                                  line=False, follow=True), first), it, tall),
     }
+
+
+def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:
+    """One end sequence drawn and encoded (the clip, or None when refused, with the renderer's stats), as
+    end_sequences does it inline: board.py --workers runs it in a worker process."""
+    import board_evidence as be
+    t0 = time.perf_counter()
+    size, make, idx, _case_ = _end_jobs(topic)[name]
+    stats: dict[str, Any] = {}
+    path = clips / f"{name}__{idx}_{topic}.mp4"
+    clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+    if clip is None:
+        path.unlink(missing_ok=True)
+    return {"clip": clip, "stats": stats, "seconds": time.perf_counter() - t0}
+
+
+def end_sequences(clips: Path, topic: str = END_TOPIC) -> dict[str, Any]:
+    """The 16:9 end screen, the 9:16 end card and the 9:16 loop bridge with FOLLOW (into the Reel's frame 0) of the
+    catalogue's `topic` cases, each drawn once, encoded once, decoded once (drawn and encoded by a worker when
+    board.py --workers prefetched it)."""
+    if "end" in _cache:
+        return _cache["end"]
+    out: dict[str, Any] = {}
+    jobs = _end_jobs(topic)
     for name, (size, make, idx, case) in jobs.items():
         t0 = time.perf_counter()
-        stats: dict[str, Any] = {}
-        path = clips / f"{name}__{idx}_{topic}.mp4"
         import board_evidence as be   # round 8: a refusal is recorded, the other sequences go on
-        clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+        if (topic, name) in PREFETCH:
+            got = be.replay(PREFETCH.pop((topic, name)))
+            clip, stats, drawn = got["clip"], got["stats"], got["seconds"]
+        else:
+            stats: dict[str, Any] = {}
+            path = clips / f"{name}__{idx}_{topic}.mp4"
+            clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+            drawn = 0.0
+            if clip is None:
+                path.unlink(missing_ok=True)
         if clip is None:
-            path.unlink(missing_ok=True)
             continue
         regions = _end_regions(name, stats, size)
         every = 3 if clip["frames"] > 60 else 1
-        seq = Seq(name, clip, size, regions, keep=lambda i, e=every: i % e == 0 or i == clip["frames"] - 1)
+        seq = Seq(name, clip, size, regions, keep=lambda i, e=every, n=clip["frames"]: i % e == 0 or i == n - 1)
         seq.stats, seq.case, seq.index, seq.topic = stats, case, idx, topic
-        seq.seconds = round(time.perf_counter() - t0, 1)
+        seq.seconds = round(drawn + time.perf_counter() - t0, 1)
         out[name] = seq
     _cache["end"] = out
     return out

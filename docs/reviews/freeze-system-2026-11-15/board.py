@@ -3,6 +3,16 @@ fresh from one code tree on real run inputs, for the lander's panel (the builder
 
     python board.py <tree> <dev checkout holding output/run_* and assets/> <out dir> [--brand default|second]
                     [--rows 1,2,...] [--per-kind 2] [--no-surfaces]
+                    [--workers N] [--timings <previous surfaces.json>] [--surface-jobs <file>]
+
+--workers N (default 1: one process, as before; board tooling only, never a different pixel): render_surfaces.py's
+job list (its --list-jobs) in N shards, each run through --jobs as its own process, longest first onto the least
+loaded (each job's seconds in --timings, else <out>/surfaces.json, else per-kind defaults), merged into one
+surfaces.json (the one-process schema and content; only `seconds` is the shards' own timing). Then the composed rows'
+slow independent draws (row 2's end screens and end cards at REVEAL_S, the row 9 / 12 end sequences' draw and encode,
+row 11's callout held frame) run in N-1 worker processes beside the board process, which takes each result up where
+it would have drawn it (its refusals recorded there, in the same order). A tree whose render_surfaces.py has no
+--list-jobs renders its surfaces in one process. --surface-jobs: only these jobs (a small board for a check).
 
 <tree>: the commit under review (a clean worktree). <dev checkout>: read-only inputs (renders-use-real-run-data).
 
@@ -253,6 +263,108 @@ REVEAL_S = 0.8   # s: the end screen's / card's masthead (name by 0.55 s, mark b
 GROUND_RUNS = {   # row 2's grounds -> the run whose copy the surface carries (its own topic's run where one exists)
     "wieliczka_salt_mine": "run_wieliczka_salt_mine_1792974672", "amber_room_heist": "run_amber_room_heist_1792790550",
     "unfinished_obelisk_aswan": "run_unfinished_obelisk_aswan_1792993374"}
+ROW2_GROUNDS = {"dark wieliczka": "wieliczka_salt_mine/01_commons.jpg", "busy amber": "amber_room_heist/01_commons.jpg",
+                "bright aswan": "unfinished_obelisk_aswan/01_commons.jpg",
+                "near-white antikythera": "antikythera_mechanism/01_commons.jpg"}
+REVEAL_SURFACES = (((1920, 1080), "end screen 1920"), ((1080, 1920), "end card 9:16"))
+
+
+def at_reveal(ground, share, stats):
+    """The end screen's / card's frame at REVEAL_S: the dim and the masthead fully in (the record is the renderer's
+    own, judged on the ground at rest); drawing on to the rest frame would cost the whole 10 s clip for a ~1 % push."""
+    from src import end_card
+    last = None
+    for k, last in enumerate(end_card.frames(ground, share, stats)):
+        if k >= round(REVEAL_S * end_card.FPS):
+            break
+    return last
+
+
+def reveal_frame(hero_path: str, size: tuple[int, int], dev: str):
+    """Row 2's end screen or end card (`size`) at REVEAL_S on one ground, exactly as _masthead_surfaces draws it (its
+    hero, its run's end_card_share, the same guarded call): (frame or None, the renderer's stats). A worker process
+    runs it under --workers (prefetch_compose); the one-process board draws it inline."""
+    import board_evidence as be
+    import board_extras as bx
+    from PIL import Image, ImageOps
+
+    from src.script_engine import end_card_share
+    topic = Path(hero_path).parent.name
+    run = GROUND_RUNS.get(topic, bx.ASWAN_DECK_RUN)
+    payload = json.loads((Path(dev) / "output" / run / "verified_script.json").read_text(encoding="utf-8"))
+    hero = Image.open(hero_path).convert("RGB")
+    stats: dict = {}
+    what = dict(REVEAL_SURFACES)[tuple(size)]
+    last = be.guarded(f"row 2 {topic} {what}", at_reveal, ImageOps.fit(hero, tuple(size), Image.LANCZOS),
+                      end_card_share(payload)[0], stats)
+    return last, stats
+
+
+# --workers (board tooling only; every output identical to the one-process board's): the composed rows' slow,
+# independent draws run in worker processes, started before row 1 and taken up where the one-process board draws them
+PREFETCH: dict = {}   # key -> Future of board_evidence.captured(...)
+
+
+def prefetched(key):
+    """A prefetched draw's value; its refusals join board_evidence.REFUSED here, where the inline draw records them."""
+    import board_evidence as be
+    return be.replay(PREFETCH.pop(key))
+
+
+def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
+    """A compose worker set up as main() sets up the board process (environment, paths, the exact memo, the brand)."""
+    os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8", RR_FIXTURE_REPO=dev)
+    os.chdir(tree)
+    for p in (here, str(Path(tree) / FIX), tree):
+        if p in sys.path:
+            sys.path.remove(p)
+    sys.path[0:0] = [here, str(Path(tree) / FIX), tree]
+    import board_speed
+    board_speed.install()
+    if brand_name == "second":
+        sys.path.insert(0, str(Path(tree) / "docs/reviews/quality-fixes-2026-11/QF-35a"))
+        import render_surfaces
+
+        from src import brand
+        brand.configure(render_surfaces.second_brand(brand), validate=False)
+
+
+def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -> list[str]:
+    """Submit the composed rows' slow independent draws (longest first, in the order the rows take them up): row 2's
+    end screen and end card at REVEAL_S per ground, the row 9 / 12 end sequences (drawn and encoded; decoded in this
+    process) and row 11's callout held frame. Each is a pure function of its inputs; nothing it writes is shared."""
+    import board_evidence as be
+    import board_extras as bx
+    import board_motion as bm
+    done = []
+
+    def reveal(size, what):
+        for g, rel in ROW2_GROUNDS.items():
+            p = dev / "assets" / rel
+            if p.is_file():
+                PREFETCH[(str(p), size)] = pool.submit(be.captured, reveal_frame, str(p), size, str(dev))
+                done.append(f"row 2 {g} {what}")
+
+    def end(names):
+        for name in names:
+            bm.PREFETCH[(bm.END_TOPIC, name)] = pool.submit(be.captured, bm.draw_end, clips, bm.END_TOPIC, name)
+            done.append(f"end sequence {name}")
+    if rows & {9, 12}:
+        bm._end_jobs(bm.END_TOPIC)   # the fixture frames extracted (cached) here once, before the workers read them
+    # the order (the pool takes them first in, first out): row 2's end screens (~470 s each), the 16:9 end sequence
+    # (~800 s, the longest), row 2's end cards (~100 s), the other end sequences and the callout
+    if 2 in rows:
+        reveal(*REVEAL_SURFACES[0])
+    if rows & {9, 12}:
+        end(bm.END_NAMES[:1])
+    if 2 in rows:
+        reveal(*REVEAL_SURFACES[1])
+    if rows & {9, 12}:
+        end(bm.END_NAMES[1:])
+    if 11 in rows:
+        PREFETCH["callout held"] = pool.submit(be.captured, bx.callout_held, work)
+        done.append("row 11 callout held frame")
+    return done
 
 
 def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
@@ -266,7 +378,6 @@ def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
     import board_extras as bx
     from PIL import Image, ImageOps
 
-    from src import end_card
     from src.multi_format import MultiFormatGenerator, standalone_subject
     from src.script_engine import end_card_share, share_prompt
     run = GROUND_RUNS.get(topic, bx.ASWAN_DECK_RUN)
@@ -297,19 +408,14 @@ def _masthead_surfaces(hero_path: Path, topic: str, dev: Path, work: Path):
         box = rec.get("box") or (0, 0, 760, 170)
         yield "youtube 1920" + note, yt["image"], rec, (0, 0, round(box[2]) + 160, round(box[3]) + 120)
 
-    def at_reveal(ground, share, stats):
-        # the frame at REVEAL_S: the dim and the masthead fully in (the record is the renderer's own, judged on the
-        # ground at rest); drawing on to the rest frame would cost the whole 10 s clip for a ~1 % push
-        last = None
-        for k, last in enumerate(end_card.frames(ground, share, stats)):
-            if k >= round(REVEAL_S * end_card.FPS):
-                break
-        return last
-    for size, what in (((1920, 1080), "end screen 1920"), ((1080, 1920), "end card 9:16")):
+    for size, what in REVEAL_SURFACES:
         stats: dict = {}
         surface = f"row 2 {topic} {what}"
-        last = be.guarded(surface, at_reveal, ImageOps.fit(hero, size, Image.LANCZOS), end_card_share(payload)[0],
-                          stats)
+        if (str(hero_path), size) in PREFETCH:   # --workers: drawn by a worker process (prefetch_compose)
+            last, stats = prefetched((str(hero_path), size))
+        else:
+            last = be.guarded(surface, at_reveal, ImageOps.fit(hero, size, Image.LANCZOS),
+                              end_card_share(payload)[0], stats)
         what += f" (frame at {REVEAL_S}s)"
         if last is None:
             yield what + note, None, refused(surface), None
@@ -332,11 +438,8 @@ def row2_masthead(out: Path, dev: Path, work: Path) -> list[str]:
     2x and its masthead region at 6x (nearest). Labels sit above the tiles, never over them."""
     import board_evidence as be
     from PIL import Image
-    grounds = {"dark wieliczka": "wieliczka_salt_mine/01_commons.jpg", "busy amber": "amber_room_heist/01_commons.jpg",
-               "bright aswan": "unfinished_obelisk_aswan/01_commons.jpg",
-               "near-white antikythera": "antikythera_mechanism/01_commons.jpg"}
     tiles, recs = [], {}
-    for g, rel in grounds.items():
+    for g, rel in ROW2_GROUNDS.items():
         p = dev / "assets" / rel
         if not p.is_file():
             continue
@@ -772,6 +875,109 @@ def bx_captions() -> list[dict]:
     return bx._cache.get("captions") or []
 
 
+# --workers: render_surfaces.py's job list in shards, balanced by each job's seconds in a previous surfaces.json; a
+# job with no previous time gets its kind's (the cycle-0 round-8i default board's per-kind mean, seconds), else 60 s
+JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts": 126, "social": 101, "scale": 91,
+               "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
+               "cover": 8}
+SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px")    # merged by union (a job's own records)
+SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
+
+
+def shard_jobs(names: list[str], prior: dict[str, float], n: int) -> list[list[str]]:
+    """`names` in `n` shards, longest first onto the least loaded (LPT); each shard keeps render_surfaces.py's own job
+    order (a shard's run is the one-process run with the other jobs skipped)."""
+    est = {k: float(prior.get(k) or JOB_SECONDS.get(k.split(" ")[0], 60)) for k in names}
+    load, shards = [0.0] * n, [[] for _ in range(n)]
+    for k in sorted(names, key=lambda k: (-est[k], names.index(k))):
+        i = min(range(n), key=lambda j: (load[j], j))
+        shards[i].append(k)
+        load[i] += est[k]
+    order = {k: i for i, k in enumerate(names)}
+    return [sorted(s, key=order.get) for s in shards]
+
+
+def merge_shards(parts: list[dict]) -> dict:
+    """One surfaces.json from the shards' (the schema and content of a one-process run's, its `seconds` the shards'
+    own): a key outside the known ones, a differing shared value or a surface in two shards is an error."""
+    merged: dict = {}
+    for part in parts:
+        for k, v in part.items():
+            if k in SHARD_ONLY_KEYS:
+                dup = set(merged.setdefault(k, {})) & set(v)
+                if dup:
+                    raise RuntimeError(f"surfaces shards: {k} {sorted(dup)[:5]} in two shards")
+                merged[k].update(v)
+            elif k in SHARD_SAME_KEYS:
+                if k in merged and merged[k] != v:
+                    raise RuntimeError(f"surfaces shards: {k} differs between shards ({merged[k]!r} / {v!r})")
+                merged[k] = v
+            elif k != "count":
+                raise RuntimeError(f"surfaces shards: unknown key {k!r} (board.py merge_shards needs it)")
+    merged["count"] = len(merged.get("surfaces", {}))
+    return merged
+
+
+def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, brand_name: str, workers: int,
+                 timings: Path | None, subset: Path | None) -> dict:
+    """render_surfaces.py through run_surfaces.py into <out>/surfaces and <out>/surfaces.json: one process, or
+    `workers` shards (--jobs) merged into the same surfaces.json. Returns what ran (for board.json)."""
+    script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
+    base = [sys.executable, str(here / "run_surfaces.py"), str(script), str(tree), str(dev)]
+    common = ["--per-kind", str(per_kind)] + (["--brand", "second"] if brand_name == "second" else [])
+    keep = ["--keep", str(out / "surfaces")]
+    if workers > 1 and "--list-jobs" not in script.read_text(encoding="utf-8"):
+        print("board: this tree's render_surfaces.py has no --list-jobs: surfaces in one process", file=sys.stderr)
+        workers = 1
+    if workers <= 1:
+        subprocess.run(base + [str(out / "surfaces.json")] + keep + common + (["--jobs", str(subset)] if subset else []),
+                       check=True)
+        return {"processes": 1}
+    tmp = Path(tempfile.mkdtemp(prefix="board-shards-"))
+    listing = tmp / "jobs.txt"
+    subprocess.run(base + [str(tmp / "listing.json")] + common + (["--jobs", str(subset)] if subset else [])
+                   + ["--list-jobs", str(listing)], check=True, stdout=subprocess.DEVNULL)
+    names = listing.read_text(encoding="utf-8").splitlines()
+    src = timings or (out / "surfaces.json")
+    prior = {}
+    if src.is_file():
+        try:
+            prior = json.loads(src.read_text(encoding="utf-8")).get("seconds") or {}
+        except ValueError:
+            prior = {}
+    shards = [s for s in shard_jobs(names, prior, workers) if s]
+    procs = []
+    for k, jobs in enumerate(shards):
+        (tmp / f"shard{k}.jobs").write_text("".join(f"{j}\n" for j in jobs), encoding="utf-8", newline="\n")
+        log = open(tmp / f"shard{k}.log", "w", encoding="utf-8")
+        cmd = base + [str(tmp / f"shard{k}.json")] + keep + common + ["--jobs", str(tmp / f"shard{k}.jobs")]
+        procs.append((k, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT), log, time.perf_counter()))
+    print(f"board: surfaces in {len(shards)} shards ({len(names)} jobs, times from "
+          f"{src if prior else 'the per-kind defaults'}), logs in {tmp}", file=sys.stderr, flush=True)
+    failed, took_s = [], {}
+    for k, p, log, t0 in procs:
+        p.wait()
+        log.close()
+        took_s[k] = round(time.perf_counter() - t0, 1)
+        if p.returncode:
+            failed.append(k)
+            print(f"board: surfaces shard {k} failed ({p.returncode}):\n"
+                  + (tmp / f"shard{k}.log").read_text(encoding="utf-8", errors="replace")[-3000:], file=sys.stderr)
+    if failed:
+        raise RuntimeError(f"surfaces shards {failed} failed (logs in {tmp})")
+    merged = merge_shards([json.loads((tmp / f"shard{k}.json").read_text(encoding="utf-8")) for k in range(len(shards))])
+    missing = [n for n in names if n not in merged.get("seconds", {})]
+    if missing:
+        raise RuntimeError(f"surfaces shards: jobs not run {missing[:5]} (logs in {tmp})")
+    (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
+    print(merged["count"], "surfaces,", len(merged.get("errors", {})), "errors,",
+          round(sum(merged["seconds"].values())), "s of jobs in", len(shards), "shards")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return {"processes": len(shards), "jobs": len(names), "balanced_by": str(src) if prior else "per-kind defaults",
+            "shard_jobs_seconds": [round(sum(merged["seconds"].get(j) or 0 for j in s), 1) for s in shards],
+            "shard_seconds": [took_s[k] for k in range(len(shards))]}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("tree", type=Path)
@@ -781,6 +987,13 @@ def main() -> None:
     ap.add_argument("--rows", default="")
     ap.add_argument("--per-kind", type=int, default=2)
     ap.add_argument("--no-surfaces", action="store_true", help="reuse <out>/surfaces (builder iteration only)")
+    ap.add_argument("--workers", type=int, default=1, help="processes (1: one, as before): render_surfaces.py's jobs "
+                    "in this many shards, and the composed rows' slow independent draws in this many minus one "
+                    "workers beside the board process; every output is the one-process board's")
+    ap.add_argument("--timings", type=Path, help="the surfaces.json whose per-job seconds balance the shards "
+                    "(default: <out>/surfaces.json when there is one, else per-kind defaults)")
+    ap.add_argument("--surface-jobs", type=Path, help="render only these render_surfaces.py jobs (one name per line, "
+                    "as surfaces.json `seconds` keys): a small board for a check")
     ap.add_argument("--peers", type=Path, help="peer posts for the feed sheets: <dir>/<feed>/*.jpg, feed one of "
                     "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed (none: the slots are the channel's other runs, "
                     "labelled STAND-IN)")
@@ -807,11 +1020,9 @@ def main() -> None:
         print(f"board: {what}: {manifest['seconds'][what]:.0f}s", file=sys.stderr, flush=True)
     if rows & set(ROWS) and not a.no_surfaces:
         t0 = time.perf_counter()
-        script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
-        cmd = [sys.executable, str(here / "run_surfaces.py"), str(script), str(tree), str(dev), str(out / "surfaces.json"),
-               "--keep", str(out / "surfaces"), "--per-kind", str(a.per_kind)] + (
-            ["--brand", "second"] if a.brand == "second" else [])
-        subprocess.run(cmd, check=True)
+        manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
+                                                        a.timings.resolve() if a.timings else None,
+                                                        a.surface_jobs.resolve() if a.surface_jobs else None)}
         took("surfaces (render_surfaces.py)", t0)
     from src import brand
     if a.brand == "second":   # rows 1, 2, 12, 13 in QF-35a's test brand too
@@ -832,6 +1043,15 @@ def main() -> None:
     clips = out / "clips"
     manifest["labels"], manifest["errors"], manifest["sheets"] = {}, {}, {}
     manifest.setdefault("clips", {})
+    pool = None
+    if a.workers > 1 and rows & {2, 9, 11, 12}:
+        import multiprocessing
+        from concurrent.futures import ProcessPoolExecutor
+        n = max(1, a.workers - 1)   # the board process composes beside them: `workers` processes in all
+        pool = ProcessPoolExecutor(n, mp_context=multiprocessing.get_context("spawn"), initializer=_worker_init,
+                                   initargs=(str(tree), str(dev), str(here), a.brand))
+        manifest.setdefault("workers", {})["compose"] = {"processes": n, "prefetched": prefetch_compose(
+            pool, rows, dev, work, clips)}
 
     def extra(name: str, fn, default=None):
         """One extra render: a failure is recorded in the manifest (and printed), never hidden, and the board goes on."""
@@ -981,7 +1201,8 @@ def main() -> None:
                 add({"name": f"endcard__{ec.index}_{ec.topic}__rest", "image": ec.kept[ec.n - 1],
                      "label": f"at rest: frame {ec.n - 1} (t={(ec.n - 1) / bm.FPS:.3f}s), production encode"})
         if r == 11:
-            for item in extra("callout held frame", lambda: bx.callout_held(work), []):
+            for item in extra("callout held frame", lambda: prefetched("callout held") if "callout held" in PREFETCH
+                              else bx.callout_held(work), []):
                 add(item)
             for item in extra("cover badges", lambda: bx.cover_badges(dev, work, HEROES), []):
                 add(item)
@@ -1015,6 +1236,10 @@ def main() -> None:
     (out / f"refusals_{a.brand}.json").write_text(json.dumps([dict(zip(("surface", "what", "reason"), r)) for r in ref],
                                                              indent=1), encoding="utf-8", newline="\n")
     manifest["refusals"] = {"count": len(ref), "table": f"refusals_{a.brand}.png"}
+    if pool is not None:
+        pool.shutdown(wait=True, cancel_futures=True)
+        PREFETCH.clear()
+        bm.PREFETCH.clear()
     shutil.rmtree(work, ignore_errors=True)
     took("board total (this process)", t_all)
     (out / "board.json").write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8", newline="\n")

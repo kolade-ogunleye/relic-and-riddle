@@ -531,6 +531,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "masthead:group_width": "system",
     "masthead:mark_geometry": "system",
     "masthead:plan": "system",
+    "masthead:plan.name": "system",
     "multi_format:MultiFormatGenerator._body": "D",
     "multi_format:MultiFormatGenerator._content_frame": "D",
     "multi_format:MultiFormatGenerator._fit_text": "D",

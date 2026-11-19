@@ -111,7 +111,7 @@ STORY_TITLE_LINES = 3
 # The qualifier and the unit are one matched pair on the tall display ladder's least step (story_figure_pair_px:
 # TYPE_FALLBACK["tall"]["display_m"], 96; about 0.3 of the 300 figure, as round 3 designed); the reveal's title takes
 # the Story's one title size (story_title_px), never a share of it under the Story floors (it was 0.66 x: 91 at 138).
-STORY_FIGURE_STEPS = (300, 260, 220, 190, 160)
+STORY_FIGURE_STEPS = brand_system.FIGURE_STEPS   # SYS-D-1: the system's one figure-step ladder
 STORY_FIGURE_GAP = 18    # qualifier to figure and figure to unit, cap to cap (28 and 22 before round 3)
 STORY_INLINE_GAP = 0.45   # an inline qualifier to its numeral, as a share of the qualifier's cap height (round 4)
 # The poll frame's sticker room sits directly under the question (2026-11-02 round 2: at y 1300-1560 it was half a

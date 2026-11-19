@@ -134,6 +134,18 @@ def fact_record_key(no_real_services, monkeypatch):
     return TEST_FACT_RECORD_KEY
 
 
+@pytest.fixture
+def card_last_guard(monkeypatch):
+    """Lane F cycle 2: the myth field gate takes only copy that every format's myth card sets
+    (design_cards.myth_fit_problem, run by card_fields.findings). Tests of the myth card's OWN refusals and fits (the
+    last guard: one format's line limit, its source line, its floors) install fields past that gate with this; the
+    gate itself is tested in tests/test_freeze_lane_f.py."""
+    from src import design_cards
+    monkeypatch.setattr(design_cards, "myth_fit_problem", lambda *a, **k: "")
+    # the field gate's length as before the copy rule (160), so the card's own character gates are reached too
+    monkeypatch.setattr(design_cards, "myth_chars_max", lambda: 160)
+
+
 def stamp_as_checked(payload, sheet_path):
     """The fact review as main._verify_final_copy records it after both (mocked) checkers passed on the payload's
     copy, with their signed runs (operator decision 2026-11-04: record_fact_review refuses a stamp without them).

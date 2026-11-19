@@ -54,11 +54,17 @@ log = logging.getLogger(__name__)
 
 KINDS = ("statements", "myths", "quotes")
 _MODEL = {"statements": CardStatement, "myths": CardMyth, "quotes": CardQuote}
-MYTH_MAX = 160            # characters: a myth longer than this is no card line on any format
 QUOTE_MAX = 170
 MAX_FIELDS = {"statements": 8, "myths": 3, "quotes": 3}   # per sheet: each is one checker pass per text
 TRACE_BAD = ("contradicts", "overstated")
 _STOPWORDS = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "and", "or"))
+
+
+def myth_max() -> int:
+    """The longest myth a field may be: what every format's myth card takes (design_cards.myth_chars_max, lane F
+    cycle 2; was a fixed MYTH_MAX 160, past every card's own first gate)."""
+    from .design_cards import myth_chars_max
+    return myth_chars_max()
 
 
 class FieldRefused(ValueError):
@@ -197,10 +203,16 @@ def findings(kind: str, field: dict[str, Any], sheet: dict[str, Any]) -> list[st
         out += _source_findings(fact, [t])
     elif kind == "myths":
         m, c = (" ".join(str(field.get(k) or "").split()) for k in ("myth", "correction"))
-        if not m or len(m) > MYTH_MAX:
-            out.append(f"a myth is 1-{MYTH_MAX} characters")
+        if not m or len(m) > myth_max():
+            out.append(f"a myth is 1-{myth_max()} characters")
         if not c or len(c) > CARD_TEXT_MAX:
             out.append(f"a correction is 1-{CARD_TEXT_MAX} characters")
+        if m and c and not out:
+            # lane F cycle 2: the myth card sets the pair on every format, by its own fit rule
+            from .design_cards import myth_fit_problem
+            why = myth_fit_problem(m, c, (field.get("source") or {}).get("url", ""))
+            if why:
+                out.append(why)
         if m and m.casefold() == c.casefold():
             out.append("the myth and its correction say the same")
         if fact.get("disputed"):

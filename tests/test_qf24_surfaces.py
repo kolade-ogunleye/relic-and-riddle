@@ -86,6 +86,7 @@ def signed(monkeypatch):
     monkeypatch.setattr(config, "FACT_RECORD_KEY", "test-only-fact-record-key-0123456789abcdef")
 
 
+@pytest.mark.usefixtures("card_last_guard")   # the card's own box-column tier, past the field gate (lane F cycle 2)
 def test_the_cards_start_at_the_box_edge_and_the_reviewed_long_myth_fits(signed):
     # cycle 0 round 7 (panel F19): the cards start on the 9:16 margin token, the box inset by TEXT_INSET (137-824)
     assert tuple(getattr(dc, k, None) for k in ("TALL_LEFT", "TALL_RIGHT", "TALL_FOOT")) == (137, 824, GRAPHICS_FOOT)

@@ -527,20 +527,17 @@ def branches() -> dict[str, dict[str, Callable]]:
                              "fact_checked": _checked_cover(s)}
     for name in CARD_PLANS:
         out[f"design_cards.{name}"] = {"settle": _card_plan(name, settle=True)}
-    long_et = _card_plan("plan_myth_fact", m=(
-        "Extraterrestrials constructed the circular rings",
-        "Wind and water slowly eroded the dome over millions of years into concentric rings", "f_et"))
-
     long_wide = _card_plan("plan_myth_fact", m=(
         "Extraterrestrials made the circular rings",
         "Wind and water slowly eroded the dome over millions of years into rings", "f_et"))
 
     def long_myth(ctx, size):
-        """The long myth: LONG_ET on 9:16. On 16:9 LONG_ET is a declared refusal (cycle 0 round 8, ruling 4 on every
-        row: its only wide forms leave a word alone in a middle row; tests/test_freeze_cards_2026_11_04.refused_wide),
-        and its refusal comes before the fit weighs a long word alone, so the wide long myth is one that draws with
-        its long first word alone on a row (the fit's lone-word rule and its last-row rule, M2, reached and drawn)."""
-        return (long_wide if size[0] > size[1] else long_et)(ctx, size)
+        """The long myth, the same copy on both formats. Lane F cycle 2: a myth field is only copy every format's
+        card sets (design_cards.myth_fit_problem in the field gate), so LONG_ET, which 16:9 cannot set (a word alone
+        in a middle row, cycle 0 round 8), is refused at the field on 9:16 too; the stress case is the longest copy
+        the gate takes, which on 16:9 draws with its long first word alone on a row (M2's lone-word and last-row
+        rules, reached and drawn). LONG_ET's own card refusal is tested past the gate (conftest.card_last_guard)."""
+        return long_wide(ctx, size)
     out["design_cards.plan_myth_fact"]["long"] = long_myth
     out["design_cards.plan_chapter_card"]["accented"] = _card_plan("plan_chapter_card",
                                                                    title="The Rings Around the Ténéré Desert")

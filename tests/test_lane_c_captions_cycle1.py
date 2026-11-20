@@ -274,9 +274,11 @@ def test_every_burst_over_the_caps_is_a_bond_or_in_the_bond_extra_record(name, w
         if not vc.over_caps(p):
             continue
         bonded = all(pos[id(p[j])] in held for j in range(len(p) - 1))
+        # lane C cycle 3 (lander ruling: a figure group is a bond): a whole figure group set on two lines
+        bonded = bonded or vc._figure_group([w["word"] for w in p])
         assert bonded or " ".join(w["word"] for w in p) in logged, (name, [w["word"] for w in p])
     for e in log:
-        assert e["removed"] in ("never_end_end", "line_defect") and e["was"]
+        assert e["removed"] in ("never_end_end", "line_defect", "lone_group_tail") and e["was"]
         assert any(" ".join(w["word"] for w in p) == e["text"] and vc.over_caps(p) for p in phrases), e
     assert _record(phrases, wide)["bond_extra"] == []   # reading_rates names only what it is given
     rec = vc.reading_rates(phrases, vc.burst_timings(phrases, dwell=True), bond_extra=log)

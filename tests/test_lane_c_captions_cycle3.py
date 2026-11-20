@@ -229,3 +229,68 @@ def test_the_wide_plate_keeps_to_the_plate_steps_within_a_run(tmp_path):
     xs = [(int(m.group(1)), w) for (_, _, t), w in zip(ev, widths) if (m := re.search(r"pos\((\d+),", t))]
     for x, w in xs:   # centred on the line
         assert abs(x + (w + 14) / 2 - 960) <= 1
+
+
+# ---------------------------------------------------------------- lander rulings on 8f00b711
+def test_a_group_closing_word_rides_line_two_with_the_bond_extra_and_is_recorded():
+    # labelled synthetic narration: line 2 (AND 2 MILLION KM AWAY,) needs the +1 word to hold the closing word
+    words = _timed("The probe drifted between 1 and 2 million km away, and the signal faded slowly.")
+    extra: list = []
+    phrases = vc.caption_phrases(words, None, False, bond_extra=extra)
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    assert "between 1 and 2 million km away," in texts, texts
+    assert any(e["removed"] == "lone_group_tail" and e["text"] == "between 1 and 2 million km away," for e in extra)
+    k = vc.reel_caption_lines("between 1 and 2 million km away,".split())[0]
+    line2 = "between 1 and 2 million km away,".split()[k:]
+    assert len(line2) <= vc.MAX_BURST_WORDS + vc.CAPTION_BOND_EXTRA_WORDS
+    assert len(" ".join(line2)) <= vc.MAX_BURST_CHARS + vc.CAPTION_BOND_EXTRA_CHARS
+
+
+@pytest.mark.parametrize("case", REEL, ids=[c["topic"] for c in REEL])
+def test_a_lone_group_closing_word_is_one_no_two_line_form_holds_and_is_recorded(case):
+    words = _fx.words(case)
+    phrases = vc.caption_phrases(words, list(case.get("emphasis_words") or []) or None, False)
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    assert rec["lone_group_tail"] == vc.lone_group_tails(phrases)
+    for row in rec["lone_group_tail"]:
+        group = row.replace(" | ", " ").split()
+        assert vc._figure_group_split(group) is None, row
+
+
+def _cue_runs():
+    import glob
+    paths = sorted(glob.glob(str(ROOT / "output" / "run_*" / "words.json")))
+    paths += sorted(glob.glob("C:/tmp/prod-export-data/output/run_*/words.json"))   # the read-only production sample
+    cases = [(Path(p).parent.name, p) for p in paths]
+    cases += [(f"fixture {c['topic']}", str(c["words"])) for c in REAL]
+    return cases
+
+
+CUE_RUNS = _cue_runs()
+
+
+@pytest.mark.parametrize("name,path", CUE_RUNS, ids=[c[0] for c in CUE_RUNS])
+def test_sidecar_cues_follow_the_burst_bonds_and_never_end_rules(name, path):
+    """Lander ruling on 8f00b711: an SRT/VTT cue never ends on a never-end word, never cuts a figure group, and never
+    runs across a sentence end where a cue boundary is available there (the real runs: dev output, the production
+    sample and the catalogue's fixtures). A cue line breaks inside a figure group only at its seam before a range
+    joiner."""
+    import json
+    words = json.loads(Path(path).read_text(encoding="utf-8"))
+    timed = [w for w in words if str(w.get("word", "")).strip()]
+    raw = [str(w["word"]).strip() for w in timed]
+    links = vc._figure_bonds(raw) | vc.unit_links(raw)
+    cues = vc.partition_sidecar_cues(words)
+    assert " ".join(t.replace("\n", " ") for _, _, t in cues).split() == raw   # the narration, word for word
+    at = -1
+    for i, (_, _, text) in enumerate(cues):
+        ws = text.split()
+        start, at = at + 1, at + len(ws)
+        if i < len(cues) - 1:
+            assert not vc.never_end_end(ws[-1]), text
+            assert at not in links, text
+        assert not any(vc.TERMINAL_PUNCT.search(w) and not vc._is_abbreviation(w) for w in ws[:-1]), text
+        lines = text.split("\n")
+        if len(lines) == 2:
+            k = start + len(lines[0].split()) - 1
+            assert k not in links or vc._norm(raw[k + 1]) in vc.RANGE_JOINERS, text

@@ -2063,6 +2063,29 @@ def _figure_group(words: list[str]) -> bool:
         k in links or _is_atomic_boundary(words[k], words[k + 1]) for k in range(lo, hi))
 
 
+def _figure_group_tail(words: list[Any]) -> bool:
+    """Whether the last of these words is a figure group's closing word (AGO, LATER, HIGH: _RANGE_TAIL_WORDS) that
+    _figure_group lets follow the group unbonded."""
+    words = [str(w) for w in words]
+    links = _figure_bonds(words)
+    return (len(words) > 2 and len(words) - 2 not in links and _norm(words[-1]) in _RANGE_TAIL_WORDS
+            and not _ends_clause(words[-2]) and _figure_group(words))
+
+
+def figure_group_tail_extra(phrase: Any) -> bool:
+    """Lane C cycle 3: whether this 9:16 burst is a figure group set on two lines whose line 2 uses the bond extra to
+    hold the group's closing word (_figure_group_split); the records list each one (reading_rates "bond_extra")."""
+    ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in (
+        phrase.split() if isinstance(phrase, str) else phrase)]
+    if not _figure_group_over_caps(ws) or not _figure_group_tail(ws):
+        return False
+    lay = reel_caption_lines(ws)
+    if lay is None:
+        return False
+    line = ws[lay[0]:]
+    return len(line) > MAX_BURST_WORDS or len(" ".join(line)) > MAX_BURST_CHARS
+
+
 def _figure_group_over_caps(words: list[str]) -> bool:
     """A figure group (_figure_group) past one burst's caps with the bond extra (CAPTION_BOND_EXTRA_WORDS / _CHARS)."""
     return (len(words) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS
@@ -2090,13 +2113,19 @@ def _figure_group_split_cached(raw: tuple[str, ...]) -> tuple[int, int] | None:
     tokens = [_norm(w) for w in words]
     budget = _ink_budget()
     band = _caption_band_height()
+    tail = _figure_group_tail(words)
     for rung in CAPTION_LADDER:
         if not _two_line_clears_graphics(rung):
             continue
         choices = []
         for k in range(1, len(words)):
             parts = (words[:k], words[k:])
-            if any(len(p) > MAX_BURST_WORDS or len(" ".join(p)) > MAX_BURST_CHARS for p in parts):
+            # lander cycle-3 ruling 1 on 8f00b711: line 2 takes ruling 5's bond extra (+1 word, +2 characters) where
+            # it holds the group's own closing word (104 MILLION YEARS AGO,), which would otherwise stand alone
+            extra = (CAPTION_BOND_EXTRA_WORDS, CAPTION_BOND_EXTRA_CHARS) if tail else (0, 0)
+            if (len(parts[0]) > MAX_BURST_WORDS or len(" ".join(parts[0])) > MAX_BURST_CHARS
+                    or len(parts[1]) > MAX_BURST_WORDS + extra[0]
+                    or len(" ".join(parts[1])) > MAX_BURST_CHARS + extra[1]):
                 continue
             if unit_link(words[k - 1], words[k]) or _is_atomic_boundary(words[k - 1], words[k]):
                 continue
@@ -2533,6 +2562,8 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             "never_end_lines": [] if widescreen else never_end_lines(phrases),
             # lane C cycle 3 (lander ruling: a figure group is a bond): every cut inside a figure group left standing
             "figure_split": figure_split_cuts(phrases),
+            # lander ruling 1 on 8f00b711: a figure group's closing word no burst could hold with it (recorded)
+            "lone_group_tail": [] if widescreen else lone_group_tails(phrases),
             "never_end_total": len(never_end_bursts(phrases)) + (0 if widescreen else sum(
                 not row["hedge_break"] for row in never_end_lines(phrases))),
             # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
@@ -2990,6 +3021,30 @@ def figure_group_bonds(words: list[Any], fits: Callable[[list[Any]], bool]) -> s
     return out
 
 
+def figure_group_tail_links(words: list[Any]) -> set[int]:
+    """Lane C cycle 3 (lander ruling 1 on 8f00b711): the boundary before a figure group's closing word (BETWEEN 145,000
+    AND 29,000 YEARS | AGO.) where the whole group with that word sets on two lines (_figure_group_split, line 2 with
+    the bond extra), so the closing word never stands alone after it."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        a = k
+        while k in links:
+            k += 1
+        # raw[a..k] is the group; raw[k + 1] its closing word, if any
+        if k + 1 < len(raw) and not _ends_clause(raw[k]) and _norm(raw[k + 1]) in _RANGE_TAIL_WORDS:
+            group = raw[a:k + 2]
+            if _figure_group_over_caps(group) and _figure_group_split(group) is not None:
+                out.add(k)
+        k += 1
+    return out
+
+
 def _reel_figure_group_fits(group: list[str]) -> bool:
     """Whether a 9:16 burst can set this figure group whole: within the caps with the bond extra at the bond floor
     (bonded_burst_allowed), or on two lines (reel_caption_lines, _figure_group_split)."""
@@ -2998,6 +3053,20 @@ def _reel_figure_group_fits(group: list[str]) -> bool:
             + CAPTION_BOND_EXTRA_CHARS and _fits_caption_bonded(group)):
         return True
     return reel_caption_lines(group) is not None
+
+
+def lone_group_tails(phrases) -> list[str]:
+    """Lane C cycle 3 (lander ruling 1 on 8f00b711): each one-word burst that is a figure group's closing word left
+    alone after the group (BETWEEN 94 AND 104 MILLION YEARS | AGO,): no two-line form holds it, the bond extra
+    included (line 2 past the ink budget at every rung). The records name every one."""
+    out = []
+    for i in range(1, len(phrases)):
+        p, prev = phrases[i], phrases[i - 1]
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        before = [w.get("word", "") if isinstance(w, dict) else str(w) for w in prev]
+        if len(ws) == 1 and _norm(ws[0]) in _RANGE_TAIL_WORDS and _figure_group(before) and not _ends_clause(before[-1]):
+            out.append(" ".join(before) + " | " + ws[0])
+    return out
 
 
 def figure_split_cuts(phrases) -> list[str]:
@@ -3102,6 +3171,7 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     # lane C cycle 3 (lander ruling): a figure group is a bond: one the Reel can set (one line, or two lines each
     # within one burst's caps) is never loosened for the round-4 base
     loose = _base_yields(words, emphasis, base) - units - figure_group_bonds(words, _reel_figure_group_fits)
+    units = units | figure_group_tail_links(words)   # held like a unit: never loosened, never cut
     bonds = ((caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
                                                 _fits_caption_bonded)) - loose) | units
     phrases = merge_short_bursts(partition_words_grammatical(words, bonds=bonds, base_cuts=base, loose=loose,
@@ -3130,6 +3200,11 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
+        # lane C cycle 3: a figure group's line 2 holding its closing word with the bond extra (BETWEEN 94 / AND 104
+        # MILLION YEARS AGO,), which removed a lone closing word
+        bond_extra.extend({"text": " ".join(w["word"] for w in p), "removed": "lone_group_tail",
+                           "was": " ".join(w["word"] for w in p[:-1]) + " | " + p[-1]["word"]}
+                          for p in out if figure_group_tail_extra(p))
     return out
 
 
@@ -4440,6 +4515,7 @@ def _head_break_ok(words: list[str], k: int, bonds: set[int]) -> bool:
     return not _line_break_weak(words, k)
 
 
+SIDECAR_SENTENCE_CROSS_COST = 500.0   # lane C cycle 3: a cue across a sentence end, only where no split avoids it
 SIDECAR_HEAD_LINE_COST = 40.0   # fix round 3: a new cue's line break between two words a HEAD 0036b18 line held
 
 
@@ -4496,7 +4572,10 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
     # that holds the link without a cue end the base lacks is taken (fix round 2)
     soft_ends = _base_figure_links(timed, base_ends) | {b for b in base_ends if b + 1 < n
                                                         and _r4_atomic_boundary(raw[b], raw[b + 1])}
-    bonds = caption_bonds(timed) - base_ends
+    # lane C cycle 3 (lander ruling: the cues follow the bursts' bonds): a figure group (_figure_bonds, unit links) is
+    # a bond on the cue path too, a base cue end inside one included; it holds in every cue and cue line
+    group_links = _figure_bonds(raw) | unit_links(raw)
+    bonds = (caption_bonds(timed) - base_ends) | group_links
     head_texts: dict[tuple[int, int], str] = {}
     head_line_pairs: set[int] = set()   # fix round 3: the word pairs (k, k + 1) a HEAD 0036b18 cue line holds
     at = 0
@@ -4535,7 +4614,9 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         no conjunction or preposition after it: AN ORIGINAL STONE / MOSAIC against HEAD's AN ORIGINAL / STONE
         MOSAIC)."""
         if (a, b) not in texts:
-            local = {k - a for k in bonds if a <= k < b}
+            # lane C cycle 3: a figure group too long for one cue line breaks at its own seam, before its range joiner
+            # (BETWEEN ROUGHLY 41.75 METRES / AND 42 METRES), as a two-line burst does; a cue never ends there
+            local = {k - a for k in bonds if a <= k < b and not (k in group_links and _norm(raw[k + 1]) in RANGE_JOINERS)}
             text = _wrap_cue(raw[a:b + 1], bonds=local, strict=True)
             cost_ = 0.0
             if text is None:
@@ -4562,10 +4643,28 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         # fix round 2: before the bare round-4 wrap, one that keeps every proper name whole (HAL SAFLIENI: NICHE IN
         # THE / ORACLE ROOM split THE ORACLE ROOM where the lead-in bond on IN left no other break)
         names_local = {k - a for k in named if a <= k < b}
-        return (_r4_wrap_cue(words_ab, bonds=held) or _r4_wrap_cue(words_ab, bonds=local)
-                or _r4_wrap_cue(words_ab, bonds=names_local) or _r4_wrap_cue(words_ab, bonds=set()))
+        # lane C cycle 3: no fallback wrap breaks a figure group's line but at its seam before a range joiner
+        groups_local = set() if mode[0] == 2 else {
+            k - a for k in group_links if a <= k < b and _norm(raw[k + 1]) not in RANGE_JOINERS}
+        groups_local |= {k - a for k in range(a, b) if _bare(raw[k]) in _ARTICLES
+                         and not _ends_clause(raw[k])}   # and no line ends on THE, A or AN
+        articles = {k - a for k in range(a, b) if _bare(raw[k]) in _ARTICLES and not _ends_clause(raw[k])}
+        return (_r4_wrap_cue(words_ab, bonds=held | articles) or _r4_wrap_cue(words_ab, bonds=local | articles)
+                or _r4_wrap_cue(words_ab, bonds=names_local | groups_local)
+                or _r4_wrap_cue(words_ab, bonds=groups_local))
+
+    # lane C cycle 3 (lander ruling): a cue never ends on a never-end word (never_end_end, the bursts' predicate),
+    # never cuts a figure group, and never runs across a sentence end where a cue boundary there is available. Mode 0
+    # holds all three; mode 1 lets a cue run across a sentence end (at SIDECAR_SENTENCE_CROSS_COST) where no split
+    # without one exists; mode 2 is the earlier ranking, used only where neither finds a split (then the greedy one).
+    mode = [0]
 
     def cost(a: int, b: int) -> float | None:
+        if mode[0] < 2:
+            if b + 1 < n and (b in group_links or (not terminal[b] and never_end_end(raw[b])) or in_tail[b]):
+                return None   # S1 too: a sentence's last words stay with it, so no cue is a sentence's tail alone
+            if mode[0] == 0 and any(terminal[k] for k in range(a, b)):
+                return None
         on_base = b in base_ends or b == n - 1
         if (not can_end_relaxed[b] and not on_base) or ends[b] - starts[a] > SIDECAR_MAX_CUE + 1e-9:
             return None
@@ -4610,20 +4709,26 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         held -= starts[a]
         if held > 0 and chars / held > CAPTION_MAX_CPS:
             c += 2 * (chars / held - CAPTION_MAX_CPS)
+        if mode[0] == 1:
+            c += SIDECAR_SENTENCE_CROSS_COST * sum(1 for k in range(a, b) if terminal[k])
         return c
 
     best: list[tuple[float, int] | None] = [None] * (n + 1)
-    best[n] = (0.0, n)
-    for a in range(n - 1, -1, -1):
-        for b in range(a, min(n, a + max_words)):
-            if best[b + 1] is None:
-                continue
-            c = cost(a, b)
-            if c is None:
-                continue
-            total = c + best[b + 1][0]
-            if best[a] is None or total < best[a][0]:
-                best[a] = (total, b)
+    for mode[0] in (0, 1, 2):
+        best = [None] * (n + 1)
+        best[n] = (0.0, n)
+        for a in range(n - 1, -1, -1):
+            for b in range(a, min(n, a + max_words)):
+                if best[b + 1] is None:
+                    continue
+                c = cost(a, b)
+                if c is None:
+                    continue
+                total = c + best[b + 1][0]
+                if best[a] is None or total < best[a][0]:
+                    best[a] = (total, b)
+        if best[0] is not None:
+            break
     if best[0] is None:
         return _greedy_sidecar_cues(timed, bonds)
     groups: list[tuple[int, int]] = []

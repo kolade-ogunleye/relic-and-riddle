@@ -778,3 +778,18 @@ def converted_numbers(values, unit: str, to: str, max_decimals: int = 6) -> list
         text = f"{t:,.{dp}f}"
         out.append("0" if float(text.replace(",", "")) == 0 else text)
     return out
+
+
+def signed_number(value: float | str, signed: str | None = None) -> str:
+    """A signed value written as drawn, at its SIGNED precision, with thousands commas (freeze cycle 3, SYS-S1-5 and
+    stress item 5: the cross-section drew a signed 171.5 ft as '172 FT' and 1,447.9 ft as '1,448 FT', and the gate
+    failed the run). The rule: drawn == signed, a signed decimal is never rounded on a drawing. `signed`: the value as
+    the copy writes it ("171.50", "1447.9"), whose decimal count is kept (a trailing zero the copy signs stays);
+    else the value's own shortest decimals ("6.5", "1,073", "11.25")."""
+    if signed is not None and re.fullmatch(r"\s*-?[\d,]*\.?\d+\s*", str(signed)):
+        raw = str(signed).strip().replace(",", "")
+        dp = len(raw.partition(".")[2])
+    else:
+        raw = f"{float(value):.6f}".rstrip("0").rstrip(".")
+        dp = len(raw.partition(".")[2])
+    return f"{float(value):,.{dp}f}"

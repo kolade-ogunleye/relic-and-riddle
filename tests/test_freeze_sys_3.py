@@ -201,3 +201,15 @@ def test_the_gate_reads_a_hedge_carried_to_the_line_before():
     assert not figure_gate._hedge_on_line_before("THE TOWER", "129 FT", f, signed)
     # a hedge that bounds the other way is never the signed one
     assert not figure_gate._hedge_on_line_before("UP TO", "129 FT", f, signed)
+
+
+# --------------------------------------------------------------------------- SYS-S1-5: drawn == signed precision
+def test_a_signed_decimal_is_drawn_at_its_signed_precision():
+    from src import figures
+    assert figures.signed_number(171.5) == "171.5"
+    assert figures.signed_number(1447.9) == "1,447.9"
+    assert figures.signed_number(1073) == "1,073"
+    assert figures.signed_number(171.5, "171.50") == "171.50"
+    signed = figures.signed_figures(["The shaft reaches 1,447.9 ft."])
+    assert figures.truth_faults(figures.signed_number(1447.9) + " FT", signed) == []
+    assert figures.truth_faults("1,448 FT", signed)     # rounding stays a fault: the gate does not accept it

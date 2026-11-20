@@ -91,6 +91,17 @@ def test_peer_feed_fills_partial_dirs_and_labels_the_rest(mods, tmp_path, n):
     assert be.peer_note("yt_home", shown, peers).count("STAND-IN") == (0 if shown >= be.PEER_SLOTS else 1)
 
 
+def test_reel_first_frame_block_says_what_it_is(mods):
+    """Operator's peer research: a Reel tile that is the video's first frame is labelled so beside the cover."""
+    be = mods["board_evidence"]
+    pool = [(f"cover__topic{k}_1234567890__reel", Image.new("RGB", (1080, 1920))) for k in range(2)]
+    ours = [("REEL FIRST FRAME as the tile (no designed cover) | card__hook__amber__916__f00 | STAND-IN: x",
+             Image.new("RGB", (1080, 1920)))]
+    for feed in ("ig_grid", "ig_feed", "fb_feed"):
+        tiles, _ = be.peer_feed(feed, ours, pool, None)
+        assert "REEL FIRST FRAME" in tiles[0][0] and "card__hook__amber__916__f00" in tiles[0][0]
+
+
 def test_peer_feed_without_a_dir_names_the_option(mods):
     be = mods["board_evidence"]
     assert "board.py --peers <dir>" in be.peer_note("ig_grid", 0, None)

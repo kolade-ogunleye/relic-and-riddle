@@ -725,7 +725,7 @@ def rise_strip(out: Path, ec, suffix: str, where: str) -> list[str]:
         tiles[0] = (f"{tiles[0][0]} | crop {list(crop)}: {how}", tiles[0][1])
     sheet(tiles, out / f"row12_motion_rise{suffix}", tile_h=None, cols=4)
     bm.plot({"share block offset (measured)": ([k / bm.FPS for k in ks], [rise[k] for k in ks])},
-            f"9:16 end card{where}: the share block's rise, measured (row-profile correlation against the rest frame)",
+            f"9:16 end card{where}: the share block's rise, measured (its type pixels matched to the rest frame's, every kept frame)",
             "px below rest", (0, 24), marks={"type first measured": ks[0] / bm.FPS} if ks else None
             ).save(out / f"row12_motion_rise{suffix}_curve.png")
     return [f"row12_motion_rise{suffix}", f"row12_motion_rise{suffix}_curve"]
@@ -955,14 +955,23 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     extra_reels = [(c["name"] + "__reel", c["reel"]) for c in extra_c if c.get("reel") is not None]
     extra_yt = [(c["name"] + "__youtube", c["youtube"]) for c in extra_c if c.get("youtube") is not None]
     extra_car = [(i["name"], i["image"]) for i in deck]
-    plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels, reels + car1),
-            "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car, car1 + reels),
+    # cycle 3 (operator's peer research): the big history Pages post Reels with no designed cover, so their feed tile
+    # is the video's first frame; our Reel's first frame (the hook card at frame 0) sits beside the designed cover
+    try:   # bx.hook_frames records its own refusals; anything else is the feeds' error, the covers still shown
+        hooks = bx.hook_frames()
+    except Exception as e:  # noqa: BLE001
+        manifest["errors"]["peer feeds: reel first frames"] = f"{type(e).__name__}: {e}"[:1500]
+        hooks = []
+    first = [(i["name"], i["image"]) for i in hooks if i.get("image") is not None and i["name"].endswith("__f00")]
+    first_label = {n: f"REEL FIRST FRAME as the tile (no designed cover) | {be.label(n)}" for n, _ in first}
+    plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels + first, reels + car1),
+            "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car + first, car1 + reels),
             "yt_home": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
             "yt_suggested": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
-            "fb_feed": ([x for x in fb1 if hero(x[0])], fb1)}
+            "fb_feed": ([x for x in fb1 if hero(x[0])] + first, fb1)}
     made = []
     for feed, (ours, pool) in plan.items():
-        ours = [(be.label(n), im) for n, im in ours]
+        ours = [(first_label.get(n) or be.label(n), im) for n, im in ours]
         tiles, note = be.peer_feed(feed, ours, pool, peers)
         if not tiles:
             continue

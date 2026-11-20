@@ -535,5 +535,8 @@ def peer_feed(feed: str, ours: list[tuple[str, Any]], pool: list[tuple[str, Any]
         out = Image.new("RGB", (W, H + legend.height), (255, 255, 255))
         out.paste(block, (0, 0))
         out.paste(legend, (0, H))
-        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1} | {note}", out))
+        what = name.split(" | ")[0]   # cycle 3: which of ours the block holds (a Reel's first frame says so first)
+        if what.startswith("REEL FIRST FRAME"):
+            what = f"{what}: {name.split(' | ')[1]}"
+        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1}, {what} | {note}", out))
     return tiles, note

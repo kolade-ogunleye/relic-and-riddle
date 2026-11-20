@@ -457,9 +457,14 @@ def held_note(payload: Mapping[str, Any]) -> str:
     """The surfaces this render refused (refusal.LayoutError, payload["layout_holds"]: the cover job's per-surface
     records and the decks' holds), named in the gate's pass so it never reads as judging a surface that was not
     drawn (cycle 0 round 8 integration: the cover job holds a refused surface; its own checks block the release)."""
-    held = [str(h.get("surface") or h.get("deck") or "?") for h in (payload.get("layout_holds") or [])
-            if isinstance(h, Mapping)]
-    return (f" Held, not drawn (refused, shown on the card): {', '.join(held)}." if held else "")
+    holds = [h for h in (payload.get("layout_holds") or []) if isinstance(h, Mapping)]
+    held = [str(h.get("surface") or h.get("deck") or "?") for h in holds if not h.get("drawn")]
+    # cycle 3 (SYS-S1-3): a surface drawn with a part left out (refusal.omit's ledger rows, "drawn": True) is named
+    # apart: it was judged, without the part its rule left out
+    partial = [f"{h.get('surface')} ({h.get('omitted')!s}; rule {h.get('rule') or '?'})" for h in holds
+               if h.get("drawn")]
+    return ((f" Held, not drawn (refused, shown on the card): {', '.join(held)}." if held else "")
+            + (f" Drawn without a part (recorded, shown on the card): {', '.join(partial)}." if partial else ""))
 
 
 # ------------------------------------------------------------------------------- contradictory signed values (ruling B)

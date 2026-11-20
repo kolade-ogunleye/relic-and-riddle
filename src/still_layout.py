@@ -9,7 +9,13 @@ safe_zones). `problems()` then asserts, from those numbers alone, that no box le
 and that no two boxes intersect. A renderer whose first layout fails draws once more with its tighter fit;
 the record, with the recipe to draw the still again, is kept beside the stills in `still_layout.json`, so
 the audit (still_vision.findings) can re-check it and, when the vision look reports a cut-off or an overlap,
-redraw that still once with the tighter fit."""
+redraw that still once with the tighter fit.
+
+Freeze cycle 3 (SYS-S1-4): a still is never delivered against its own record. `problems()` also lists each element
+whose recorded ratio (planned or delivered) is under its gate (the element's own "gate", else brand.TEXT_CONTRAST:
+stress baseline items 22 and 24, a carousel / Story heading recorded at 1.00-1.27 and delivered), and `drawn()`
+raises refusal.OwnRecordFailed when the tighter fit still has a problem (it used to log and deliver): the caller's
+hold records the refusal for that surface (main.hold_layout_error; the cover job)."""
 from __future__ import annotations
 
 import importlib
@@ -98,6 +104,9 @@ def problems(record: Dict[str, Any]) -> List[str]:
         for e in elements:
             if intersects(tuple(e["box"]), tuple(region["box"])):
                 out.append(f"layout_overlap: {e['name']} {e['box']} lies under the platform's {region['name']} {region['box']}")
+    from .brand import TEXT_CONTRAST
+    from .refusal import failing_rows
+    out += [f"below_gate: {line}" for line in failing_rows(elements, TEXT_CONTRAST)]
     return out
 
 
@@ -138,21 +147,24 @@ def drawn(render, tight_render=None) -> Tuple[Any, Layout, int]:
     """Draws a still, checks it, and draws it once more with the tighter fit if the first layout fails:
     (image, layout, attempts). `render(tight)` returns (image, layout). Copy that fits the first layout only cut
     (typography.TextFitError) gets the tighter fit too, which refuses the still in turn when that does not hold
-    it whole (QF-23)."""
+    it whole (QF-23).
+    Cycle 3 (SYS-S1-4): a tighter fit whose own record still fails (problems(): an overlap, a cut-off, a ratio under
+    its gate) raises refusal.OwnRecordFailed naming the still and the rule; it is never delivered."""
+    from .refusal import require_no_problems
     from .typography import TextFitError
     try:
         im, lay = render(False)
     except TextFitError as e:
         log.warning("Still text does not fit whole (%s); drawing it again with the tighter fit.", e)
         im2, lay2 = (tight_render or render)(True)
+        require_no_problems(f"{lay2.kind} still", lay2.problems(), "still_layout.own_record")
         return im2, lay2, 2
     found = lay.problems()
     if not found:
         return im, lay, 1
     log.warning("%s layout failed its check (%s); drawing it again with the tighter fit.", lay.kind, "; ".join(found[:3]))
     im2, lay2 = (tight_render or render)(True)
-    if lay2.problems():
-        log.warning("%s layout still fails after the tighter fit: %s", lay2.kind, "; ".join(lay2.problems()[:3]))
+    require_no_problems(f"{lay2.kind} still", lay2.problems(), "still_layout.own_record")
     return im2, lay2, 2
 
 

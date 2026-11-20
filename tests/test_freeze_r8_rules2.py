@@ -152,7 +152,9 @@ def test_a_stacked_lockup_never_leaves_a_one_word_middle_row():
     # CARVED FROM / SOLID SALT, a row ending on FROM, is invalid as fields and as one heading)
     assert not heading.lockup_valid(["CARVED FROM", "SOLID SALT"], seam=2, fields=True)
     assert not heading.lockup_valid(["CARVED FROM", "SOLID SALT"])
-    assert heading.lockup_valid(["CARVED", "FROM SOLID SALT"], seam=1, fields=True)   # the ruled seam (lockup_fields)
+    # SYS-B-6 (freeze cycle 3): the ruled seam's one-word FIRST row is a lone row under balance_min (0.44 here)
+    assert not heading.lockup_valid(["CARVED", "FROM SOLID SALT"], seam=1, fields=True)
+    assert heading.lockup_valid(["CARVED", "FROM SOLID SALT"], widths=[600, 1000], seam=1, fields=True)
 
 
 def test_the_aswan_headline_holds_no_form_at_its_floor_and_is_refused():

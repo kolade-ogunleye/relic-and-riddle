@@ -265,14 +265,12 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     targets: dict[str, float] = {}
     given = dict(meta or {})
     edge = None
-    mark_room = None
     while True:
         trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
         im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
-                             column, mark_room)
+                             column)
         if edge is None and _type_edge(plates) is not None:
             edge = _type_edge(plates)
-            mark_room = _mark_room(plates)
             continue
         low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
         if not low:
@@ -310,9 +308,29 @@ def hook_row(plates) -> float | None:
     return max(x for _, x in xs) - min(x for x, _ in xs)
 
 
+# Lane B cycle 3 (lander ruling, B-S2-1: the masthead drew 64 / 60 / 54 / 48 px, fitted to each hook): ONE YouTube
+# masthead size, a declared step of its own fit ladder chosen so masthead.hook_ratio_max holds on the worst real copy,
+# at or above the ladder's floor (masthead.fit_floor). WORST_HOOK_ROW: the narrowest hook first row measured on the
+# real thumbnails that draw (65 runs, dev output + production sample, lane B cycle 3 tree: 424 px, a one-word row);
+# 0.78 of it (331 px) is under the floor's group (488 px), so the floor holds: 48 px. SYS-B-5 asks for the step as a
+# token (masthead.youtube_px); until then it is derived here from the token and this measurement.
+WORST_HOOK_ROW = 424.0
+
+
+def mast_px() -> float:
+    """The YouTube masthead's one size: the largest step of masthead.fit_ladder(BRAND_PX) whose drawn group is at most
+    masthead.hook_ratio_max of WORST_HOOK_ROW, else the ladder's floor (never under it)."""
+    from . import masthead
+    from .brand_system import tok
+    ladder = masthead.fit_ladder(BRAND_PX)
+    room = tok("masthead.hook_ratio_max") * WORST_HOOK_ROW
+    return next((s for s in ladder if masthead.group_width(s, LEFT) <= room + 1e-9), ladder[-1])
+
+
 def _mark_room(plates) -> float | None:
-    """The masthead group's room (MARK_RATIO_MAX of the hook's first row), never under its fit ladder's floor size's
-    own width (the mark steps down, it is never refused for this); None with no hook drawn."""
+    """The masthead group's room over these plates' hook (MARK_RATIO_MAX of its first row), never under its fit ladder's
+    floor size's own width; None with no hook drawn. Lane B cycle 3: no longer drawn per hook (mast_px is the one
+    size); kept as the token's reading on one hook, which the system's token probe measures (SYS-B-5 retires it)."""
     from . import masthead
     row = hook_row(plates)
     if row is None:
@@ -412,7 +430,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
         phrase = [f.record["phrase_exception"] for f in forms_ if f.record.get("phrase_exception")]
         return rows, get_font(brand.DISPLAY_FONT, s1), get_font(brand.DISPLAY_FONT, s2), {
             "tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": f1, "line2": f2, "rows": len(rows),
-            "drawn_rows": [t for t, _ in drawn_rows], "seam": seam,
+            "drawn_rows": [t for t, _ in drawn_rows], "row_sizes": [sz for _, sz in drawn_rows], "seam": seam,
             **({"phrase_exception": phrase} if phrase else {})}
 
     floor = feed_floor_px(HERO_FLOOR)
@@ -458,16 +476,76 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             got[3]["form_diverges"] = {"ruled": list(forms[0][1:3]), "drawn": [got[3]["line1"], got[3]["line2"]],
                                        "form": name, "rows": list(got[3]["drawn_rows"]), "reason": why}
         return got
+    from .cover_design import unbalanced_lone
+    deferred = None
     for name, f1, f2, tries, at, why in forms:
         for s1, tier, n in tries:
             got = attempt(f1, f2, s1, tier, n, at)
-            if got:
-                return done(got, name, why)
+            if not got:
+                continue
+            rows_ = got[3]["drawn_rows"]
+            # lane B cycle 3 (B-S2-2): one reading with the Reel cover (cover_design.unbalanced_lone): a stacked
+            # one-word row under the balance minimum waits for every other form (the heading engine's staging)
+            if unbalanced_lone(rows_, [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]) is not None:
+                deferred = deferred or (got, name, why)
+                continue
+            return done(got, name, why)
+    if deferred is not None:
+        deferred[0][3]["balance_below_min"] = True
+        return done(*deferred)
     # Lander ruling (cycle 0 round 8): no surface draws under its floor. The ladder above is held at the hero's feed
     # floor; a headline no form sets there is refused (recorded), never drawn smaller (round 7 stepped off the ladder
     # to 96 px: the second palette drew 5.8-9.8 px of cap at the 168 px feed against the 12 px floor)
-    raise LayoutError(f"the YouTube headline {' / '.join(t for t in (l1, l2) if t)!r} sets in no form of "
-                      f"{round(width)} px at its {floor} px feed floor or more")
+    raise LayoutError(f"the YouTube headline {' / '.join(t for t in (l1, l2) if t)!r} is refused: "
+                      + refusal_rule(f"{l1} {l2}", lambda t: width_at(t, sizes[-1]), width, sizes[-1],
+                                     None if room is None else (room, cap_height(get_font(brand.DISPLAY_FONT,
+                                                                                          sizes[-1])))))
+
+
+def refusal_rule(text: str, width_of, width: float, size: float, room=None, max_rows: int = 3) -> str:
+    """Why no form of the headline `text` sets (lane B cycle 3, panel 4 / lander: a refusal names the rule that
+    refused, never only "no form"): every break of its words into one to `max_rows` rows at the floor `size` is read;
+    the forms that fit `width` (`width_of(line)`: a row's drawn width at `size`) are named with the heading rule each
+    one breaks (heading.valid's rules, read in its order: the line-end rule, a row of function words only, a one-word row,
+    a bonded unit split; `room`: (height, cap) for the band's height); where none fits, the measure is named with the
+    narrowest form's widest row. The words are the copy's; nothing here decides, it only records."""
+    import itertools
+
+    from . import brand_system
+    from .heading import bare, end_ok, valid
+    words = text.split()
+    fitting, narrowest = [], None
+    for n in range(1, min(max_rows, len(words)) + 1):
+        for cuts in itertools.combinations(range(1, len(words)), n - 1):
+            rows = [" ".join(words[a:b]) for a, b in itertools.pairwise((0, *cuts, len(words)))]
+            widest = max(width_of(r) for r in rows)
+            if narrowest is None or widest < narrowest[0]:
+                narrowest = (widest, rows)
+            if widest <= width:
+                fitting.append(rows)
+    if not fitting:
+        return (f"the measure: no form of its words fits {round(width)} px at the {round(size)} px feed floor "
+                f"(the narrowest, {' / '.join(narrowest[1])}, is {round(narrowest[0])} px wide)")
+    never = brand_system.LINE_END_NEVER | brand_system.LINE_END_LAST_RESORT
+    named = []
+    for rows in fitting:
+        if any(not end_ok(r.split()[-1]) for r in rows[:-1]):
+            bad = next(r.split()[-1] for r in rows[:-1] if not end_ok(r.split()[-1]))
+            why = f"the line-end rule (a line never ends on {bad})"
+        elif len(rows) > 1 and any(all(bare(w) in never for w in r.split()) for r in rows):
+            why = "the line-end rule (a row of function words only)"
+        elif len(rows) > 2 and any(len(r.split()) < 2 for r in rows[1:-1]):
+            why = "the no-lone-row rule (a one-word middle row)"
+        elif room is not None and (len(rows) - 1) * int(room[1] * line_pitch()) + room[1] > room[0]:
+            why = f"the band's height ({round(room[0])} px for {len(rows)} rows)"
+        elif not valid(rows, widths=[width_of(r) for r in rows]):
+            why = ("the no-lone-row rule (a one-word last row the phrase exception does not hold)"
+                   if len(rows) > 1 and len(rows[-1].split()) < 2 else "the bonded-unit rule (a unit split by the break)")
+        else:
+            why = "the lockup's field forms (the copy's two lines set as one heading)"
+        named.append(f"{' / '.join(rows)} breaks {why}")
+    return (f"its only forms that fit {round(width)} px at the {round(size)} px feed floor each break a heading rule: "
+            + "; ".join(named[:3]) + ("" if len(named) <= 3 else f"; and {len(named) - 3} more"))
 
 
 def _title_form(measure, title: str, width: float, room: float):
@@ -497,7 +575,9 @@ def _title_form(measure, title: str, width: float, room: float):
             if form.record.get("phrase_exception"):
                 rec["phrase_exception"] = form.record["phrase_exception"]
             return list(form.lines), f, rec
-    raise LayoutError(f"the YouTube title {title!r} sets in no form of {round(width)} px at {sizes[-1]} px or more")
+    raise LayoutError(f"the YouTube title under the figure {title!r} is refused: "
+                      + refusal_rule(title, lambda t: width_at(t, sizes[-1]), width, sizes[-1],
+                                     (room, cap_height(get_font(brand.DISPLAY_FONT, sizes[-1]))), max_rows=2))
 
 
 # Lane B cycle 1 (cover_fit and the render, one decision): the helpers whose result depends on the type column's
@@ -657,7 +737,7 @@ def type_column(focus_box) -> float:
 
 
 def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
-            column=None, mark_room=None):
+            column=None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -674,9 +754,11 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         drawn_qualifier,
         figure_qualifier,
         hedge_line,
+        hero_truth_faults,
         monument_figure,
         must_withhold,
         resolving_tagline,
+        stated_figure,
         withhold_figure,
     )
     from .multi_format import typeset
@@ -715,10 +797,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     f_brand = masthead.font_for(BRAND_PX)
     top = 72
     mode = im.mode
-    # lane B cycle 2: the group within MARK_RATIO_MAX of the hook's first row (render's second pass), on the masthead's
-    # own fit ladder; the baseline and the band below keep the canvas size's, so the hero stack does not move
+    # lane B cycle 3: one size on every thumbnail (mast_px, a step of the masthead's own fit ladder, drawn through
+    # the ladder's fit); the baseline and the band below keep the canvas size's, so the hero stack does not move
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
-                                                  max_width=mark_room)
+                                                  max_width=masthead.group_width(mast_px(), LEFT) + 0.5)
     im = im.convert(mode)
     if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
@@ -730,7 +812,22 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     fb = meta.get("focus_box")
     width = float(column) if column is not None else type_column(fb)
     found = monument_figure(copy)
+    signed = dict(copy)   # the copy as signed (the truth guard reads it; `copy` loses a withheld figure below)
+    # Lane B cycle 3 (S1: "138 FT" drawn for the signed "Roughly 137-138 ft"; stress FIGURE_GATE x10): the hero is the
+    # copy's statement of the figure WHOLE (cover_design.stated_figure: its hedge, both ends of its span), never one
+    # number lifted out of it. A hedge the parser cannot read ("EST. >13,000 LBS") is one the figure line cannot draw
+    # as signed: the figure is declined (recorded) and the headline path draws the copy's lines as written.
+    stated, unread = stated_figure(copy, found) if (found and found[1]) else (None, "")
+    if unread:
+        meta["figure_declined"] = (f"truth (drawn figure == signed figure): the copy's hedge {unread!r} before "
+                                   f"{found[0]} {found[1]} is not one the figure line can draw, and a hedge is never "
+                                   f"dropped")
+        found = None
+    elif stated is not None and stated.hi:
+        found = (stated.number, found[1], found[2], (stated.start, stated.end))
     q_raw = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
+    if found and found[1] and stated is not None and stated.hedge and not q_raw:
+        q_raw = stated.hedge   # the statement's own hedge ("ROUGHLY" before a span, "ESTIMATED" spelled out)
     same = bool(figure and found and str(figure.get("number")) == found[0])
     qualifier = ""
     if q_raw:
@@ -750,7 +847,15 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             # set it in the headline with the hedge as texture, so the figure read bare at feed size).
             withhold_here(f"the hedge {qualifier!r} does not fit at feed size", found)
             found = None
-    dimension = str((figure or {}).get("dimension") or "") if (found and found[1]) else ""
+    if found and found[1]:
+        # Lane B cycle 3: the guard every figure hero passes (cover_design.hero_truth_faults): the qualifier line,
+        # number and unit as drawn are a signed statement of the copy, whole; else the figure is declined, recorded
+        # with the rule, and the headline path draws the copy's lines as written.
+        faults = hero_truth_faults(qualifier, found[0], found[1], signed)
+        if faults:
+            meta["figure_declined"] = "truth (drawn figure == signed figure): " + "; ".join(faults)
+            found, q_fit = None, None
+    dimension =str((figure or {}).get("dimension") or "") if (found and found[1]) else ""
     year = None
     if not (found and found[1]) and "figure_declined" not in meta:
         # No measured figure: a year from the tagline or the eyebrow is the hero when the copy has one. With the
@@ -797,7 +902,17 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         # QF-143: a line drawn without its partner stands alone (_alone: no trailing colon, never a fragment).
         both = _words(" ".join(lines), budget)
         both = _end(both) if sum(bool(ln.strip()) for ln in lines) > 1 else _alone(both)
-        title = next((t for t in [both] + [_alone(_words(ln, budget)) for ln in lines] if t), "")
+        # Lane B cycle 3 (S1, AD r1: "138 FT / EGYPT'S LARGEST", the noun line CRACKED OBELISK dropped): a figure from
+        # outside the headline (the badge, the tagline) leaves the copy's two headline lines one unit, the writer's
+        # pair: both under it whole, or neither (then another verified line, QF-23); one is never drawn without the
+        # other, which left a modifier with no noun. A figure from a headline line keeps QF-143's rule (its line's
+        # remainder carries the noun it measures).
+        pair = unit and field not in ("line1", "line2") and sum(bool(ln.strip()) for ln in lines) > 1
+        singles = [] if pair else [_alone(_words(ln, budget)) for ln in lines]
+        title = next((t for t in [both] + singles if t), "")
+        if pair and not both:
+            meta["headline_pair_kept"] = (f"the headline lines {' / '.join(lines)!r} do not fit under the figure from "
+                                          f"the {field} whole ({budget} words); one is never drawn without the other")
         if not both:
             frag = [k for k, ln in named if _words(ln, budget) and not _alone(_words(ln, budget))]
             if frag:
@@ -856,7 +971,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 foot = max(foot, f_unit.getbbox(unit, anchor="ls")[3] - raise_u)
                 if dim_lines:
                     foot = max(foot, f_dim.getbbox(dim_lines[-1], anchor="ls")[3])
-            gap_t = max(gap_t, foot + round(_tok("lockup.line_gap") * cap_height(f_t)))
+            # lane B cycle 3 (stress mutation, real Richat copy with an accent: 'MILES' touched 'THE DOMÉ'): the clear
+            # field is measured to the title's top INK too, so an accent over its caps keeps the same gap
+            over = max(0, -f_t.getbbox(t_lines[0], anchor="ls")[1] - cap_height(f_t)) if t_lines else 0
+            gap_t = max(gap_t, foot + over + round(_tok("lockup.line_gap") * cap_height(f_t)))
         stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) + (len(t_lines) - 1) * t_pitch if f_t else 0)
         base = round(centre - stack / 2 + q_h + cap_height(f_num))
         for k, line in enumerate(q_lines if f_q else []):

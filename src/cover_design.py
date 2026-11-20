@@ -340,6 +340,7 @@ def _lockup(measure, copy, width, size, single_gold=True):
             return form.runs() if form else None
         form = set_field(text, width_at, width, sz)
         return field_runs(text, form.cuts, gold) if form else None
+    deferred = None
     for tier, scale in enumerate((1.0, LOCKUP_FALLBACK)):
         # round 8 (ruling 6 and the lander's floor ruling): line 1 too never steps under the grid floor's size (a
         # face of smaller cap: the second palette's Tunguska lockup drew 7.0 px at the tile)
@@ -362,8 +363,32 @@ def _lockup(measure, copy, width, size, single_gold=True):
         if ok and l1 and l2 and not _stack_valid(measure, out, len(l1.split())):
             ok = False   # lane B cycle 1 (SYS-R8-2 open question 5): the stacked rows obey the heading rules too
         if ok:
-            return out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
-                         **({"line2_grown": grown} if grown else {})}
+            got = out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
+                        **({"line2_grown": grown} if grown else {})}
+            bal = lone_balance(measure, out) if (l1 and l2) else None
+            if bal is None:
+                return got
+            # lane B cycle 3 (B-S2-2: CARVED / FROM SOLID SALT at balance 0.43): a stacked one-word row under the
+            # engine's balance minimum waits, as the heading engine's own staging has it (SYS-D-5: an unbalanced
+            # break after both tiers' balanced forms and one-line forms)
+            got[1]["balance_below_min"] = round(bal, 3)
+            deferred = deferred or got
+    if deferred is not None:
+        # the copy's words set as ONE heading (as on YouTube, SYS-R8-3: the same words, the payoff gold from the copy's
+        # field seam), on the same two tiers at the grid floor: a one-line form or a balanced break wins over the
+        # unbalanced stack; else the stack stands, recorded (balance_below_min)
+        one = one_heading(measure, l1, l2, width, sorted({max(round(size * s), grid_px)
+                                                         for s in (1.0, LOCKUP_FALLBACK)}, reverse=True))
+        if one is not None:
+            form, font = one
+            return {"line1": (font, form.runs())}, {
+                "tier": form.tier, "sizes": [form.size, form.size], "ratio": ratio, "line1": l1, "line2": l2,
+                "form": "one heading", "drawn_rows": list(form.lines),
+                "form_diverges": {"ruled": [l1, l2], "rows": list(form.lines),
+                                  "reason": "the ruled form stacks a one-word row under the heading engine's balance "
+                                            f"minimum ({deferred[1]['balance_below_min']}); the headline is set as "
+                                            "one heading"}}
+        return deferred
     out, off = {}, []
     for key, text, gold in (("line1", l1, False), ("line2", l2, True)):
         if not text:
@@ -392,6 +417,49 @@ def _stack_valid(measure, out, seam):
                 widths.append(measure.textlength(text, font=font))
     return (lockup_valid(rows, widths, seam, fields=True)
             and all(end_ok(r.split()[-1]) for r in rows[:-1] if r.split()))
+
+
+def unbalanced_lone(rows, widths):
+    """The stacked rows' balance (narrowest / widest drawn width) when a one-word row stands among two or more rows
+    under heading.balance_min (ruling R8-4: the no-lone-row rule holds but for the balanced phrase exception), else
+    None. Lane B cycle 3: one reading for the cover and the YouTube lockup."""
+    rows = [r for r in rows if r.strip()]
+    if len(rows) < 2 or not any(len(r.split()) == 1 for r in rows) or not widths or max(widths) <= 0:
+        return None
+    bal = min(widths) / max(widths)
+    from .brand_system import SPEC
+    return bal if bal < SPEC["heading.balance_min"] else None
+
+
+def lone_balance(measure, out):
+    """unbalanced_lone for a cover lockup's drawn rows (_lockup's {"line1"/"line2": (font, runs)})."""
+    rows, widths = [], []
+    for key in ("line1", "line2"):
+        if key in out:
+            font, runs = out[key]
+            for line_runs in runs:
+                text = " ".join(t for t, _ in line_runs)
+                rows.append(text)
+                widths.append(measure.textlength(text, font=font))
+    return unbalanced_lone(rows, widths)
+
+
+def one_heading(measure, l1, l2, width, sizes, max_lines=2):
+    """(form, font) or None: the two fields' words set as ONE heading by the heading engine (set_heading, lockup, the
+    payoff gold from the copy's field seam, the engine's staging over `sizes`: one line, a balanced break, the next
+    tier, then an unbalanced break), kept only when it obeys the heading rules (heading.valid via set_heading) and
+    stacks no one-word row under the balance minimum (unbalanced_lone)."""
+    from .heading import set_heading
+
+    def width_at(t, sz):
+        return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+    form = set_heading(f"{l1} {l2}", width_at, width, tuple(sizes), max_lines=max_lines, seam=len(l1.split()),
+                       lockup=True)
+    if form is None:
+        return None
+    if unbalanced_lone(list(form.lines), [width_at(t, form.size) for t in form.lines]) is not None:
+        return None
+    return form, get_font(brand.DISPLAY_FONT, form.size)
 
 
 def _height(rows):
@@ -744,6 +812,52 @@ def drawn_qualifier(qualifier, unit, lead_word="", hedge=""):
             if stem in m.group(1).lower():
                 return word
     return ABBREVIATED[q]
+
+
+# Lane B cycle 3 (S1, AD r1 + stress FIGURE_GATE): the hero figure is the copy's statement of it WHOLE. monument_figure
+# reads one number and its unit, so on "ROUGHLY 137–138 FT" it took "138 FT": one end of the span, its hedge left
+# behind (the YouTube tile drew "138 FT" for the signed "Roughly 137-138 ft"). The statement is read by the system's
+# one quantity parser (src/figures.parse, read only), and the hero carries its hedge and both ends of its span.
+_COMPARATORS = "<>~≈≤≥"
+_UNREAD_HEDGE = __import__("re").compile(
+    r"(?:(?:(?<![\w.])(?:" + _QUAL + r"|ESTIMATED|AN ESTIMATED)\s*)?[" + _COMPARATORS + r"]\s*"
+    r"|(?<![\w.])(?:" + _QUAL + r"|ESTIMATED|AN ESTIMATED)\s*)$", __import__("re").IGNORECASE)
+
+
+def stated_figure(copy, found):
+    """(figure, unread): the hero figure `found` (monument_figure's tuple, a measured one) as its field states it,
+    whole: the src/figures.Figure whose characters hold the found number (its hedge, both ends of a span, its
+    conversion; `start` / `end` its place in the field), else None. `unread`: a hedge the parser did not take in front
+    of it ("EST. >" before "13,000 LBS", "~" before a number), which no figure line can draw as signed; "" for none.
+    Every niche's copy is read the same way: nothing here names a topic."""
+    from .figures import parse
+    if not found or not found[1]:
+        return None, ""
+    text = str(copy.get(found[2]) or "")
+    at = found[3][0]
+    whole = next((f for f in parse(text) if f.start <= at < max(f.end, f.start + 1)), None)
+    if whole is None:
+        return None, ""
+    unread = ""
+    if not whole.hedge:
+        m = _UNREAD_HEDGE.search(text[:whole.start])
+        if m and m.group(0).strip():
+            unread = m.group(0).strip()
+    return whole, unread
+
+
+def signed_copy_texts(copy):
+    """The cover copy's signed fields, as the texts a drawn figure is checked against (src/figures.truth_faults)."""
+    return [str(copy.get(k) or "") for k in ("eyebrow", "line1", "line2", "tagline", "badge") if copy.get(k)]
+
+
+def hero_truth_faults(qualifier, number, unit, copy):
+    """[] when the hero figure as drawn (its qualifier line, number and unit read as one statement) is a signed
+    statement of the copy, whole (src/figures.truth_faults: a signed span drawn as its span, a hedged figure with its
+    hedge); else the faults. Lane B cycle 3: the guard every figure hero passes before it is drawn."""
+    from .figures import truth_faults
+    drawn = " ".join(x for x in (str(qualifier or ""), str(number or ""), str(unit or "")) if x)
+    return truth_faults(drawn, signed_copy_texts(copy))
 
 
 _EVENT_VERB = r"([a-z]+ed|built|found|begun|dug|made|cut|laid|won|lost|struck|hit|seen|known|drawn|written)"
@@ -1160,15 +1274,28 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
     found = monument_figure(copy)
     margin, width = 84, 1080 - 2 * 84
     declined = None
-    if found is None or (figure and found[1] and not figure.get("monument_ok")):
+    # Lane B cycle 3 (stress cover FIGURE_GATE: '7,935 LB' drawn as the hero, '7,934' left in the tagline): the hero is
+    # the copy's statement of the figure whole (stated_figure: both span ends, its hedge), or no hero
+    stated, unread = stated_figure(copy, found) if (found and found[1]) else (None, "")
+    if stated is not None and stated.hi:
+        found = (stated.number, found[1], found[2], (stated.start, stated.end))
+    if unread:
+        declined = (f"truth (drawn figure == signed figure): the copy's hedge {unread!r} before {found[0]} "
+                    f"{found[1]} is not one the figure line can draw, and a hedge is never dropped")
+    elif found is None or (figure and found[1] and not figure.get("monument_ok")):
         declined = (figure or {}).get("reason") or "figure check" if figure else None
     elif figure and not found[1] and figure.get("kind") == "year" and not figure.get("event"):
         # Round 4: a bare year next to a place reads as a founding date; without the sheet's event word for it
         # the monument declines (operator default: the recommended route).
         declined = figure.get("reason") or "the fact sheet gives no event word for this year"
     q_raw, q_from = figure_qualifier(copy, found) if (found and found[1]) else ("", "")
+    if found and found[1] and stated is not None and stated.hedge and not q_raw:
+        q_raw, q_from = stated.hedge, found[2]
     if found and found[1]:
         qualifier = str((figure or {}).get("drawn_qualifier") or drawn_qualifier(q_raw, found[1])) if q_raw else ""
+        faults = hero_truth_faults(qualifier, found[0], found[1], copy) if declined is None else []
+        if faults:
+            declined = "truth (drawn figure == signed figure): " + "; ".join(faults)
     elif figure and figure.get("kind") == "year" and figure.get("event"):
         qualifier, q_from = str(figure["event"]), "sheet"
     else:
@@ -1199,6 +1326,12 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
             found_other = monument_figure({other: rest.get(other)})
             if found_other and found_other[0] == number:
                 rest[other] = _without(str(rest[other]), found_other[3])
+            elif stated is not None and stated.hi:
+                # lane B cycle 3: the span hero's statement elsewhere goes whole too (never one end left behind)
+                from .figures import parse
+                for f in reversed(parse(str(rest.get(other) or ""))):
+                    if f.unit and set(f.values) & set(stated.values):
+                        rest[other] = _without(str(rest[other]), (f.start, f.end))
     titles = [(key, display(rest.get(key)).strip().upper()) for key in ("line1", "line2")]
     titles = [(n, t) for n, t in titles if t]
     eyebrow = display(rest.get("eyebrow")).strip().upper()

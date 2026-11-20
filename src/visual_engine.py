@@ -54,6 +54,34 @@ def grid_crop(cover: Image.Image) -> Image.Image:
     return cover.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH))
 
 
+# Lane B cycle 3 (QF-101 closed as "no keep_rgb", lander decision under the operator's delegation, 2026-11-19): every
+# cover JPEG (Reel cover, profile grid tile, YouTube thumbnail) is a standard YCbCr JPEG with NO chroma subsampling
+# (4:4:4, Pillow subsampling=0), at the highest quality on COVER_QUALITIES that keeps the file within its platform's
+# limit. 4:2:0 halved the chroma of the gold type and the dimmed hero (decisions/QF-13.md); an RGB-transform JPEG is
+# not used. YouTube's custom thumbnail limit is 2 MiB (decisions/QF-13.md); the Reel cover and grid tile go to
+# Instagram / Facebook, whose image limit is 8 MB (the stricter of the two, read as 8,000,000 bytes).
+COVER_SUBSAMPLING = 0                    # 4:4:4
+COVER_QUALITIES = tuple(range(100, 49, -5))   # highest first; never under 50
+COVER_LIMITS = {"youtube": 2 * 1024 * 1024, "reel": 8_000_000, "grid": 8_000_000}
+
+
+def save_cover_jpeg(im: Image.Image, path: Path, surface: str) -> Dict[str, Any]:
+    """`im` written to `path` as a 4:4:4 YCbCr JPEG at the highest COVER_QUALITIES step whose file is within
+    COVER_LIMITS[surface]; returns the record {"quality", "subsampling": "4:4:4", "bytes", "limit"} (the cover's
+    metadata keeps it). A cover no step fits raises ValueError (never a subsampled or oversized file)."""
+    import io
+    rgb = im.convert("RGB")
+    limit = COVER_LIMITS[surface]
+    for q in COVER_QUALITIES:
+        buf = io.BytesIO()
+        rgb.save(buf, "JPEG", quality=q, subsampling=COVER_SUBSAMPLING)
+        if buf.tell() <= limit:
+            Path(path).write_bytes(buf.getvalue())
+            return {"quality": q, "subsampling": "4:4:4", "bytes": buf.tell(), "limit": limit}
+    raise ValueError(f"the {surface} cover does not fit {limit} bytes as a 4:4:4 JPEG at quality "
+                     f"{COVER_QUALITIES[-1]}")
+
+
 def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     """Draws a cover again with the tighter fit, from its kept recipe, in place (still_vision: the look
     reported its text cut off or overlapping); the profile-grid copy is cut again from the main cover."""
@@ -81,15 +109,15 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     # Written aside, then swapped in: the video judge may be reading this cover while the audit redraws it
     # (review, 2026-10-28)
     tmp = path.with_name(path.stem + ".redraw" + path.suffix)
-    out.save(tmp, quality=95)
+    encoding = save_cover_jpeg(out, tmp, "reel")
     import os
     os.replace(tmp, path)
     from .cover_design import delivered_contrast
     delivered_contrast(lay, path)
     if path.name == "thumbnail_cover.jpg":
-        grid_crop(out).save(path.with_name("thumbnail_profile_grid.jpg"), quality=95)
+        save_cover_jpeg(grid_crop(out), path.with_name("thumbnail_profile_grid.jpg"), "grid")
     prior = still_layout.load(path) or {}
-    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed,
+    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed, "encoding": encoding,
                                         "composition": lay.meta.get("composition"),
                                         "grid_proof": lay.meta.get("grid_proof")},
                              int(prior.get("attempts", 1)) + 1)
@@ -309,12 +337,13 @@ class VisualEngine:
             if enforce:
                 out, lay, attempts, chosen, grid = self._grid_enforced(im, copy, chosen, out, lay, attempts)
             out = out.convert("RGB")
-            out.save(path, quality=95)
+            encoding = save_cover_jpeg(out, path, "reel")
             from .cover_design import delivered_contrast
             delivered_contrast(lay, path)
             from . import still_layout
             still_layout.save(path, lay, {"renderer": "visual_engine.redraw_cover", "hero": str(hero_image_path),
                                           "copy": copy, "style": chosen, "text_cy": self._text_cy,
+                                          "encoding": encoding,
                                           "focus": self._hero_focus_reviewed,
                                           "composition": lay.meta.get("composition"),
                                           "figure": self._figure, "illustration": self._illustration,
@@ -344,7 +373,7 @@ class VisualEngine:
                     continue
             else:
                 raise
-        grid_crop(final_916).save(out_1x1_path, quality=95)
+        save_cover_jpeg(grid_crop(final_916), out_1x1_path, "grid")
         log.info("Covers generated (%s): %s, %s", chosen, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
 
@@ -480,7 +509,7 @@ class VisualEngine:
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
         im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        im.save(output_path, quality=95)
+        encoding = save_cover_jpeg(im, output_path, "youtube")
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
         with Image.open(output_path) as saved:
             qa = youtube_thumbnail.downscale_check(saved.convert("RGB"), meta)
@@ -490,8 +519,9 @@ class VisualEngine:
                                          "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
-                                         "headline_fragment")},
+                                         "headline_fragment", "headline_pair_kept")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
+             "encoding": encoding,
              "elements": [{"name": n, "text": getattr(pl, "text", ""), "box": [int(v) for v in pl.box]}
                           for n, pl in (drawn_plates or []) if not getattr(pl, "empty", False)]},
             indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")

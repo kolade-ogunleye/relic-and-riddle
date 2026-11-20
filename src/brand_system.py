@@ -215,6 +215,12 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # short word (EYE / OF THE SAHARA: 1.55) the rule would shrink one deck's masthead slide 1 only (one masthead size
     # per deck wins). The end card / end screen masthead is the card's sign-off over a share line, not over a hook.
     "masthead.hook_ratio_max": 0.78,
+    # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
+    "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
+    "map.home_edge_w": 1.5,           # px: the casing's GOLD_LIGHT edge inside the core
+    "map.home_edge_alpha": 1.0,       # the edge's alpha (0.85 before: a 3:1 edge is drawn whole)
+    "map.coast_w": 1.5,               # px: the coast's COAST_LINE mark on the sea side (land vs sea by the line)
+    "globe.limb_dark": 0.15,          # the context globe's darkest limb shading (0.25 before; 1 - it is the floor)
     # ---- kicker
     "kicker.weight": 800,
     "kicker.track": 0.15,             # em
@@ -301,6 +307,11 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "masthead.gap": (0.10, 1.20),         # em
     "masthead.mark_edge": (0.02, 0.20),   # em
     "masthead.fit_floor": (0.70, 1.0),    # never under 70 % of the canvas's masthead size
+    "map.home_line_w": (2.0, 4.0),
+    "map.home_edge_w": (1.0, 3.0),
+    "map.home_edge_alpha": (0.85, 1.0),
+    "map.coast_w": (1.0, 3.0),
+    "globe.limb_dark": (0.0, 0.25),
     "masthead.hook_ratio_max": (0.6, 0.9),   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em

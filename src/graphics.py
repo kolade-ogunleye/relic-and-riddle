@@ -69,7 +69,7 @@ log = logging.getLogger(__name__)
 CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 from . import brand
-from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out
+from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out, tok
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground. Read as brand.<ROLE>
 # when drawn (QF-35a role tokens): the names this module bound at import before, for its readers, are served from the
@@ -998,7 +998,6 @@ GLOBE_FOOTPRINT_MIN = 36  # px: the close-up's footprint is outlined only when a
 GLOBE_MAP_AIR = 24        # px it keeps from every plate, label and the home fill on a locator
 GLOBE_SITE_D = 12         # px: the site's GOLD dot on the globe
 GLOBE_SITE_RING = 22      # px: and the 2 px INK ring round it, the home fill showing between
-GLOBE_LIMB_DARK = 0.25    # the limb darkening at the rim
 # Round 6 review: the 2 px limb. GOLD_DIM (the spec's) measured 2.4-2.5:1 on the grey neighbours' land under the
 # globe's shadow (the 3:1 non-text floor, spec B); GOLD's measures 3.5:1 or more on land and sea alike: brand.GLOBE_LIMB.
 MAP_LEADER_MAX = 48       # round 6: px, the longest leader from a site label to its dot (60 before)
@@ -1060,7 +1059,7 @@ def globe_inset(size: int, lon0: float, lat0: float, home: geo.Country | None,
         for c, rings in geo.globe_rings(lon0, lat0):
             mine = not c.get("neutral") and geo.same_entity(c, home)
             matched |= mine
-            fill = brand.NEUTRAL_LAND if c.get("neutral") else brand.GOLD if mine else brand.GLOBE_LAND
+            fill = brand.NEUTRAL_LAND if c.get("neutral") else brand.GLOBE_HOME if mine else brand.GLOBE_LAND
             for ring in rings:
                 points = [px(x, y) for x, y in ring]
                 d.polygon(points, fill=(*fill, 255))
@@ -1071,7 +1070,7 @@ def globe_inset(size: int, lon0: float, lat0: float, home: geo.Country | None,
                 pts = [geo.orthographic(x, y, lon0, lat0) for x, y in poly[0][::4] or poly[0]]
                 vis = [px(x, y) for x, y, v in pts if v]
                 if len(vis) >= 3:
-                    d.polygon(vis, fill=(*brand.GOLD, 255))
+                    d.polygon(vis, fill=(*brand.GLOBE_HOME, 255))
     edge: list[tuple[float, float]] = []
     if footprint and isinstance(footprint[0], tuple):    # round 11: a polar view's outline, as (lon, lat) points
         edge = [(float(p[0]), float(p[1])) for p in footprint]   # type: ignore[index]
@@ -1098,8 +1097,11 @@ def globe_inset(size: int, lon0: float, lat0: float, home: geo.Country | None,
     rho = np.clip(np.hypot(xx - lx + 0.5, yy - ly + 0.5) / (1.25 * r), 0, 1)
     fall = 1 - np.sqrt(1 - rho ** 2)
     rim = (np.abs(np.hypot(xx - cx + 0.5, yy - cy + 0.5) - 0.985 * r) < 0.015 * r + 1)
-    fall *= GLOBE_LIMB_DARK / max(1e-6, float(fall[rim].mean()))   # 25 % at the rim, on average round it
-    arr[..., :3] *= np.clip(1 - fall, 0.55, 1.0)[..., None]
+    # cycle 3 (SYS-A-4): tok globe.limb_dark at the rim on average, and never darker than 1 - it anywhere, so the
+    # globe's pairs (GLOBE_LAND / INK, GLOBE_HOME / GLOBE_LAND) hold where brand.map_fill_problems checks them
+    limb_ = tok("globe.limb_dark")
+    fall *= limb_ / max(1e-6, float(fall[rim].mean()))
+    arr[..., :3] *= np.clip(1 - fall, 1.0 - limb_, 1.0)[..., None]
     im = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGBA")
     d = ImageDraw.Draw(im)
     # the site: a GLOBE_SITE_D GOLD dot (an INK keyline round it) in a 2 px INK ring GLOBE_SITE_RING across, the home
@@ -1202,14 +1204,18 @@ def _relief() -> Image.Image | None:
 # to 6-9. Neighbours' land is shaded 0.45 + 0.75 x the hillshade (0.30 + 0.95 before). The home coast is a 1.5 px
 # GOLD_LIGHT inner edge inside a 2 px INK line (the teal stroke and the sea's teal glow are gone); an island under
 # RELIEF_ISLAND_PX2 on screen takes a 1 px edge, and one under RELIEF_ISLAND_MIN px across is not drawn.
-RELIEF_HOME_FLOOR = 0.86
+# Freeze cycle 3 (SYS-A-4, option C): the relief ranges are brand.MAP_RELIEF_ENVELOPE's, the ones brand.map_fill_problems
+# checks the map's pairs over, so the drawn fills never leave what is checked. The home casing (INK core, GOLD_LIGHT edge)
+# and the coast's own mark are tokens (map.home_line_w, map.home_edge_w, map.home_edge_alpha, map.coast_w), read when
+# drawn.
+RELIEF_HOME_FLOOR = brand.MAP_RELIEF_ENVELOPE["HOME_TINT"][0]
 RELIEF_BLUR_TALL, RELIEF_BLUR_WIDE = 1.2, 1.6
 RELIEF_NEAR_PX, RELIEF_NEAR_AMP, RELIEF_FEATHER = 120.0, 0.15, 60.0
-RELIEF_NEIGHBOUR = (0.45, 0.75)
+RELIEF_NEIGHBOUR = (brand.MAP_RELIEF_ENVELOPE["LAND_TINT"][0],
+                    brand.MAP_RELIEF_ENVELOPE["LAND_TINT"][1] - brand.MAP_RELIEF_ENVELOPE["LAND_TINT"][0])
 RELIEF_ISLAND_PX2 = 1500.0
+COAST_MIN_WATER = 4000.0          # base px: a water body under this takes no coast mark (a lake district's pools)
 RELIEF_ISLAND_MIN = 6.0
-HOME_EDGE_W, HOME_LINE_W = 1.5, 2.0
-HOME_EDGE_ALPHA = 0.85
 RELIEF_STD_TARGET = 7.5         # the home fill's luminance spread aimed for (6 to 9)
 
 
@@ -1582,13 +1588,29 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
             k = max(1, round(r))
             return cv2.erode(crop, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * k + 1, 2 * k + 1)),
                              borderType=cv2.BORDER_REPLICATE)
-        outer = eroded(HOME_LINE_W / 2 * bpp)
-        inner = eroded((HOME_LINE_W / 2 + HOME_EDGE_W) * bpp)
+        outer = eroded(tok("map.home_line_w") / 2 * bpp)
+        inner = eroded((tok("map.home_line_w") / 2 + tok("map.home_edge_w")) * bpp)
         ring = np.clip(outer.astype(np.float32) - inner.astype(np.float32), 0, 255) / 255.0
         ring = cv2.GaussianBlur(ring, (0, 0), max(0.5, 0.45 * bpp))[..., None]     # antialiased, not stepped
         region = out[cy0:cy1, cx0:cx1]
-        ring = ring * HOME_EDGE_ALPHA * (1 - neutral_alpha[cy0:cy1, cx0:cx1])
+        ring = ring * tok("map.home_edge_alpha") * (1 - neutral_alpha[cy0:cy1, cx0:cx1])
         out[cy0:cy1, cx0:cx1] = region * (1 - ring) + np.array(brand.GOLD_LIGHT, dtype=np.float32) * ring
+    # cycle 3 (SYS-A-4): the coast's own mark, a COAST_LINE line map.coast_w px wide on the sea side of every coast but
+    # the home's (its casing marks it), so land reads against sea by the line, whatever the fills' values
+    land_u8 = (np.asarray(land_m, dtype=np.float32) >= 128).astype(np.uint8) * 255
+    k_ = max(1, round(tok("map.coast_w") * bpp))
+    grow_ = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * k_ + 1, 2 * k_ + 1))
+    coast = cv2.dilate(land_u8, grow_).astype(np.float32) - land_u8
+    # only the coasts of open water (a water body of at least COAST_MIN_WATER base px): a lake district's every
+    # pool ringed in COAST_LINE read as lace over the land (Finland, Amber evidence)
+    n_, lab_, stats_, _c = cv2.connectedComponentsWithStats((land_u8 == 0).astype(np.uint8), connectivity=8)
+    open_ = np.isin(lab_, [i for i in range(1, n_)
+                           if stats_[i, cv2.CC_STAT_AREA] >= COAST_MIN_WATER * bpp * bpp]).astype(np.uint8)
+    coast *= cv2.dilate(open_, grow_).astype(np.float32)
+    if home is not None:
+        coast *= 1.0 - (cv2.dilate(np.asarray(home_big), grow_, iterations=2).astype(np.float32) / 255.0)
+    coast = cv2.GaussianBlur(np.clip(coast, 0, 255), (0, 0), max(0.5, 0.45 * bpp))[..., None] / 255.0
+    out = out * (1 - coast) + np.array(brand.COAST_LINE, dtype=np.float32) * coast
     base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
     unbordered = base.copy() if neutral_m.getbbox() else None
 
@@ -1615,7 +1637,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         borders.lines(lines, fill=colour, width=width, joint="curve")
     if hb:                                # the home coast's 2 px INK line over the border, antialiased (it stepped)
         crop = np.asarray(home_big.crop((cx0, cy0, cx1, cy1)))
-        r_ = max(1, round(HOME_LINE_W / 2 * bpp))
+        r_ = max(1, round(tok("map.home_line_w") / 2 * bpp))
         disc_ = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r_ + 1, 2 * r_ + 1))
         line_ = cv2.dilate(crop, disc_).astype(np.float32) - cv2.erode(crop, disc_, borderType=cv2.BORDER_REPLICATE)
         line_ = cv2.GaussianBlur(np.clip(line_, 0, 255), (0, 0), max(0.5, 0.45 * bpp))

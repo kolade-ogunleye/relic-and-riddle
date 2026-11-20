@@ -427,6 +427,46 @@ def _bridge_crossfade(line: bool):
     return st["crossfade"]
 
 
+def _map_base_sum():
+    """Cycle 3 (SYS-A-4): relief_base on a synthetic home and a neighbour island (its coast takes the coast mark)."""
+    import math
+
+    import numpy as np
+
+    from src import geo, graphics
+
+    def blob(lon, lat, a, b):
+        return [(lon + a * math.cos(2 * math.pi * i / 72), lat + b * math.sin(2 * math.pi * i / 72)) for i in range(72)]
+
+    def country(name, ring):
+        return {"names": {name}, "sovereign": name, "polygons": [[ring]], "size": 90, "display": name.title(),
+                "label_at": None, "label_rank": 9, "type": "Sovereign country", "extent": (20.0, 35.0, 40.0, 45.0)}
+    home, other = country("homeland", blob(28.0, 40.0, 3.0, 2.0)), country("other", blob(34.0, 40.0, 2.0, 2.0))
+    bw, bh, kx = 600, 400, 600 / 16.0
+    coslat = math.cos(math.radians(40.0))
+
+    def project(lon, lat):
+        return bw / 2 + (lon - 31.0) * kx * coslat, bh / 2 - (lat - 40.0) * kx
+    token = graphics._RELIEF_CTX.set(graphics.ReliefContext(base_per_px=1.0, wide=False))
+    try:
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(geo, "available", lambda: True)
+            mp.setattr(geo, "countries", lambda: [home, other])
+            mp.setattr(geo, "view_polygons", lambda *a, **k: [(c, c["polygons"][0]) for c in (home, other)])
+            mp.setattr(graphics, "_relief", lambda: None)
+            arr = np.asarray(graphics.relief_base(40.0, 31.0, bw, bh, kx, coslat, home, project, (0, 0, bw, bh)))
+    finally:
+        graphics._RELIEF_CTX.reset(token)
+    return int(arr.astype(np.int64).sum())
+
+
+def _globe_sum():
+    import numpy as np
+
+    from src import graphics
+    return int(np.asarray(graphics.globe_inset(160, 20.0, 45.0, None, (15.0, 40.0, 25.0, 50.0))).astype(np.int64).sum())
+
+
 def _youtube_mark_room():
     """SYS-B-2: the YouTube masthead's room over a wide hook row (the renderer's _mark_room)."""
     from types import SimpleNamespace
@@ -501,6 +541,11 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "motion.hook_hold": (0.9, lambda: __import__("src.design_cards", fromlist=["x"])._hook_ground_alpha(1.0)),
     "motion.hook_fade": (0.25, lambda: __import__("src.design_cards", fromlist=["x"])._hook_alpha(1.15)),
     "masthead.hook_ratio_max": (0.62, _youtube_mark_room),
+    "map.home_line_w": (3.0, _map_base_sum),
+    "map.home_edge_w": (2.5, _map_base_sum),
+    "map.home_edge_alpha": (0.9, _map_base_sum),
+    "map.coast_w": (3.0, _map_base_sum),
+    "globe.limb_dark": (0.05, _globe_sum),
     "lockup.line_gap": (0.25, lambda: __import__("src.youtube_thumbnail", fromlist=["x"]).line_pitch()),
 }
 

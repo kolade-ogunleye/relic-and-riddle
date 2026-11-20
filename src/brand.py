@@ -50,17 +50,21 @@ BRAND_PALETTE: Mapping[str, RGB | str] = MappingProxyType({
     "HOME": (92, 74, 42),
     "BORDER": (96, 98, 104),
     "GRID": (24, 28, 34),
-    # freeze cycle 3 (SYS-S1-2, AD r2 AD-map-home-3to1: home (163,132,78) on neighbour (92,96,104) drew 1.81:1, land on
-    # sea 3.0): the relief map's fills clear the 3:1 mark gate pairwise across MAP_RELIEF_ENVELOPE (map_fill_problems);
-    # the neighbour a warm grey on the palette's stone axis (BC r1: the slate was off the warm palette)
-    "LAND_TINT": (110, 104, 96),  # the relief map's other land (round 6: (88, 92, 100))
-    "HOME_TINT": (255, 205, 105), # the relief map's home country (round 6: (168, 137, 81))
+    # freeze cycle 3 (SYS-S1-2 / SYS-A-4, lander: option C; AD r2 AD-map-home-3to1: home (163,132,78) on neighbour
+    # (92,96,104) drew 1.81:1): home lighter and neighbour darker, so home vs neighbour clears the 3:1 mark gate over
+    # the whole relief range (MAP_RELIEF_ENVELOPE); land vs sea is carried by the coast's own mark (COAST_LINE) and the
+    # home by its casing (map.home_* tokens); map_fill_problems checks every pair. Neighbour on the warm stone axis
+    # (BC r1: the slate was off the warm palette).
+    "LAND_TINT": (56, 53, 48),    # the relief map's other land (round 6: (88, 92, 100))
+    "HOME_TINT": (196, 162, 98),  # the relief map's home country (round 6: (168, 137, 81))
     "SEA_TOP": (14, 22, 34),      # the relief map's sea gradient, top
     "SEA_DEEP": (7, 11, 19),      # and bottom
     "MAP_NAME": "STONE_LT",       # a neighbour's name (round 6)
     "MAP_BORDER": "STONE",        # a neighbour's border (round 3)
     "COUNTRY_OUT_FILL": "STONE_LT",   # a country named outside its fill
-    "GLOBE_LAND": (176, 170, 160),    # the context globe's other land (round 6)
+    "GLOBE_LAND": (117, 114, 108),    # the context globe's other land (round 6: (176, 170, 160); cycle 3: 3:1 to both)
+    "GLOBE_HOME": "GOLD_LIGHT",   # the context globe's home country (cycle 3: GOLD on GLOBE_LAND read 1.3:1)
+    "COAST_LINE": "STONE",        # the coast's own mark on the sea side (cycle 3, SYS-A-4: land vs sea by the line)
     "GLOBE_LIMB": "GOLD",         # the globe's 2 px limb (round 6 review)
     "NEUTRAL_LAND": (57, 61, 64),     # a neutral (disputed or unmatched) ground on the globe and relief map (QF-20)
     "NEUTRAL_EDGE": (154, 160, 164),  # and its dashed border
@@ -276,26 +280,50 @@ MAP_HUE_APART = 45.0
 MAP_SAT_MIN = 0.15
 MAP_WATER_HUES = (170.0, 250.0)
 MAP_HOME_SEA = (("HOME", ("SEA",)), ("HOME_TINT", ("SEA_TOP", "SEA_DEEP")))
-# Freeze cycle 3 (SYS-S1-2): the relief map's fills are marks (WCAG 1.4.11): the home against its neighbours and the
-# sea, and the neighbours against the sea, each at least the mark gate (3:1) pairwise. The relief shades a fill, so the
-# pairs are judged at the ends of MAP_RELIEF_ENVELOPE: the factors (sRGB, on each channel) the renderer may multiply a
-# role by (graphics' home relief, RELIEF_HOME_FLOOR..1.0, and its neighbour shade); the renderer reads the envelope
-# from here and keeps every drawn fill inside it, so a palette that passes here passes on the drawn pixels.
+# Freeze cycle 3 (SYS-S1-2 / SYS-A-4, lander ruling: option C): every map mark clears the 3:1 mark gate (WCAG 1.4.11)
+# against what it is read against, at the worst of the factors the renderer may shade a role by (MAP_RELIEF_ENVELOPE:
+# sRGB, each channel; graphics reads its relief ranges from here, so the drawn pixels stay inside what is checked):
+# - the relief home fill against the neighbour fill and both sea stops, over the WHOLE relief range;
+# - the coast's line (COAST_LINE, tok map.coast_w px) against both sea stops: land against sea is read by the line, as
+#   the neighbour fill sits near the sea's own value;
+# - the home casing: the INK core (tok map.home_line_w, >= 2 px) against the home fill, and the GOLD_LIGHT edge
+#   (tok map.home_edge_alpha) against the neighbour fill it is read against across the core;
+# - the context globe: GLOBE_LAND against the globe's sea (INK) and GLOBE_HOME against GLOBE_LAND, each at the same
+#   limb darkening (tok globe.limb_dark: 1 - it is the darkest factor the globe's limb applies).
 MAP_RELIEF_ENVELOPE: Mapping[str, tuple[float, float]] = MappingProxyType({
-    "HOME_TINT": (0.94, 1.0), "LAND_TINT": (0.95, 1.05), "SEA_TOP": (1.0, 1.0), "SEA_DEEP": (1.0, 1.0)})
-MAP_MARK_PAIRS = (("HOME_TINT", "LAND_TINT"), ("HOME_TINT", "SEA_TOP"), ("HOME_TINT", "SEA_DEEP"),
-                  ("LAND_TINT", "SEA_TOP"), ("LAND_TINT", "SEA_DEEP"))
+    "HOME_TINT": (0.86, 1.0),     # graphics.RELIEF_HOME_FLOOR .. 1.0 (the home relief only darkens)
+    "LAND_TINT": (0.45, 1.2)})    # graphics.RELIEF_NEIGHBOUR: 0.45 + 0.75 x hillshade, hillshade in 0..1
 
 
 def _shaded(rgb: RGB, factor: float) -> RGB:
     return tuple(max(0, min(255, round(c * factor))) for c in rgb)   # type: ignore[return-value]
 
 
-def map_pair_ratio(cfg: "BrandConfig", a: str, b: str) -> float:
-    """The worst ratio of roles `a` and `b` over their relief envelopes (each at either end)."""
-    ea, eb = MAP_RELIEF_ENVELOPE.get(a, (1.0, 1.0)), MAP_RELIEF_ENVELOPE.get(b, (1.0, 1.0))
-    ca, cb = cfg.colour(a), cfg.colour(b)
-    return min(_ratio(_shaded(ca, fa), _shaded(cb, fb)) for fa in ea for fb in eb)
+def _over(top: RGB, ground: RGB, alpha: float) -> RGB:
+    return tuple(round(t * alpha + g * (1 - alpha)) for t, g in zip(top, ground))   # type: ignore[return-value]
+
+
+def map_mark_ratios(cfg: "BrandConfig") -> dict[str, float]:
+    """Each map mark pair's worst ratio (see above), by name."""
+    def env(role: str) -> tuple[float, float]:
+        return MAP_RELIEF_ENVELOPE.get(role, (1.0, 1.0))
+
+    def worst(a: str, b: str) -> float:
+        ca, cb = cfg.colour(a), cfg.colour(b)
+        return min(_ratio(_shaded(ca, fa), _shaded(cb, fb)) for fa in env(a) for fb in env(b))
+    sys_ = cfg.system
+    out = {f"HOME_TINT/{x}": worst("HOME_TINT", x) for x in ("LAND_TINT", "SEA_TOP", "SEA_DEEP")}
+    out.update({f"COAST_LINE/{x}": worst("COAST_LINE", x) for x in ("SEA_TOP", "SEA_DEEP")})
+    home, land = cfg.colour("HOME_TINT"), cfg.colour("LAND_TINT")
+    out["casing INK/HOME_TINT"] = min(_ratio(cfg.colour("INK"), _shaded(home, f)) for f in env("HOME_TINT"))
+    edge = [_over(cfg.colour("GOLD_LIGHT"), _shaded(home, f), float(sys_["map.home_edge_alpha"]))
+            for f in env("HOME_TINT")]
+    out["casing GOLD_LIGHT/LAND_TINT"] = min(_ratio(e, _shaded(land, f)) for e in edge for f in env("LAND_TINT"))
+    limb = (1.0 - float(sys_["globe.limb_dark"]), 1.0)
+    gl, gh, sea = cfg.colour("GLOBE_LAND"), cfg.colour("GLOBE_HOME"), cfg.colour("INK")
+    out["globe GLOBE_LAND/INK"] = min(_ratio(_shaded(gl, f), _shaded(sea, f)) for f in limb)
+    out["globe GLOBE_HOME/GLOBE_LAND"] = min(_ratio(_shaded(gh, f), _shaded(gl, f)) for f in limb)
+    return out
 
 
 def _hue_sat(rgb: RGB) -> tuple[float, float]:
@@ -319,11 +347,11 @@ def map_fill_problems(cfg: "BrandConfig") -> list[str]:
             apart = abs((hh - sh + 180) % 360 - 180)
             if hs >= MAP_SAT_MIN and ss >= MAP_SAT_MIN and apart < MAP_HUE_APART:
                 out.append(f"map {home} {hc} reads as {sea} {sc}: hues {apart:.0f} deg apart (< {MAP_HUE_APART:.0f})")
-    for a, b in MAP_MARK_PAIRS:   # cycle 3: pairwise, over the relief envelope
-        worst = map_pair_ratio(cfg, a, b)
+    for pair, worst in map_mark_ratios(cfg).items():   # cycle 3 (option C): every pair, at its worst
         if worst < GATES["contrast.mark"]:
-            out.append(f"map {a} against {b} is {worst:.2f}:1 at its relief's worst, under the "
-                       f"{GATES['contrast.mark']}:1 mark gate")
+            out.append(f"map {pair} is {worst:.2f}:1 at its worst, under the {GATES['contrast.mark']}:1 mark gate")
+    if float(cfg.system["map.home_line_w"]) < 2.0:
+        out.append(f"map home casing core {cfg.system['map.home_line_w']} px, under 2 px")
     return out
 
 

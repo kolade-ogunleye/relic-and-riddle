@@ -215,18 +215,28 @@ def test_a_signed_decimal_is_drawn_at_its_signed_precision():
     assert figures.truth_faults("1,448 FT", signed)     # rounding stays a fault: the gate does not accept it
 
 
-# --------------------------------------------------------------------------- SYS-S1-2: map fills are marks, pairwise
-def test_the_default_map_fills_clear_the_mark_gate_pairwise_over_their_relief():
+# --------------------------------------------------------------------------- SYS-S1-2 / SYS-A-4: map marks, option C
+def test_every_map_mark_pair_clears_the_mark_gate_at_its_worst():
     from src import brand
     from src.brand_system import GATES
     assert brand.map_fill_problems(brand.DEFAULT_BRAND) == []
-    for a, b in brand.MAP_MARK_PAIRS:
-        assert brand.map_pair_ratio(brand.DEFAULT_BRAND, a, b) >= GATES["contrast.mark"], (a, b)
-    # the round-6 fills (home on neighbour ~2:1) are refused at configure time
+    ratios = brand.map_mark_ratios(brand.DEFAULT_BRAND)
+    assert {"HOME_TINT/LAND_TINT", "HOME_TINT/SEA_TOP", "COAST_LINE/SEA_TOP", "casing INK/HOME_TINT",
+            "casing GOLD_LIGHT/LAND_TINT", "globe GLOBE_LAND/INK", "globe GLOBE_HOME/GLOBE_LAND"} <= set(ratios)
+    assert all(v >= GATES["contrast.mark"] for v in ratios.values()), ratios
+    # home against neighbour over the WHOLE relief range, as the renderer draws it
+    from src import graphics
+    assert graphics.RELIEF_HOME_FLOOR == brand.MAP_RELIEF_ENVELOPE["HOME_TINT"][0]
+    lo, span = graphics.RELIEF_NEIGHBOUR
+    assert (lo, lo + span) == brand.MAP_RELIEF_ENVELOPE["LAND_TINT"]
+
+
+def test_the_round_6_fills_and_a_thin_casing_are_refused_at_configure_time():
+    from src import brand
     old = brand.DEFAULT_BRAND.derive("round 6 fills", palette={"HOME_TINT": (168, 137, 81), "LAND_TINT": (88, 92, 100)})
-    found = brand.map_fill_problems(old)
-    assert any("HOME_TINT against LAND_TINT" in p for p in found)
-    assert any("LAND_TINT against SEA_TOP" in p for p in found)
+    assert any("HOME_TINT/LAND_TINT" in p for p in brand.map_fill_problems(old))
+    gold_globe = brand.DEFAULT_BRAND.derive("gold globe", palette={"GLOBE_HOME": "GOLD", "GLOBE_LAND": (176, 170, 160)})
+    assert any("GLOBE_HOME/GLOBE_LAND" in p for p in brand.map_fill_problems(gold_globe))
 
 
 def test_the_neighbour_fill_is_on_the_warm_palette():

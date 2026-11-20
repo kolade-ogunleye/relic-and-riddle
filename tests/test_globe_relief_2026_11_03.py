@@ -63,7 +63,7 @@ def test_globe_inset_fills_site_dot_and_no_small_footprint(monkeypatch) -> None:
     # round 6 review: a 2 px INK ring GLOBE_SITE_RING across, the home seen between it and the dot (no ink disc)
     r = graphics.GLOBE_SITE_RING / 2
     assert np.abs(arr[c, c + round(r - 1), :3] - np.array(brand.INK)).max() < 50
-    assert np.abs(arr[c, c + 8, :3] - np.array(brand.GOLD)).max() < 60      # the home's gold inside the ring
+    assert np.abs(arr[c, c + 8, :3] - np.array(brand.GLOBE_HOME)).max() < 60   # the home (GLOBE_HOME, cycle 3) inside the ring
     assert arr[0, 0, 3] == 0 and g.width == 200 + 2 * graphics.GLOBE_SHADOW
     assert graphics.GLOBE_LIMB == brand.GOLD                                # round 6 review: 3:1 on land and sea
     # a footprint 3 degrees across is far under 36 px on a 200 px globe: no box drawn

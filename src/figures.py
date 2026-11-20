@@ -50,13 +50,16 @@ COUNT_UNITS = ("people", "persons", "levels", "level", "storeys", "storey", "sto
 # The hedges a figure carries (longest first when matched). "between" opens a span; it is not a hedge.
 HEDGES = ("as many as", "as much as", "more than", "fewer than", "less than", "at least", "up to", "an estimated",
           "estimated", "approximately", "approx.", "roughly", "about", "almost", "nearly", "around", "over",
-          "some", "circa", "c.", "est.", "~", "under", "just over", "just under", "well over")
+          "some", "circa", "c.", "est.", "~", "under", "just over", "just under", "well over",
+          # a comparator is a hedge (freeze cycle 3, SYS-B-4: a badge signed "EST. >13,000 LBS" was read as an
+          # unhedged 13,000 LB, so the gate passed a drawn '13,000 LB'); after an abbreviated hedge it is the hedge
+          "est. >", "est. <", "est. ~", ">", "≥", "<", "≤", "≈")
 # A hedge's direction (freeze cycle 3, SYS batch 3): a lower bound ("MORE THAN 129 FT": the quantity is at least it) or
 # an upper bound ("UP TO 129 FT"); the rest approximate. A drawn hedge of the opposite direction to every signed one
 # states another quantity (the gate passed "UP TO 129 FT" for a signed "more than 129 feet").
-HEDGE_LOWER = frozenset(("MORE THAN", "AT LEAST", "OVER", "JUST OVER", "WELL OVER"))
+HEDGE_LOWER = frozenset(("MORE THAN", "AT LEAST", "OVER", "JUST OVER", "WELL OVER", "ESTIMATED MORE THAN"))
 HEDGE_UPPER = frozenset(("UP TO", "AS MANY AS", "AS MUCH AS", "FEWER THAN", "LESS THAN", "UNDER", "JUST UNDER",
-                         "ALMOST", "NEARLY"))
+                         "ALMOST", "NEARLY", "ESTIMATED LESS THAN"))
 
 
 def hedge_direction(hedge: str) -> int:
@@ -67,7 +70,8 @@ def hedge_direction(hedge: str) -> int:
 
 # A hedge drawn on a figure (abbreviations and signs spelled out: "EST." on a size read as "established").
 HEDGE_DRAWN = {"~": "ABOUT", "approx.": "APPROXIMATELY", "est.": "ESTIMATED", "an estimated": "ESTIMATED",
-               "c.": "CIRCA"}
+               "c.": "CIRCA", ">": "MORE THAN", "≥": "AT LEAST", "<": "LESS THAN", "≤": "UP TO", "≈": "ABOUT",
+               "est. >": "ESTIMATED MORE THAN", "est. <": "ESTIMATED LESS THAN", "est. ~": "ESTIMATED"}
 # Words after a unit that say what it measures: bone, never gold (ruling 8: TALL, DEEP, ACROSS ...).
 DIMENSION_WORDS = ("tall", "high", "deep", "wide", "long", "across", "thick", "ago", "old", "in diameter",
                    "in circumference")
@@ -793,3 +797,14 @@ def signed_number(value: float | str, signed: str | None = None) -> str:
         raw = f"{float(value):.6f}".rstrip("0").rstrip(".")
         dp = len(raw.partition(".")[2])
     return f"{float(value):,.{dp}f}"
+
+
+def stated_at(text: str, pos: int) -> Figure | None:
+    """The whole stated quantity of `text` that covers character `pos` (its hedge, both span ends, its scale, unit and
+    conversion), else None (freeze cycle 3, SYS-B-4: one accessor, so the cover's monument figure, the YouTube figure
+    branch and the hook read a statement the same way, never one number lifted out of it: '138 FT' for 'ROUGHLY
+    137–138 FT', '900 YEARS' for 'MORE THAN 900 YEARS')."""
+    for f in parse(text or ""):
+        if f.start <= pos < max(f.end, f.start + 1):
+            return f
+    return None

@@ -253,3 +253,23 @@ def test_a_wrapped_label_never_ends_a_line_on_a_never_end_word_where_a_ruled_bre
     lines = typography.balanced_wrap(d, "The tower rises 129 ft over the plain of the river", font, 500)
     assert not any(ln.endswith("129") for ln in lines)
 
+
+# --------------------------------------------------------------------------- SYS-B-4: a comparator is a hedge; one accessor
+def test_a_comparator_is_read_as_its_hedge():
+    from src import figures
+    assert figures.parse("EST. >13,000 LBS")[0].drawn() == "ESTIMATED MORE THAN 13,000 LB"
+    assert figures.parse("~40 people")[0].hedge == "ABOUT"
+    assert figures.parse("≥ 5 m")[0].hedge == "AT LEAST"
+    signed = figures.signed_figures(["EST. >13,000 LBS"])
+    assert figures.truth_faults("13,000 LB", signed)                    # the hedge dropped: a fault the gate sees
+    assert figures.truth_faults("UP TO 13,000 LB", signed)
+    assert figures.truth_faults("MORE THAN 13,000 LB", signed) == []
+
+
+def test_the_statement_at_a_position_is_whole():
+    from src import figures
+    text = "Egypt's largest: roughly 137-138 ft, cracked"
+    f = figures.stated_at(text, text.index("138"))
+    assert f is not None and f.drawn() == "ROUGHLY 137–138 FT"
+    assert figures.stated_at(text, text.index("roughly")).drawn() == "ROUGHLY 137–138 FT"
+    assert figures.stated_at(text, 0) is None

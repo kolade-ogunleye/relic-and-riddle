@@ -268,8 +268,9 @@ def _dims(path: Path) -> tuple[int, int] | None:
 def wide_last(fx, case) -> tuple[Any, str, str]:
     """(image, pairing class, why) for a 16:9 end-screen case's narration last frame (cycle 3, lane E): the
     run's own 16:9 master's last frame where the run has one (REAL); else the case's recorded last frame, REAL when it
-    is landscape and the catalogue does not call it a stand-in, else STAND-IN, saying what it is (a 9:16 frame is
-    centre-cropped to 16:9, as before; nothing else is substituted)."""
+    is landscape and the catalogue does not call it a stand-in, else STAND-IN, saying what it is: for a 9:16 last frame,
+    the run's landscape scene photo the catalogue names (operator ruling, cycle 3: what a 16:9 master would be built
+    from), else the 9:16 frame centre-cropped to 16:9."""
     from PIL import Image, ImageOps
     run = Path(fx.path(case["run"]))
     # the run's masters: every video beside its composition record (<stem>.mp4 + <stem>.composition.json)
@@ -290,6 +291,13 @@ def wide_last(fx, case) -> tuple[Any, str, str]:
     im = _still(fx, src)
     masters = [f"{m.name} {(_dims(m) or ('?', '?'))[0]}x{(_dims(m) or ('?', '?'))[1]}" for m in masters]
     no_master = (f"the run has no 16:9 master ({', '.join(masters)})" if masters else "the run has no master")
+    photo = case.get("last_frame", {}).get("photo")
+    if im.width < im.height and photo:   # operator ruling (cycle 3): the run's landscape scene photo the catalogue
+        ph = _still(fx, photo)            # names, the source a 16:9 master would be built from
+        if ph.width > ph.height:
+            return (ImageOps.fit(ph, (1920, 1080), Image.LANCZOS), "STAND-IN",
+                    f"{no_master}: its landscape scene photo ({Path(str(photo)).name}, {ph.width}x{ph.height}), the "
+                    "catalogue's named source for its last scene, stands in for a 16:9 narration's last frame")
     if im.width < im.height:
         return (ImageOps.fit(im, (1920, 1080), Image.LANCZOS), "STAND-IN",
                 f"{no_master}: its 9:16 last frame ({Path(str(src)).name}, {im.width}x{im.height}) centre-cropped "

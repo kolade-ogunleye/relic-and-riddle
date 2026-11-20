@@ -315,7 +315,8 @@ def test_wide_end_screen_ground_says_what_it_is(mods, monkeypatch):
     cases = fx.load("endcard")
     i = next(k for k, c in enumerate(cases) if c["topic"] == "wieliczka_salt_mine" and c.get("format") == "16:9")
     im, cls, why = bm.wide_last(fx, cases[i])
-    assert im.size == (1920, 1080) and cls == be.STAND_IN and "centre-cropped" in why and "no 16:9 master" in why
+    assert im.size == (1920, 1080) and cls == be.STAND_IN and "no 16:9 master" in why
+    assert "landscape scene photo" in why and "beat10_2.jpg" in why   # the catalogue's named landscape source
     be.WIDE_GROUNDS[i] = (cls, why)
     assert be.pairing(f"endscreen__{i}_wieliczka_salt_mine") == (cls, why)
     j = next(k for k, c in enumerate(cases) if c.get("format") == "16:9" and "stands in" not in str(c.get("label")))

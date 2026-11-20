@@ -1380,22 +1380,50 @@ def record_contrast(layout, name: str, plates: List[TextPlate], zone=None):
     return box
 
 
-def drawn_text(plates) -> str:
-    """The words several plates draw, in reading order (by baseline, then x), runs on one line and the lines joined
-    by spaces, so a hedge on one run ("UP TO") and its figure on the next read as one figure."""
-    ps = [p for p in plates if not getattr(p, "empty", False) and getattr(p, "text", "")]
-    if not ps:
-        return ""
+def _reading_lines(ps) -> list[list]:
+    """`ps` grouped into lines, top to bottom: the same line when the boxes overlap over half the shorter one's
+    height."""
     lines: list[list] = []
     for p in sorted(ps, key=lambda p: p.box[1]):
         y0, y1 = p.box[1], p.box[3]
-        if lines:   # the same line when the boxes overlap over half the shorter one's height
+        if lines:
             ly0, ly1 = min(q.box[1] for q in lines[-1]), max(q.box[3] for q in lines[-1])
             if min(y1, ly1) - max(y0, ly0) > 0.5 * min(y1 - y0, ly1 - ly0):
                 lines[-1].append(p)
                 continue
         lines.append([p])
-    return " ".join(" ".join(str(p.text).split()) for line in lines for p in sorted(line, key=lambda q: q.box[0]))
+    return lines
+
+
+def _line_order(line) -> list:
+    """One line's plates in reading order: left to right by column, and a column of runs stacked beside a taller
+    one read top to bottom (freeze cycle 3, stress realism item 2: the carousel stat slide's "MILLION" over "YEARS
+    AGO" beside "94–104" was read '94–104 YEARS MILLION AGO', and the release gate failed a figure drawn whole). A
+    column: plates whose x ranges overlap, chained."""
+    cols: list[list] = []
+    for p in sorted(line, key=lambda q: q.box[0]):
+        if cols and p.box[0] < max(q.box[2] for q in cols[-1]):
+            cols[-1].append(p)
+        else:
+            cols.append([p])
+    out = []
+    for col in cols:
+        if len(col) == 1:
+            out += col
+            continue
+        for sub in _reading_lines(col):
+            out += sorted(sub, key=lambda q: q.box[0])
+    return out
+
+
+def drawn_text(plates) -> str:
+    """The words several plates draw, in reading order (by baseline, then x; a stacked column top to bottom), runs on
+    one line and the lines joined by spaces, so a hedge on one run ("UP TO") and its figure on the next read as one
+    figure."""
+    ps = [p for p in plates if not getattr(p, "empty", False) and getattr(p, "text", "")]
+    if not ps:
+        return ""
+    return " ".join(" ".join(str(p.text).split()) for line in _reading_lines(ps) for p in _line_order(line))
 
 
 def remeasure(layout, im: Image.Image, plates: Dict[str, List[TextPlate]]) -> None:

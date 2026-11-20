@@ -37,6 +37,11 @@ NUMBER_WORDS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
                 "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
 SCALE_WORDS = ("thousand", "million", "billion", "trillion")
 SCALE_VALUE = {"thousand": 1e3, "million": 1e6, "billion": 1e9, "trillion": 1e12}
+# A scale written as a letter glued to its number ("94-104M years", "3.5bn years", "12k tonnes"): the scale word,
+# read ONLY when a count unit follows (freeze cycle 3, stress realism item 2: the dev Richat stat card signs
+# "94-104M years"; the gate read it as a bare '94–104' and failed the card that drew it whole, '94–104 MILLION
+# YEARS'). Never a metre or a bare letter: "5M visitors", "40m tall" are not read as scaled.
+GLUED_SCALE = {"k": "THOUSAND", "m": "MILLION", "mn": "MILLION", "b": "BILLION", "bn": "BILLION"}
 ERAS = ("bc", "bce", "ad", "ce")
 # Count units: a number of these is a stated quantity whose unit is gold with it (ruling 8). Closed and generic.
 COUNT_UNITS = ("people", "persons", "levels", "level", "storeys", "storey", "stories", "floors", "tons", "ton",
@@ -235,6 +240,22 @@ def _unit_at(toks, i: int) -> tuple[str, int, bool] | None:
     return drawn, after, measured
 
 
+def _glued_scale(toks, j: int) -> str:
+    """The scale word a letter glued to the number before token j gives (GLUED_SCALE), when a count unit follows it;
+    else ""."""
+    if j <= 0 or j >= len(toks) or toks[j][1] != toks[j - 1][2] or not _is_num(toks[j - 1][0]):
+        return ""
+    scale = GLUED_SCALE.get(toks[j][0].lower(), "")
+    k = j + 1
+    if scale and k < len(toks) and toks[k][0].lower() in COUNT_UNITS:
+        return scale
+    # a span's low end glued like its far end ("94M-104M years"): the far end's reading
+    if (scale and k + 2 < len(toks) and toks[k][0].lower() in ("-", "–", "—", "to") and _is_num(toks[k + 1][0])
+            and toks[k + 2][0].lower() == toks[j][0].lower()):
+        return _glued_scale(toks, k + 2)
+    return ""
+
+
 def _number_at(toks, i: int, words_ok: bool) -> tuple[str, int] | None:
     """(the number as drawn, the index after it) for a number at token i: digits, or a number word when `words_ok`."""
     t = toks[i][0]
@@ -337,6 +358,9 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
     if j < len(toks) and toks[j][0].lower() in SCALE_WORDS:
         scale, gold[-1] = toks[j][0].upper(), (gold[-1][0], toks[j][2])
         j += 1
+    elif _glued_scale(toks, j):
+        scale, gold[-1] = _glued_scale(toks, j), (gold[-1][0], toks[j][2])
+        j += 1
     unit1 = _unit_at(toks, j)
     unit, measured = "", False
     if unit1:
@@ -364,6 +388,10 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
             j = after
             if j < len(toks) and toks[j][0].lower() in SCALE_WORDS and not scale:
                 scale = toks[j][0].upper()
+                gold[-1] = (gold[-1][0], toks[j][2])
+                j += 1
+            elif _glued_scale(toks, j) and (not scale or _glued_scale(toks, j) == scale):
+                scale = _glued_scale(toks, j)
                 gold[-1] = (gold[-1][0], toks[j][2])
                 j += 1
             unit2 = _unit_at(toks, j)

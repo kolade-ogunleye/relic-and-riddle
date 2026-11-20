@@ -146,3 +146,35 @@ def test_the_review_card_lists_an_omission():
                                                   "reason": "drawn without '1652': 6 events (rule: timeline.capacity)",
                                                   "drawn": True}]))
     assert lines and "graphic timeline" in lines[0] and "1652" in lines[0]
+
+
+# --------------------------------------------------------------------------- stress realism item 2 (Richat)
+def test_a_glued_scale_letter_before_a_count_unit_is_its_scale_word():
+    from src import figures
+    (f,) = figures.parse("94-104M years")
+    assert f.drawn() == "94–104 MILLION YEARS" and f.values == (94e6, 104e6)
+    assert figures.parse("94M-104M years")[0].drawn() == "94–104 MILLION YEARS"
+    assert figures.parse("3.5bn years")[0].drawn() == "3.5 BILLION YEARS"
+    # never a metre, never a bare letter: no count unit follows
+    for text in ("5M visitors", "40m tall", "a 2m wall", "5m"):
+        assert all(not g.scale for g in figures.parse(text)), text
+    # drawn whole from the glued sign, the gate passes it; one end or the scale dropped still fails
+    signed = figures.signed_figures(["94-104M years"])
+    assert figures.truth_faults("94–104 MILLION YEARS", signed) == []
+    assert figures.truth_faults("94–104 YEARS", signed)
+    assert figures.truth_faults("104 MILLION YEARS", signed)
+
+
+class _P:
+    def __init__(self, text, box):
+        self.text, self.box, self.empty = text, box, False
+
+
+def test_a_stacked_unit_beside_its_figure_reads_top_to_bottom():
+    from src.typography import drawn_text
+    plates = [_P("94–104", (40, 230, 220, 300)), _P("MILLION", (232, 240, 300, 262)),
+              _P("YEARS", (232, 268, 290, 292)), _P("AGO", (292, 268, 322, 292))]
+    assert drawn_text(plates) == "94–104 MILLION YEARS AGO"
+    # runs on one line still read left to right; lines top to bottom
+    assert drawn_text([_P("129 FT", (200, 0, 300, 40)), _P("MORE THAN", (0, 0, 190, 40)),
+                       _P("DEEP", (0, 60, 80, 100))]) == "MORE THAN 129 FT DEEP"

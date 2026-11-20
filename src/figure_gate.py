@@ -162,6 +162,19 @@ def figure_faults(drawn: str, signed: list[figures.Figure], need_hedge: bool = T
     return out
 
 
+def _hedge_on_line_before(before: str, text: str, f: figures.Figure, signed: list[figures.Figure]) -> bool:
+    """True when the line read just before (`before`, same surface) ends with the hedge that `f` on this line lacks,
+    and the two lines read as one block draw the figure whole and signed (SYS-F-3, freeze cycle 3: the hook's "MORE
+    THAN / 129 FT" was read line by line as '129 FT' with its hedge dropped; in reading order the hedge is drawn).
+    Only a hedge carried over the break: the joined figure starts on the line before and its number on this line."""
+    joined = f"{before} {text}"
+    cut = len(before) + 1
+    for g in figures.parse(joined):
+        if g.values == f.values and g.start < cut <= joined.find(f.lo, g.start) and g.hedge                 and not figure_faults(g.drawn(), signed):
+            return True
+    return False
+
+
 def _nearest(d: figures.Figure, signed: list[figures.Figure]) -> str:
     if not d.values:
         return ""
@@ -389,6 +402,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     judged = derived = 0
     surfaces: set[str] = set()
     texted: set[str] = set()        # the surfaces whose records carry drawn text
+    prev: tuple[str, str] = ("", "")   # the surface and text of the line read before this one (reading order)
     for surface, name, e in _merged(_elements(run_dir)):
         if not _is_text(e):
             continue
@@ -398,6 +412,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
             continue
         texted.add(surface)
         text = str(e.get("text") or "")
+        before, prev = (prev[1] if prev[0] == surface else ""), (surface, text)
         if e.get("_captions"):
             text = caption_text(text, spoken)
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
@@ -421,7 +436,10 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
                     and any(f.lo in t for t in signed_texts(payload)):
                 continue   # a year the signed copy states
             # a conversion line under its hedged lead: the lead carries the hedge
-            for fault in figure_faults(f.drawn(), signed, need_hedge=not CONVERSION.match(name)):
+            found = figure_faults(f.drawn(), signed, need_hedge=not CONVERSION.match(name))
+            if found and before and _hedge_on_line_before(before, text, f, signed):
+                found = []
+            for fault in found:
                 near = _nearest(f, signed)
                 faults.append(f"{surface} ({name}): drew {f.drawn()!r}: {fault.split(': ', 1)[-1]}"
                               + (f"; nearest signed value {near!r}" if near else ""))

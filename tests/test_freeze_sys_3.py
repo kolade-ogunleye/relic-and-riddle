@@ -188,3 +188,16 @@ def test_a_drawn_hedge_that_bounds_the_other_way_is_a_fault():
     assert figures.truth_faults("MORE THAN 40 PEOPLE", signed)
     assert figures.truth_faults("OVER 129 FT", signed) == []
     assert figures.truth_faults("NEARLY 40 PEOPLE", signed) == []
+
+
+# --------------------------------------------------------------------------- SYS-F-3: a hedge carried over a break
+def test_the_gate_reads_a_hedge_carried_to_the_line_before():
+    from src import figure_gate, figures
+    signed = figures.signed_figures(["It rises more than 129 feet over the plain."])
+    f = figures.parse("THAN 129 FT")[0]
+    assert figure_gate._hedge_on_line_before("MORE", "THAN 129 FT", f, signed)
+    f = figures.parse("129 FT")[0]
+    assert figure_gate._hedge_on_line_before("MORE THAN", "129 FT", f, signed)
+    assert not figure_gate._hedge_on_line_before("THE TOWER", "129 FT", f, signed)
+    # a hedge that bounds the other way is never the signed one
+    assert not figure_gate._hedge_on_line_before("UP TO", "129 FT", f, signed)

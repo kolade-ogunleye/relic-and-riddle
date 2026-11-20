@@ -86,6 +86,73 @@ def test_tall_scale_bar_stays_inside_the_text_column(lat):
     assert tb[0] <= box[0] and box[2] <= tb[2]
 
 
+def _fam(lat=45.0, ppd=60.0, w=1080, h=1920):
+    return graphics.scale_bar_family(lambda m: graphics.scale_bar(lat, ppd, "", m, bar_range=graphics.scale_range(w, h)))
+
+
+@pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)])
+def test_furniture_bar_corner_order_never_on_a_mark(size):
+    """The furniture ruling: lower-left first; a mark there sends it to the next corner; the bar's padded box never
+    meets a label or a hard mark; with every corner taken, None (the caller records the omission)."""
+    import numpy as np
+    w, h = size
+    tb = graphics.get_text_box(w, h)
+    free = graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [])
+    assert free is not None and free.corner == "ll" and free.soft == 0
+    hard = np.zeros((h, w), bool)
+    hard[int(tb[1] + (tb[3] - tb[1]) * 0.5):, : (tb[0] + tb[2]) // 2] = True          # the lower-left half taken
+    got = graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [], hard=hard)
+    assert got is not None and got.corner != "ll"
+    b, pad = got.layout.box, graphics.SCALE_MARK_PAD
+    assert not hard[max(0, int(b[1] - pad)):int(b[3] + pad), max(0, int(b[0] - pad)):int(b[2] + pad)].any()
+    assert tb[0] - 0.5 <= b[0] and b[2] <= tb[2] + 0.5 and tb[1] - 0.5 <= b[1] and b[3] <= tb[3] + 0.5
+    label = (got.layout.box[0] - 5, got.layout.box[1] - 5, got.layout.box[2] + 5, got.layout.box[3] + 5)
+    again = graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [label], hard=hard)
+    assert again is None or not graphics.LayoutConstraintSolver.boxes_intersect(again.layout.box, label, pad)
+    everything = np.ones((h, w), bool)
+    assert graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [], hard=everything) is None
+
+
+def test_furniture_bar_prefers_a_quiet_place_over_borders():
+    import numpy as np
+    w, h = 1080, 1920
+    tb = graphics.get_text_box(w, h)
+    soft = np.zeros((h, w), bool)
+    soft[int(tb[3]) - 120:int(tb[3]), int(tb[0]):int(tb[0]) + 400] = True              # borders in the lower-left
+    got = graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [], soft=soft)
+    assert got is not None and got.soft == 0
+
+
+@pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)])
+def test_a_routes_bar_never_meets_its_stops_or_names(tmp_path, monkeypatch, size):
+    """The furniture invariant on a real route's geometry (the Morocco stops): the bar's padded box meets no stop's
+    dot and no name drawn on the route; where it is omitted the layout says so."""
+    from tests.test_qf24_route_neighbours import _morocco_route, needs_data
+    if needs_data.args and needs_data.args[0]:
+        pytest.skip("Natural Earth data not fetched")
+    from src.refusal import collecting
+    with collecting():
+        lay = _morocco_route(tmp_path, monkeypatch, *size)
+    rec = lay["scale_bar"]
+    if rec.get("omitted"):
+        return
+    b, pad = rec["box"], graphics.SCALE_MARK_PAD
+    for x, y, r in lay["stops"]:
+        dot = (x - r - 4, y - r - 4, x + r + 4, y + r + 4)
+        assert not graphics.LayoutConstraintSolver.boxes_intersect(tuple(b), dot, pad), (b, dot)
+    for c in lay["name_checks"]:
+        assert not graphics.LayoutConstraintSolver.boxes_intersect(tuple(b), tuple(c["box"]), 0), (b, c)
+
+
+def test_omitted_scale_bar_is_recorded_on_the_ledger():
+    from src.refusal import Declined, collecting
+    with collecting() as rows:
+        graphics.omit_scale_bar("map x.mp4", "no corner is clear")
+    assert rows and rows[0]["omitted"] == "the scale bar" and "furniture" in rows[0]["rule"]
+    with pytest.raises(Declined):
+        graphics.omit_scale_bar("map x.mp4", "no corner is clear")         # no ledger: never only a log line
+
+
 def test_scale_bar_figures_in_the_data_face():
     """A-S2-3 (ruling 3): rulers, axes and scale-bar figures in the data face."""
     assert graphics.scale_label_font(1080, 1920).font.family == graphics.data_font(30).font.family

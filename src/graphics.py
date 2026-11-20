@@ -995,6 +995,120 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
                           secondary_end=None if sec is None else x + direction * sec.px, box=box)
 
 
+# ---- the scale bar is reference furniture and never sits on data (freeze lane A cycle 3, operator finding on the
+# real Amber renders: the route's "500 KM / 200 MI" over Catherine Palace's dot and the route's start, the 16:9
+# route's bar against the same dot, the 9:16 map's bar across the Latvia / Lithuania borders; the lander's ruling).
+# Home: the lower-left corner of the map's content box (the 9:16 text column, 16:9 title-safe; above the caption
+# band), then the other corners in the fixed order SCALE_CORNERS, each nudged inward at most SCALE_CORNER_STEPS steps
+# of SCALE_SHIFT along each edge. A place is CLEAR when its box, padded SCALE_MARK_PAD, meets no label (every word,
+# the pin, the stop dots' boxes) and no hard mark pixel (the route's path with its casing, the stop dots, the home
+# outline) and no soft pixel (coasts and other borders, "where possible"). Where no place of the bar is clear, the
+# shorter round bars (SCALE_SHORTER) are tried the same way; then the place with the fewest soft pixels that meets no
+# label and no hard mark (the quietest); else no bar, recorded (refusal.omit: the map is drawn without its scale).
+SCALE_CORNERS = ("ll", "lr", "ul", "ur")
+SCALE_CORNER_STEPS = 4
+SCALE_MARK_PAD = 12          # px (1080 / 1920 reference) the bar's box keeps from every mark
+SCALE_SHORTER = (0.7, 0.5, 0.35)   # shares of the first bar's length the shorter round bars are capped at
+
+
+@dataclass(frozen=True)
+class FurnitureBar:
+    """A scale bar placed as furniture: the bar, its layout, the corner it sits in and the soft pixels under it."""
+    bar: ScaleBar
+    layout: ScaleBarLayout
+    corner: str
+    soft: int
+
+
+def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, labels: Sequence[Box],
+                        hard: BoolArray | None = None, soft: BoolArray | None = None,
+                        box: Box | None = None) -> FurnitureBar | None:
+    """The bar's place by the furniture rule above, of `bars` (the first the preferred length, then shorter ones),
+    or None (no place meets no label and no hard mark: the caller records the omission). O(bars x corners x steps^2)
+    box tests on summed-area tables."""
+    import cv2
+    import numpy as np
+    tall = height > width
+    k = 1.0 if tall else min(width / 1920, height / 1080)
+    font = scale_label_font(width, height)
+    tb = box if box is not None else get_text_box(width, height)
+    pad = SCALE_MARK_PAD * k
+    step = SCALE_SHIFT * k
+
+    def table(mask: BoolArray | None, grow: float):
+        if mask is None:
+            return None
+        m = (np.asarray(mask) > 0).astype(np.uint8)
+        r = max(1, int(round(grow)))
+        m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))) > 0
+        return _integral(m)
+    ii_hard, ii_soft = table(hard, pad), table(soft, pad / 2)
+
+    def count(ii, b: Box) -> int:
+        if ii is None:
+            return 0
+        x0, y0 = max(0, int(b[0])), max(0, int(b[1]))
+        x1, y1 = min(width, math.ceil(b[2])), min(height, math.ceil(b[3]))
+        return 0 if x1 <= x0 or y1 <= y0 else int(_box_sum(ii, (x0, y0, x1, y1)))
+
+    def places(bar: ScaleBar):
+        rel = scale_bar_box(bar, 0.0, 0.0, font)
+        w, h = rel[2] - rel[0], rel[3] - rel[1]
+        for corner in SCALE_CORNERS:
+            for j in range(SCALE_CORNER_STEPS + 1):           # along the bottom / top edge first, then up / down it
+                for i in range(SCALE_CORNER_STEPS + 1):
+                    bx0 = tb[0] + i * step if corner[1] == "l" else tb[2] - w - i * step
+                    by0 = tb[3] - h - j * step if corner[0] == "l" else tb[1] + j * step
+                    if bx0 < tb[0] - 0.5 or bx0 + w > tb[2] + 0.5 or by0 < tb[1] - 0.5 or by0 + h > tb[3] + 0.5:
+                        continue
+                    yield corner, (bx0 - rel[0], by0 - rel[1]), (bx0, by0, bx0 + w, by0 + h)
+
+    quietest: tuple[int, int, FurnitureBar] | None = None
+    for order, bar in enumerate(bars):
+        for corner, (x, y), b in places(bar):
+            if any(LayoutConstraintSolver.boxes_intersect(b, lb, pad) for lb in labels):
+                continue
+            if count(ii_hard, b):
+                continue
+            s = count(ii_soft, b)
+            got = FurnitureBar(bar, _scale_layout(bar, x, y, 1, b), corner, s)
+            if s == 0:
+                return got
+            if quietest is None or (s, order) < quietest[:2]:
+                quietest = (s, order, got)
+    if quietest is not None:
+        log.info("Scale bar: no place clear of the borders; the quietest (%d border px) in the %s corner.",
+                 quietest[0], quietest[2].corner)
+        return quietest[2]
+    return None
+
+
+def scale_bar_family(make: Callable[[float | None], ScaleBar]) -> list[ScaleBar]:
+    """The bar at its preferred length, then shorter round bars (SCALE_SHORTER of it), then each in one unit:
+    `make(max_px)` builds a bar no longer than max_px (None: the preferred)."""
+    first = make(None)
+    out = [first]
+    for share in SCALE_SHORTER:
+        b = make(first.length * share)
+        if all(b.length < o.length - 0.5 for o in out):
+            out.append(b)
+    return out + [b.one_unit() for b in out if b.secondary is not None]
+
+
+def scale_bar_record(fb: FurnitureBar | None) -> dict[str, Any]:
+    """The bar's place as a layout record (its box, corner, length, the soft pixels under it; omitted: no box)."""
+    if fb is None:
+        return {"omitted": True}
+    return {"box": [round(v, 2) for v in fb.layout.box], "corner": fb.corner, "length": fb.bar.length,
+            "label": fb.bar.label, "soft_px": fb.soft, "pad": SCALE_MARK_PAD}
+
+
+def omit_scale_bar(surface: str, reason: str) -> None:
+    """The bar left out, recorded on the omission ledger (refusal.omit; with none open the surface is refused)."""
+    from .refusal import omit
+    omit(surface, "the scale bar", "scale bar is furniture: never on data (lane A cycle 3 ruling)", reason)
+
+
 # ---------------------------------------------------------------------- map
 # Land a step lighter than it was (74, 76, 82 / 122, 100, 66): after the film grade the land and the sea were close
 # in value (visual critic round 4, 2026-10-29); home stays warm but not a flood of gold (big countries).
@@ -5239,8 +5353,23 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     # pin's tip and read as part of the marker)
     mb = lay.marker_box
     m_air = MARKER_SCALE_AIR * k
-    sbl = place_scale_bar(bar, width, height, words + [(mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air)],
-                          home=home_f, obstacles=coast, hero=_union([lb, mb]), rise_rows=SCALE_RISE_ROWS_LOCATOR)
+    # freeze lane A cycle 3 (the furniture ruling): the bar in the lower-left corner of the content box, or another
+    # corner, or shorter, never on a word, the pin or the home's outline, off the coasts and borders where any place
+    # is; else no bar (recorded)
+    home_u8 = home_f.astype(np.uint8)
+    home_line = (home_u8 - cv2.erode(home_u8, np.ones((3, 3), np.uint8))) > 0
+    placed = furniture_scale_bar(
+        scale_bar_family(lambda m: scale_bar(site_lat, kf, narration, m, bar_range=scale_range(width, height))),
+        width, height, words + [(mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air), _union([lb, mb])],
+        hard=home_line, soft=coast)
+    if placed is None:
+        omit_scale_bar(f"map {Path(out).name}" if out else "map",
+                       "no corner of the content box, at any shorter round length, is clear of the words, the pin "
+                       "and the home's outline")
+        bar, sbl = None, _scale_layout(scale_bar(site_lat, kf, narration, bar_range=scale_range(width, height)),
+                                       -10_000.0, -10_000.0, 1, (-10_001.0, -10_001.0, -10_000.0, -10_000.0))
+    else:
+        bar, sbl = placed.bar, placed.layout
     gbox = place_globe(width, height, land_f, words + [sbl.box])
     # round 9 (coordinator R6): on an island close-up the globe stays at rest as its locator inset (the frame is
     # mostly ocean; the globe says where in it the island is), instead of fading out before the pin lands; round 12
@@ -5581,11 +5710,13 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             _record_globe_contrast(out, rest, globe_at(1.0), gbox)
         import json
         Path(str(out) + ".scale.json").write_text(json.dumps(
-            {**dataclasses.asdict(bar), "label": bar.label, "x": sbl.x, "y": sbl.y, "box": list(sbl.box)},
+            {**dataclasses.asdict(bar), "label": bar.label, "x": sbl.x, "y": sbl.y, "box": list(sbl.box)}
+            if bar else {"omitted": True, "rule": "scale bar is furniture: never on data"},
             indent=1), encoding="utf-8", newline="\n")
         Path(str(out) + ".layout.json").write_text(json.dumps({
             "style": style if not area else "area", "label": label, "anchor": list(anchor),
             "label_box": list(lay.label_box),
+            "scale_bar": scale_bar_record(placed),
             "position": lay.position, "leader": [list(p) for p in lay.leader] if lay.leader else None,
             "country": None if cname is None else {"text": cname.text, "box": list(cname.box), "inside": cname.inside,
                                                    "ink": cname.ink,
@@ -12529,40 +12660,8 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             return False
         return not any(seg_dist(c, *ld) - r < ROUTE_LEADER_CASE / 2 + GLOBE_AIR for ld in leaders if ld)
 
-    # round 6: the bar keeps SCALE_COAST_AIR from the legs and off the land (Crete), where any place in its row does
-    keep_off = land_f.copy()
-    leg_m = Image.new("L", (width, height), 0)
-    for leg in legs:
-        ImageDraw.Draw(leg_m).line(leg, fill=255, width=ROUTE_LEG_W + 2 * ROUTE_LEG_CASE)
-    keep_off |= np.asarray(leg_m) > 0
-    # freeze cycle 3 (A-S1-2: the bar's figures overprinted Catherine Palace's origin dot): the stops' dots are labels
-    # to the bar, so a place clear of every dot outranks one off the land
-    dots = [(x_ - stop_r[k_] - 4, y_ - stop_r[k_] - 4, x_ + stop_r[k_] + 4, y_ + stop_r[k_] + 4)
-            for k_, (x_, y_) in enumerate(pts)]
     bar_range = scale_range(width, height)
     bar_font = scale_label_font(width, height)
-
-    def bar_layout(max_px: float, corner: str, second: bool) -> dict[str, Any]:
-        """The scale bar at `max_px` at most, from the bottom-left ("l") or bottom-right ("r"), with or without the
-        other unit (place_scale_bar: off the legs and the land where it can be), and the boxes a name keeps clear
-        of: the bar's body and its figures with ROUTE_SCALE_AIR."""
-        bar = scale_bar(lat_c, kx / scale, narration, max_px, bar_range=bar_range)
-        if not second:
-            bar = bar.one_unit()
-        box_x = None if portrait else ((sx0 - 13.0, width / 2 - 1) if corner == "l" else (width / 2, sx1 + 30.0))
-        # freeze cycle 3 (A-S1-2): the stops' dots are labels to the bar (its figures overprinted Catherine Palace's
-        # origin dot): a place clear of every dot outranks one off the land
-        lay = place_scale_bar(bar, width, height, dots, obstacles=keep_off, box_x=box_x, prefer=corner)
-        figs = [ink_box(xy, text, bar_font, "ls", bar_font.size * SCALE_LABEL_TRACK)
-                for _n, text, xy in scale_bar_label_specs(bar, lay.x, lay.y, bar_font)]
-        figs = [f for f in figs if f]
-        a = ROUTE_SCALE_AIR
-        x, y = lay.x, lay.y
-        boxes = [(x - 12, y - 20, x + bar.length + 12, y + 20)] + [(b[0] - a, b[1] - a, b[2] + a, b[3] + a)
-                                                                       for b in figs]
-        return {"bar": bar, "x": x, "y": y, "boxes": boxes, "figs": figs,
-                "why": f"bottom-{'right' if corner == 'r' else 'left'} at {bar.length:.0f} px"
-                       f"{'' if second else ', one unit'}"}
 
     def globe_layout(corner: str, shrink: float) -> dict[str, Any]:
         gb = globe_box(width, height, corner, shrink)
@@ -12574,14 +12673,34 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     # moving before dropping: the globe top-right then top-left; the bar bottom-left then bottom-right at each
     # length in ROUTE_BAR_STEPS; the bar with its second unit, then without; then a smaller globe; then no globe;
     # then no bar. The first layout that names every stop wins; else the one naming the most (the earliest).
-    bars2 = [bar_layout(px, c, True) for px in ROUTE_BAR_STEPS for c in ("l", "r")]
-    bars1 = [bar_layout(px, c, False) for px in ROUTE_BAR_STEPS for c in ("l", "r")]
-    if not portrait:
-        # Round 4 review 5 (2026-11-02): on 16:9 the bottom-right is YouTube's timestamp corner (see globe_box):
-        # every bar on the left, shorter and then with one unit, before any on the right.
-        lefts = [b for b in bars2 + bars1 if b["why"].startswith("bottom-left")]
-        rights = [b for b in bars2 + bars1 if not b["why"].startswith("bottom-left")]
-        bars2, bars1 = lefts, rights
+    # freeze lane A cycle 3 (the furniture ruling; the real Amber route's bar lay over Catherine Palace's dot and the
+    # route's start): ONE bar place, by furniture_scale_bar: the lower-left corner of the content box, then the other
+    # corners, then shorter round bars; never on the route's path (with its casing) or a stop's dot, off the coasts
+    # where any place is; else no bar (recorded). The stops' names are placed after it and keep clear of it.
+    hard_m = Image.new("L", (width, height), 0)
+    hd = ImageDraw.Draw(hard_m)
+    for leg in legs + chords:
+        hd.line(leg, fill=255, width=ROUTE_LEG_W + 2 * ROUTE_LEG_CASE)
+    for k_, (x_, y_) in enumerate(pts):
+        hd.ellipse([x_ - stop_r[k_] - 4, y_ - stop_r[k_] - 4, x_ + stop_r[k_] + 4, y_ + stop_r[k_] + 4], fill=255)
+    land_u8 = land_f.astype(np.uint8)
+    import cv2
+    route_coast = (land_u8 - cv2.erode(land_u8, np.ones((3, 3), np.uint8))) > 0
+    fam = scale_bar_family(lambda m: scale_bar(lat_c, kx / scale, narration,
+                                               ROUTE_BAR_STEPS[0] if m is None else min(m, ROUTE_BAR_STEPS[0]),
+                                               bar_range=bar_range))
+    placed = furniture_scale_bar(fam, width, height, [], hard=np.asarray(hard_m) > 0, soft=route_coast)
+
+    def furniture_layout(fb: FurnitureBar) -> dict[str, Any]:
+        bar, x, y = fb.bar, fb.layout.x, fb.layout.y
+        figs = [f for f in (ink_box(xy, text, bar_font, "ls", bar_font.size * SCALE_LABEL_TRACK)
+                            for _n, text, xy in scale_bar_label_specs(bar, x, y, bar_font)) if f]
+        a = ROUTE_SCALE_AIR
+        boxes = [(x - 12, y - 20, x + bar.length + 12, y + 20)] + [(b[0] - a, b[1] - a, b[2] + a, b[3] + a)
+                                                                       for b in figs]
+        return {"bar": bar, "x": x, "y": y, "boxes": boxes, "figs": figs,
+                "why": f"{fb.corner} corner at {bar.length:.0f} px{'' if bar.secondary else ', one unit'}"}
+    bars2, bars1 = ([furniture_layout(placed)] if placed is not None else []), []
     globes = [globe_layout("tr", 1.0), globe_layout("tl", 1.0)]
     small = [globe_layout("tr", 0.7), globe_layout("tl", 0.7)]
     layouts = ([(g, b) for b in bars2 for g in globes] + [(g, b) for b in bars1 for g in globes]
@@ -12597,6 +12716,8 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             plates_, leaders_, unlabelled_, vague_, hero_, stacked_ = place_names(furniture)
             if g and not globe_clear(g["box"], leaders_):
                 continue
+            if g and b and any(LayoutConstraintSolver.boxes_intersect(g["box"], bb, 12) for bb in b["boxes"]):
+                continue                        # cycle 3: a bar in an upper corner and the globe never share it
             # review 9: the destination first of all (it was third, so a layout naming one stop more left it out)
             # round 12: then the fewest names stacked on another's (stacks_clear)
             key = (len(pts) - 1 in unlabelled_, len(unlabelled_), sum(k not in cluster for k in vague_),
@@ -12621,6 +12742,10 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     assert best is not None
     (rank_key, glay, blay, (plates, leaders), unlabelled, vague, hero, stacked) = best
     rank = rank_key[4]
+    if blay is None:                     # cycle 3: a route without its scale is recorded, never only logged
+        omit_scale_bar(f"route {Path(out).name}" if out else "route",
+                       "no corner of the content box, at any shorter round length, is clear of the route's path and "
+                       "stops" if placed is None else "the stops' names hold their places only without it")
     for k in stacked:
         log.info("Route: the name of stop %d (%s) is stacked on another stop's name; no layout keeps it %d px off "
                  "one.", k, located[k]["label"], ROUTE_STACK_AIR)
@@ -12661,6 +12786,9 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     route_words += [gbox] if gbox else []
 
     from_frame = to_frame_r.inverse
+    leg_m = Image.new("L", (width, height), 0)          # the legs alone (the water names keep off them)
+    for leg in legs:
+        ImageDraw.Draw(leg_m).line(leg, fill=255, width=ROUTE_LEG_W + 2 * ROUTE_LEG_CASE)
     leg_mask = np.asarray(leg_m) > 0
     wl = water_labels(width, height, from_frame, land_f, route_words, avoid=leg_mask, to_frame=to_frame_r)
     words += tuple(((w_.box[0] - 12) * scale, (w_.box[1] - 12) * scale, (w_.box[2] + 12) * scale,
@@ -12938,6 +13066,8 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         # round 14: the route's own layout sidecar, its names' verdicts with it (as the locator's)
         Path(str(out) + ".layout.json").write_text(json.dumps({
             "kind": "route",
+            "scale_bar": scale_bar_record(placed if blay is not None else None),
+            "stops": [[float(x_), float(y_), float(stop_r[k_])] for k_, (x_, y_) in enumerate(pts)],
             "country": ({"text": r_cname.text, "box": list(r_cname.box), "inside": r_cname.inside,
                          "leader": [list(p_) for p_ in r_leader] if r_leader else None} if r_cname is not None
                         else next(({"text": c_.text, "box": list(c_.box), "inside": True, "leader": None,
@@ -13076,16 +13206,23 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
             log.warning("Graphic '%s' failed (%s); continuing without it.", name, e)
             return None
 
-    if len(jobs) <= 1:
-        results = [_run_job(name, job) for name, job in jobs]
-    else:
-        # QF-104: a pool worker does not inherit this thread's context variables, so each job runs in a copy of the
-        # caller's context (one copy per job: a Context is entered by one thread at a time): the run's palette
-        # (use_palette above: the topic's accent, not the default) and graphics' poster-only mode reach every graphic
-        import contextvars
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(jobs), 4)) as pool:
-            futures = [pool.submit(contextvars.copy_context().run, _run_job, name, job) for name, job in jobs]
-            results = [f.result() for f in futures]
+    # freeze lane A cycle 3: the graphics' recorded omissions (refusal.omit: a map or route drawn without its scale
+    # bar) go on one ledger, handed on to the review card and the release gate as layout holds
+    from .refusal import collecting, hold_rows
+    with collecting() as omitted:
+        if len(jobs) <= 1:
+            results = [_run_job(name, job) for name, job in jobs]
+        else:
+            # QF-104: a pool worker does not inherit this thread's context variables, so each job runs in a copy of
+            # the caller's context (one copy per job: a Context is entered by one thread at a time): the run's palette
+            # (use_palette above: the topic's accent, not the default) and graphics' poster-only mode reach every
+            # graphic; the omission ledger is one list, shared by every copy
+            import contextvars
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(jobs), 4)) as pool:
+                futures = [pool.submit(contextvars.copy_context().run, _run_job, name, job) for name, job in jobs]
+                results = [f.result() for f in futures]
+    if omitted:
+        payload.setdefault("layout_holds", []).extend(hold_rows(omitted))
 
     made = [p for p in results if p]
     from . import card_composition

@@ -193,6 +193,8 @@ def test_social_draws_only_what_production_delivers(tmp_path):
     assert not retired & set(res["surfaces"]) and not retired & set(res["errors"])
     stories = {k: v for k, v in res["story_title_px"].items()}
     assert stories and all(isinstance(v, dict) and v["drawn"] and v["story"] for v in stories.values())
+    # poll {} as production passes it (QF-80): no frame turns into a question frame, so each draws at the Story's size
+    assert all(v["drawn"] == v["story"] for v in stories.values()), stories
     for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb")):
         recs = json.loads((DEV / "output" / SOCIAL_RUN / sub / "still_layout.json").read_text(encoding="utf-8"))
         rs = sorted((v["recipe"] for v in recs.values() if v.get("recipe")), key=lambda r: int(r["index"]))
@@ -282,6 +284,43 @@ def test_run_loop_motion_says_when_only_the_default_push_is_available(mods, tmp_
     rungs = dict(bm.bridge_ladder(False, {"close_zoom": 1.1, "close_push": 0.002, "open_push": 0.001}))
     assert rungs["as made"]["close_push"] == 0.002 and rungs["without its push"]["close_push"] == 0.0
     assert rungs["without its push"]["close_zoom"] == 1.1   # as the composer's {**kw, ...}: the zoom is kept
+
+
+@pytest.mark.skipif(not (DEV / "output" / SOCIAL_RUN / "carousel_fb" / "still_layout.json").is_file(),
+                    reason="needs the dev checkout's recorded social run")
+def test_fb_post_is_publishers_pick(mods):
+    """Lane D: the fb_feed collage holds what the publisher posts (facebook_pick: the cover, the strongest middles,
+    the closing slide, at most five, in slide order), read with today's archetypes."""
+    be = mods["board_evidence"]
+    from src.multi_format import FACEBOOK_PHOTOS
+    run = DEV / "output" / SOCIAL_RUN
+    every = sorted(p.name for p in (run / "carousel_fb").glob("carousel_slide_*.jpg"))
+    picked = be.fb_post_slides(run, {"carousel_slide_05.jpg": "colossal_stat"})
+    assert len(picked) == min(len(every), FACEBOOK_PHOTOS) and picked == sorted(picked)
+    assert picked[0] == every[0] and picked[-1] == every[-1]
+    if len(every) > FACEBOOK_PHOTOS:   # today's figure slide is the strongest middle: it makes the post
+        assert "carousel_slide_05.jpg" in picked
+    assert be.fb_post_slides(DEV / "output" / "no_such_run") == []
+
+
+@pytest.mark.skipif(not (DEV / "output" / "run_wieliczka_salt_mine_1792974672").is_dir(),
+                    reason="needs the dev checkout's runs")
+def test_wide_end_screen_ground_says_what_it_is(mods, monkeypatch):
+    """Lane E: a 16:9 end screen of a run with no 16:9 master is fed its 9:16 last frame centre-cropped, labelled
+    STAND-IN with that reason; a real 16:9 run's own landscape last frame is REAL."""
+    bm, be = mods["board_motion"], mods["board_evidence"]
+    monkeypatch.setenv("RR_FIXTURE_REPO", str(DEV))
+    monkeypatch.syspath_prepend(str(ROOT / "docs" / "reviews" / "freeze-panel-2026-11-04" / "fixtures"))
+    fx = importlib.import_module("fixtures")
+    cases = fx.load("endcard")
+    i = next(k for k, c in enumerate(cases) if c["topic"] == "wieliczka_salt_mine" and c.get("format") == "16:9")
+    im, cls, why = bm.wide_last(fx, cases[i])
+    assert im.size == (1920, 1080) and cls == be.STAND_IN and "centre-cropped" in why and "no 16:9 master" in why
+    be.WIDE_GROUNDS[i] = (cls, why)
+    assert be.pairing(f"endscreen__{i}_wieliczka_salt_mine") == (cls, why)
+    j = next(k for k, c in enumerate(cases) if c.get("format") == "16:9" and "stands in" not in str(c.get("label")))
+    _im, cls_j, why_j = bm.wide_last(fx, cases[j])
+    assert cls_j == be.REAL and "16:9 master" in why_j   # Richat's 16:9 run delivered one
 
 
 def test_seam_reading_is_the_renderers(mods, monkeypatch):

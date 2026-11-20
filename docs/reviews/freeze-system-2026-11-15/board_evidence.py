@@ -22,6 +22,9 @@ from pathlib import Path
 from typing import Any
 
 REAL, STAND_IN, FORCED = "REAL", "STAND-IN", "FORCED"
+# cycle 3 (lane E): a 16:9 end-screen case's ground as board_motion.wide_last found it: index -> (class, why); filled
+# where the ground is drawn (board_motion._end_jobs) and from render_surfaces.py's "wide_grounds" record
+WIDE_GROUNDS: dict[int, tuple[str, str]] = {}
 
 
 # ---------------------------------------------------------------------------------------------- refusals as records
@@ -203,6 +206,8 @@ def pairing(name: str) -> tuple[str, str]:
     if "antikythera" in n:
         return STAND_IN, "the Antikythera photo with the Aswan run's copy (no Antikythera run)"
     m = re.match(r"(endscreen|endcard|bridge|bridge_follow)__(\d+)_", n)
+    if m and m.group(1) == "endscreen" and int(m.group(2)) in WIDE_GROUNDS:   # cycle 3: what the ground really is
+        return WIDE_GROUNDS[int(m.group(2))]
     if m:
         lab = _endcard_labels().get(int(m.group(2)), "")
         if "stands in" in lab:
@@ -456,6 +461,32 @@ PEER_SLOTS = 8
 # 5th when the post has more. The feed never shows the first photo alone.
 FB_COLLAGE_GAP = 4 / 1137
 FB_COLLAGE_PHOTOS = 5
+
+
+def fb_post_slides(run_dir: Path, current: dict[str, str] | None = None) -> list[str]:
+    """The Facebook copy's slide files (carousel_fb/carousel_slide_NN.jpg) the publisher posts, in its order:
+    multi_format.facebook_pick over the run's Facebook slides (at most FACEBOOK_PHOTOS: the cover, the strongest
+    middles, the closing slide), reading each slide's record with today's archetype (`current`: file name ->
+    archetype, render_surfaces.py's "rerouted"), as production records it now. [] when the run has no Facebook copy."""
+    from src import still_layout
+    from src.multi_format import facebook_pick
+    d = Path(run_dir) / "carousel_fb"
+    slides = sorted(str(p) for p in d.glob("carousel_slide_*.jpg"))
+    if not slides:
+        return []
+    real = still_layout.load
+
+    def load(still):
+        rec = real(still)
+        name = Path(still).name
+        if rec and current and name in current and (rec.get("recipe") or {}).get("archetype") != current[name]:
+            rec = {**rec, "recipe": {**(rec.get("recipe") or {}), "archetype": current[name]}}
+        return rec
+    still_layout.load = load
+    try:
+        return [Path(p).name for p in facebook_pick(slides)]
+    finally:
+        still_layout.load = real
 
 
 def fb_collage_boxes(w: int) -> list[tuple[int, int, int, int]]:

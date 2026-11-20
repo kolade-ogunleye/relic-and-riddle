@@ -988,13 +988,34 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     first_label = {n: f"REEL FIRST FRAME as the tile (no designed cover) | {be.label(n)}" for n, _ in first}
     # cycle 3 (operator evidence, peers/fb_feed/peer_01.png): our Facebook carousel goes out as a multi-photo post, and
     # the feed shows it as the collage of its first 5 photos (board_evidence.fb_collage), never slide 1 alone
+    # cycle 3 (lane D): the post holds publisher's set and order (multi_format.facebook_pick over the run's Facebook
+    # copy, with today's archetypes), never simply the deck's first five
     decks: dict[str, list] = {}
     for n in sorted(x for x in surf if x.startswith("social__") and "__fb_carousel_slide_" in x):
         decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
-    collages = [(f"{run}__fb_collage", be.fb_collage([Image.open(surf[n]).convert("RGB") for n in names]))
-                for run, names in decks.items()]
-    first_label.update({n: (f"FB MULTI-PHOTO COLLAGE as the feed shows it (first {min(len(decks[n[:-12]]), 5)} of "
-                            f"{len(decks[n[:-12]])} Facebook slides) | {be.label(n)}") for n, _ in collages})
+    sj_ = out / "surfaces.json"
+    rerouted = (json.loads(sj_.read_text(encoding="utf-8")).get("rerouted") or {}) if sj_.is_file() else {}
+    collages, posted = [], {}
+    for deck, names in decks.items():
+        tag = deck[len("social__"):]
+        current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
+                   if k.startswith(f"{deck}__fb_carousel_slide_")}
+        try:
+            picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
+        except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
+            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
+            picked = []
+        order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
+        order = [n for n in order if n in surf]
+        how = (f"publisher's set: facebook_pick posts {len(order)} of {len(names)} Facebook slides "
+               f"({', '.join(n.rsplit('_', 1)[-1] for n in order)})" if order else
+               f"NOT publisher's set (facebook_pick unavailable): the first {min(len(names), 5)} of {len(names)}")
+        order = order or names[:5]
+        collages.append((f"{deck}__fb_collage", be.fb_collage([Image.open(surf[n]).convert("RGB") for n in order])))
+        posted[f"{deck}__fb_collage"] = how
+    manifest.setdefault("fb_posts", {}).update(posted)
+    first_label.update({n: f"FB MULTI-PHOTO COLLAGE as the feed shows it, {posted[n]} | {be.label(n)}"
+                        for n, _ in collages})
     plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels + first, reels + car1),
             "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car + first, car1 + reels),
             "yt_home": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
@@ -1053,7 +1074,7 @@ JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts
                "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
                "cover": 8}
 SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged by union (a job's own records)
-                   "retired", "rerouted", "bridge_ladder")   # cycle 3: retired frames not drawn, slides re-routed
+                   "retired", "rerouted", "bridge_ladder", "wide_grounds")   # cycle 3: retired frames not drawn, slides re-routed
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 
@@ -1269,7 +1290,9 @@ def main() -> None:
     from PIL import Image
     sj = out / "surfaces.json"
     surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
-    for k in ("retired", "rerouted", "bridge_ladder"):   # cycle 3: what production delivers today, not as recorded
+    for rec in ((surfaces_rec or {}).get("wide_grounds") or {}).values():   # cycle 3: each 16:9 ground's pairing
+        be.WIDE_GROUNDS[int(rec["index"])] = (rec["class"], rec["why"])
+    for k in ("retired", "rerouted", "bridge_ladder", "wide_grounds"):   # cycle 3: production today, not as recorded
         if (surfaces_rec or {}).get(k):
             manifest[k] = surfaces_rec[k]
     for r, (name, prefixes) in sorted(ROWS.items()):

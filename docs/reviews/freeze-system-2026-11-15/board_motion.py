@@ -233,9 +233,9 @@ def _end_jobs(topic: str) -> dict[str, Any]:
     it, tall = _case(fx, topic, "9:16")
     jobs: dict[str, Any] = {}
     if wide is not None:
-        last_w = _still(fx, wide.get("last_frame", {}).get("from") or wide.get("last"))
-        if last_w.width < last_w.height:
-            last_w = ImageOps.fit(last_w, (1920, 1080), Image.LANCZOS)
+        last_w, cls, why = wide_last(fx, wide)
+        import board_evidence as be
+        be.WIDE_GROUNDS[iw] = (cls, why)
         jobs["endscreen_169"] = ((1920, 1080), lambda st: end_card.frames(last_w, wide["share_line"], st), iw, wide)
     if tall is not None:
         last_t = _still(fx, tall.get("last_frame", {}).get("from") or tall.get("last"))
@@ -253,6 +253,51 @@ def _end_jobs(topic: str) -> dict[str, Any]:
             last_t, first, tall["share_line"], st, follow=False, motion=motion, motion_source=motion_src), first),
             it, tall)
     return {n: jobs[n] for n in END_NAMES if n in jobs}
+
+
+def _dims(path: Path) -> tuple[int, int] | None:
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+                            "-of", "csv=p=0", str(path)], capture_output=True, text=True, timeout=60)
+        w, h = (int(x) for x in r.stdout.strip().split(",")[:2])
+        return w, h
+    except (ValueError, OSError, subprocess.SubprocessError):
+        return None
+
+
+def wide_last(fx, case) -> tuple[Any, str, str]:
+    """(image, pairing class, why) for a 16:9 end-screen case's narration last frame (cycle 3, lane E): the
+    run's own 16:9 master's last frame where the run has one (REAL); else the case's recorded last frame, REAL when it
+    is landscape and the catalogue does not call it a stand-in, else STAND-IN, saying what it is (a 9:16 frame is
+    centre-cropped to 16:9, as before; nothing else is substituted)."""
+    from PIL import Image, ImageOps
+    run = Path(fx.path(case["run"]))
+    # the run's masters: every video beside its composition record (<stem>.mp4 + <stem>.composition.json)
+    masters = [c.with_name(c.name[:-len(".composition.json")] + ".mp4") for c in sorted(run.glob("*.composition.json"))]
+    masters = [m for m in masters if m.is_file()]
+    for m in masters:
+        d = _dims(m)
+        if d and d[0] > d[1]:
+            comp = json.loads(m.with_name(m.stem + ".composition.json").read_text(encoding="utf-8"))
+            start = (comp.get("end_card") or {}).get("start_s")
+            if start:   # the master carries its end screen: the narration's last frame is the one before it
+                t = max(0.0, float(start) - 1 / FPS)
+                im = Image.open(fx.frame(m, t)).convert("RGB")
+                return im, "REAL", f"the run's own 16:9 master ({m.name}) at {t:.3f} s, its narration's last frame"
+            im = Image.open(fx.frame(m, last=True)).convert("RGB")
+            return im, "REAL", f"the run's own 16:9 master's last frame ({m.name}; it carries no end screen)"
+    src = case.get("last_frame", {}).get("from") or case.get("last")
+    im = _still(fx, src)
+    masters = [f"{m.name} {(_dims(m) or ('?', '?'))[0]}x{(_dims(m) or ('?', '?'))[1]}" for m in masters]
+    no_master = (f"the run has no 16:9 master ({', '.join(masters)})" if masters else "the run has no master")
+    if im.width < im.height:
+        return (ImageOps.fit(im, (1920, 1080), Image.LANCZOS), "STAND-IN",
+                f"{no_master}: its 9:16 last frame ({Path(str(src)).name}, {im.width}x{im.height}) centre-cropped "
+                "to 16:9 stands in for a 16:9 narration's last frame")
+    if "stands in" in str(case.get("label") or ""):
+        return (im, "STAND-IN",   # as drawn before: a landscape still goes to the renderer as it is
+                f"{no_master}: its landscape last-scene still ({Path(str(src)).name}) stands in")
+    return im, "REAL", f"the run's own landscape last frame ({Path(str(src)).name})"
 
 
 class BridgeNotShipped(ValueError):

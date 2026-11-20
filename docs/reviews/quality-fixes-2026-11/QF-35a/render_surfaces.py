@@ -449,10 +449,14 @@ def main() -> None:
                 frames_of(f"endcard__{i}_{case['topic']}", end_card.frames(
                     last, card_line if card_line is not None else card_share(fx, case), {}))
             else:
-                if last.width < last.height:
+                name = f"endscreen__{i}_{case['topic']}"
+                if board_motion is not None:   # cycle 3 (lane E): the run's 16:9 master's last frame where it has
+                    last, cls, why = board_motion.wide_last(fx, case)   # one, else what stands in, said
+                    result.setdefault("wide_grounds", {})[name] = {"index": i, "class": cls, "why": why}
+                elif last.width < last.height:
                     from PIL import ImageOps
                     last = ImageOps.fit(last, (1920, 1080), Image.LANCZOS)
-                frames_of(f"endscreen__{i}_{case['topic']}", end_card.frames(last, share, {}))
+                frames_of(name, end_card.frames(last, share, {}))
         job("endcard", f"endcard {i} {case['topic']}", endcard)
 
     # ------------------------------------------------------------------ covers
@@ -497,8 +501,10 @@ def main() -> None:
         """One recorded frame redrawn as production draws it: a Story at its deck's one title size (the recipe's,
         else story_title_px over the deck); a carousel slide with the run's lead unit and its deck window (round 8)."""
         if kind == "story":
+            # cycle 3 (lane D): poll {} as generate_story_sequence passes it since QF-80 (no frame asks the poll);
+            # an older recipe's poll would turn the reveal into a question frame and step its title down
             return gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
-                                           r.get("poll") or {}, tight=bool(rec.get("tight")),
+                                           {}, tight=bool(rec.get("tight")),
                                            title_px=int(r.get("title_px") or title_px or 0) or None)
         return gen._render_carousel_slide(
             r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),

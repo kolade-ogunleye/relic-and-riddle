@@ -116,3 +116,122 @@ def test_a_stacked_stat_unit_is_recorded_in_reading_order(tmp_path):
     text = next(e["text"] for e in lay.elements if e["name"] == "stat")
     assert text == lay.meta["stat_figure"]["drawn"]
     assert figure_gate.figure_faults(text, figures.parse(body)) == []
+
+
+# --------------------------------------------------------------------------------- 5. the Facebook collage (ruling)
+def test_the_collage_model_is_the_measured_two_over_three_of_squares():
+    from src.multi_format import FACEBOOK_COLLAGE
+    tiles = FACEBOOK_COLLAGE[5]
+    assert all(abs(tw - th) < 1e-9 for _x, _y, tw, th in tiles)                 # squares
+    assert abs(tiles[0][2] - tiles[1][2]) < 1e-9 and abs(tiles[2][2] - tiles[4][2]) < 1e-9
+    assert abs(tiles[1][0] + tiles[1][2] - 1) < 1e-6 and abs(tiles[4][0] + tiles[4][2] - 1) < 1e-6   # full width
+    w = 1137                                                                   # the capture's measured gaps
+    assert round((tiles[1][0] - tiles[0][2]) * w) == 4 and round((tiles[2][1] - tiles[0][3]) * w) == 4
+
+
+def test_plus_n_is_modelled_over_the_fifth_tile_when_more_are_sent(tmp_path):
+    from src.multi_format import facebook_collage_report
+    folder = tmp_path / "carousel_fb"
+    folder.mkdir()
+    slides = []
+    for i in range(7):
+        p = folder / f"carousel_slide_{i + 1:02d}.jpg"
+        Image.new("RGB", (1440, 1800), (40, 40, 40)).save(p)
+        lay = still_layout.Layout("carousel", (1440, 1800), (0, 0, 1440, 1800))
+        lay.add("heading", (300, 860, 1100, 960))                              # across the tile's centre
+        still_layout.save(p, lay, {"archetype": "immersive"})
+        slides.append(p)
+    rep = facebook_collage_report(slides)
+    assert rep["more"] == 2 and len(rep["tiles"]) == 5
+    assert rep["problems"] == ["carousel_slide_05.jpg: the collage tile cuts its heading (under +2)"]
+    assert facebook_collage_report(slides[:5])["problems"] == []               # five sent: no "+N"
+
+
+def _fb_slide(tmp_path, archetype, total, card, photo=None):
+    photo = photo or _photos(tmp_path)[1]
+    return MultiFormatGenerator()._render_carousel_slide(archetype, photo, photo, card, 0 if archetype == "cover" else 1,
+                                                          total, {}, "", True, subject="THE GIANT STONE")[1]
+
+
+def test_the_facebook_masthead_sits_inside_the_collage_square(tmp_path):
+    from src.multi_format import collage_crop
+    crop = collage_crop((1440, 1800), 1.0)
+    for archetype, card in (("cover", CARDS[0]), ("immersive", CARDS[1]), ("editorial_split", CARDS[2])):
+        lay = _fb_slide(tmp_path, archetype, 7, card)
+        box = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
+        assert box[1] >= crop[1] and box[3] <= crop[3], (archetype, box)
+        assert not lay.problems(), (archetype, lay.problems())
+
+
+def test_the_facebook_cover_of_a_five_photo_post_takes_the_full_column(tmp_path):
+    from src.multi_format import collage_crop
+    g = MultiFormatGenerator()
+    card = {"heading": "THE EYE OF THE SAHARA", "body": "A concentric formation that fascinates observers."}
+    wide = _fb_slide(tmp_path, "cover", 7, card)       # posts 5: the cover is a full-width square tile
+    hero = _fb_slide(tmp_path, "cover", 4, card)       # posts 4: the cover is the 2:3 hero tile
+    ig = g._render_carousel_slide("cover", _photos(tmp_path)[1], _photos(tmp_path)[1], card, 0, 7, {}, "", False)[1]
+    size = {k: next(e["px"] for e in lay.elements if e["name"] == "heading") for k, lay in
+            (("wide", wide), ("hero", hero), ("ig", ig))}
+    assert size["wide"] == size["ig"] > size["hero"]    # the full tier where the collage shows the full width
+    tall = collage_crop((1440, 1800), 2 / 3)
+    for e in hero.elements:
+        if e["name"] in ("heading", "body", "header_brand"):
+            assert e["box"][0] >= tall[0] and e["box"][2] <= tall[2]
+
+
+def test_the_figure_slide_takes_the_collages_second_top_tile(tmp_path):
+    from src.multi_format import facebook_pick
+    folder = tmp_path / "carousel_fb"
+    folder.mkdir()
+    slides = []
+    for i, arch in enumerate(["cover", "immersive", "editorial_split", "immersive", "colossal_stat", "immersive",
+                              "debate"]):
+        p = folder / f"carousel_slide_{i + 1:02d}.jpg"
+        Image.new("RGB", (1440, 1800), (40 + 20 * i, 40, 40)).save(p)
+        lay = still_layout.Layout("carousel", (1440, 1800), (0, 0, 1440, 1800))
+        still_layout.save(p, lay, {"archetype": arch, "photo": str(p), "photo_next": str(p),
+                                   "card": {"heading": f"H{i}", "body": "A body."}})
+        slides.append(str(p))
+    posted = facebook_pick(slides)
+    assert len(posted) == 5 and posted[0] == slides[0] and posted[1] == slides[4] and posted[-1] == slides[-1]
+    assert posted[2:4] == sorted(posted[2:4])
+
+
+def test_the_lower_facebook_masthead_keeps_the_strength_of_its_ground(tmp_path):
+    """The masthead's ground is a top-edge gradient: at FB_HEADER_Y the default reach left it under the gate where
+    Instagram's position passes (6 of 28 real Facebook slides). The Facebook copy then takes the reach that gives the
+    name the same share of the ramp; the gate is unchanged."""
+    import numpy as np
+    rng = np.random.default_rng(3)
+    a = np.clip(np.array((170, 160, 150), np.float32) + rng.normal(0, 60, (1200, 1600, 1)), 0, 255).astype(np.uint8)
+    photo = tmp_path / "mid.jpg"
+    Image.fromarray(a).save(photo)
+    card = {"heading": "CARVED FROM BEDROCK", "body": "Workers carved it."}
+    g = MultiFormatGenerator()
+    ig = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", False, subject="S")[1]
+    fb = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", True, subject="S")[1]
+    assert ig.meta["masthead"]["shown"] and "reach_matched" not in ig.meta["masthead"]
+    m = fb.meta["masthead"]
+    from src.brand_system import tok
+    assert m["shown"] and m["reach_matched"] and m["contrast"] >= tok("contrast.masthead_gate") and not fb.problems()
+
+
+def test_a_map_label_in_the_squares_masthead_room_keeps_the_instagram_position(tmp_path):
+    """A wide locator map cannot move; where its own label lies in the Facebook masthead's room (inside the collage
+    square), the slide takes Instagram's masthead position, recorded, and the masthead never covers the label."""
+    from PIL import ImageDraw
+    poster = tmp_path / "graphics" / "graphic_map.jpg"
+    poster.parent.mkdir(parents=True)
+    im = Image.new("RGB", (2400, 1800), (40, 60, 80))
+    ImageDraw.Draw(im).rectangle((700, 240, 1000, 280), fill=(250, 250, 250))   # a label's bone ink
+    im.save(poster)
+    card = {"heading": "ORBITAL LANDMARK", "body": "Visible from space in the desert."}
+    g = MultiFormatGenerator()
+    fb = g._render_carousel_slide("diagram", poster, poster, card, 1, 7, {}, "", True, subject="S")[1]
+    assert fb.meta.get("masthead_position", "").startswith("instagram")
+    box = next((e["box"] for e in fb.elements if e["name"] == "header_brand"), None)
+    labels = [l["box"] for l in fb.meta["diagram"]["labels"]]
+    assert labels and (box is None or all(box[3] <= b[1] or box[1] >= b[3] or box[2] <= b[0] or box[0] >= b[2]
+                                          for b in labels))
+    ig = g._render_carousel_slide("diagram", poster, poster, card, 1, 7, {}, "", False, subject="S")[1]
+    assert "masthead_position" not in ig.meta

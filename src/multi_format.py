@@ -1514,7 +1514,27 @@ class MultiFormatGenerator:
     # drops out whole rather than half cut. IG_COUNTER is checked on every slide (still_layout `protected`), so
     # nothing we draw ever lands under the counter.
     HEADER_Y = 70
+    # Lane D cycle 3 (lander ruling 4, peer evidence evidence/peers/fb_feed/peer_01.png): Facebook shows the posted
+    # photos as a collage of centre squares (FACEBOOK_COLLAGE), so the Facebook copy's masthead sits inside the
+    # slide's centre square, FB_HEADER_INSET under its top (FB_SQUARE_TOP: (1350 - 1080) / 2 design px), on every
+    # Facebook slide: the collage keeps the brand (at HEADER_Y the square crop cut it from every tile).
+    FB_SQUARE_TOP = 135
+    FB_HEADER_INSET = 40
+    FB_HEADER_Y = FB_SQUARE_TOP + FB_HEADER_INSET
     BAND_GAP = 16
+
+    def _header_y(self, facebook: bool | None = None) -> int:
+        """The masthead's top, design px: HEADER_Y on Instagram, FB_HEADER_Y on the Facebook copy (the slide being
+        drawn, _render_state, when `facebook` is None)."""
+        fb = bool(getattr(_render_state, "facebook", False)) if facebook is None else bool(facebook)
+        return self.FB_HEADER_Y if fb and not getattr(_render_state, "ig_header", False) else self.HEADER_Y
+
+    @staticmethod
+    def _fb_cover_inset() -> bool:
+        """Whether the Facebook cover being drawn keeps FB_COVER_MARGIN: only where its post can show it as the
+        4-photo collage's 2:3 hero tile (a deck of 4 slides or fewer); a deck of 5 or more posts 5 photos
+        (facebook_pick), whose collage shows the cover as a full-width centre square (lane D cycle 3, ruling 1)."""
+        return bool(getattr(_render_state, "facebook", False)) and bool(getattr(_render_state, "fb_hero_tile", False))
 
     @staticmethod
     def _ig_counter(cw: int) -> tuple[int, int, int, int]:
@@ -2103,7 +2123,7 @@ class MultiFormatGenerator:
         im = self._fill(photo, (cw, chh))
         facebook = bool(getattr(_render_state, "facebook", False))
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], two_tone=True, tight=tight,
-                                b_lines=3, h_spec=(150, 72), margin=self.FB_COVER_MARGIN if facebook else None)
+                                b_lines=3, h_spec=(150, 72), margin=self.FB_COVER_MARGIN if self._fb_cover_inset() else None)
 
     def _render_immersive(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
@@ -2223,7 +2243,7 @@ class MultiFormatGenerator:
         kicker, under the masthead) and the scale `k` its drawn box (`box` of a poster of `size`) is laid at."""
         px = self._px(cw)
         kb = self._content_baselines(px, facebook, lines)[0]
-        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
+        top, bottom = px(self._header_y(facebook)) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
         w, h = max(1, box[2] - box[0]), max(1, box[3] - box[1])
         return top, bottom, min((cw - 2 * px(self.MARGIN - 24)) / w, max(1, bottom - top) / h)
 
@@ -2232,8 +2252,9 @@ class MultiFormatGenerator:
         copies since they share one frame): what a drawing for the slide is drawn at (lane D cycle 2)."""
         cw = cw or self.CAROUSEL_SIZE[0]
         px = self._px(cw)
-        top, bottom, _k = self._diagram_fit((1, 1), (0, 0, 1, 1), cw, False, 2)
-        return cw - 2 * px(self.MARGIN - 24), bottom - top
+        # lane D cycle 3: the room both copies hold (the Facebook masthead sits lower, in the collage's square)
+        rooms = [self._diagram_fit((1, 1), (0, 0, 1, 1), cw, fb, 2) for fb in (False, True)]
+        return cw - 2 * px(self.MARGIN - 24), min(b - t for t, b, _k in rooms)
 
     def diagram_legible(self, poster: Path, facebook_lines: tuple[tuple[bool, int], ...]) -> tuple[bool, dict]:
         """Lane D cycle 1 (r8 AD R3): whether a drawing laid on the diagram slide keeps every label at the carousel's
@@ -2348,6 +2369,10 @@ class MultiFormatGenerator:
             tops, record = list(range(base_top, lift_max + 1, max(1, px(8)))) or [base_top], poster
             if tops[-1] != lift_max:
                 tops.append(lift_max)
+            # lane D cycle 3: the Facebook masthead sits lower (in the collage's centre square), so a place label
+            # the map cannot rise away from may instead sit lower: after every rise, the map lowered as far
+            # (the place under the masthead and over the foot, the same cut rule)
+            tops += list(range(base_top - max(1, px(8)), max(0, base_top - px(MAP_LIFT_MAX)) - 1, -max(1, px(8))))
         bands = map_label_bands(record, full, k, px)
         pin_y = full.height / 2
         primary, secondary = [], []
@@ -2356,7 +2381,7 @@ class MultiFormatGenerator:
         primary_bottom = max([pin_y + px(MAP_PIN)] + [b[3] for b in primary])
         primary_top = min([pin_y - px(MAP_PIN)] + [b[1] for b in primary])
         foot_low = stack_top - px(MAP_CLEAR)          # the foot's full ink starts here at the latest
-        head_room = px(self.HEADER_Y) + px(80)         # the place label stays under the masthead, as a drawing does
+        head_room = px(self._header_y()) + px(80)      # the place label stays under the masthead, as a drawing does
 
         def cut(top, fade):
             """(top, fade, y1) when this cut shows the place whole and no label half under the foot, else None."""
@@ -2415,7 +2440,8 @@ class MultiFormatGenerator:
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
-                               lead: str | None = None, window: int = 0, heading_tier: int = 0):
+                               lead: str | None = None, window: int = 0, heading_tier: int = 0,
+                               _ig_header: bool = False):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -2439,18 +2465,22 @@ class MultiFormatGenerator:
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
         _render_state.heading_tier = 1 if int(heading_tier or 0) > 0 else 0
         _render_state.lead = lead
+        _render_state.ig_header = bool(_ig_header)
         cw, chh = self.CAROUSEL_SIZE
         # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
         # this deck show the same photograph; the masthead's box (top-left, HEADER_Y) is kept off foreign objects
         from . import masthead as _mh
         _px = self._px(cw)
         _size = type_px("masthead", "carousel") * cw / 1440
-        _mx = _px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else _px(80)
-        _base = _px(self.HEADER_Y) + cap_height(_mh.font_for(_size))
+        # lane D cycle 3: the deck's posted collage decides the Facebook cover's inset (_fb_cover_inset)
+        _render_state.fb_hero_tile = bool(facebook) and total <= 4
+        _mx = _px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else _px(80)
+        _base = _px(self._header_y(facebook)) + cap_height(_mh.font_for(_size))
         _render_state.window_k = max(0, int(window or 0))
-        _render_state.masthead_box = (_mx - _px(16), _px(self.HEADER_Y) - _px(16),
+        _render_state.masthead_box = (_mx - _px(16), _px(self._header_y(facebook)) - _px(16),
                                       _mx + _mh.group_width(_size) + _px(16), _base + _px(16))
         _render_state.window_rec = []
+        masthead_room = _render_state.masthead_box
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
         lay.plates = {}
@@ -2485,11 +2515,21 @@ class MultiFormatGenerator:
         brand_font = masthead.font_for(size)
         # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
         # diamond fell outside the tile's crop at x 107).
-        x0 = px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
-        base = px(self.HEADER_Y) + cap_height(brand_font)
+        x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else px(80)
+        base = px(self._header_y(facebook)) + cap_height(brand_font)
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
         im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
                                              max_width=cw - px(280) - x0)
+        if not mrec["shown"] and facebook:
+            # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y it
+            # is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only then,
+            # the reach that gives the name the strength it has at Instagram's position (the same share of the
+            # ramp), every ruled step and the gate unchanged; still under the gate, the masthead stays undrawn.
+            ig_base = px(self.HEADER_Y) + cap_height(brand_font)
+            matched = (ig_base + px(300)) * base / ig_base
+            im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
+                                                 max_width=cw - px(280) - x0)
+            mrec["reach_matched"] = round(matched)
         if mrec["shown"]:   # one header element, as before: its box takes in the mark
             lay.add("header_brand", box)
             lay.elements[-1].update(plate.record())
@@ -2499,6 +2539,19 @@ class MultiFormatGenerator:
             lay.meta["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
         if strip and not facebook:
             im = swipe_strip(im, lay, strip)
+        dg = lay.meta.get("diagram") if isinstance(getattr(lay, "meta", None), dict) else None
+        if facebook and not _ig_header and dg and dg.get("kind") == MAP_KIND:
+            # lane D cycle 3: a locator map whose labels the Facebook masthead (in the collage's square) would cover,
+            # where no cut of the map clears it (a wide poster cannot move), takes Instagram's masthead position on
+            # this slide, recorded; the collage then cuts its brand, never a label under it
+            mx0, my0, mx1, my1 = masthead_room
+            if any(b[0] < mx1 and b[2] > mx0 and b[1] < my1 and b[3] > my0
+                   for b in (l["box"] for l in dg.get("labels") or [])):
+                im, lay = self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
+                                                      facebook, tight, subject, heading_frame, strip, lead, window,
+                                                      heading_tier, _ig_header=True)
+                lay.meta["masthead_position"] = "instagram: a map label lies in the collage square's masthead room"
+                _render_state.ig_header = False
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: list[Path], script_payload: dict[str, Any], output_dir: Path,
@@ -3434,7 +3487,7 @@ def facebook_pick(slides: list[str], limit: int = FACEBOOK_PHOTOS) -> list[str]:
     earliest (the script's order is its order of importance: the reveal comes first). Kept in slide order."""
     slides = list(slides)
     if len(slides) <= limit:
-        return slides
+        return _figure_second(slides)
     from . import still_layout
     first, last, middle = slides[0], slides[-1], list(enumerate(slides[1:-1], 1))
     shown = {str(p) for p in slide_photos(Path(first)) + slide_photos(Path(last))}
@@ -3457,17 +3510,41 @@ def facebook_pick(slides: list[str], limit: int = FACEBOOK_PHOTOS) -> list[str]:
         middle.remove(best)
         picked.append(best)
         shown |= {str(p) for p in slide_photos(Path(best[1]))}
-    return [first] + [slide for _, slide in sorted(picked)] + [last]
+    return _figure_second([first] + [slide for _, slide in sorted(picked)] + [last])
 
 
-# Facebook's collage for a multi-photo post of 4:5 photos (round 3, 2026-11-02), as tiles of a square frame, each
-# (x, y, w, h) in shares of it: four photos as one large portrait beside three stacked, five as two over three. Each
-# tile shows the centre crop of its photo. No "+N" is drawn: the gallery sends exactly as many photos as tiles.
+def _figure_second(posted: list[str]) -> list[str]:
+    """Lane D cycle 3 (lander ruling 4): in the 5-photo collage the cover and the second photo are the two equal top
+    tiles, so the second is not a headline slide when the post has a figure slide (slide_strength STRENGTH_FIGURE:
+    its heading at the stat's size, its read the figure): it moves to second place, the rest keep their order.
+    Unchanged for a post of other than 5 photos (no such pair of tiles) or with no figure slide."""
+    if len(posted) != 5:
+        return list(posted)
+    from . import still_layout
+    middle = posted[1:-1]
+    fig = next((x for x in middle if slide_strength(still_layout.load(Path(x)) or {}) == STRENGTH_FIGURE), None)
+    if fig is None or fig == middle[0]:
+        return list(posted)
+    return [posted[0], fig] + [x for x in middle if x != fig] + [posted[-1]]
+
+
+# Facebook's collage for a multi-photo post of 4:5 photos, as tiles (x, y, w, h) in shares of the frame's WIDTH, each
+# showing the centre crop of its photo. Four photos (round 3, 2026-11-02; not yet measured on a capture): one large
+# 2:3 portrait beside three stacked, in a square frame. Five or more (lane D cycle 3, lander ruling 3; measured on the
+# operator's capture evidence/peers/fb_feed/peer_01.png, 1137 px wide: top tiles x 0-566 / 570-1137, bottom x 0-376 /
+# 380-756 / 760-1137): two square halves over three square thirds, 4 px gaps at 1137 px, and "+N" over the centre of
+# the fifth when the post has N more. Our post sends at most FACEBOOK_PHOTOS (5, facebook_pick), so no "+N" is drawn
+# over it; the model keeps it for any set of more.
+_FB_GAP = 4 / 1137
+_FB_HALF = (1 - _FB_GAP) / 2
+_FB_THIRD = (1 - 2 * _FB_GAP) / 3
 FACEBOOK_COLLAGE = {
     4: ((0, 0, 2 / 3, 1), (2 / 3, 0, 1 / 3, 1 / 3), (2 / 3, 1 / 3, 1 / 3, 1 / 3), (2 / 3, 2 / 3, 1 / 3, 1 / 3)),
-    5: ((0, 0, 1 / 2, 1 / 2), (1 / 2, 0, 1 / 2, 1 / 2), (0, 1 / 2, 1 / 3, 1 / 2), (1 / 3, 1 / 2, 1 / 3, 1 / 2),
-        (2 / 3, 1 / 2, 1 / 3, 1 / 2)),
+    5: ((0, 0, _FB_HALF, _FB_HALF), (_FB_HALF + _FB_GAP, 0, _FB_HALF, _FB_HALF))
+       + tuple((k * (_FB_THIRD + _FB_GAP), _FB_HALF + _FB_GAP, _FB_THIRD, _FB_THIRD) for k in range(3)),
 }
+FACEBOOK_COLLAGE_MAX = 5
+FACEBOOK_MORE_BOX = (0.25, 0.3, 0.75, 0.7)   # the fifth tile's centre (shares of the tile) that "+N" covers
 COLLAGE_TEXT = ("kicker", "heading", "body", "stat", "share")
 
 
@@ -3488,12 +3565,14 @@ def facebook_collage_report(slides: list[Path], board: Path | None = None, width
     as such, with no problems."""
     from . import still_layout
     slides = [Path(x) for x in slides]
-    tiles = FACEBOOK_COLLAGE.get(len(slides))
+    more = max(0, len(slides) - FACEBOOK_COLLAGE_MAX)
+    tiles = FACEBOOK_COLLAGE.get(min(len(slides), FACEBOOK_COLLAGE_MAX))
     if not tiles:
         return {"layout": None, "tiles": [], "problems": []}
     out, problems = [], []
-    canvas = Image.new("RGB", (width, width), brand.BONE) if board else None
-    for slide, (tx, ty, tw, th) in zip(slides, tiles):
+    height = round(max(ty + th for _tx, ty, _tw, th in tiles) * width)
+    canvas = Image.new("RGB", (width, height), brand.BONE) if board else None
+    for n, (slide, (tx, ty, tw, th)) in enumerate(zip(slides, tiles)):
         rec = still_layout.load(slide) or {}
         size = tuple(rec.get("size") or MultiFormatGenerator.CAROUSEL_SIZE)
         crop = collage_crop(size, tw / th)
@@ -3503,13 +3582,16 @@ def facebook_collage_report(slides: list[Path], board: Path | None = None, width
                 b = e["box"]
                 if b[0] < crop[0] or b[1] < crop[1] or b[2] > crop[2] or b[3] > crop[3]:
                     cut.append(e["name"])
+                elif more and n == len(tiles) - 1:   # "+N" over the last tile's centre
+                    mx0, my0, mx1, my1 = (crop[0] + f * (crop[2] - crop[0]) if k % 2 == 0 else
+                                          crop[1] + f * (crop[3] - crop[1]) for k, f in enumerate(FACEBOOK_MORE_BOX))
+                    if b[0] < mx1 and b[2] > mx0 and b[1] < my1 and b[3] > my0:
+                        cut.append(f"{e['name']} (under +{more})")
         out.append({"slide": slide.name, "tile": [round(v, 4) for v in (tx, ty, tw, th)], "crop": list(crop),
                     "cut": cut})
         problems += [f"{slide.name}: the collage tile cuts its {name}" for name in cut]
         if canvas is not None and slide.is_file():
-            gap = 4
-            box = (round(tx * width) + gap // 2, round(ty * width) + gap // 2,
-                   round((tx + tw) * width) - gap // 2, round((ty + th) * width) - gap // 2)
+            box = (round(tx * width), round(ty * width), round((tx + tw) * width), round((ty + th) * width))
             with Image.open(slide) as im:
                 tile = im.convert("RGB").crop(crop).resize((box[2] - box[0], box[3] - box[1]), Image.Resampling.LANCZOS)
             canvas.paste(tile, box[:2])
@@ -3518,7 +3600,7 @@ def facebook_collage_report(slides: list[Path], board: Path | None = None, width
     if canvas is not None:
         Path(board).parent.mkdir(parents=True, exist_ok=True)
         canvas.save(board, quality=90)
-    return {"layout": f"{len(slides)} photos", "tiles": out, "problems": problems}
+    return {"layout": f"{len(slides)} photos", "tiles": out, "problems": problems, "more": more}
 
 
 COLLAGE_REPORT = "collage_report.json"

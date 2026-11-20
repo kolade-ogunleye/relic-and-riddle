@@ -104,7 +104,7 @@ def test_a_drawing_that_overflows_a_frames_room_is_not_held(tmp_path):
     Image.new("RGB", (w, h + 40), (20, 20, 20)).save(big)
     Path(str(big) + multi_format.DRAWING_SIDECAR).write_text(json.dumps({"drawing_floor": 36, "size": [w, h + 40]}),
                                                           encoding="utf-8")
-    assert not g.diagram_legible(big, ((False, 2),))[0]
+    assert not g.diagram_legible(big, ((False, 2), (True, 2)))[0]   # both copies' frames, as production judges
 
 
 # --------------------------------------------------------------------------------------- 3. the Story window

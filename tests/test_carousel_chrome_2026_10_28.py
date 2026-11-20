@@ -223,7 +223,11 @@ def test_nothing_lies_under_instagrams_counter_and_every_check_passes(gen, tmp_p
                 for e in lay.elements:
                     assert not still_layout.intersects(tuple(e["box"]), counter), (archetype, e)
                 brand = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
-                assert brand[0] < cw // 2 and brand[3] <= (chh - cw) // 2     # top-left; out whole in a square crop
+                top = (chh - cw) // 2
+                if facebook:   # lane D cycle 3 (ruling 4): inside the Facebook collage's centre square, whole
+                    assert brand[0] < cw // 2 and top <= brand[1] and brand[3] <= top + cw
+                else:          # top-left; out whole in a square crop (Instagram's profile grid)
+                    assert brand[0] < cw // 2 and brand[3] <= top
 
 
 def test_the_check_reports_anything_drawn_under_the_counter():

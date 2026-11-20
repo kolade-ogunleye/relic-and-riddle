@@ -117,7 +117,11 @@ def test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440(g
             for e in lay.elements:
                 assert not still_layout.intersects(tuple(e["box"]), counter), (archetype, e)
             brand = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
-            assert brand[0] < cw // 2 and brand[3] <= (chh - cw) // 2     # out whole in a square grid crop
+            top = (chh - cw) // 2
+            if facebook:   # lane D cycle 3 (ruling 4): inside the Facebook collage's centre square, whole
+                assert brand[0] < cw // 2 and top <= brand[1] and brand[3] <= top + cw
+            else:          # out whole in a square grid crop (Instagram's profile grid)
+                assert brand[0] < cw // 2 and brand[3] <= top
     assert refused, "the overlong card was drawn in every archetype"
 
 

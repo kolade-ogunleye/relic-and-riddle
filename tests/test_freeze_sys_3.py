@@ -283,3 +283,40 @@ def test_the_statement_at_a_position_is_whole():
     assert f is not None and f.drawn() == "ROUGHLY 137–138 FT"
     assert figures.stated_at(text, text.index("roughly")).drawn() == "ROUGHLY 137–138 FT"
     assert figures.stated_at(text, 0) is None
+
+
+# --------------------------------------------------------------------------- headline figures (lander: "THE 1,200-TON")
+def _aswan(**over):
+    p = {"narration_script": "Calculations of the finished obelisk's weight range from nearly 1,090 tonnes to 1,168 "
+                             "tonnes, about 42 metres long.",
+         "title": "Egypt's 1,200-Ton Quarry Monster", "thumbnail": {"line1": "THE 1,200-TON", "line2": "MONSTER"},
+         "first_comment": "Could they have moved 1,200 tons?"}
+    p.update(over)
+    return p
+
+
+def test_a_headline_figure_must_be_a_body_signed_statement_in_the_runs_unit():
+    from src import figure_gate
+    found = figure_gate.headline_faults(_aswan())
+    assert found and all("rule: headline figure == signed statement" in f for f in found)
+    assert any("'1,200 TONNE'" in f for f in found)              # a metric run reads an unqualified ton as a tonne
+    # derived copy (a first comment repeating it) is no evidence for the headline
+    assert figure_gate.headline_faults(_aswan(title="The Quarry Monster", thumbnail={"line1": "THE MONSTER"})) == []
+    # the signed statement, hedge included, passes
+    ok = _aswan(title="Nearly 1,090 to 1,168 Tonnes of Granite", thumbnail={"line1": "NEARLY 1,090-1,168 TONNES"})
+    assert figure_gate.headline_faults(ok) == []
+    # the hedge dropped is a fault
+    assert figure_gate.headline_faults(_aswan(title="1,090 to 1,168 Tonnes of Granite", thumbnail={}))
+    # one end of the signed span is a fault
+    assert figure_gate.headline_faults(_aswan(title="Nearly 1,090 Tonnes of Granite", thumbnail={}))
+
+
+def test_an_unqualified_ton_in_a_us_customary_run_is_a_short_ton():
+    from src import figure_gate, figures
+    assert figures.parse("nearly 1,200 short tons")[0].drawn() == "NEARLY 1,200 SHORT TONS"
+    run = {"narration_script": "It weighed nearly 1,200 short tons and stood 137 feet tall.",
+           "title": "Nearly 1,200-Ton Giant", "thumbnail": {"line1": "NEARLY 1,200 TONS"}}
+    assert figure_gate.headline_faults(run) == []
+    # in a metric run the same headline is read as tonnes, which the body does not sign
+    metric = dict(run, narration_script="It weighed nearly 1,090 tonnes and stood 42 metres tall.")
+    assert figure_gate.headline_faults(metric)

@@ -127,6 +127,49 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
     return [t for t in out if t and t.strip()]
 
 
+# Freeze cycle 3 (SYS batch 3, lander ruling on "THE 1,200-TON"): a headline's figure (the title, the thumbnail's and
+# the YouTube thumbnail's lines) is a claim drawn on the run's most visible surfaces, and its own field is no evidence
+# for it: it must equal a statement the body signs (narration, captions, slides, the fact sheet), hedge included, in
+# the unit the signed copy uses. A "ton" that does not say which is the run's unit system's: tonnes in a metric run,
+# short tons in a US customary one (the dev Aswan run 1792985912 drew 'THE 1,200-TON' over a body that signs "nearly
+# 1,090 tonnes to 1,168 tonnes": its source's "nearly 1,200 short tons", hedge dropped, in a metric run). The covers'
+# exemption from hedging is withdrawn by the same ruling.
+HEADLINE_KEYS = ("title", "thumbnail", "thumbnail_youtube", "youtube_title")
+# copy derived from the headline or written to promote it, never evidence for it (the Aswan first comment repeated
+# "1,200 tons")
+DERIVED_COPY_KEYS = ("first_comment", "emphasis_words", "poll", "share_line", "end_card")
+
+
+_BARE_TON = re.compile(r"(?<!short )(?<!long )(?<!metric )\b(tons?)\b", re.IGNORECASE)
+
+
+def _tons_in(text: str, system: str | None) -> str:
+    """`text` with a ton that does not say which written as the run's: tonnes in a metric run (figures reads a bare
+    ton as the US short ton, 2,000 lb, which a US customary run keeps)."""
+    if system != "metric":
+        return text
+    return _BARE_TON.sub(lambda m: "tonnes" if m.group(1).lower().endswith("s") else "tonne", text)
+
+
+def headline_faults(payload: Mapping[str, Any]) -> list[str]:
+    """One line per headline figure that is not a body-signed statement (see above); [] when every one is."""
+    from .typography import spoken_system
+    spoken = narration(payload)
+    system = spoken_system(spoken, "mass") or figures.deck_lead(payload) or spoken_system(spoken, "length")
+    body = figures.signed_figures([_tons_in(t, system) for t in signed_texts(
+        {k: v for k, v in payload.items() if k not in HEADLINE_KEYS + DERIVED_COPY_KEYS})])
+    out = []
+    for key in HEADLINE_KEYS:
+        for text in _strings(payload.get(key)):
+            for f in figures.parse(_tons_in(text, system)):
+                if not (f.unit or f.scale):
+                    continue          # a bare number (a year, "7 wonders") is not a stated quantity here
+                for fault in figure_faults(f.drawn(), body):
+                    out.append(f"headline {key} {text!r}: {f.drawn()!r} is not a body-signed statement: "
+                               f"{fault.split(': ', 1)[-1]} (rule: headline figure == signed statement)")
+    return out
+
+
 def _in_feet(value: float, unit: str) -> tuple[str, float] | None:
     return figures.in_base(value, unit)
 
@@ -443,6 +486,7 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
                 near = _nearest(f, signed)
                 faults.append(f"{surface} ({name}): drew {f.drawn()!r}: {fault.split(': ', 1)[-1]}"
                               + (f"; nearest signed value {near!r}" if near else ""))
+    faults += headline_faults(payload)
     # Fail closed (production audit 2026-11-18): a drawn surface with no record carrying its text is never passed
     # unjudged. Carousel slides, Story frames and graphics record their text by construction, so each one is checked;
     # the root covers and thumbnails when no surface of the run recorded any text at all.

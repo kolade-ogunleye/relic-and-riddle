@@ -46,7 +46,9 @@ ERAS = ("bc", "bce", "ad", "ce")
 # Count units: a number of these is a stated quantity whose unit is gold with it (ruling 8). Closed and generic.
 COUNT_UNITS = ("people", "persons", "levels", "level", "storeys", "storey", "stories", "floors", "tons", "ton",
                "tonnes", "tonne", "hours", "hour", "days", "day", "weeks", "months", "years", "year", "centuries",
-               "century", "decades", "degrees", "percent", "%", "acres", "hectares")
+               "century", "decades", "degrees", "percent", "%", "acres", "hectares",
+               # freeze cycle 3: a ton that says which (a "1,200 short tons" source figure is not 1,200 tonnes)
+               "short tons", "short ton", "long tons", "long ton", "metric tons", "metric ton")
 # The hedges a figure carries (longest first when matched). "between" opens a span; it is not a hedge.
 HEDGES = ("as many as", "as much as", "more than", "fewer than", "less than", "at least", "up to", "an estimated",
           "estimated", "approximately", "approx.", "roughly", "about", "almost", "nearly", "around", "over",
@@ -538,7 +540,8 @@ def _canon(unit: str) -> str:
         if token.upper() == u or info[3].upper() == u:
             return info[3].upper()
     singular = {"PEOPLE": "PEOPLE", "PERSONS": "PEOPLE", "LEVEL": "LEVELS", "STOREY": "STOREYS", "STORIES": "STOREYS",
-                "TON": "TONS", "TONNE": "TONNES", "HOUR": "HOURS", "DAY": "DAYS", "YEAR": "YEARS",
+                "TON": "TONS", "TONNE": "TONNES", "SHORT TON": "TONS", "SHORT TONS": "TONS",
+                "LONG TON": "LONG TONS", "METRIC TON": "TONNES", "METRIC TONS": "TONNES", "HOUR": "HOURS", "DAY": "DAYS", "YEAR": "YEARS",
                 "CENTURY": "CENTURIES"}
     return singular.get(u, u)
 
@@ -727,7 +730,7 @@ def gap_record(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any] | N
 CONVERT_TOL = 0.02
 LENGTH_PER_FT = {"FT": 1.0, "M": 3.28084, "KM": 3280.84, "MILES": 5280.0, "MI": 5280.0, "CM": 0.0328084,
                  "IN": 1 / 12, "YD": 3.0}
-MASS_PER_LB = {"LB": 1.0, "KG": 2.20462, "TONNES": 2204.62, "TONS": 2000.0}
+MASS_PER_LB = {"LB": 1.0, "KG": 2.20462, "TONNES": 2204.62, "TONS": 2000.0, "LONG TONS": 2240.0}   # TONS: short
 
 
 def in_base(value: float, unit: str) -> tuple[str, float] | None:

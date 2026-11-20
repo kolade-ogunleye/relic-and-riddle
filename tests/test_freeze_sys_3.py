@@ -407,3 +407,41 @@ def test_a_headline_floor_only_for_a_signed_floor_drawn_as_the_same_hedge():
     exact = "It weighed an estimated 1,000 tonnes."
     assert figure_gate.headline_faults({"narration_script": exact, "title": "1,000+ Tonnes"})
     assert figure_gate.headline_faults({"narration_script": exact, "title": "Over 1,000 Tonnes"})
+
+
+# --------------------------------------------------------------------------- one headline rule: writer, edit, checker
+def test_the_writer_the_copy_edit_and_the_checker_are_told_the_one_headline_rule():
+    """Fixture test, no API call: the prompts carry the release gate's headline rule verbatim, and no prompt exempts
+    titles or covers from hedges any more."""
+    import string
+
+    from src import script_engine, trace_check
+    from src.figure_gate import HEADLINE_FIGURE_RULE
+    prompts = {"writer": script_engine.USER_PROMPT_TEMPLATE, "writer (verified)": script_engine.VERIFIED_USER_PROMPT_TEMPLATE,
+               "copy edit": script_engine.COPY_EDIT_SYSTEM, "fact check": trace_check.SYSTEM}
+    for name, text in prompts.items():
+        assert HEADLINE_FIGURE_RULE in text, name
+        assert "EXEMPT from mandatory statistical hedging" not in text and "covers are exempt" not in text, name
+    assert "{" not in HEADLINE_FIGURE_RULE and "}" not in HEADLINE_FIGURE_RULE      # the templates are .format()-ed
+    fields = {f for _t, f, _s, _c in string.Formatter().parse(script_engine.USER_PROMPT_TEMPLATE) if f}
+    script_engine.USER_PROMPT_TEMPLATE.format(**{f: "x" for f in fields})
+    note = script_engine.mandatory_hedges_note({"facts": [{"statement": "It weighs 1,090 tonnes.", "disputed": True,
+                                                           "hedge": "an estimated 1,090 tonnes"}]})
+    assert "covers are exempt" not in note and "headline rule" in note
+
+
+def test_the_writer_check_and_the_release_gate_agree_on_a_headline(curated_payload=None):
+    from types import SimpleNamespace
+
+    from src import figure_gate, script_engine
+    sheet = {"facts": [{"statement": "Calculations give its weight as 1,090 to 1,168 tonnes.", "disputed": True,
+                        "hedge": "nearly 1,090 tonnes to 1,168 tonnes"}]}
+    for title, ok in (("The 1,200-Ton Monster", False), ("Nearly 1,090-1,168 Tonnes", True),
+                      ("1,090-1,168 Tonnes", False), ("1,000+ Tonnes", False)):
+        pkg = SimpleNamespace(title=title, caption="", narration_script="It weighs nearly 1,090 to 1,168 tonnes.",
+                              thumbnail=SimpleNamespace(eyebrow="", line1="", line2="", tagline=""))
+        writer = script_engine.headline_problems(pkg, sheet)
+        gate = figure_gate.headline_faults({"title": title, "fact_sheet": sheet,
+                                            "narration_script": "It weighs nearly 1,090 to 1,168 tonnes."})
+        assert (not writer) == ok and (not gate) == ok, (title, writer, gate)
+

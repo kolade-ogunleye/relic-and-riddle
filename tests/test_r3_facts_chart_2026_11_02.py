@@ -40,12 +40,21 @@ def cover(eyebrow="", line1="", line2="", tagline="", **extra):
 def test_a_disputed_figure_as_one_number_is_refused_on_the_finished_cover():
     problems = trace_check.headline_gate(cover("DESERT ANOMALY", "THE 25-MILE", "SAHARA EYE", "CARVED BY NATURE"),
                                          RICHAT)
-    assert any(p.startswith("Headline figure in the thumbnail: 25") and "never one number" in p for p in problems)
+    assert any(p.startswith("Headline figure in the thumbnail: 25") for p in problems)
 
 
-@pytest.mark.parametrize("line1", ["THE SAHARA EYE", "40-50 KM ACROSS", "40 TO 50 KM ACROSS"])
-def test_a_non_numeric_headline_or_the_sheets_own_span_passes(line1):
+@pytest.mark.parametrize("line1", ["THE SAHARA EYE"])
+def test_a_non_numeric_headline_or_a_signed_statement_passes(line1):
+    # freeze SYS batch 3 (lander ruling, one headline rule): a figure is a signed statement drawn whole, never one
+    # number taken from a range; RICHAT's diameter is disputed (40 km by survey, almost 50 km by satellite) and never
+    # signed as the span 40-50 km, so its cover leaves the figure out
     assert trace_check.headline_gate(cover("DESERT ANOMALY", line1, "", ""), RICHAT) == []
+
+
+@pytest.mark.parametrize("line1", ["40-50 KM ACROSS", "40 TO 50 KM ACROSS", "50 KM ACROSS", "40 KM ACROSS",
+                                   "ALMOST 50 KM ACROSS"])
+def test_a_span_or_a_figure_the_sheet_does_not_sign_is_refused(line1):
+    assert trace_check.headline_gate(cover("DESERT ANOMALY", line1, "", ""), RICHAT)
 
 
 def test_a_span_the_sheet_does_not_state_in_that_unit_is_refused():
@@ -79,12 +88,12 @@ def test_a_youtube_title_figure_is_held_to_the_same_rule():
 
 def test_the_writer_and_the_copy_edit_are_told_the_rules():
     rules = script_engine.USER_PROMPT_TEMPLATE + script_engine.VERIFIED_USER_PROMPT_TEMPLATE
-    assert rules.count("- thumbnail:") == 2 and "never as one number" in rules and "FT ACROSS" in rules
+    from src.figure_gate import HEADLINE_FIGURE_RULE   # freeze SYS batch 3: one headline rule, told verbatim
+    assert rules.count("- thumbnail:") == 2 and rules.count(HEADLINE_FIGURE_RULE) == 2 and "FT ACROSS" in rules
     assert "keeps every word that limits it" in rules and "never gives away the answer" in rules
-    assert "own span in the same unit" in script_engine.COPY_EDIT_SYSTEM
-    assert "floor at or below" in script_engine.COPY_EDIT_SYSTEM   # the earlier rule stays
+    assert HEADLINE_FIGURE_RULE in script_engine.COPY_EDIT_SYSTEM
     assert "- thumbnail:" in script_engine._field_rules(("thumbnail",))
-    assert "ESTIMATED" in trace_check.SYSTEM and "hedge words only" in trace_check.SYSTEM
+    assert HEADLINE_FIGURE_RULE in trace_check.SYSTEM and "EXEMPT" not in trace_check.SYSTEM
 
 
 # ------------------------------------------------------------------ the deck keeps what limits its fact
@@ -149,7 +158,8 @@ def test_headline_problems_accept_a_stated_span_and_still_refuse_one_number(cura
     def pkg(line1):
         return script_engine.ScriptPackage.model_validate(dict(curated_payload, title="The eye", thumbnail={
             "eyebrow": "", "line1": line1, "line2": "", "tagline": ""}))
-    assert script_engine.headline_problems(pkg("40-50 KM ACROSS"), RICHAT) == []
+    assert script_engine.headline_problems(pkg("ALMOST 50 KM ACROSS"), RICHAT)  # one number of a disputed range
+    assert script_engine.headline_problems(pkg("40-50 KM ACROSS"), RICHAT)      # not a span the sheet signs
     assert script_engine.headline_problems(pkg("50 KM ACROSS"), RICHAT)
     assert script_engine.headline_problems(pkg("25-31 MILES"), RICHAT)
 

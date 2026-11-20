@@ -137,6 +137,8 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
 # thumbnail lines, comments, captions, nor an audit OF one of them). The dev Aswan run 1792985912 drew 'THE 1,200-TON'
 # over "nearly 1,090 tonnes to 1,168 tonnes" (source: "nearly 1,200 short tons"), in a metric run.
 HEADLINE_KEYS = ("title", "thumbnail", "thumbnail_youtube", "youtube_title")
+# the rule as the writer, the copy edit and the checkers are told it (script_engine, trace_check prompts carry it verbatim)
+HEADLINE_FIGURE_RULE = ('A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy\'s unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out.')
 # copy derived from the headline or written to promote it, never evidence for it (the Aswan first comment repeated
 # "1,200 tons")
 DERIVED_COPY_KEYS = ("first_comment", "emphasis_words", "poll", "share_line", "end_card", "caption", "carousel_caption",
@@ -166,7 +168,14 @@ def run_unit_system(payload: Mapping[str, Any]) -> str | None:
 
 def evidence_texts(payload: Mapping[str, Any]) -> list[str]:
     """The run's signed fields a headline figure may be checked against (see above): never derived copy."""
-    out = signed_texts({k: v for k, v in payload.items() if k not in HEADLINE_KEYS + DERIVED_COPY_KEYS})
+    sheet = payload.get("fact_sheet")
+    out = signed_texts({k: v for k, v in payload.items() if k not in HEADLINE_KEYS + DERIVED_COPY_KEYS + ("fact_sheet",)})
+    # a disputed fact is signed with its hedge: its flat statement is no evidence for an unhedged headline figure
+    for fact in (sheet.get("facts") or []) if isinstance(sheet, Mapping) else []:
+        if isinstance(fact, Mapping):
+            hedged = bool(fact.get("disputed")) and str(fact.get("hedge") or "").strip()
+            out += [str(fact.get("hedge") or "")] if hedged else [str(fact.get("statement") or ""),
+                                                                   str(fact.get("hedge") or "")]
     audits = [a for key in _AUDIT_KEYS for a in (payload.get(key) or [])]
     second = payload.get("second_check")
     if isinstance(second, Mapping):
@@ -182,15 +191,42 @@ def evidence_texts(payload: Mapping[str, Any]) -> list[str]:
     return [t for t in out if t.strip()]
 
 
+def disputed_groups(payload: Mapping[str, Any], system: str | None = None) -> list[list[figures.Figure]]:
+    """The competing values of each disputed fact (the figures of one dimension its hedge gives, two or more distinct):
+    a headline that draws one of them takes one number from a range (RICHAT: 40 km by survey, almost 50 km by
+    satellite)."""
+    sheet = payload.get("fact_sheet")
+    out = []
+    for fact in (sheet.get("facts") or []) if isinstance(sheet, Mapping) else []:
+        if not (isinstance(fact, Mapping) and fact.get("disputed") and str(fact.get("hedge") or "").strip()):
+            continue
+        figs = figures.parse(_tons_in(f"{fact.get('statement') or ''} {fact.get('hedge') or ''}", system))
+        by_dim: dict = {}
+        for f in figs:
+            base = figures.in_base(f.values[0], f.unit) if f.values and f.unit else None
+            if base:
+                by_dim.setdefault(base[0], {})[round(base[1], 6)] = f
+        out += [list(v.values()) for v in by_dim.values() if len(v) >= 2]
+    return out
+
+
 def _floor(f: figures.Figure) -> bool:
     return f.lo.endswith("+") or figures.hedge_direction(f.hedge) > 0
 
 
-def headline_figure_faults(drawn: str, evidence: list[figures.Figure]) -> list[str]:
+def headline_figure_faults(drawn: str, evidence: list[figures.Figure],
+                           disputed: list[list[figures.Figure]] = ()) -> list[str]:
     """figure_faults, and the hedge's kind: a floor only for a signed floor; a hedged signed figure drawn with a hedge of
-    its own kind (an approximate one approximate, a bound the same bound)."""
+    its own kind (an approximate one approximate, a bound the same bound); never one value of a disputed fact's
+    competing values (`disputed`, disputed_groups)."""
     out = []
     for d in figures.parse(drawn):
+        hit = next((g for g in disputed for v in g if d.unit and v.unit and len(d.values) == 1
+                    and figures.within_tol(d.values[0], d.unit, v.values[0], v.unit)), None)
+        if hit:
+            out.append(f"{d.drawn()!r}: one number taken from a disputed fact's range "
+                       f"({' / '.join(v.drawn() for v in hit)})")
+            continue
         # "1,000+ TONNES" is a floor: read as the lower-bound hedge it draws ("MORE THAN 1,000 TONNES")
         as_read = (f"MORE THAN {d.drawn().replace(d.lo, d.lo[:-1], 1)}" if d.lo.endswith("+") and not d.hedge
                    else d.drawn())
@@ -214,13 +250,14 @@ def headline_faults(payload: Mapping[str, Any]) -> list[str]:
     """One line per headline figure that is not a signed statement (see above); [] when every one is."""
     system = run_unit_system(payload)
     evidence = figures.signed_figures([_tons_in(t, system) for t in evidence_texts(payload)])
+    disputed = disputed_groups(payload, system)
     out = []
     for key in HEADLINE_KEYS:
         for text in _strings(payload.get(key)):
             for f in figures.parse(_tons_in(text, system)):
                 if not (f.unit or f.scale):
                     continue          # a bare number (a year, "7 wonders") is not a stated quantity here
-                for fault in headline_figure_faults(f.drawn(), evidence):
+                for fault in headline_figure_faults(f.drawn(), evidence, disputed):
                     out.append(f"headline {key} {text!r}: {f.drawn()!r} is not a signed statement: "
                                f"{fault.split(': ', 1)[-1]} (rule: headline figure == signed statement)")
     return out

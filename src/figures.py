@@ -731,6 +731,9 @@ CONVERT_TOL = 0.02
 LENGTH_PER_FT = {"FT": 1.0, "M": 3.28084, "KM": 3280.84, "MILES": 5280.0, "MI": 5280.0, "CM": 0.0328084,
                  "IN": 1 / 12, "YD": 3.0}
 MASS_PER_LB = {"LB": 1.0, "KG": 2.20462, "TONNES": 2204.62, "TONS": 2000.0, "LONG TONS": 2240.0}   # TONS: short
+# freeze SYS batch 3: areas convert within their kind too (a headline's "830 SQUARE MILES" for a signed 2,150 km²)
+AREA_PER_SQFT = {"SQ FT": 1.0, "SQ M": 10.7639, "M²": 10.7639, "SQ KM": 10763910.4, "KM²": 10763910.4,
+                 "SQ MI": 27878400.0, "ACRES": 43560.0, "HECTARES": 107639.1}
 
 
 def in_base(value: float, unit: str) -> tuple[str, float] | None:
@@ -740,6 +743,8 @@ def in_base(value: float, unit: str) -> tuple[str, float] | None:
         return "length", value * LENGTH_PER_FT[u]
     if u in MASS_PER_LB:
         return "mass", value * MASS_PER_LB[u]
+    if u in AREA_PER_SQFT:
+        return "area", value * AREA_PER_SQFT[u]
     return None
 
 

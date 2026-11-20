@@ -116,8 +116,8 @@ Topic notes (unverified): {key_facts}
 
 Requirements:
 - narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
-- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
-- title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
+- title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji. A figure in it follows the headline rule (see thumbnail).
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
@@ -139,8 +139,8 @@ Location: {location}
 Requirements:
 - narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
-- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule: an undisputed figure as the facts give it; a disputed one never as one number taken from its range: as the facts' own span in the same unit (both ends stated), as a floor at or below the lowest figure ("1,000+"), or not at all (a headline without the figure); none that only one estimate gives. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
-- title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
+- title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji. A figure in it follows the headline rule (see thumbnail).
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
@@ -759,8 +759,8 @@ def _concerns(fact: Dict[str, Any], texts: List[str]) -> bool:
 def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[str]] = None) -> str:
     """The disputed figures and the hedge each keeps, wherever it is stated: the checkers require it in the
     captions, slides, stories, first comment and graphics as in the narration (development, Nazca 2026-10-28: a
-    carousel caption and a slide dropped "by one estimate" and the draft was rejected). Titles and covers are
-    headlines, which the checkers exempt. `texts`: only the facts those texts state (an edit of a few lines)."""
+    carousel caption and a slide dropped "by one estimate" and the draft was rejected). Titles and covers keep them
+    too (freeze SYS batch 3: the headline rule, figure_gate.HEADLINE_FIGURE_RULE). `texts`: only the facts those texts state (an edit of a few lines)."""
     facts = [f for f in (sheet or {}).get("facts", []) if f.get("disputed") and f.get("hedge")]
     if texts is not None:
         facts = [f for f in facts if _concerns(f, texts)]
@@ -774,7 +774,7 @@ def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[
     return ("\n\nMANDATORY HEDGES: these figures are disputed. Every text that states one keeps its hedge, or an "
             "equivalent (\"about\", \"roughly\", \"an estimated\", \"up to\", a range): the narration, the caption, "
             "the carousel caption, the first comment, every story and carousel slide, and every graphic (titles and "
-            "covers are exempt). In the narration they stay in the body: never the first sentence, the payoff or the final loop "
+            "covers too: the headline rule). In the narration they stay in the body: never the first sentence, the payoff or the final loop "
             "sentence. A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
             "timeline entry, the scale figure, a cross-section depth, a route or photo label that states a disputed "
             "figure or range carries the hedge in its own text (\"about 280 ft\", \"up to <N> levels\") or is marked "
@@ -1739,51 +1739,45 @@ def _stated_spans(text: str, facts: list[dict[str, Any]]) -> set:
 
 
 def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None) -> List[str]:
-    """Each headline field whose figures the verified sheet does not support as stated (see above)."""
+    """Each headline field (title, cover, the caption's first line) whose figures are not signed statements drawn
+    whole (freeze SYS batch 3, lander ruling: ONE headline rule, figure_gate.headline_figure_faults, the release
+    gate's): the hedge the facts give it, both span ends, in the copy's unit (a bare ton is a tonne in metric copy, a
+    short ton in US customary copy); a floor only for a fact that is one; covers not exempt from hedges. Evidence: the
+    verified sheet and the package's own body (narration, slides, Stories, stat cards), never its derived copy."""
     if sheet is None:
         sheet = _draft_sheet.get()
         sheet = sheet() if callable(sheet) else sheet   # the run's sheet, as the engine has it (never built here)
     facts = (sheet or {}).get("facts") or []
     if not facts:
         return []
-    year = time.gmtime().tm_year
-    figures = [(f, _figures(f"{f.get('statement', '')} {f.get('hedge', '')}")) for f in facts]
+    from . import figures as figs
+    from .figure_gate import (HEADLINE_FIGURE_RULE, _tons_in, disputed_groups, evidence_texts, headline_figure_faults,
+                              run_unit_system)
+
+    def plain(v: Any) -> Any:
+        if hasattr(v, "model_dump"):
+            return v.model_dump()
+        if isinstance(v, (list, tuple)):
+            return [plain(x) for x in v]
+        return v
+    payload: Dict[str, Any] = {k: plain(getattr(pkg, k, None)) for k in
+                               ("narration_script", "carousel_slides", "story_slides", "stat_cards")
+                               if getattr(pkg, k, None)}
+    payload["fact_sheet"] = sheet
+    system = run_unit_system(payload)
+    evidence = figs.signed_figures([_tons_in(t, system) for t in evidence_texts(payload)])
+    disputed = disputed_groups(payload, system)
     problems = []
     for field, text in _headline_texts(pkg).items():
         wrong = []
-        spans = _stated_spans(text, facts)
-        for i, n in enumerate(_figures(text)):
-            if n.value < HEADLINE_MIN or n.bare_name:
-                continue
-            related = [f for f, vs in figures if any(_related(n, v) for v in vs)]
-            single = [f for f in related if _SINGLE_ESTIMATE.search(f.get("hedge") or "")
-                      and any(_same(n, v) for v in _figures(f.get("hedge") or ""))]
-            if single:
-                wrong.append(f"{_said(n.value)} (only one estimate gives it: a headline cannot carry the hedge; leave it out)")
-                continue
-            if any(_same(n, v) for f, vs in figures if f in related and not f.get("disputed") for v in vs):
-                continue   # an undisputed, verified figure, said as it is
-            if i in spans:
-                continue   # a disputed figure said as the sheet's own span, in the unit the sheet gives it
-            # An age worked out from an undisputed date ("2,000-year-old" for 100 BC), never more than it
-            if n.kind == "years" and any(0.8 * age <= n.value <= age * 1.0001 for f in facts
-                                         if not f.get("disputed") for age in _ages(f, year)):
-                continue
-            if n.floor and related:
-                # The range in the headline's own unit: the related figures, converted
-                size = n.base / n.value if n.value else 1.0
-                lowest = min(v.base / size for f, vs in figures if f in related for v in vs if _related(n, v))
-                if n.value <= lowest * 1.0001:
-                    continue   # a floor at or below the sourced range's minimum
-                wrong.append(f"{_said(n.value)}+ (above the sourced minimum {lowest:,.0f})")
-                continue
-            disputed = any(f.get("disputed") for f in related)
-            wrong.append(f"{_said(n.value)} ({'disputed: never one number; say the span the sheet states, in its unit, or a floor at or below the sourced minimum, e.g. a round number with +, or leave the figure out' if disputed else 'not in the verified facts'})")
+        for f in figs.parse(_tons_in(text, system)):
+            if not (f.unit or f.scale):
+                continue   # a bare number (a year, "Top 5") is not a stated quantity
+            found = headline_figure_faults(f.drawn(), evidence, disputed)
+            if found:
+                wrong.append(f"{f.drawn()} ({found[0].split(': ', 1)[-1]})")
         if wrong:
-            problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". A headline states only verified "
-                            "figures: an undisputed one as it is, a disputed one as the sheet's own span in the same "
-                            "unit or as a floor at or below its range's minimum (\"1,000+\"), none that only one "
-                            "estimate gives.")
+            problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". " + HEADLINE_FIGURE_RULE)
     return problems
 
 
@@ -2462,10 +2456,7 @@ only so the listed problems are gone. Keep each field's facts, names, numbers an
 the problem needs (move, cut or reword); never add a fact that is not in the verified facts, and never a figure
 without its hedge. Each field you return replaces the old one whole and must follow its rules and limits. Return
 only the fields you were given; the narration is shown for context and is not yours to change. A title or caption
-leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline
-(title, cover, the caption's first line) states only verified figures: an undisputed one as it is, a disputed one as a
-floor at or below its range's minimum ("1,000+") or the sheet's own span in the same unit, none that only one estimate gives
-(reword it without the figure). On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
+leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline (title, cover, the caption's first line) follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
 shortened line keeps every word that limits the claim ("NO IRON CLAMPS", never "BUILT WITHOUT CLAMPS" for "without iron clamps");
 a year says what happened in it in the facts' word ("FOUND 1963" for "rediscovered in 1963"), never bare beside a place."""
 

@@ -562,16 +562,20 @@ def _headline(curated_payload, title, line1="UNFINISHED", caption="A giant left 
                                              caption=caption + "\n\nMore.\n\n#X"))
 
 
-def test_the_obelisk_headline_figure_is_refused_and_a_floor_accepted(curated_payload):
+def test_the_obelisk_headline_figure_is_refused_and_the_signed_statement_accepted(curated_payload):
     bad = script_engine.headline_problems(_headline(curated_payload, "The 1,200-ton obelisk", line1="1,200-TON"), OBELISK)
     assert {p.split(":")[0] for p in bad} == {"Headline figure in the title", "Headline figure in the thumbnail"}
     assert all(script_engine.copy_problem_fields(p, _headline(curated_payload, "x")) for p in bad)   # the copy edit's
+    # freeze SYS batch 3 (lander ruling): one headline rule, the release gate's: a floor only for a signed floor
     assert script_engine.headline_problems(_headline(curated_payload, "The 1,000+ tonne obelisk",
-                                                     line1="OVER 1,000 TONNES"), OBELISK) == []
+                                                     line1="OVER 1,000 TONNES"), OBELISK)
+    assert script_engine.headline_problems(_headline(curated_payload, "An estimated 1,090-1,168 tonnes",
+                                                     line1="1,090-1,168 TONNES"), OBELISK) == []
     assert script_engine.headline_problems(_headline(curated_payload, "The 1,100+ tonne obelisk"), OBELISK)  # above min
     assert script_engine.headline_problems(_headline(curated_payload, "Carved in 1479 BC"), OBELISK) == []    # undisputed
     single = script_engine.headline_problems(_headline(curated_payload, "A 42 m giant"), OBELISK)
-    assert single and "only one estimate" in single[0]
+    assert single and "hedged" in single[0]          # one estimate: the headline carries its hedge, or no figure
+    assert script_engine.headline_problems(_headline(curated_payload, "An estimated 42 m giant"), OBELISK) == []
     caption = script_engine.headline_problems(_headline(curated_payload, "A giant", caption="All 1,168 tonnes of it."),
                                               OBELISK)
     assert caption and caption[0].startswith("Headline figure in the caption")
@@ -587,17 +591,18 @@ def test_a_headline_figure_miss_goes_to_the_copy_edit_not_a_rewrite(monkeypatch,
     monkeypatch.setattr(script_engine.improve, "note", lambda klass, detail, source="": noted.append(klass))
     pkg = _headline(curated_payload, "The 1,200-ton obelisk", line1="1,200-TON")
     monkeypatch.setattr(script_engine, "structured_call", lambda system, prompt, schema, **kw: schema(
-        title="The 1,000+ tonne obelisk", thumbnail={"eyebrow": "LOST ENGINEERING", "line1": "1,000+ TONNES",
-                                                    "line2": "IN THE ROCK", "tagline": "WHY STOP?"}))
+        title="An estimated 1,090-1,168 tonnes", thumbnail={"eyebrow": "LOST ENGINEERING", "line1": "1,090-1,168 TONNES",
+                                                           "line2": "IN THE ROCK", "tagline": "WHY STOP?"}))
     monkeypatch.setattr(script_engine.free_llm, "enabled", lambda: False)
     token = script_engine._draft_sheet.set(OBELISK)
     try:
         fixed, problems = engine._narrow_edits(pkg, script_engine.draft_problems(pkg), OBELISK)
     finally:
         script_engine._draft_sheet.reset(token)
-    assert fixed.title == "The 1,000+ tonne obelisk" and fixed.thumbnail.line1 == "1,000+ TONNES"
+    assert fixed.title == "An estimated 1,090-1,168 tonnes" and fixed.thumbnail.line1 == "1,090-1,168 TONNES"
     assert not [p for p in problems if p.startswith(script_engine.HEADLINE_PROBLEM)]
-    assert "script.headline_figure" in noted and "floor at or below" in script_engine.COPY_EDIT_SYSTEM
+    from src.figure_gate import HEADLINE_FIGURE_RULE
+    assert "script.headline_figure" in noted and HEADLINE_FIGURE_RULE in script_engine.COPY_EDIT_SYSTEM
 
 
 ANTIKYTHERA = {"facts": [
@@ -613,15 +618,16 @@ ANTIKYTHERA = {"facts": [
 
 
 @pytest.mark.parametrize("title", ["Found in 1901", "Top 10 Ancient Machines", "The Apollo 11 of Antiquity",
-                                   "Route 66 Relic", "A 13th-Century Clue", "The 2,000-Year-Old Computer",
-                                   "Built 2,100 Years Ago", "148 Feet Down", "830 Square Miles Flattened",
-                                   "1,000+ Tonnes"])
+                                   "Route 66 Relic", "A 13th-Century Clue", "148 Feet Down",
+                                   "830 Square Miles Flattened", "1,090-1,168 Tonnes"])
 def test_a_supported_headline_figure_passes(curated_payload, title):
     assert script_engine.headline_problems(_headline(curated_payload, title), ANTIKYTHERA) == []
 
 
 @pytest.mark.parametrize("title", ["The 1,200-Ton Obelisk", "1.2K Tons", "1.2 Million Visitors",
-                                   "Built 3,000 Years Ago", "Over 1,100 Tonnes", "500 Feet Down"])
+                                   "Built 3,000 Years Ago", "Over 1,100 Tonnes", "500 Feet Down",
+                                   # freeze SYS batch 3: a derived age and a floor the facts do not sign
+                                   "The 2,000-Year-Old Computer", "Built 2,100 Years Ago", "1,000+ Tonnes"])
 def test_an_unsupported_headline_figure_is_refused(curated_payload, title):
     # 1,200 tons once passed as the year 1922 in miles; a unit now converts only within its kind, and K/million count
     assert script_engine.headline_problems(_headline(curated_payload, title), ANTIKYTHERA)

@@ -181,9 +181,10 @@ def test_the_headline_bound_is_derived_from_the_thumbnails_measure():
     font = get_font(brand.DISPLAY_FONT, b["size_px"])
     m = _D.Draw(Image.new("RGB", (8, 8)))
     adv = m.textlength(string.ascii_uppercase, font=font) / 26
-    assert b["size_px"] == yt.feed_floor_px(yt.HERO_FLOOR) and b["measure_px"] == yt.COLUMN_MIN
-    assert b["chars_per_row"] * adv <= yt.COLUMN_MIN + m.textlength(" ", font=font)
-    assert (b["chars_per_row"] + 1) * adv > yt.COLUMN_MIN
+    col = yt.TEXT_RIGHT - yt.LEFT                    # lane B c3 ruling: the design's standard text column
+    assert b["size_px"] == yt.feed_floor_px(yt.HERO_FLOOR) and b["measure_px"] == col
+    assert b["chars_per_row"] * adv <= col + m.textlength(" ", font=font)
+    assert (b["chars_per_row"] + 1) * adv > col
     assert f"at most {b['chars_per_row']} characters" in youtube_headline_instruction()
 
 
@@ -228,4 +229,66 @@ def test_the_thumbnail_falls_back_to_the_title_when_the_signed_headline_does_not
     out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     import json
     qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
-    assert qa["headline_source"] == "title" and qa["youtube_headline_refused"]
+    assert qa["headline_source"] == "thumbnail"
+    assert qa["headline_chain"][0]["source"] == "youtube_headline" and qa["headline_chain"][0].get("refused")
+
+
+# ------------------------------------------------- the ranked headline chain (lane B cycle 3, lander ruling)
+CHAIN_PAYLOAD = {
+    "title": "Lost Gears", "youtube_title": "The Bronze Machine Nobody Could Explain",
+    "narration_script": "Divers found the gears in 1901. Roughly 137 to 138 feet of wreck lay below.",
+    "thumbnail": {"eyebrow": "SUNKEN WRECK", "line1": "INCOMPREHENSIBILITIES", "line2": "UNDERSTANDABLENESS",
+                  "tagline": "FOUND BY DIVERS"},
+    "carousel_slides": [{"heading": "THE BRONZE MACHINE NOBODY"}, {"heading": "INTERIOR SLIDE LINE"}],
+    "story_slides": [{"line1": "GEARS", "line2": "FROM THE DEEP"}, {"line1": "STORY BODY", "line2": "LINE"}],
+}
+
+
+def test_the_chain_is_ranked_and_each_source_is_gated():
+    from src.visual_engine import YOUTUBE_HEADLINE_CHAIN, youtube_headline_chain
+    chain = youtube_headline_chain(dict(CHAIN_PAYLOAD))
+    assert [c["source"] for c in chain] == list(YOUTUBE_HEADLINE_CHAIN)
+    by = {c["source"]: c for c in chain}
+    assert by["youtube_headline"]["skipped"] == "none in this run"
+    assert by["carousel_cover"]["skipped"] == "not a headline (a fragment, or a line ending on a function word)"         or by["carousel_cover"]["skipped"] == "repeats the video title"
+    assert by["tagline"]["copy"] is not None and by["tagline"]["copy"]["tagline"] == ""     # never drawn twice
+    texts = " ".join(c["text"] for c in chain)
+    assert "INTERIOR SLIDE LINE" not in texts and "STORY BODY" not in texts           # interior lines never used
+
+
+def test_a_candidate_that_repeats_the_title_or_drops_a_hedge_is_skipped():
+    from src.visual_engine import youtube_headline_chain
+    p = dict(CHAIN_PAYLOAD, carousel_slides=[{"heading": "BRONZE MACHINE NOBODY EXPLAINED"}],
+             thumbnail=dict(CHAIN_PAYLOAD["thumbnail"], tagline="138 FEET DOWN"))
+    by = {c["source"]: c for c in youtube_headline_chain(p)}
+    assert by["carousel_cover"]["skipped"] == "repeats the video title"
+    assert by["tagline"]["skipped"].startswith("truth:")
+    p = dict(CHAIN_PAYLOAD, thumbnail=dict(CHAIN_PAYLOAD["thumbnail"], tagline="DOCUMENTARY"))
+    tag = {c["source"]: c for c in youtube_headline_chain(p)}["tagline"]
+    assert tag["copy"] is None and tag["text"] != "DOCUMENTARY"     # a code label is never a candidate
+    p["parent_copy"] = {"thumbnail": {"tagline": "FOUND BY DIVERS"}}   # a documentary reads its parent Reel's line
+    assert {c["source"]: c for c in youtube_headline_chain(p)}["tagline"]["text"] == "FOUND BY DIVERS"
+
+
+def test_the_thumbnail_walks_the_chain_and_the_review_card_names_the_source(tmp_path):
+    import json
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    payload = dict(CHAIN_PAYLOAD)
+    out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
+    assert qa["headline_source"] not in ("youtube_headline", "thumbnail")    # both refuse: a later source sets
+    assert any(t.get("refused") for t in qa["headline_chain"] if t["source"] == "thumbnail")
+    assert "headline from" in payload["thumbnail_note"]
+
+
+def test_the_thumbnail_is_refused_only_when_the_whole_chain_fails(tmp_path):
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    long = "INCOMPREHENSIBILITIES"
+    payload = {"title": "X", "thumbnail": {"eyebrow": long, "line1": long, "line2": long, "tagline": long}}
+    with pytest.raises(LayoutError) as e:
+        VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    assert "every source" in str(e.value) and "eyebrow" in str(e.value)

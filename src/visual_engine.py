@@ -509,24 +509,37 @@ class VisualEngine:
         photograph full-bleed, the masthead, one figure or a two-tone Anton headline on a left ink gradient,
         YouTube's timestamp corner clear. (Cycle 0 round 7: the legacy depth-layered thumbnail, no caller, retired.)"""
         from . import youtube_thumbnail
-        inputs = youtube_render_inputs(script_payload, hero_image_path)
-        meta: dict[str, Any] = {}
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
         from .refusal import LayoutError
-        try:
-            im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
-            if youtube_headline(script_payload):
-                meta["headline_source"] = "youtube_headline"
-        except LayoutError as e:
-            # lane B cycle 3 follow-up: the signed short headline is tried first; where it does not set, the title's
-            # own lines (documentary_cover_copy) before the refusal, recorded
-            if not youtube_headline(script_payload):
-                raise
-            th = {k: v for k, v in (script_payload.get("thumbnail") or {}).items()
-                  if k not in ("youtube_line1", "youtube_line2")}
-            fallback = youtube_render_inputs(dict(script_payload, thumbnail=th), hero_image_path)
-            meta = {"headline_source": "title", "youtube_headline_refused": str(e)}
-            im, drawn_plates = youtube_thumbnail.render(meta=meta, **fallback)
+        # Lane B cycle 3: the ranked headline chain (youtube_headline_chain), each candidate rendered on the hero
+        # until one sets; refused only when the whole chain fails (every reason recorded)
+        tried: list = []
+        im = drawn_plates = None
+        meta: dict[str, Any] = {}
+        for cand in youtube_headline_chain(script_payload):
+            if cand["copy"] is None:
+                tried.append({"source": cand["source"], "skipped": cand["skipped"]})
+                continue
+            meta = {}
+            try:
+                im, drawn_plates = youtube_thumbnail.render(
+                    meta=meta, **youtube_render_inputs(script_payload, hero_image_path, copy=cand["copy"]))
+            except LayoutError as e:
+                tried.append({"source": cand["source"], "refused": str(e)})
+                im = None
+                continue
+            if not youtube_thumbnail.drew_headline(drawn_plates):   # the word budget left the line out whole
+                tried.append({"source": cand["source"], "refused": "no headline drawn (longer than the word budget)"})
+                im = None
+                continue
+            meta["headline_source"] = cand["source"]
+            drawn = " ".join(pl.text for n, pl in drawn_plates if not pl.empty and n in (
+                "figure_qualifier", "figure", "figure_unit", "title_1", "title_2", "title", "kicker", "qualifier"))
+            meta["headline_chain"] = tried + [{"source": cand["source"], "drawn": drawn}]
+            break
+        if im is None:
+            raise LayoutError("the YouTube thumbnail's headline chain is refused at every source: "
+                              + "; ".join(f"{t['source']}: {t.get('skipped') or t.get('refused')}" for t in tried))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoding = save_cover_jpeg(im, output_path, "youtube")
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
@@ -539,7 +552,7 @@ class VisualEngine:
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
                                          "headline_fragment", "headline_pair_kept", "headline_source",
-                                         "youtube_headline_refused")},
+                                         "headline_chain")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
              "encoding": encoding,
              "elements": [{"name": n, "text": getattr(pl, "text", ""), "box": [int(v) for v in pl.box]}
@@ -548,6 +561,10 @@ class VisualEngine:
         # QF-23 (option 1): a headline the four-word budget holds only cut is never drawn cut; the review card says
         # what the thumbnail drew instead
         note = youtube_thumbnail.headline_note(meta)
+        # lane B cycle 3: the review card names the chain source the headline was drawn from, at approval
+        source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}: "
+                  f"{meta['headline_chain'][-1]['drawn']}")
+        note = f"{source}\n{note}" if note else source
         if note:
             script_payload["thumbnail_note"] = note
             log.warning("YouTube thumbnail: %s", note)
@@ -672,8 +689,10 @@ def youtube_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
     and the render never see different words (SYS-R8-3)."""
     copy = documentary_cover_copy(script_payload)
     signed = youtube_headline(script_payload)
-    if signed:   # lane B cycle 3 follow-up: the run's signed 16:9 headline first (youtube_render_inputs falls back)
+    if signed:   # lane B cycle 3: the run's signed 16:9 headline first (the render walks the rest of the chain)
         copy = dict(copy, line1=signed[0], line2=signed[1])
+    copy = {k: ("" if k in ("eyebrow", "tagline") and str(v or "").upper() in CODE_LABELS else v)
+            for k, v in copy.items()}   # lane B cycle 3: a code label is not signed copy (as in the chain)
     return _in_spoken_units(copy, script_payload)
 
 
@@ -683,6 +702,108 @@ def youtube_headline(script_payload: Dict[str, Any]) -> tuple[str, str] | None:
     th = script_payload.get("thumbnail") or {}
     l1, l2 = (" ".join(str(th.get(k) or "").split()).upper() for k in ("youtube_line1", "youtube_line2"))
     return (l1, l2) if (l1 or l2) else None
+
+
+# Lane B cycle 3 (lander ruling under the operator's delegation, 2026-11-19): the YouTube headline is a RANKED CHAIN
+# of the run's signed lines, from lines written as hooks to lines written for other jobs, never a free pick. Interior
+# slide and Story body lines are never candidates. Each must pass the truth / figure gates, read as a headline and
+# complement the video title, then set in the render (the heading gates); the next is tried otherwise, and the
+# thumbnail is refused only when the whole chain fails. The source drawn is recorded (qa.json, the review card).
+YOUTUBE_HEADLINE_CHAIN = ("youtube_headline", "thumbnail", "carousel_cover", "tagline", "eyebrow", "story_hook")
+TITLE_OVERLAP_MAX = 0.5   # a candidate whose content words are more than half the video title's words repeats it
+
+
+# The labels the code itself writes on a documentary cover (main.documentary_cover, documentary_cover_copy's
+# defaults): claim-free and never signed copy, so never a headline candidate; a documentary reads its parent Reel's
+# signed lines for those sources instead (payload["parent_copy"], main._inherit_graphics_data).
+CODE_LABELS = frozenset({"DOCUMENTARY", "DOCUMENTARY INVESTIGATION", "EXPLORE THE EVIDENCE", "WHAT THE EVIDENCE SHOWS",
+                         "THE EVIDENCE"})
+
+
+def _chain_lines(script_payload: Dict[str, Any], source: str) -> tuple[str, str]:
+    """(line 1, line 2) of one chain source, as signed, in capitals ("", "" when the run has none). A documentary's
+    carousel / Story / tagline / eyebrow sources are its parent Reel's (parent_copy) where it has none of its own."""
+    def clean(t):
+        return " ".join(str(t or "").split()).upper()
+    parent = script_payload.get("parent_copy") or {}
+    th = dict(script_payload.get("thumbnail") or {})
+    for k in ("tagline", "eyebrow"):
+        if clean(th.get(k)) in CODE_LABELS or not clean(th.get(k)):
+            th[k] = (parent.get("thumbnail") or {}).get(k) or ""
+    if not script_payload.get("carousel_slides") and parent.get("carousel_slides"):
+        script_payload = dict(script_payload, carousel_slides=parent["carousel_slides"])
+    if not script_payload.get("story_slides") and parent.get("story_slides"):
+        script_payload = dict(script_payload, story_slides=parent["story_slides"])
+    if source == "youtube_headline":
+        return youtube_headline(script_payload) or ("", "")
+    if source == "thumbnail":
+        base = documentary_cover_copy(script_payload)
+        return base["line1"], base["line2"]
+    if source == "carousel_cover":
+        slides = [s for s in (script_payload.get("carousel_slides") or []) if isinstance(s, dict)]
+        return (clean(slides[0].get("heading")), "") if slides else ("", "")
+    if source in ("tagline", "eyebrow"):
+        return clean(th.get(source)), ""
+    if source == "story_hook":
+        slides = [s for s in (script_payload.get("story_slides") or []) if isinstance(s, dict)]
+        return (clean(slides[0].get("line1")), clean(slides[0].get("line2"))) if slides else ("", "")
+    raise ValueError(source)
+
+
+def _chain_others(script_payload: Dict[str, Any], source: str) -> Dict[str, Any]:
+    """The run's signed text without the candidate's own field (its figures are checked against the rest)."""
+    th = dict(script_payload.get("thumbnail") or {})
+    drop = {"youtube_headline": ("youtube_line1", "youtube_line2"), "tagline": ("tagline",),
+            "eyebrow": ("eyebrow",)}.get(source, ())
+    out = dict(script_payload, thumbnail={k: v for k, v in th.items() if k not in drop})
+    if source == "carousel_cover":
+        out["carousel_slides"] = list(script_payload.get("carousel_slides") or [])[1:]
+    if source == "story_hook":
+        out["story_slides"] = list(script_payload.get("story_slides") or [])[1:]
+    return out
+
+
+def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The ranked chain (YOUTUBE_HEADLINE_CHAIN) as [{"source", "text", "copy" (the render's cover copy, in spoken
+    units) or None, "skipped" (the text gate that rejected it) or ""}]. Text gates, before any render: the source
+    exists; it reads as a headline (youtube_thumbnail._alone on the whole: a whole phrase, no fragment, no line ending
+    on a function word or a lead mark); it complements the video title (at most TITLE_OVERLAP_MAX of its content words
+    are the title's); every figure in it is a signed figure of the run's OTHER text, its hedge and both span ends kept
+    (figure_gate.figure_faults). The render then holds the heading gates."""
+    from . import figure_gate, figures
+    from .youtube_thumbnail import _alone, _content
+    base = documentary_cover_copy(script_payload)
+    title = str(script_payload.get("youtube_title") or "")
+    out = []
+    for source in YOUTUBE_HEADLINE_CHAIN:
+        l1, l2 = _chain_lines(script_payload, source)
+        text = " ".join(t for t in (l1, l2) if t)
+        rec = {"source": source, "copy": None, "skipped": "", "text": text}
+        out.append(rec)
+        if not text or text in CODE_LABELS:
+            rec["skipped"] = "none in this run" if not text else "a label the code writes, not signed copy"
+            continue
+        if _alone(text) != text.rstrip():
+            rec["skipped"] = "not a headline (a fragment, or a line ending on a function word)"
+            continue
+        words = _content(text)
+        if title and words and len(words & _content(title)) / len(words) > TITLE_OVERLAP_MAX:
+            rec["skipped"] = "repeats the video title"
+            continue
+        if source != "thumbnail":   # the base pair is the copy every other gate already reads
+            signed = figures.signed_figures(figure_gate.signed_texts(_chain_others(script_payload, source)))
+            faults = figure_gate.figure_faults(text, signed)
+            if faults:
+                rec["skipped"] = "truth: " + "; ".join(faults)
+                continue
+        copy = dict(base, line1=l1, line2=l2)
+        if source in ("tagline", "eyebrow"):
+            copy[source] = ""   # drawn as the headline, never twice
+        for k in ("tagline", "eyebrow"):
+            if copy.get(k, "").upper() in CODE_LABELS:
+                copy[k] = ""    # a code label is never a kicker fill either (it is not signed copy)
+        rec["copy"] = _in_spoken_units(copy, script_payload)
+    return out
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

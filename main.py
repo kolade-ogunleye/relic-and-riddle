@@ -497,6 +497,13 @@ class PipelineCoordinator:
                 for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
                     if p_pay.get(k) and not payload.get(k):
                         payload[k] = p_pay[k]
+                # lane B cycle 3: the parent Reel's signed hook lines, read only by the YouTube thumbnail's ranked
+                # headline chain (visual_engine.youtube_headline_chain); its figures are still held to this run's text
+                if not payload.get("parent_copy"):
+                    payload["parent_copy"] = {
+                        "thumbnail": {k: (p_pay.get("thumbnail") or {}).get(k) for k in ("eyebrow", "tagline")},
+                        "carousel_slides": list(p_pay.get("carousel_slides") or [])[:1],
+                        "story_slides": list(p_pay.get("story_slides") or [])[:1]}
         curated_path = CURATED_SCRIPTS_DIR / f"{tid}.json"
         if curated_path.exists():
             try:
@@ -989,8 +996,11 @@ class PipelineCoordinator:
                         fit_ctx["thumbnail"], yt_problems = signed_youtube_headline(
                             getattr(deep_dive_pkg, "youtube_headline", None), fit_ctx["thumbnail"], fit_ctx, hero_img,
                             getattr(self.script_engine, "_sheet", lambda _t: None)(topic))
-                        fit = cover_fit.fit_problems(youtube_cover_copy(fit_ctx), fit_ctx["youtube_title"],
-                                                     payload=fit_ctx, hero=hero_img)
+                        # lane B cycle 3: the Reel cover on the title's lines, the YouTube thumbnail on its ranked
+                        # headline chain (any signed line that sets), so only a chain that fails whole costs a retry
+                        fit = (cover_fit.fit_problems(youtube_cover_copy(fit_ctx), fit_ctx["youtube_title"],
+                                                      youtube=False, payload=fit_ctx, hero=hero_img)
+                               + cover_fit.youtube_chain_problems(fit_ctx, hero_img))
                         if yt_problems and fit:
                             fit += yt_problems
                     if fit and draft < 3:

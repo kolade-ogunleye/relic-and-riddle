@@ -293,6 +293,12 @@ def _ink_x(plate) -> tuple[float, float]:
     return plate.xy[0] + b[0], plate.xy[0] + b[2] + extra
 
 
+def drew_headline(plates) -> bool:
+    """A headline was drawn: a title row or the figure (lane B cycle 3: a chain candidate the word budget left out
+    whole draws none, and the chain tries the next source)."""
+    return any(n in ("title_1", "title_2", "title", "figure") and not p.empty for n, p in plates)
+
+
 def hook_row(plates) -> float | None:
     """The drawn width of the hook's first row: the headline's first row (every run on its baseline), else the figure
     with its unit; the qualifier and kicker above it are not the hook. None when neither is drawn."""
@@ -505,8 +511,9 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
 def headline_bound() -> dict:
     """The signed YouTube headline's length bound, derived from the thumbnail's own measure (lane B cycle 3 follow-up;
     never a pinned number): the rows the lockup sets (two: line 1 bone, line 2 gold) and the characters a row holds at
-    the hero's feed floor (feed_floor_px(HERO_FLOOR)) in the narrowest column a reviewed feature can leave
-    (COLUMN_MIN), at the display face's mean capital advance. It guides the writer; the gate is the render itself
+    the hero's feed floor (feed_floor_px(HERO_FLOOR)) in the design's standard text column (TEXT_RIGHT - LEFT: lane B
+    cycle 3 ruling, the thumbnail controls its column and the hero is placed to leave it), at the display face's mean
+    capital advance. It guides the writer; the gate is the render itself
     (src/cover_fit.py), so a line within the bound that still does not set goes back to the writer."""
     import string
     font = get_font(brand.DISPLAY_FONT, feed_floor_px(HERO_FLOOR))
@@ -514,8 +521,9 @@ def headline_bound() -> dict:
     measure = ImageDraw.Draw(_Image.new("RGB", (8, 8)))
     advance = measure.textlength(string.ascii_uppercase, font=font) / len(string.ascii_uppercase)
     space = measure.textlength(" ", font=font)
-    chars = int((COLUMN_MIN + space) // max(1.0, advance))
-    return {"rows": 2, "chars_per_row": chars, "measure_px": COLUMN_MIN, "size_px": font.size}
+    column = TEXT_RIGHT - LEFT
+    chars = int((column + space) // max(1.0, advance))
+    return {"rows": 2, "chars_per_row": chars, "measure_px": column, "size_px": font.size}
 
 
 def refusal_rule(text: str, width_of, width: float, size: float, room=None, max_rows: int = 3) -> str:

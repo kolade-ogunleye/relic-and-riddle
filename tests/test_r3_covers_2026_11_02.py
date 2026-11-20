@@ -221,11 +221,10 @@ def test_grid_proof_flags_a_date_carried_only_by_texture() -> None:
 
 
 def test_an_illustrated_hero_carries_the_existing_disclosure_label() -> None:
-    # lane F cycle 3 (lander ruling): the feed surfaces draw the short form, at the grid floor
-    from src.video_composer import RECON_BADGE_FEED_LABEL
+    from src.video_composer import RECON_BADGE_LABEL
     _, lay = _cover(GUMBAZ, "depth_sandwich", illustration=True)
     tag = lay.meta["provenance"]
-    assert tag["label"] == RECON_BADGE_FEED_LABEL and tag["contrast"] >= 4.5
+    assert tag["label"] == RECON_BADGE_LABEL and tag["contrast"] >= 4.5
     x0, y0, _, y1 = tag["plate"]
     photo = lay.meta["composition"]["image_box"]
     assert 60 <= x0 and y1 <= 1480 and photo[1] <= y0 and y1 <= photo[3]    # on the window it labels

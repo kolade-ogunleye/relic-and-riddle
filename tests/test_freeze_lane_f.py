@@ -346,57 +346,58 @@ def _covers():
     return R
 
 
+HEADLINE_BLOCK = ("eyebrow", "title_1", "title_2", "qualifier", "figure", "figure_unit", "figure_qualifier",
+                  "tagline", "kicker", "title")
+
+
+def _box_union(boxes):
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+
+def _overlaps(a, b) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+@pytest.mark.parametrize("style", ["badge", "depth_sandwich", "minimal", "lower_third"])
 @pytest.mark.parametrize("illustration", [True, False])
-def test_lane_f_feed_badge_on_the_cover_is_legible_at_the_grid_and_only_on_illustrations(illustration):
-    """Lander ruling (feed-size AI badge): on the Reel cover the disclosure is RECON_BADGE_FEED_LABEL, its cap at
-    least the grid floor on the 124 px tile, inside the 3:4 crop, at the tile's contrast gate, and drawn when and
-    only when the hero is an AI illustration."""
-    from src.cover_design import GRID_CONTRAST, GRID_HOOK
-    from src.video_composer import RECON_BADGE_FEED_LABEL
+def test_lane_f_cover_disclosure_is_a_small_corner_label_only_on_illustrations(illustration, style):
+    """Lander ruling (with the operator, lane F cycle 3): the AI disclosure is a label, never part of the type
+    hierarchy. On the Reel cover (and so its grid tile) its cap is never larger than the deck tier's, it never
+    stands inside the headline block, and it is drawn when and only when the hero is an AI illustration (the feed's
+    AI disclosure is the platform's own label, which the publisher always sets)."""
+    from src import cover_design as cd
+    from src.typography import get_font
     R = _covers()
-    _, lay = R._cover(R.GUMBAZ, "depth_sandwich", illustration=illustration)
+    _, lay = R._cover(R.GUMBAZ, style, illustration=illustration)
+    plates = lay.meta.get("plates", {})
     if not illustration:
-        assert "provenance" not in lay.meta and "provenance" not in lay.meta.get("plates", {})
+        assert "provenance" not in lay.meta and "provenance" not in plates
         return
-    tag = lay.meta["provenance"]
-    assert " ".join(tag["lines"]) == tag["label"] == RECON_BADGE_FEED_LABEL
-    el = lay.meta["grid_proof"]["elements"]["provenance"]
-    assert el["class"] == "hook" and el["cap_124"] >= GRID_HOOK["provenance"] and el["inside_34"]
-    assert el["contrast_124"] is not None and el["contrast_124"] >= GRID_CONTRAST
-    assert not [f for f in lay.meta["grid_proof"]["fails"] if f.startswith("provenance")]
-    x0, y0, x1, y1 = tag["plate"]
-    win = lay.meta["composition"]["image_box"]
-    assert 84 <= x0 and x1 <= 1080 - 84 and 240 <= y0 and y1 <= 1680     # inside the margins and the 3:4 crop
-    assert win[0] <= x0 and win[1] <= y0 and y1 <= win[3], (tag["plate"], win)
-    # inside the window wherever the window is as wide as the badge at the grid floor; else recorded
-    assert (x1 <= win[2]) != tag["straddles_window"], (tag["plate"], win)
-
-
-def test_lane_f_feed_badge_stays_inside_a_wide_enough_window():
-    """The cover badge never straddles the photo window's edge when the window holds it (panel 4 PL r1)."""
-    R = _covers()
-    _, lay = R._cover(R.GUMBAZ, "badge", illustration=True)
-    tag, win = lay.meta["provenance"], lay.meta["composition"]["image_box"]
-    if win[2] - win[0] >= tag["plate"][2] - tag["plate"][0]:
-        assert not tag["straddles_window"] and tag["plate"][2] <= win[2]
+    ps = [p for p in plates["provenance"] if not p.empty]
+    assert ps
+    deck_cap = cd.cap_h_of(get_font(brand.TEXT_FONT, cd.TAGLINE_PX))
+    assert all(cd.cap_h_of(p.font) <= deck_cap for p in ps)
+    block = [p.box for n, pl in plates.items() if n in HEADLINE_BLOCK for p in pl if not p.empty]
+    assert block and not _overlaps(tuple(lay.meta["provenance"]["plate"]), _box_union(block))
+    assert "provenance" in cd.GRID_TEXTURE and "provenance" not in cd.GRID_HOOK
 
 
 @pytest.mark.parametrize("illustration", [True, False])
-def test_lane_f_feed_badge_on_the_thumbnail_is_legible_at_168_and_only_on_illustrations(illustration):
-    """Lander ruling: on the YouTube thumbnail the disclosure is RECON_BADGE_FEED_LABEL, its cap at least the line
-    floor at 168 px wide and its contrast at least 4.5 at 246 px, clear of every drawn line, and drawn when and only
-    when the hero is an AI illustration."""
+def test_lane_f_thumbnail_disclosure_is_a_small_corner_label_only_on_illustrations(illustration):
+    """The same rule on the YouTube thumbnail: a corner label no larger than its smallest headline-block line,
+    outside the headline block, and only over an AI illustration."""
     from src import youtube_thumbnail as yt
-    from src.video_composer import RECON_BADGE_FEED_LABEL
+    from src.typography import cap_height
     R = _covers()
     meta = {}
     _, plates = yt.render(R._photo(), R.RICHAT, meta=meta, illustration=illustration)
-    names = {n: p for n, p in plates}
+    names = [n for n, _ in plates]
     if not illustration:
         assert "provenance" not in names
         return
-    p = names["provenance"]
-    assert p.text == RECON_BADGE_FEED_LABEL and not p.collides
-    row = meta["downscale"]["provenance"]
-    assert row["cap_168"] >= yt.LINE_FLOOR and row["contrast_246"] >= 4.5
-    assert not [f for f in meta["downscale_fails"] if f.startswith("provenance")]
+    badge = next(p for n, p in plates if n == "provenance")
+    block = [p for n, p in plates if n not in ("provenance", "brand") and not getattr(p, "empty", False)]
+    assert block
+    assert cap_height(badge.font) <= min(cap_height(p.font) for p in block)
+    assert not _overlaps(badge.box, _box_union([p.box for p in block]))
+    assert "provenance" in yt._TEXTURE

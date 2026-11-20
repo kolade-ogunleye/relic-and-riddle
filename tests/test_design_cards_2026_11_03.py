@@ -1085,10 +1085,7 @@ def test_disclosure_has_air(photos):
         plan = dc.plan_hook_frame(hook(photos["sky"], claim=claim, fact_ids=ids, photo_kind="generated"), SHEET)
         prov = next(e for e in plan.elements if e.name == "provenance_plate").box
         assert plan.meta["anchors"]["block_top"] - prov[3] == dc.DISCLOSURE_AIR == 32
-        # lane F cycle 3: the feed badge (two lines at the grid floor) is taller; its plate stays inside the Reel's
-        # safe box (it was pinned under the masthead's foot, y 523, before QF-87 removed the hook's masthead)
-        from src.safe_zones import text_box
-        assert prov[1] >= text_box("reel")[1]
+        assert prov[1] >= 523
 
 
 def test_small_glyph_path_is_narrow(monkeypatch):

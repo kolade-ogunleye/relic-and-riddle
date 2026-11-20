@@ -4437,17 +4437,14 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         _provenance(ground0.convert("RGBA"), lay)
         prov = lay.meta["provenance"]["plate"]
         md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=brand.INK + (255,))
+        pp = lay.meta["plates"]["provenance"][0]
+        if pp.contrast is None or pp.contrast < HOOK_TARGET:
+            raise CardRefused(f"the disclosure reaches only {pp.contrast}")
         card._el("provenance_plate", "mark", "", "", None, 0, brand.INK, prov[:2], "", 0.0, tuple(prov), hook)
         card.roles["provenance_plate"] = "mark"
-        # lane F cycle 3 (lander ruling: frame 0 is a feed tile): the feed badge, on one line or two, every line drawn
-        for k, pp in enumerate(lay.meta["plates"]["provenance"]):
-            if pp.contrast is None or pp.contrast < HOOK_TARGET:
-                raise CardRefused(f"the disclosure reaches only {pp.contrast}")
-            nm = "provenance" if k == 0 else f"provenance_{k + 1}"
-            card._el(nm, "text", pp.text, brand.BADGE_FONT, 600, pp.font.size, brand.BONE, pp.xy, "ls", 1.0, pp.box,
-                     hook)
-            card.roles[nm], card.drawn[nm] = "data", pp.text
-            plates.append(pp)
+        card._el("provenance", "text", pp.text, brand.DATA_FONT, 600, pp.font.size, brand.STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
+        card.roles["provenance"], card.drawn["provenance"] = "data", pp.text
+        plates.append(pp)
     r_ = {"hook": True, "bg": bg, "under": under, "marks": marks, "top": top, "plates": plates, "last_t": 0.0}
     frame0 = _hook_compose(r_, 0)
     proof = grid_proof(frame0, lay)
@@ -4464,8 +4461,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     frames, seconds = _frames(HOOK_SECONDS)
     contrast = [(nm, p) for nm, p in card.contrast]
     if spec.photo_kind == "generated":
-        contrast += [("provenance" if k == 0 else f"provenance_{k + 1}", pp)
-                     for k, pp in enumerate(lay.meta["plates"]["provenance"])]
+        contrast.append(("provenance", lay.meta["plates"]["provenance"][0]))
     # H5: the drawn contrast, measured on frames 0 and 32 as the chapter and myth cards measure theirs
     drawn = {}
     frame32 = _hook_compose(r_, 32)

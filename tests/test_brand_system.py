@@ -467,6 +467,19 @@ def _globe_sum():
     return int(np.asarray(graphics.globe_inset(160, 20.0, 45.0, None, (15.0, 40.0, 25.0, 50.0))).astype(np.int64).sum())
 
 
+def _youtube_mast_px():
+    """SYS-B-5: the one YouTube masthead size (lane B's youtube_thumbnail.mast_px reads masthead.youtube_px)."""
+    from src import youtube_thumbnail
+    if not hasattr(youtube_thumbnail, "mast_px"):
+        pytest.skip("youtube_thumbnail.mast_px lands with lane B cycle 3")
+    return youtube_thumbnail.mast_px()
+
+
+def test_the_youtube_masthead_size_is_a_step_of_the_fit_ladder():
+    from src import masthead
+    assert brand_system.tok("masthead.youtube_px") in masthead.fit_ladder(64)
+
+
 def _youtube_mark_room():
     """SYS-B-2: the YouTube masthead's room over a wide hook row (the renderer's _mark_room)."""
     from types import SimpleNamespace
@@ -546,6 +559,7 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "map.home_edge_alpha": (0.9, _map_base_sum),
     "map.coast_w": (3.0, _map_base_sum),
     "globe.limb_dark": (0.05, _globe_sum),
+    "masthead.youtube_px": (56, _youtube_mast_px),
     "lockup.line_gap": (0.25, lambda: __import__("src.youtube_thumbnail", fromlist=["x"]).line_pitch()),
 }
 

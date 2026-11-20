@@ -215,6 +215,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # short word (EYE / OF THE SAHARA: 1.55) the rule would shrink one deck's masthead slide 1 only (one masthead size
     # per deck wins). The end card / end screen masthead is the card's sign-off over a share line, not over a hook.
     "masthead.hook_ratio_max": 0.78,
+    # SYS-B-5 (lander ruling 2026-11-19): ONE YouTube masthead size, a declared step of masthead.fit_ladder(64): 48 px,
+    # the step at which the hook-ratio rule holds on the worst real copy (a 424 px first row), at its feed floor.
+    # youtube_thumbnail draws every thumbnail's masthead at it (lane B, mast_px).
+    "masthead.youtube_px": 48,
     # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
     "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
     "map.home_edge_w": 1.5,           # px: the casing's GOLD_LIGHT edge inside the core
@@ -312,7 +316,8 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "map.home_edge_alpha": (0.85, 1.0),
     "map.coast_w": (1.0, 3.0),
     "globe.limb_dark": (0.0, 0.25),
-    "masthead.hook_ratio_max": (0.6, 0.9),   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
+    "masthead.hook_ratio_max": (0.6, 0.9),
+    "masthead.youtube_px": (48, 64),      # a step of masthead.fit_ladder(64): 64 / 60 / 56 / 52 / 48   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em
     "kicker.rule": (0.5, 3.0),            # caps

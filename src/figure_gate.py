@@ -225,6 +225,9 @@ def _nearest(d: figures.Figure, signed: list[figures.Figure]) -> str:
     return best[1].drawn() if best else ""
 
 
+QA_FIGURE_ORDER = ("figure_qualifier", "figure", "figure_unit", "figure_dim")   # the YouTube figure row, as read
+
+
 def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
     """(surface, element name, element) for every element of every layout record under the run."""
     run_dir = Path(run_dir)
@@ -250,9 +253,18 @@ def _elements(run_dir: Path) -> Iterable[tuple[str, str, dict[str, Any]]]:
             data = json.loads(rec_file.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        for e in (data.get("elements") or []) if isinstance(data, dict) else []:
-            if isinstance(e, dict):
-                yield rec_file.relative_to(run_dir).as_posix().replace(".qa.json", ""), str(e.get("name") or ""), e
+        surface = rec_file.relative_to(run_dir).as_posix().replace(".qa.json", "")
+        elements = [e for e in ((data.get("elements") or []) if isinstance(data, dict) else []) if isinstance(e, dict)]
+        # freeze SYS batch 3 (SYS-B-4 part 3): the figure row is ONE statement, read in its order (qualifier, figure,
+        # unit, dimension word) whatever order the plates were drawn in, never the number and the unit plates alone
+        parts = sorted((e for e in elements if str(e.get("name") or "") in QA_FIGURE_ORDER),
+                       key=lambda e: QA_FIGURE_ORDER.index(str(e.get("name"))))
+        if parts:
+            yield surface, "figure", {"name": "figure", "text": " ".join(str(e.get("text") or "") for e in parts),
+                                      "box": parts[0].get("box")}
+        for e in elements:
+            if str(e.get("name") or "") not in QA_FIGURE_ORDER:
+                yield surface, str(e.get("name") or ""), e
     for rec_file in sorted(run_dir.glob("*.composition.json")):   # the end card's share line as drawn
         try:
             card = json.loads(rec_file.read_text(encoding="utf-8")).get("end_card") or {}

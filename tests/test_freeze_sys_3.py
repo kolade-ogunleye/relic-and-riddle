@@ -354,3 +354,20 @@ def test_one_heading_sets_two_fields_as_one_lockup():
     form = heading.one_heading("CARVED FROM", "SOLID SALT", measure, 2000, (92,))
     assert form is not None and form.lockup and " ".join(form.lines) == "CARVED FROM SOLID SALT"
 
+
+# --------------------------------------------------------------------------- SYS-B-4 part 3: the YouTube figure row
+def test_the_gate_reads_the_youtube_figure_row_as_one_statement(tmp_path):
+    import json
+    from src import figure_gate
+    qa = {"elements": [{"name": "figure", "text": "137–138", "box": [96, 300, 600, 500]},
+                       {"name": "figure_unit", "text": "FT", "box": [620, 420, 700, 500]},
+                       {"name": "figure_qualifier", "text": "ROUGHLY", "box": [96, 520, 400, 560]},
+                       {"name": "title_1", "text": "EGYPT'S LARGEST", "box": [96, 600, 900, 700]}]}
+    (tmp_path / "thumbnail_youtube.qa.json").write_text(json.dumps(qa), encoding="utf-8")
+    payload = {"narration_script": "Surveys place its length at roughly 137-138 ft."}
+    rows = [(n, e["text"]) for _s, n, e in figure_gate._elements(tmp_path)]
+    assert ("figure", "ROUGHLY 137–138 FT") in rows
+    assert not [f for f in figure_gate.check_run(tmp_path, payload)["faults"] if "thumbnail_youtube" in f]
+    qa["elements"] = qa["elements"][:2]          # the hedge dropped from the drawing
+    (tmp_path / "thumbnail_youtube.qa.json").write_text(json.dumps(qa), encoding="utf-8")
+    assert [f for f in figure_gate.check_run(tmp_path, payload)["faults"] if "thumbnail_youtube" in f]

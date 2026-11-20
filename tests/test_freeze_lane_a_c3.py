@@ -136,6 +136,30 @@ def test_span_label_takes_a_lighter_tier_to_reach_the_gate():
     assert plate.contrast is None or plate.contrast >= (first.contrast or 0) - 1e-6
 
 
+def test_two_number_cards_step_the_first_back_by_design(tmp_path, monkeypatch):
+    """A-S2-5, lander ruling 3 (cycle 3): the first of two number cards steps back when the second lands (the F13
+    hierarchy, the timeline's grammar): its words dim to STONE_LT while its figure and unit stay gold. Two label
+    colours on the last frame are this intended step-back, not two treatments of one role."""
+    twins: list[tuple[str, tuple]] = []
+    real = graphics._twin
+
+    def spy(ground, plate, fill):
+        twins.append((plate.text, tuple(fill)))
+        return real(ground, plate, fill)
+    monkeypatch.setattr(graphics, "_twin", spy)
+    monkeypatch.setattr(graphics, "CLIP_SECONDS", 0.2)
+    cards = [{"value": "36 hours", "label": "Time to disassemble the room"},
+             {"value": "13,000 lbs", "label": "Amber in completed room"}]
+    with graphics.poster_only():
+        graphics.render_stat_cards(cards, tmp_path / "n.mp4", width=1080, height=1920)
+    dimmed = dict(twins)
+    label_rows = [t for t in dimmed if "TIME" in t or "THE ROOM" in t]      # the first card's label rows
+    assert label_rows and all(dimmed[t] == tuple(brand.STONE_LT) for t in label_rows)
+    figure_fill = tuple(graphics.figure_fill())
+    assert any(fill == figure_fill for _t, fill in twins)          # the stepped-back card's quantity stays gold
+    assert not any("AMBER" in t or "13" in t for t in dimmed)       # the second card never steps back
+
+
 def test_obelisk_upper_face_keeps_the_signed_length():
     """MG-3: the obelisk's upper face is drawn straight up; its ink never runs past the signed length's end."""
     from PIL import ImageDraw

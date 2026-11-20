@@ -13,6 +13,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import inspect
+import json
 import re
 import subprocess
 import time
@@ -243,10 +244,14 @@ def _end_jobs(topic: str) -> dict[str, Any]:
         jobs["endcard_916"] = ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall)
         # cycle 3 (lane E): each bridge as the composer ships it, through its gate ladder (shipped_bridge): FOLLOW on
         # (config.LOOP_FOLLOW_OVERLAY's default) and FOLLOW off (line=end_card.LOOP_LINE either way)
+        # the run's own seam motion where its record gives it (run_loop_motion), as the composer passes it
+        motion, motion_src = run_loop_motion(fx.path(tall["run"]))
         jobs["bridge_follow_916"] = ((1080, 1920), lambda st: _then(shipped_bridge(
-            last_t, first, tall["share_line"], st, follow=True), first), it, tall)
+            last_t, first, tall["share_line"], st, follow=True, motion=motion, motion_source=motion_src), first),
+            it, tall)
         jobs["bridge_916"] = ((1080, 1920), lambda st: _then(shipped_bridge(
-            last_t, first, tall["share_line"], st, follow=False), first), it, tall)
+            last_t, first, tall["share_line"], st, follow=False, motion=motion, motion_source=motion_src), first),
+            it, tall)
     return {n: jobs[n] for n in END_NAMES if n in jobs}
 
 
@@ -254,13 +259,43 @@ class BridgeNotShipped(ValueError):
     """Every rung of the composer's loop-bridge ladder fails its gate: the Reel ends at the narration, no bridge."""
 
 
-def bridge_ladder(follow: bool) -> list[tuple[str, dict[str, Any]]]:
+DEFAULT_PUSH = ("no camera record: the renderer's default push (end_card.loop_bridge: motion LOOP_PUSH), not the "
+                "run's")
+
+
+def run_loop_motion(run: Path, width: int = 1080, height: int = 1920) -> tuple[dict[str, float] | None, str]:
+    """(motion, source): the seam motion the composer passes the bridge for `run` (video_composer.loop_motion over
+    the master's scenes, in the composition record's order), when the run's record determines it: a closing and an
+    opening scene the composer does not camera-move (footage, parallax or graphic clips) carry no push whatever their
+    durations. A camera-moved still at the seam needs the scene durations and the cameras the run does not record:
+    (None, DEFAULT_PUSH), and the bridge takes the renderer's default push."""
+    try:
+        from src import video_composer as vc
+        comp = next(iter(sorted(Path(run).glob("*_master.composition.json"))), None)
+        if comp is None:
+            return None, f"{DEFAULT_PUSH}; {Path(run).name} has no composition record"
+        scenes = list((json.loads(comp.read_text(encoding="utf-8")).get("scenes") or {}))
+        n = len(scenes)
+        if not n:
+            return None, f"{DEFAULT_PUSH}; {comp.name} lists no scenes"
+        kinds = [vc._camera_kind(scenes[i], i, n, set(), width, height) for i in (n - 1, 0)]
+        if any(kinds):
+            return None, (f"{DEFAULT_PUSH}; {comp.name}: the seam scene(s) are camera-moved ({kinds}) and the run "
+                          "records no camera")
+        motion = vc.loop_motion(scenes, [1.0] * n, float(n), set(), width, height)
+        return motion, (f"the run's composition record ({comp.name}): closing {Path(scenes[-1]).name} and opening "
+                        f"{Path(scenes[0]).name} are clips the composer does not camera-move; loop_motion {motion}")
+    except Exception as e:  # noqa: BLE001  an evidence record never raises: the default, and why
+        return None, f"{DEFAULT_PUSH}; reading the run's motion failed ({type(e).__name__}: {e})"
+
+
+def bridge_ladder(follow: bool, motion: dict[str, float] | None = None) -> list[tuple[str, dict[str, Any]]]:
     """The composer's loop-bridge ladder (video_composer._render_with_loop_bridge), rung by rung: the bridge as made
-    (line=end_card.LOOP_LINE, FOLLOW as asked, the composer's motion: the board has no run camera, so the
-    renderer's own push defaults), then without its push and on the longest crossfade, then (FOLLOW asked) without
+    (line=end_card.LOOP_LINE, FOLLOW as asked, the run's seam motion `motion` as loop_motion gives it, else the
+    renderer's default push), then without its push and on the longest crossfade, then (FOLLOW asked) without
     FOLLOW, then without both. test_freeze_board_c3 holds this to the composer's source."""
     from src import end_card
-    kw: dict[str, Any] = {"line": end_card.LOOP_LINE, "follow": follow}
+    kw: dict[str, Any] = {"line": end_card.LOOP_LINE, "follow": follow, **(motion or {})}
     still = {**kw, "close_push": 0.0, "open_push": 0.0, "crossfade": end_card.LOOP_CROSSFADE[1]}
     rungs = [("as made", kw), ("without its push", still)]
     if follow:
@@ -268,14 +303,16 @@ def bridge_ladder(follow: bool) -> list[tuple[str, dict[str, Any]]]:
     return rungs
 
 
-def shipped_bridge(last, first, share: str, stats: dict[str, Any], follow: bool):
+def shipped_bridge(last, first, share: str, stats: dict[str, Any], follow: bool,
+                   motion: dict[str, float] | None = None, motion_source: str = DEFAULT_PUSH):
     """The loop bridge the composer ships: the first rung of bridge_ladder whose gate (end_card.check_loop_bridge)
     passes, drawn with that rung's options; `stats` gets the renderer's own stats and "ladder" (each rung tried:
     variant, ok, problems) and "variant" (the one drawn). Every rung failing raises BridgeNotShipped, recorded by
     the board as a refusal (the Reel ends at the narration)."""
     from src import end_card
     tried = []
-    for variant, kw in bridge_ladder(follow):
+    stats["motion_source"] = motion_source
+    for variant, kw in bridge_ladder(follow, motion):
         gate = end_card.check_loop_bridge(last, first, share, **kw)
         tried.append({"variant": variant, "ok": gate["ok"], "problems": gate["problems"],
                       "seam": seam_reading(gate["stats"])})

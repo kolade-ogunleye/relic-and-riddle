@@ -394,6 +394,35 @@ def main() -> None:
 
     # ------------------------------------------------------------------ loop bridge and end screen
     from src import end_card
+    try:   # cycle 3 (lane E): each bridge as the composer ships it (board_motion.shipped_bridge, its gate ladder)
+        import board_motion
+    except ImportError:   # run on its own (QF-35a A/B on two trees): the bridges as drawn before, recorded so
+        board_motion = None
+
+    def bridge(name: str, last, first, share: str, follow: bool, case: dict) -> None:
+        """A loop bridge surface: through the composer's ladder with the run's own seam motion where its record
+        gives it (board_motion.run_loop_motion), recorded in "bridge_ladder"; every rung failing is a refusal
+        (the Reel ships no bridge)."""
+        if board_motion is None:
+            result.setdefault("bridge_ladder", {})[name] = {"variant": "not laddered (render_surfaces.py run "
+                                                            "without the board's board_motion)"}
+            frames_of(name, end_card.loop_bridge(last, first, share, {}, **({"line": False, "follow": True}
+                                                                             if follow else {})))
+            return
+        motion, source = board_motion.run_loop_motion(fx.path(case["run"]))
+        stats: dict = {}
+        try:
+            frames = board_motion.shipped_bridge(last, first, share, stats, follow=follow, motion=motion,
+                                                 motion_source=source)
+        except board_motion.BridgeNotShipped as e:
+            result["surfaces"][name] = {"refused": str(e)[:200], "class": "BridgeNotShipped", "code": "not_shipped"}
+            frames = None
+        if frames is not None:
+            frames_of(name, frames)
+        result.setdefault("bridge_ladder", {})[name] = {
+            "variant": stats.get("variant"), "ladder": stats.get("ladder"), "motion_source": source,
+            "seam": board_motion.seam_reading(stats)}
+
     for i, case in enumerate(fx.load("endcard")):
         def endcard(case=case, i=i):
             share = case["share_line"]
@@ -412,9 +441,8 @@ def main() -> None:
                     else Image.open(fx.path(last_src))).convert("RGB")
             if case.get("format") == "9:16" and case.get("first_frame"):
                 first = Image.open(fx.frame(case["first_frame"]["from"], 0.0)).convert("RGB")
-                frames_of(f"bridge__{i}_{case['topic']}", end_card.loop_bridge(last, first, share, {}))
-                frames_of(f"bridge_follow__{i}_{case['topic']}",
-                          end_card.loop_bridge(last, first, share, {}, line=False, follow=True))
+                bridge(f"bridge__{i}_{case['topic']}", last, first, share, False, case)
+                bridge(f"bridge_follow__{i}_{case['topic']}", last, first, share, True, case)
                 # what the composer passes the card (script_engine.end_card_share: the share half, the card says
                 # FOLLOW itself), never the raw share-and-follow line (freeze lane E cycle 1: the board drew 88
                 # characters and no follow line where a real run draws 56 and FOLLOW FOR THE NEXT RELIC)

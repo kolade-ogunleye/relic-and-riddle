@@ -256,6 +256,34 @@ def test_shipped_bridge_takes_the_first_passing_rung(mods, monkeypatch):
     assert st["variant"] is None and len(st["ladder"]) == 2
 
 
+@pytest.mark.skipif(not (DEV / "output" / "run_wieliczka_salt_mine_1792974672").is_dir(),
+                    reason="needs the dev checkout's runs")
+def test_run_loop_motion_reads_the_runs_own_record(mods):
+    """The camera gap: where the run's composition record determines the seam motion (clips the composer does not
+    camera-move at both ends), the bridge takes it, as the composer passes loop_motion's."""
+    bm = mods["board_motion"]
+    motion, source = bm.run_loop_motion(DEV / "output" / "run_wieliczka_salt_mine_1792974672")
+    assert motion == {"close_zoom": 1.0, "close_push": 0.0, "open_push": 0.0}
+    assert "composition record" in source and "scene_10.mp4" in source and "scene_01.mp4" in source
+
+
+def test_run_loop_motion_says_when_only_the_default_push_is_available(mods, tmp_path):
+    bm = mods["board_motion"]
+    run = tmp_path / "run_alpha_site_1793000000"
+    run.mkdir()
+    motion, source = bm.run_loop_motion(run)
+    assert motion is None and source.startswith(bm.DEFAULT_PUSH) and "no composition record" in source
+    for k in (1, 2):
+        Image.new("RGB", (1600, 1200), (90, 90, 90)).save(run / f"scene_{k:02d}.jpg")
+    (run / "alpha_site_master.composition.json").write_text(json.dumps(
+        {"scenes": {str(run / "scene_01.jpg"): "x", str(run / "scene_02.jpg"): "y"}}), encoding="utf-8")
+    motion, source = bm.run_loop_motion(run)
+    assert motion is None and source.startswith(bm.DEFAULT_PUSH) and "camera-moved" in source
+    rungs = dict(bm.bridge_ladder(False, {"close_zoom": 1.1, "close_push": 0.002, "open_push": 0.001}))
+    assert rungs["as made"]["close_push"] == 0.002 and rungs["without its push"]["close_push"] == 0.0
+    assert rungs["without its push"]["close_zoom"] == 1.1   # as the composer's {**kw, ...}: the zoom is kept
+
+
 def test_seam_reading_is_the_renderers(mods, monkeypatch):
     from src import end_card
     bm = mods["board_motion"]

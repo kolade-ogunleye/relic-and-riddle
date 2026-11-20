@@ -568,7 +568,7 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         st = getattr(seq, "stats", None) or {}
         if "ladder" in st:   # cycle 3 (lane E): the composer's ladder as tried, and the renderer's own seam reading
             rec[seq.clip["path"].name].update(variant=st.get("variant"), ladder=st["ladder"],
-                                              seam=bm.seam_reading(st))
+                                              seam=bm.seam_reading(st), motion_source=st.get("motion_source"))
 
     for topic in END_TOPICS or [bm.END_TOPIC]:   # cycle 3: every board ground with a catalogue case
         made += end_motion(out, clips, topic, "" if topic == bm.END_TOPIC else f"__{topic}", clip_rec)
@@ -713,7 +713,8 @@ def bridge_note(seq) -> str:
     failed = [f"{t['variant']} ({'; '.join(t['problems'])})" for t in st["ladder"] if not t["ok"]]
     return (f" | shipped variant: {st.get('variant')} (composer's ladder"
             + (f"; refused first: {', '.join(failed)}" if failed else "") + ")"
-            + f" | seam {seam['mad_last']} of under {seam['gate_max']}, measured on {seam['measure']}")
+            + f" | seam {seam['mad_last']} of under {seam['gate_max']}, measured on {seam['measure']}"
+            + f" | seam motion: {st.get('motion_source', '-')}")
 
 
 RISE_TILES = 16   # the rise strip's most tiles (every kept frame of the rise when fewer)
@@ -1052,7 +1053,7 @@ JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts
                "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
                "cover": 8}
 SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged by union (a job's own records)
-                   "retired", "rerouted")   # cycle 3: retired frames not drawn, slides re-routed
+                   "retired", "rerouted", "bridge_ladder")   # cycle 3: retired frames not drawn, slides re-routed
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 
@@ -1268,7 +1269,7 @@ def main() -> None:
     from PIL import Image
     sj = out / "surfaces.json"
     surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
-    for k in ("retired", "rerouted"):   # cycle 3: what the board drew as production draws it today, not as recorded
+    for k in ("retired", "rerouted", "bridge_ladder"):   # cycle 3: what production delivers today, not as recorded
         if (surfaces_rec or {}).get(k):
             manifest[k] = surfaces_rec[k]
     for r, (name, prefixes) in sorted(ROWS.items()):
@@ -1281,7 +1282,16 @@ def main() -> None:
         pick = [p for p in pngs if on_row(r, prefixes, p.stem) and p.stem not in retired]
         heroes = hero_pick(pick)
         # round 8 (AD E3, CD-20): every tile labelled through board_evidence.label, its pairing class first
-        tiles = [(be.label(p.stem), Image.open(p).convert("RGB")) for p in heroes]
+        ladder = (surfaces_rec or {}).get("bridge_ladder") or {}
+
+        def shipped(stem: str) -> str:   # cycle 3 (lane E): a bridge surface says which rung of the ladder shipped
+            rec = ladder.get(stem)
+            if not rec:
+                return ""
+            seam = rec.get("seam") or {}
+            return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
+                    f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
+        tiles = [(be.label(p.stem, shipped(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
         def add(item: dict, tiles=tiles) -> None:

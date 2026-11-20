@@ -99,10 +99,12 @@ def test_the_closing_drift_carries_through_the_bridge():
 
 
 def test_the_dim_is_light_and_lifts_with_the_crossfade():
+    # the dim lives under the share line only (lane E cycle 3): measured below the line, on its ground
     assert 0.3 <= end_card.LOOP_DIM <= 0.5
     grey = Image.new("RGB", (1080, 1920), (150, 150, 150))
-    frames, _ = _bridge(grey, grey.copy(), line=False)
-    lum = [float(np.asarray(f.convert("L"), np.float32).mean()) for f in frames]
+    frames, _ = _bridge(grey, grey.copy(), line=True)
+    lum = [float(np.asarray(f.convert("L"), np.float32)[1300:].mean()) for f in frames]
+    assert min(lum) < 150 - 5                                              # it is drawn under the line
     assert min(lum) > 150 * 0.5                                            # never a black dip
     assert abs(lum[-1] - 150) < 2                                          # back to the picture by the seam
     k = int(np.argmin(lum))
@@ -125,11 +127,29 @@ def test_the_crossfade_length_is_an_option_between_half_and_seven_tenths():
     assert _bridge(last, first, line=False, crossfade=2.0)[1]["crossfade"] == 0.7
 
 
-def test_the_purely_visual_bridge_records_no_text():
+def _undrawn_line(monkeypatch, last, first, **kw):
+    """The bridge with the share line planned (so its dim, LOOP_DIM, is drawn) but the line itself not drawn: since
+    lane E cycle 3 the dim lives under the share line only, so the purely visual bridge is no longer that ground."""
+    from src import typography
+    real = typography.plan_text
+
+    def planned(*a, **k):
+        plate = real(*a, **k)
+        plate.draw = lambda frame, *_a, **_k: frame
+        return plate
+    monkeypatch.setattr(typography, "plan_text", planned)
+    try:
+        return _bridge(last, first, line=True, **kw)[0]
+    finally:
+        monkeypatch.setattr(typography, "plan_text", real)
+
+
+def test_the_purely_visual_bridge_records_no_text(monkeypatch):
     last, first = _dark_last(), _bright_first()
-    vis, st = _bridge(last, first, line=False)
+    _vis, st = _bridge(last, first, line=False)
     assert st["text"] is None and st["lines"] == [] and st["contrast"] is None and st["line"] is False
-    assert st["follow"] is False
+    assert st["follow"] is False and st["loop_dim"] == 0.0
+    vis = _undrawn_line(monkeypatch, last, first, crossfade=0.7)
     txt, st2 = _bridge(last, first, line=True, crossfade=0.7)
     assert st2["text"] == "Send this to the codebreaker you know." and st2["contrast"] >= brand.TEXT_CONTRAST
     k = 7   # at the hold the two differ only where the line is
@@ -138,9 +158,9 @@ def test_the_purely_visual_bridge_records_no_text():
     assert rows.size and rows.min() > 500 and rows.max() < 1050
 
 
-def test_the_line_is_gone_before_the_picture_has_mostly_changed():
+def test_the_line_is_gone_before_the_picture_has_mostly_changed(monkeypatch):
     last, first = _dark_last(), _bright_first()
-    vis, _ = _bridge(last, first, line=False, crossfade=0.5)
+    vis = _undrawn_line(monkeypatch, last, first, crossfade=0.5)
     txt, _ = _bridge(last, first, line=True, crossfade=0.5)
     start = round(0.5 * end_card.FPS)
     for k in range(start + round(0.4 * 0.5 * end_card.FPS) + 1, len(vis)):  # no ghost into frame 0

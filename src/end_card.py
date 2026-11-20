@@ -52,8 +52,8 @@ WHOOSH_AT, BELL_AT = 0.0, 1.95   # seconds into the card
 # (motion.rise_l), FOLLOW_IN (motion.line_in), FOLLOW_RISE and LOOP_FOLLOW_RISE (motion.rise_m), LOOP_CROSSFADE
 # (motion.loop_crossfade, motion.loop_crossfade_visual), LOOP_PUSH (motion.push_per_frame), LOOP_PUSH_CAP
 # (motion.push_cap): the names are served by __getattr__ below for their readers. The rest are this card's own.
-DIM_IN = 0.45            # the dim comes in (ease_out over this)
-SOFTEN_IN = 0.6          # the softening comes in
+DIM_IN = 0.45            # the dim comes in (9:16: ease_out over this; 16:9: ease_io, a field between two rests)
+SOFTEN_IN = 0.6          # the softening comes in (on the dim's curve)
 MAST_AT = 0.15           # the masthead and its mark start to fade in (over MAST_IN)
 RULE_AT, RULE_IN = 0.25, 0.5     # the gold rule draws out
 SHARE_AT = 0.45          # the share line's first word starts to rise
@@ -114,8 +114,13 @@ LANDSCAPE_SHARE_SIZES = (64, 60, 56)
 LANDSCAPE_MASTHEAD_W = 620
 LANDSCAPE_PUSH = 0.02    # the 16:9 push over END_SCREEN_SECONDS, easing to rest (panel round 3: YouTube's tiles sit
                          # over it, so it barely moves)
-LANDSCAPE_SCRIM_X = (1000, 1260)   # the 16:9 dim is full left of the first x and eases to LANDSCAPE_RIGHT_DIM by the
-LANDSCAPE_RIGHT_DIM = 0.55         # second: a scrim behind the text column, the right side lighter and sharper
+LANDSCAPE_SCRIM_X = (1000, 1500)   # the 16:9 dim is full left of the first x and eases to LANDSCAPE_RIGHT_DIM by the
+LANDSCAPE_RIGHT_DIM = 0.55         # second: a scrim behind the text column, the right side lighter and sharper.
+# The ramp's far end (freeze lane E cycle 3, panel 4 PL-MG-04 / CD MG-endscreen-column-dim): at 1260 (stretched to
+# ~1315 by the slope gate) the field ended in a soft vertical edge at x ~1100 on bright grounds, the dark column read
+# as a panel; at 1500 its steepest column step falls by about a third on the bright board grounds (Aswan 0.32 -> 0.21,
+# Richat 0.24 -> 0.16 luma / px over 40 px) and most of the added dim lies under YouTube's video slots. The start
+# stays at 1000, so the text column (to END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP) keeps its full dim.
 KICKER = "WATCH NEXT"    # generic: the video YouTube shows in the slot is not known at render time
 # The kicker is the system's (src/brand_system.py kicker.*, cycle 0): the text face at 800 in tracked gold capitals led
 # by a flat gold rule, at the wide canvas's kicker size (it was IBM Plex Mono 600 at 30 px, 0.18 em: a second kicker
@@ -132,7 +137,13 @@ LOOP_LINE = False
 LOOP_SECONDS = 1.0
 LOOP_TIMES = {"in": 0.25, "out": 0.5}   # the line is up by "in"; with the line, the crossfade starts at "out"
 LOOP_DIM = 0.4                          # of the end card's measured dim (panel round 3: 0.8 read as a black dip that
-                                        # flashed on every loop)
+                                        # flashed on every loop), under the share line only (line=True): it seats a
+                                        # line planned on the dimmed frame. A bridge with FOLLOW (its own held plate,
+                                        # planned on the undimmed pictures) or with no element is not dimmed (freeze
+                                        # lane E cycle 3, panel 4 MO-E1: on a bright ending the dim read as a dip to
+                                        # dark before the crossfade, 171 -> 113 luma in 6 frames, its first step 2.5x a
+                                        # dissolve step). Where it is drawn it comes in on ease_io (a field moving
+                                        # between two rests), never at full speed.
 # LOOP_CROSSFADE (the crossfade's length: with the share line, without: the purely visual bridge), LOOP_PUSH (zoom
 # per frame: the composer's forward drift on the closing and opening shots, still_camera "push" / "hook", the speed
 # they keep at the loop seam, QF-22) and LOOP_PUSH_CAP (the furthest that push goes, still_camera.endpoint_for) are
@@ -140,12 +151,18 @@ LOOP_DIM = 0.4                          # of the end card's measured dim (panel 
 LOOP_LINE_RISE = 12                     # px the bridge's share line rises (line=True; not shipped: LOOP_LINE False)
 LOOP_MAX_STEP_L = 25.0                  # the largest mean-L* change allowed between consecutive frames of the seam
 LOOP_MAX_MAD = 8.0                      # the bridge's last frame against frame 0: mean absolute difference, 0-255
+# What LOOP_MAX_MAD gates (stats["mad_last"], seam_problems): the bridge's last frame as loop_bridge draws it (8-bit
+# RGB, WIDTH x HEIGHT, before the BT.709 conversion and the delivery encode) against `first`, the Reel's frame 0 as
+# the composer reads it back from the encoded body; the mean of |difference| over every pixel and all three channels.
+# A decoded delivery clip measures more (the encode's own noise on both frames: tests allow the gate + 4); a reading
+# taken from an encoded clip is not this measure (LOOP_SEAM_MEASURE, recorded with it).
+LOOP_SEAM_MEASURE = f"rgb_mad_8bit_{WIDTH}x{HEIGHT}_pre_encode"
 LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
 FOLLOW_SIZES = range(40, 29, -1)
 FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its size
 # The loop bridge's FOLLOW (QF-83; operator 2026-11-10: on in production, config.LOOP_FOLLOW_OVERLAY): the end card's
 # follow ask cut to its one word, in the follow line's type (tracked Montserrat 800 capitals) but in bone, centred on
-# LOOP_CENTRE inside the Reel box. Not gold: the bridge is dimmed lightly (LOOP_DIM), and gold over its widest halo
+# LOOP_CENTRE inside the Reel box. Not gold: the bridge is not dimmed under it (LOOP_DIM), and gold over its widest halo
 # measured 3.5-3.7:1 on a white frame and under 4.5:1 on one of seven real Reel endings; bone holds 4.8:1 on all.
 # It rises in over LOOP_FOLLOW_FRAMES[0] frames from the bridge's first frame and fades out over its last
 # LOOP_FOLLOW_FRAMES[1] frames, so the bridge's first and last frames carry none of it and the seam still lands on
@@ -708,12 +725,16 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     total = round(seconds * FPS)
     ink = np.array(brand.INK, np.float32)
 
+    # The 16:9 field (its dim and softening) moves between two rests on ease_io (freeze lane E cycle 3, panel 4
+    # MO-E2: on ease_out its first frame stepped MAD 27 as the narration handed over); the 9:16 card keeps ease_out.
+    field = ease_io if landscape else ease
+
     def ground(t: float) -> Image.Image:
         z = landscape_zoom_at(t) if landscape else zoom_at(t, seconds)
         im = _pushed(base, z, width, height)
-        sw = (ease(t / SOFTEN_IN) * soften_w)[..., None]
+        sw = (field(t / SOFTEN_IN) * soften_w)[..., None]
         im = im * (1 - sw) + _pushed(soft_base, z, width, height) * sw
-        dark = (ease(t / DIM_IN) * shape)[..., None]
+        dark = (field(t / DIM_IN) * shape)[..., None]
         return Image.fromarray((im * (1 - dark) + ink * dark).clip(0, 255).astype(np.uint8))
 
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
@@ -979,7 +1000,8 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     `last` is the narration's graded last frame and `first` the Reel's real frame 0 as the composer renders it
     (graded, at its push-in start crop, WIDTHxHEIGHT: anything else is refused, since a resized still would not
     be the frame the loop lands on). The last shot keeps its forward drift (below) through the bridge
-    while a light dim (LOOP_DIM of the card's measured dim) comes in; the picture then crossfades into `first` over
+    while, under the share line only, a light dim (LOOP_DIM of the card's measured dim) comes in on ease_io; the picture
+    then crossfades into `first` over
     `crossfade` seconds (LOOP_CROSSFADE: 0.5 with the share line, 0.7 without; 0.5-0.7) on a curve that starts at
     rest and is still moving at the seam (_seam_curve), and the dim lifts on that same curve, so no frame steps
     more than LOOP_MAX_STEP_L in mean L*. The bridge's last frame is at mix 29/30 exactly: one ordinary step short
@@ -1012,7 +1034,8 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     a_img = _cover(last, (width, height))
     b_img = first.convert("RGB")
     shape, _, dim = fit_dim(a_img)
-    shape = (shape * LOOP_DIM)[..., None]
+    dimmed = bool(line) and not follow   # the dim seats the share line only (LOOP_DIM)
+    shape = (shape * (LOOP_DIM if dimmed else 0.0))[..., None]
     ink = np.array(brand.INK, np.float32)
     total = round(LOOP_SECONDS * FPS)
     t_in = LOOP_TIMES["in"]
@@ -1049,7 +1072,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         t = i / FPS                      # progress i/total: frame 0 of the Reel would be total/total
         z = 1 + a_rate * (i + 1)         # the last shot's drift carries on from its last frame
         mix = mix_at((i - i_out) / n_cf) if i >= i_out else 0.0
-        dark = ease(t / t_in) * (1 - mix) * shape
+        dark = ease_io(t / t_in) * (1 - mix) * shape   # a field: from rest, never a full-speed first step
         ground = _pushed(a_img, z, width, height) * (1 - dark) + ink * dark
         if mix > 0:                      # frame 0, (total - i) frames earlier on the opening shot's push
             ground = ground * (1 - mix) + _pulled(b_img, 1 + open_push * (i - total), width, height) * mix
@@ -1075,9 +1098,10 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     if stats is not None:
         steps.append(abs(mean_lstar(first) - prev_l))   # the bridge's last frame -> the Reel's frame 0
         stats["mad_last"] = round(float(np.abs(np.asarray(frame, np.float32) - np.asarray(b_img, np.float32)).mean()), 2)
+        stats["mad_measure"] = LOOP_SEAM_MEASURE   # what LOOP_MAX_MAD gates (see there)
         stats.update(text=text, lines=[" ".join(ln) for ln in lay["lines"]] if lay else [],
                      share_size=lay["share_font"].size if lay else None, dim=dim, seconds=LOOP_SECONDS,
-                     follow=follow_plate is not None, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM, push=close_push,
+                     follow=follow_plate is not None, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM if dimmed else 0.0, push=close_push,
                      close_zoom=close_zoom, open_push=open_push, mix_last=round(mix, 4),
                      max_step_L=round(max(steps), 2))
         stats.setdefault("contrast", None)
@@ -1118,8 +1142,9 @@ def follow_alpha(i: int, total: int) -> float:
 def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_push: float, total: int):
     """The bridge's FOLLOW plate (typography.plan_label), planned on the brightest picture it can sit on: per pixel,
     the lightest of the outgoing shot (undimmed) and the incoming frame 0, each at the first and the last frame it is
-    fully up, and its INK variant on the darkest. Every frame under it is a mix of those two (and the dim only
-    darkens), so the variant holds on all of them; or (None, why) when no variant reaches the placement target there
+    fully up, and its INK variant on the darkest. Every frame under it is a mix of those two (a bridge with FOLLOW
+    is not dimmed: LOOP_DIM), so the variant holds on all of them; or (None, why) when no variant reaches the placement
+    target there
     (the bridge then ships without it). Solved on the two endpoint frames only, 3 of 31 production endings measured
     under 4.5:1 mid-crossfade (QF-83 real_data)."""
     from .typography import cap_height, drawable, plan_label
@@ -1135,15 +1160,13 @@ def _follow_plate(a_img: Image.Image, b_img: Image.Image, a_rate: float, open_pu
     # Operator ruling 2 (2026-11-17; panel F15 / MO-2: a 0.47-deep halo cloud held still while the ground crossfaded
     # under it): the ONE overlay-label rule, typography.plan_label. Bone on the label halo (one spread, never above
     # tok("halo.label_max")) judged on the LIGHTEST picture under it; else INK type judged on the DARKEST (the outgoing
-    # shot fully dimmed, the incoming frame 0); else a held INK plate behind the word, which loop_bridge fades and
-    # raises on the FOLLOW's own alpha curve (TextPlate.draw draws it with the word). The halo exception (a 40 px
-    # spread up to 1.0) is retired. Every frame under it is a mix of those two grounds and the dim only darkens.
+    # shot and the incoming frame 0, undimmed: the bridge with FOLLOW draws no dim, lane E cycle 3); else a held INK
+    # plate behind the word, which loop_bridge fades and raises on the FOLLOW's own alpha curve (TextPlate.draw draws
+    # it with the word). The halo exception (a 40 px spread up to 1.0) is retired. Every frame under it is a mix of
+    # those two grounds.
     if not drawable(LOOP_FOLLOW, font).strip():
         return None, "the word did not render"
-    shape = (fit_dim(a_img)[0] * LOOP_DIM)[..., None]
-    ink = np.array(brand.INK, np.float32)
-    darkest = Image.fromarray(np.minimum.reduce([g * (1 - shape) + ink * shape for g in outgoing] + incoming)
-                              .clip(0, 255).astype(np.uint8))
+    darkest = Image.fromarray(np.minimum.reduce(outgoing + incoming).clip(0, 255).astype(np.uint8))
     plates, rec = plan_label(lightest, [(xy, LOOP_FOLLOW, font, "ms", spacing)], (brand.BONE,),
                              target=max(LOOP_FOLLOW_MIN, brand.PLACE_TARGET), dark_ground=darkest)
     if not rec["shown"]:

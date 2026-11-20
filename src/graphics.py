@@ -105,7 +105,10 @@ TEXT_MAX_W = safe_zones.REEL.centred_width(VIDEO_WIDTH, VIDEO_HEIGHT)
 # one graphic to the next keeps the column still (each had its own edge at 65-102 before). QF-24: x 120-820, inside
 # the organic box (113-848), whose left edge already holds 28 px of clearance and annotation uncertainty (x 100-860
 # inside the ads box, 65-888, until then). The right edge keeps its 28 px inside the box.
-INSET_PAD_LEFT, INSET_PAD_RIGHT = 7, 28
+# freeze cycle 3 (lane A, panel 4 MG-1, PL-A-916-column): the left pad is the system's 9:16 margin token
+# (safe_zones.TEXT_INSET, 24: the cards' text column x 137); 7 set every graphic's words at x 120-122, 7-9 px inside
+# the Reel box where every card sits 24 px in. The right pad keeps its 28 (>= the inset).
+INSET_PAD_LEFT, INSET_PAD_RIGHT = safe_zones.TEXT_INSET, max(28, safe_zones.TEXT_INSET)
 INSET_X0, INSET_X1 = TEXT_LEFT + INSET_PAD_LEFT, TEXT_RIGHT - INSET_PAD_RIGHT
 
 
@@ -543,9 +546,10 @@ SCALE_MIN_SEP_SHARE = 0.25           # and the share of the longer they differ b
 SCALE_LINE_W = 3
 SCALE_CASE_W = 1
 SCALE_TICK = 9
-SCALE_LABEL_PX = 24                  # Montserrat 600 on both orientations (the mono face stays for the rulers)
+SCALE_LABEL_PX = 24                  # the data face (IBM Plex Mono) 600 on both orientations (freeze cycle 3, A-S2-3:
+#                                      ruling 3, the data face for rulers, axes and units; Montserrat 600 before)
 SCALE_LABEL_WEIGHT = 600
-SCALE_LABEL_TRACK = 0.08             # em
+SCALE_LABEL_TRACK = 0.0              # em (cycle 3: the mono face spaces itself; 0.08 was Montserrat's)
 SCALE_LABEL_AIR = 8                  # px from the line to the top label's baseline and the bottom label's cap top
 SCALE_LABEL_HALO = 0.6
 SCALE_ORIGIN_TALL = (89.0, 1030.0)   # the zero tick's x and the line's y, 9:16
@@ -661,7 +665,7 @@ def scale_bar(lat: float, px_per_deg_lat: float, narration: str, max_px: float |
     u1, u2 = ("KM", "MI") if primary_metric else ("MI", "KM")
     hi = bar_range[1] if max_px is None else min(bar_range[1], max_px)
     lo = min(bar_range[0], 0.65 * hi)
-    font = get_font(brand.TEXT_FONT, SCALE_LABEL_PX, weight=SCALE_LABEL_WEIGHT)
+    font = data_font(SCALE_LABEL_PX, SCALE_LABEL_WEIGHT)
 
     def holds(v: float, unit: str) -> bool:
         # long enough to read: SCALE_SHORT_MIN_PX, and at least SCALE_LABEL_HOLD of its own label's width (a
@@ -721,7 +725,7 @@ def scale_range(width: int, height: int) -> tuple[float, float]:
 def scale_label_font(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> FreeTypeFont:
     """The scale bar's labels' font on a frame (never under the 9:16 label floor: cycle 0 round 7, F16)."""
     k = 1.0 if height > width else min(width / 1920, height / 1080)
-    return get_font(brand.TEXT_FONT, max(1, floored(SCALE_LABEL_PX * k, width, height)), weight=SCALE_LABEL_WEIGHT)
+    return data_font(max(1, floored(SCALE_LABEL_PX * k, width, height)), SCALE_LABEL_WEIGHT)
 
 
 @dataclass(frozen=True)
@@ -779,7 +783,7 @@ def _scale_bar_plates(rest: Image.Image, bar: ScaleBar, x: float, y: float, px: 
                       direction: int = 1) -> list[tuple[str, TextPlate]]:
     """The bar's labels as measured knockout plates (Montserrat 600, SCALE_LINE on a SCALE_LABEL_HALO ink halo,
     raised while the ratio is short of the target)."""
-    font = get_font(brand.TEXT_FONT, px if px is not None else SCALE_LABEL_PX, weight=SCALE_LABEL_WEIGHT)
+    font = data_font(px if px is not None else SCALE_LABEL_PX, SCALE_LABEL_WEIGHT)
     track = font.size * SCALE_LABEL_TRACK
     return [(name, plan_text(rest, xy, text, font, brand.SCALE_LINE, "ls", track=track, halo_px=21,
                              min_halo=SCALE_LABEL_HALO))
@@ -854,7 +858,10 @@ def place_scale_bar(bar: ScaleBar, width: int, height: int, labels: Sequence[Box
     ox, oy = origin if origin is not None else ((SCALE_ORIGIN_TALL if tall else SCALE_ORIGIN_WIDE)[0] * k,
                                                  (SCALE_ORIGIN_TALL if tall else SCALE_ORIGIN_WIDE)[1] * k)
     tb_ = get_text_box(width, height)
-    lo_x, hi_x = box_x if box_x is not None else (tb_[0] - 30 * k, tb_[2] + 30 * k)
+    # freeze cycle 3 (lane A, A-S1-2): on 9:16 the whole bar, its ticks and casing too, stays inside the text column
+    # (the Reel box's safe zone, RUBRIC 0.7): the 30 px of slack past it (QF-24) set a route's zero tick at x 95-97,
+    # 16-18 px outside the Reel box (x 113). 16:9 keeps its slack inside title-safe's margin.
+    lo_x, hi_x = box_x if box_x is not None else ((tb_[0], tb_[2]) if tall else (tb_[0] - 30 * k, tb_[2] + 30 * k))
     if origin is None:          # its labels inside the text box (the secondary's under the line): moved into it
         over = scale_bar_box(bar, ox, oy, font)[3] - tb_[3]
         if over > 0:
@@ -863,6 +870,8 @@ def place_scale_bar(bar: ScaleBar, width: int, height: int, labels: Sequence[Box
                                   for _n, t, xy in scale_bar_label_specs(bar, ox, oy, font)) if b_]
         if lefts and min(lefts) < tb_[0]:
             ox += math.ceil(tb_[0] - min(lefts))
+        if tall:                # and its zero tick's casing (scale_bar_box: 3 px either side of the line's ends)
+            ox = max(ox, lo_x + 3)
     home_a = None if home is None else (np.asarray(home) > 127) if np.asarray(home).dtype != bool else np.asarray(home)
     obs_a = None
     if obstacles is not None:
@@ -5630,8 +5639,10 @@ def get_text_box(width: int, height: int) -> tuple[int, int, int, int]:
     top, bottom = get_text_bounds(width, height)
     if width > height:
         return int(width * 0.08), top, int(width * 0.92), bottom
-    box = safe_zones.graphics_box(width, height)
-    return box[0], top, box[2], bottom
+    # freeze cycle 3 (lane A, panel 4 MG-1): the 9:16 text column is the Reel box inset by the system's margin token
+    # (safe_zones.text_box: x 137-824 at 1080), as every card's; the graphics' words ran to the box's own edges
+    x0, _, x1, _ = safe_zones.text_box("reel", width, height)
+    return x0, top, x1, bottom
 
 
 def centred_text_width(width: int, height: int) -> int:
@@ -5701,7 +5712,8 @@ def _tracked_w(text: str, font, track: float) -> float:
 
 
 def tracked_wrap(text: str, font, width: float, track: float, lines: int | None = None,
-                 lone_share: float | None = None) -> list[str] | None:
+                 lone_share: float | None = None, strict: bool = False,
+                 max_lines: int | None = None) -> list[str] | None:
     """`text` broken into the fewest lines that each fit `width` px drawn with `track` px of letter spacing (each
     line measured tracked, as drawn), or None where one word alone is wider. Of the breaks into that many lines it
     takes (round 4 review 6, 2026-11-03), in order: no lone word on the first line while a later line holds two
@@ -5735,9 +5747,17 @@ def tracked_wrap(text: str, font, width: float, track: float, lines: int | None 
             return None
         count = lines
 
+    never = label_never_cuts(words, range(1, n))
+
     def stop_end(j: int) -> int:
-        # round 6 review: a row (not the last) ending on an article or a preposition ("BUILDS A / ROYAL ESTATE")
-        return 1 if j < n and words[j - 1].upper().strip(",.;:") in TALL_STOP_WORDS else 0
+        # round 6 review: a row (not the last) ending on an article or a preposition ("BUILDS A / ROYAL ESTATE");
+        # freeze cycle 3 (A-S2-2): the heading engine's hard cuts (label_never_cuts) weigh STOP_HARD each, so they
+        # outrank a lone first word ("AMBER IN / COMPLETED ROOM" was taken over a lone AMBER); a conjunction end, 1
+        if j >= n:
+            return 0
+        if j in never:
+            return STOP_HARD
+        return 1 if words[j - 1].upper().strip(",.;:") in TALL_STOP_WORDS else 0
 
     @cache
     def rest(i: int, lines: int) -> tuple[int, float, float, tuple[int, ...]] | None:
@@ -5760,22 +5780,33 @@ def tracked_wrap(text: str, font, width: float, track: float, lines: int | None 
         return best
     if count == 1:
         return [" ".join(words)]
-    choices = []
-    for j in range(1, n - count + 2):            # the first line's words, then the rest at their best
-        w = w_of(0, j)
-        if w > width + 1e-6:
-            break
-        sub = rest(j, count - 1)
-        if sub is None:
-            continue
-        lone = j == 1 and n > count
-        if lone and lone_share is not None:
-            # lone only while narrower than lone_share of the widest later line, or one word to every line
-            lone = w < lone_share * sub[1] or (count >= 3 and n == count)
-        choices.append((lone, stop_end(j) + sub[0], round(max(w, sub[1]), 3), w * w + sub[2], (j, *sub[3])))
-    if not choices:
+
+    def pick(count: int):
+        choices = []
+        for j in range(1, n - count + 2):            # the first line's words, then the rest at their best
+            w = w_of(0, j)
+            if w > width + 1e-6:
+                break
+            sub = rest(j, count - 1)
+            if sub is None:
+                continue
+            lone = j == 1 and n > count
+            if lone and lone_share is not None:
+                # lone only while narrower than lone_share of the widest later line, or one word to every line
+                lone = w < lone_share * sub[1] or (count >= 3 and n == count)
+            stops = stop_end(j) + sub[0]
+            choices.append((stops // STOP_HARD, lone, stops, round(max(w, sub[1]), 3), w * w + sub[2], (j, *sub[3])))
+        return min(choices) if choices else None
+    got = pick(count)
+    if strict:
+        # freeze cycle 3 (A-S2-2): the fewest lines with no hard cut (label_never_cuts), up to `max_lines`; None
+        # where none holds (the caller then tries a smaller size before it accepts a hard cut)
+        top = count if lines is not None else min(n, max_lines or n)
+        got = next((c for c in (pick(k) if k != count else got for k in range(count, top + 1))
+                    if c is not None and c[0] == 0), None)
+    if got is None:
         return None
-    breaks = (0, *min(choices)[4], n)
+    breaks = (0, *got[5], n)
     from itertools import pairwise
     return [" ".join(words[a:b]) for a, b in pairwise(breaks)]
 
@@ -5809,12 +5840,23 @@ def _probe_tracked(probe: ImageDraw.ImageDraw, text: str, name: str, px: int, wi
         return [], get_font(name, px, weight=weight), False
     sizes = list(range(px, lo - 1, -2)) + ([lo] if (px - lo) % 2 else [])
     font = field_font(text, get_font(name, px, weight=weight))
+    # freeze cycle 3 (A-S2-2): first every size with the heading engine's hard rule (no row ending on a never-end
+    # word, no quantity cut: tracked_wrap strict), then, only where none holds, every size as before (logged)
+    for s in sizes or [px]:
+        f_s = field_font(text, get_font(name, s, weight=weight))
+        lines = tracked_wrap(text, f_s, width, track, strict=True, max_lines=rows)
+        if lines is not None and len(lines) <= rows:
+            if s != px and not quiet:
+                log.info("Text set at %dpx instead of %dpx to fit %d line(s) of %d px: %.60s", s, px, rows, width, text)
+            return lines, f_s, False
     for s in sizes or [px]:
         font = field_font(text, get_font(name, s, weight=weight))     # the label's lines in one face (QF-94)
         lines = tracked_wrap(text, font, width, track)
         if lines is not None and len(lines) <= rows:
             if s != px and not quiet:
                 log.info("Text set at %dpx instead of %dpx to fit %d line(s) of %d px: %.60s", s, px, rows, width, text)
+            log.info("Label %r: no size from %d to %d px holds %d row(s) without a never-end row end or a cut "
+                     "quantity (the heading engine's hard rule); set at its best break.", text, px, lo, rows)
             return lines, font, False
 
     def fits(candidate: str, f) -> list[str] | None:
@@ -5965,8 +6007,27 @@ TALL_LABEL_TRACK = 0.05           # round 6: em, the 9:16 labels' tracking (+2 p
 TALL_SPAN_WEIGHT = 500            # round 7 (R3): the 9:16 span in its own row between the entries, Montserrat 500 in
                                   # STONE (a tier under the labels' 600 in TALL_LABEL_FILL)
 TALL_INK_RESERVE = 6              # px of the measure a label row's ink may overshoot its advance by
-TALL_STOP_WORDS = frozenset({"A", "AN", "THE", "OF", "ON", "IN", "AT", "TO", "INTO", "AND", "OR", "FOR", "BY",
-                             "WITH", "FROM"})   # 2026-11-03: no 9:16 label row but the last ends on one of these
+def _system_stop_words() -> frozenset:
+    """The heading engine's line-end vocabulary in capitals (brand_system.LINE_END_NEVER and LINE_END_LAST_RESORT):
+    freeze cycle 3 (lane A, A-S2-2), the graphics' labels read the system's one list, never a copy of their own (the
+    2026-11-03 list lacked NEAR, ONTO, VIA, PER, BUT, NOR, SO, YET, AS, THAN)."""
+    from .brand_system import LINE_END_LAST_RESORT, LINE_END_NEVER
+    return frozenset(w.upper() for w in LINE_END_NEVER | LINE_END_LAST_RESORT)
+
+
+TALL_STOP_WORDS = _system_stop_words()   # no label row but the last ends on one of these (2026-11-03; cycle 3: system)
+STOP_HARD = 1000                         # tracked_wrap: a hard cut's weight, above any count of soft ends
+
+
+def label_never_cuts(words: Sequence[str], cuts: Iterable[int]) -> set[int]:
+    """Freeze cycle 3 (lane A, A-S2-2: "AMBER IN / COMPLETED ROOM", "DISASSEMBLED BY / GERMAN TROOPS", "ABOUT 220 /
+    YEARS LATER"): the cuts (a row ending after words[j - 1]) the heading engine never makes, its HARD rule applied to
+    every graphic label: a row ending on a never-end word (an article or a preposition, brand_system.LINE_END_NEVER)
+    or a break inside a stated quantity (a hedge from its figure, a figure from its unit: heading.break_points). A
+    conjunction end is the engine's last resort, not hard: TALL_STOP_WORDS ranks it."""
+    from .heading import break_points
+    ok = set(break_points(list(words), last_resort=True))
+    return {j for j in cuts if 0 < j < len(words) and j not in ok}
 
 
 def tall_label_rows_budget(count: int) -> int:
@@ -6011,13 +6072,17 @@ def label_hard_fault(lines: Sequence[str], source: str | None = None) -> str:
     aside)."""
     if len(lines) >= 3 and any(len(ln.split()) == 1 for ln in lines[1:-1]):
         return "a one-word middle row"
-    if len(lines) < 2 or not source:
+    if len(lines) < 2:
         return ""
     words = " ".join(lines).split()
     cuts, at = set(), 0
     for ln in lines[:-1]:
         at += len(ln.split())
         cuts.add(at)
+    if label_never_cuts(words, cuts):     # freeze cycle 3: the heading engine's hard rule (label_never_cuts)
+        return "a row ending on a never-end word or inside a quantity"
+    if not source:
+        return ""
     hit = cuts & _held_breaks(words, source)
     hit -= _soft_count_breaks(words)
     hit = {j for j in hit if not words[j - 1].replace(",", "").replace(".", "").isdigit()
@@ -6090,8 +6155,10 @@ def balanced_label_rows(lines: list[str], font, width: float, track: float,
             widths[(i, j)] = _tracked_w(" ".join(words[i:j]), font, track)
         return widths[(i, j)]
 
-    def stop(j: int) -> bool:          # a row ending after words[j - 1] ends on a stop word
-        return words[j - 1].upper().strip(",;:.") in TALL_STOP_WORDS
+    never = label_never_cuts(words, range(1, n))
+
+    def stop(j: int) -> bool:          # a row ending after words[j - 1] ends on a stop word (or a hard cut: cycle 3)
+        return j in never or words[j - 1].upper().strip(",;:.") in TALL_STOP_WORDS
     held = _held_breaks(words, source)
 
     def best(rule: bool, keep: bool = False):
@@ -6120,6 +6187,21 @@ def balanced_label_rows(lines: list[str], font, width: float, track: float,
     if ruled is not None:
         return ruled, True
     return best(False) or list(lines), False
+
+
+def ruled_rows(lines: list[str], font, width: float, track: float = 0.0, source: str | None = None) -> list[str]:
+    """Freeze cycle 3 (lane A, A-S2-2): a label typography.fit_text wrapped (its balanced break has no word rule:
+    "AMBER IN / COMPLETED ROOM" on the number card) re-broken over the same rows by balanced_label_rows, so no row
+    but the last ends on a stop word or cuts a quantity (label_never_cuts); the fitted lines unchanged where no such
+    break holds within `width` (logged). The words never change."""
+    if len(lines) < 2:
+        return list(lines)
+    got, obeyed = balanced_label_rows(list(lines), font, width, track, source)
+    if not obeyed:
+        log.info("Label %r: no break of its %d rows keeps the word rule within %.0f px; set as fitted.",
+                 " ".join(lines), len(lines), width)
+        return list(lines)
+    return got
 
 
 def span_band(label_px: int, gap_font) -> tuple[int, int]:
@@ -7504,7 +7586,8 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                 continue
             # round 8 (review 7): a break with no weak row or widow first, even where a row then ends on a short
             # word ("BISHOP MAURICE / LAYS THE / FIRST STONE", not "... / LAYS THE FIRST / STONE")
-            key = (int(lone_first(lines, font)), *weak_rank(lines, font),
+            # freeze cycle 3 (A-S2-2): the heading engine's hard cuts first ("DISASSEMBLED BY / GERMAN TROOPS")
+            key = (len(label_never_cuts(words, cuts)), int(lone_first(lines, font)), *weak_rank(lines, font),
                    sum(len(ln.split()) == 1 for ln in lines[1:-1]), sum(ln.split()[-1] in TALL_STOP_WORDS for ln in lines[:-1]),
                    -min(ws[:-1]) / max(ws))
             if best is None or key < best[0]:
@@ -9447,8 +9530,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     mean_lines, f_mean = [], None
     for px in range(SCALE_MEANING_PX[0], SCALE_MEANING_PX[1] - 1, -1):   # round 4: SemiBold, sentence case
         f_mean = get_font(brand.TEXT_FONT, px, weight=600)
-        mean_lines = [ln for text in meaning for ln in fit_text(probe, text, brand.TEXT_FONT, px, int(wide), 3,
-                                                                px, sentences=False, weight=600, quiet=True)[0]]
+        mean_lines = [ln for text in meaning for ln in ruled_rows(fit_text(
+            probe, text, brand.TEXT_FONT, px, int(wide), 3, px, sentences=False, weight=600, quiet=True)[0],
+            f_mean, int(wide), source=text)]      # freeze cycle 3 (A-S2-2): the word rule
         if len(mean_lines) <= len(meaning) + 1:
             break
     mean_step = int(cap_height(f_mean) * 1.75)
@@ -9810,8 +9894,10 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     fits = [probe_text(probe, text, brand.TEXT_FONT, g.f(36), int(col), 2, g.f(32), sentences=False,
                      weight=600, quiet=True) for text in meaning]
     f_mean = get_font(brand.TEXT_FONT, min(f.size for _, f, _ in fits), weight=600)
-    mean_lines = [ln for text in meaning for ln in fit_text(probe, text, brand.TEXT_FONT, f_mean.size, int(col),
-                                                            3, f_mean.size, sentences=False, weight=600, quiet=True)[0]]
+    mean_lines = [ln for text in meaning for ln in ruled_rows(fit_text(
+        probe, text, brand.TEXT_FONT, f_mean.size, int(col), 3, f_mean.size, sentences=False, weight=600,
+        quiet=True)[0], f_mean, int(col), source=text)]      # freeze cycle 3 (A-S2-2): the word rule
+    sub_lines = ruled_rows(sub_lines, f_sub, int(col), S(3))
     sub_step = cap_height(f_sub) * 1.5 / g.k
     fig_step = cap_height(f_fig) * 1.22 / g.k
     mean_step = cap_height(f_mean) * 1.75 / g.k
@@ -10335,6 +10421,7 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
                                max(word_floor, label_min if label_min is not None else max(26, round(f_lab_px * 0.75))),
                                weight=800, quiet=True)                                   # 3 px tracking
     f_lab = get_font(brand.TEXT_FONT, f_lab.size, weight=800)
+    lines = ruled_rows(lines, f_lab, width - 120, 3)     # freeze cycle 3 (A-S2-2): the heading engine's word rule
     y += round(f_lab.size * 1.75)
     for j, line in enumerate(lines):
         rows.append({"name": "label", "kind": "text", "text": line, "font": f_lab, "y": y + j * round(f_lab.size * 1.26),
@@ -12286,7 +12373,11 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         if not second:
             bar = bar.one_unit()
         box_x = None if portrait else ((sx0 - 13.0, width / 2 - 1) if corner == "l" else (width / 2, sx1 + 30.0))
-        lay = place_scale_bar(bar, width, height, [], obstacles=keep_off, box_x=box_x, prefer=corner)
+        # freeze cycle 3 (A-S1-2): the stops' dots are labels to the bar (its figures overprinted Catherine Palace's
+        # origin dot): a place clear of every dot outranks one off the land
+        dots = [(x_ - stop_r[k_] - 4, y_ - stop_r[k_] - 4, x_ + stop_r[k_] + 4, y_ + stop_r[k_] + 4)
+                for k_, (x_, y_) in enumerate(pts)]
+        lay = place_scale_bar(bar, width, height, dots, obstacles=keep_off, box_x=box_x, prefer=corner)
         figs = [ink_box(xy, text, bar_font, "ls", bar_font.size * SCALE_LABEL_TRACK)
                 for _n, text, xy in scale_bar_label_specs(bar, lay.x, lay.y, bar_font)]
         figs = [f for f in figs if f]

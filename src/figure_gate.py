@@ -187,7 +187,7 @@ def evidence_texts(payload: Mapping[str, Any]) -> list[str]:
         if where and not [w for w in re.split(r"[,;/]", where.strip("[] ")) if w.strip()
                           and not _DERIVED_WHERE.search(w)]:
             continue          # an audit OF a title, cover, caption or comment is no evidence for a headline
-        out += [str(audit.get("claim") or ""), str(audit.get("note") or "")]
+        out.append(str(audit.get("claim") or ""))   # the audited claim; a checker's note is commentary, not signed
     return [t for t in out if t.strip()]
 
 

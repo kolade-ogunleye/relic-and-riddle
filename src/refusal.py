@@ -106,10 +106,13 @@ def decline(surface: str, rule: str, detail: str) -> Declined:
 
 
 def record(error: BaseException, surface: str) -> dict:
-    """A refusal as a caller records it: the surface, the refusal's class and code, its rule and its reason."""
-    return {"surface": surface or getattr(error, "surface", "") or "", "refused": type(error).__name__,
-            "code": getattr(error, "code", "") or "", "rule": getattr(error, "rule", "") or "",
-            "reason": getattr(error, "reason", None) or str(error)}
+    """A refusal as a caller records it: the surface, the refusal's class and code, its reason, and its rule where the
+    raiser named one (the record's shape is unchanged for a refusal that names none)."""
+    rec = {"surface": surface or getattr(error, "surface", "") or "", "refused": type(error).__name__,
+           "code": getattr(error, "code", "") or "", "reason": getattr(error, "reason", None) or str(error)}
+    if getattr(error, "rule", ""):
+        rec["rule"] = error.rule
+    return rec
 
 
 # ------------------------------------------------------------------------------------------- a surface's own gate

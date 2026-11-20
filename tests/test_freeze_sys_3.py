@@ -381,3 +381,29 @@ def test_a_lone_first_row_is_never_traded_for_a_form_under_the_balance_minimum()
     # NO / METEORITE IMPACT: the only other form, NO METEORITE / IMPACT, is under the minimum and splits a compound
     form = heading.set_heading("NO METEORITE IMPACT", measure, 1100, (124,))
     assert form is not None and form.lines == ("NO", "METEORITE IMPACT") and form.record.get("first_row_lone") == "NO"
+
+
+def test_headline_evidence_is_any_signed_field_never_derived_copy():
+    from src import figure_gate
+    run = {"narration_script": "Orbital surveys describe the dome as almost 30 miles across.",
+           "title": "The 30-Mile Dome", "caption": "A 30-mile dome seen from space.",
+           "fact_audits": [{"claim": "A 30-mile dome.", "where": "[title]", "note": "titles exempt"}]}
+    # the caption and an audit OF the title are derived: the signed body says "almost"
+    assert any("ALMOST" in f for f in figure_gate.headline_faults(run))
+    # a fact audit of the body (or the second check) is signed evidence
+    run["fact_audits"].append({"claim": "The dome is 30 miles across.", "where": "[narration]"})
+    assert figure_gate.headline_faults(run) == []
+    run["fact_audits"].pop()
+    run["second_check"] = {"audits": [{"claim": "Surveys give 30 miles across.", "note": ""}]}
+    assert figure_gate.headline_faults(run) == []
+
+
+def test_a_headline_floor_only_for_a_signed_floor_drawn_as_the_same_hedge():
+    from src import figure_gate
+    body = "It weighed over 1,000 tonnes when complete."
+    assert figure_gate.headline_faults({"narration_script": body, "title": "Over 1,000 Tonnes"}) == []
+    assert figure_gate.headline_faults({"narration_script": body, "title": "1,000+ Tonnes"}) == []
+    assert figure_gate.headline_faults({"narration_script": body, "title": "About 1,000 Tonnes"})
+    exact = "It weighed an estimated 1,000 tonnes."
+    assert figure_gate.headline_faults({"narration_script": exact, "title": "1,000+ Tonnes"})
+    assert figure_gate.headline_faults({"narration_script": exact, "title": "Over 1,000 Tonnes"})

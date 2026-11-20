@@ -127,17 +127,22 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
     return [t for t in out if t and t.strip()]
 
 
-# Freeze cycle 3 (SYS batch 3, lander ruling on "THE 1,200-TON"): a headline's figure (the title, the thumbnail's and
-# the YouTube thumbnail's lines) is a claim drawn on the run's most visible surfaces, and its own field is no evidence
-# for it: it must equal a statement the body signs (narration, captions, slides, the fact sheet), hedge included, in
-# the unit the signed copy uses. A "ton" that does not say which is the run's unit system's: tonnes in a metric run,
-# short tons in a US customary one (the dev Aswan run 1792985912 drew 'THE 1,200-TON' over a body that signs "nearly
-# 1,090 tonnes to 1,168 tonnes": its source's "nearly 1,200 short tons", hedge dropped, in a metric run). The covers'
-# exemption from hedging is withdrawn by the same ruling.
+# Freeze cycle 3 (SYS batch 3, lander rulings on "THE 1,200-TON"): headline truth is ONE rule everywhere (this gate,
+# script_engine's headline check and trace_check's writer and checker prompts). A headline's figure (the title, the
+# thumbnail's and the YouTube thumbnail's lines) must equal a signed statement: its hedge, both span ends, in the run's
+# unit (a bare ton is a tonne in a metric run, a US short ton in a US customary one). A floor ("1,000+ TONNES", "OVER
+# 1,000 TONNES") stands only where the signed statement is itself a floor, drawn as the same kind of hedge. Covers are
+# not exempt from hedges. Evidence is any signed field of the run (the verified body: narration, slides, Stories,
+# graphics fields, the fact sheet; the fact audits and the second check of those) and never derived copy (titles,
+# thumbnail lines, comments, captions, nor an audit OF one of them). The dev Aswan run 1792985912 drew 'THE 1,200-TON'
+# over "nearly 1,090 tonnes to 1,168 tonnes" (source: "nearly 1,200 short tons"), in a metric run.
 HEADLINE_KEYS = ("title", "thumbnail", "thumbnail_youtube", "youtube_title")
 # copy derived from the headline or written to promote it, never evidence for it (the Aswan first comment repeated
 # "1,200 tons")
-DERIVED_COPY_KEYS = ("first_comment", "emphasis_words", "poll", "share_line", "end_card")
+DERIVED_COPY_KEYS = ("first_comment", "emphasis_words", "poll", "share_line", "end_card", "caption", "carousel_caption",
+                     "description")
+_DERIVED_WHERE = re.compile(r"title|cover|thumbnail|caption|comment|description|poll|share", re.IGNORECASE)
+_AUDIT_KEYS = ("fact_audits", "final_fact_audits")
 
 
 _BARE_TON = re.compile(r"(?<!short )(?<!long )(?<!metric )\b(tons?)\b", re.IGNORECASE)
@@ -151,21 +156,72 @@ def _tons_in(text: str, system: str | None) -> str:
     return _BARE_TON.sub(lambda m: "tonnes" if m.group(1).lower().endswith("s") else "tonne", text)
 
 
-def headline_faults(payload: Mapping[str, Any]) -> list[str]:
-    """One line per headline figure that is not a body-signed statement (see above); [] when every one is."""
+def run_unit_system(payload: Mapping[str, Any]) -> str | None:
+    """The run's unit system for an unqualified ton: the narration's mass system, else the deck lead, else its
+    lengths' system."""
     from .typography import spoken_system
     spoken = narration(payload)
-    system = spoken_system(spoken, "mass") or figures.deck_lead(payload) or spoken_system(spoken, "length")
-    body = figures.signed_figures([_tons_in(t, system) for t in signed_texts(
-        {k: v for k, v in payload.items() if k not in HEADLINE_KEYS + DERIVED_COPY_KEYS})])
+    return spoken_system(spoken, "mass") or figures.deck_lead(payload) or spoken_system(spoken, "length")
+
+
+def evidence_texts(payload: Mapping[str, Any]) -> list[str]:
+    """The run's signed fields a headline figure may be checked against (see above): never derived copy."""
+    out = signed_texts({k: v for k, v in payload.items() if k not in HEADLINE_KEYS + DERIVED_COPY_KEYS})
+    audits = [a for key in _AUDIT_KEYS for a in (payload.get(key) or [])]
+    second = payload.get("second_check")
+    if isinstance(second, Mapping):
+        audits += list(second.get("audits") or [])
+    for audit in audits:
+        if not isinstance(audit, Mapping):
+            continue
+        where = str(audit.get("where") or "")
+        if where and not [w for w in re.split(r"[,;/]", where.strip("[] ")) if w.strip()
+                          and not _DERIVED_WHERE.search(w)]:
+            continue          # an audit OF a title, cover, caption or comment is no evidence for a headline
+        out += [str(audit.get("claim") or ""), str(audit.get("note") or "")]
+    return [t for t in out if t.strip()]
+
+
+def _floor(f: figures.Figure) -> bool:
+    return f.lo.endswith("+") or figures.hedge_direction(f.hedge) > 0
+
+
+def headline_figure_faults(drawn: str, evidence: list[figures.Figure]) -> list[str]:
+    """figure_faults, and the hedge's kind: a floor only for a signed floor; a hedged signed figure drawn with a hedge of
+    its own kind (an approximate one approximate, a bound the same bound)."""
+    out = []
+    for d in figures.parse(drawn):
+        # "1,000+ TONNES" is a floor: read as the lower-bound hedge it draws ("MORE THAN 1,000 TONNES")
+        as_read = (f"MORE THAN {d.drawn().replace(d.lo, d.lo[:-1], 1)}" if d.lo.endswith("+") and not d.hedge
+                   else d.drawn())
+        found = figure_faults(as_read, evidence)
+        if found:
+            out += found
+            continue
+        same = [s for s in evidence if s.values == tuple(v for v in d.values)
+                and figures._canon(s.unit) == figures._canon(d.unit)]
+        if not same:
+            continue          # a conversion figure_faults accepted
+        if _floor(d) and not any(_floor(s) for s in same):
+            out.append(f"{d.drawn()!r}: a floor where the signed statement is not one ({same[0].drawn()!r})")
+        elif d.hedge and not _floor(d) and all(s.hedge and figures.hedge_direction(s.hedge)
+                                               != figures.hedge_direction(d.hedge) for s in same):
+            out.append(f"{d.drawn()!r}: the hedge is not the signed one's kind ({same[0].drawn()!r})")
+    return out
+
+
+def headline_faults(payload: Mapping[str, Any]) -> list[str]:
+    """One line per headline figure that is not a signed statement (see above); [] when every one is."""
+    system = run_unit_system(payload)
+    evidence = figures.signed_figures([_tons_in(t, system) for t in evidence_texts(payload)])
     out = []
     for key in HEADLINE_KEYS:
         for text in _strings(payload.get(key)):
             for f in figures.parse(_tons_in(text, system)):
                 if not (f.unit or f.scale):
                     continue          # a bare number (a year, "7 wonders") is not a stated quantity here
-                for fault in figure_faults(f.drawn(), body):
-                    out.append(f"headline {key} {text!r}: {f.drawn()!r} is not a body-signed statement: "
+                for fault in headline_figure_faults(f.drawn(), evidence):
+                    out.append(f"headline {key} {text!r}: {f.drawn()!r} is not a signed statement: "
                                f"{fault.split(': ', 1)[-1]} (rule: headline figure == signed statement)")
     return out
 

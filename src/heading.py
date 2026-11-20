@@ -169,7 +169,7 @@ def lines_of(words: Sequence[str], cuts: Sequence[int]) -> tuple[str, ...]:
 
 
 def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] | None = None,
-          seam: int | None = None, free_ends: Sequence[int] = ()) -> bool:
+          seam: int | None = None, free_ends: Sequence[int] = (), first_lone_ok: bool = False) -> bool:
     """A drawn form obeys the engine's hard rules: no line but the last ends on a never word; no lone-word row (unless
     `lone_ok`: a locked cover's last resort, where the break gives way before the size does; or a last row the phrase
     exception holds, phrase_row: ruling 4, measured on `widths` when given). `free_ends`: rows whose end is the copy's
@@ -194,10 +194,67 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
     bonded = _bonded(words)
     if any(b in bonded for i, (_, b) in enumerate(spans[:-1]) if i not in free_ends):
         return False
-    if lone_ok or not _lone_row(spans, len(words)):
+    if lone_ok:
+        return True
+    # freeze SYS-B-6 (lane B cycle 3, ruling R8-4): a one-word FIRST row in a stack is a lone row too (lockup_fields'
+    # CARVED / FROM SOLID SALT, 0.44): it stands only where the two first rows balance >= heading.balance_min
+    if not first_lone_ok and first_row_lone(lines, widths):
+        return False
+    if not _lone_row(spans, len(words)):
         return True
     # the phrase exception: the last row alone may stand (middle rows keep the rule)
     return not any(b - a < 2 for a, b in spans[1:-1]) and phrase_row(lines, widths, seam)
+
+
+def first_row_lone(lines: Sequence[str], widths: Sequence[float] | None = None) -> bool:
+    """A one-word first row over a stack (three words or more) whose first two rows balance under heading.balance_min
+    (measured `widths`, else characters): the no-lone-row rule on the first row (SYS-B-6)."""
+    rows = [ln for ln in lines if ln.split()]
+    if len(rows) < 2 or len(" ".join(rows).split()) < 3 or len(rows[0].split()) != 1:
+        return False
+    ws = list(widths[:2]) if widths is not None and len(widths) >= 2 else [len(rows[0]), len(rows[1])]
+    return not (max(ws) > 0 and min(ws) / max(ws) >= brand_system.SPEC["heading.balance_min"])
+
+
+def broken_rule(lines: Sequence[str], widths: Sequence[float] | None = None, seam: int | None = None) -> str:
+    """The heading rule a form breaks, named as a refusal records it ("" when valid holds) (SYS-B-6: one reader, so
+    every display refusal names its rule the same way)."""
+    rows = [ln for ln in lines if ln.strip()]
+    if any(not end_ok(ln.split()[-1]) for ln in rows[:-1]):
+        bad = next(ln.split()[-1] for ln in rows[:-1] if not end_ok(ln.split()[-1]))
+        return f"the line-end rule (a line never ends on {bad})"
+    if len(rows) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
+                                 for w in ln.split()) for ln in rows):
+        return "the line-end rule (a row of function words only)"
+    if len(rows) > 2 and any(len(ln.split()) < 2 for ln in rows[1:-1]):
+        return "the no-lone-row rule (a one-word middle row)"
+    if first_row_lone(rows, widths):
+        return "the no-lone-row rule (a one-word first row under the balance minimum)"
+    if valid(rows, widths=widths, seam=seam):
+        return ""
+    if len(rows) > 1 and len(rows[-1].split()) < 2:
+        return "the no-lone-row rule (a one-word last row the phrase exception does not hold)"
+    return "the bonded-unit rule (a unit split by the break)"
+
+
+def one_heading(line1: str, line2: str, measure: Callable[[str, float], float], width: float,
+                sizes: Sequence[float], max_lines: int = 2) -> Form | None:
+    """A two-field copy set as ONE heading (SYS-B-6, lane B's one_heading): the fields' words through set_heading as
+    a lockup whose payoff run opens at the copy's field seam, kept only where it obeys the rules (valid) and stacks no
+    one-word row under the balance minimum; None otherwise (the caller keeps its stack, recorded)."""
+    w1 = line1.split()
+    if not w1 or not line2.split():
+        return None
+    form = set_heading(f"{line1} {line2}", measure, width, tuple(sizes), max_lines=max_lines, seam=len(w1),
+                       lockup=True)
+    if form is None:
+        return None
+    rows = list(form.lines)
+    widths = [measure(t, form.size) for t in rows]
+    if len(rows) > 1 and any(len(t.split()) == 1 for t in rows) and max(widths) > 0 and (
+            min(widths) / max(widths) < brand_system.SPEC["heading.balance_min"]):
+        return None
+    return form
 
 
 @dataclass
@@ -307,14 +364,15 @@ def _issue(form: Form) -> Form:
     return form
 
 
-def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None):
+def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None,
+            first_lone_ok=False):
     best = None
     for cuts in cut_sets:
         lines = lines_of(words, cuts)
         if not fits(lines):
             continue
         lens = [measure(t) for t in lines]
-        if not valid(lines, lone_ok, lens, phrase_seam):
+        if not valid(lines, lone_ok, lens, phrase_seam, first_lone_ok=first_lone_ok):
             continue
         conj = sum(bare(words[k - 1]) in brand_system.LINE_END_LAST_RESORT
                    and not lines[i].endswith(tuple(_CLOSE)) for i, k in enumerate(cuts))
@@ -361,6 +419,11 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         stages.append((tier, size, multi, balance_min, True))
     for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, 0.0, False))
+    # SYS-B-6: a one-word first row under the balance minimum is refused by valid(); where no ladder form avoids it,
+    # it stands at the DESIGN size (recorded first_row_lone) before any smaller or off-ladder form: the heading never
+    # shrinks only to move a word (measured on real decks: the same lines one tier down, or one line off the ladder)
+    first_lone_stage = (0, sizes[0], multi, 0.0, False)
+    stages.append(first_lone_stage)
     if extra_lines > max_lines:   # an interior's next resort: more lines on the ladder (valid forms), before any fit
         more = [c for n in range(max_lines, extra_lines) for c in itertools.combinations(points, n)]
         for tier, size in enumerate(sizes):
@@ -386,10 +449,12 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                 size -= 2
     # ruling 4: a lockup's payoff run is a complete phrase (the authored seam, else the engine's ideal one)
     phrase_seam = seam if seam is not None else (ideal_seam(words) if lockup else None)
-    for tier, size, cut_sets, bmin, strict in stages:
+    for stage in stages:
+        tier, size, cut_sets, bmin, strict = stage
         lone_ok = cut_sets is lone_sets
+        first_lone = stage is first_lone_stage
         got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok,
-                      phrase_seam)
+                      phrase_seam, first_lone_ok=first_lone)
         if got is None:
             continue
         _, cuts, conj, bal = got
@@ -401,6 +466,8 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                            {"balance": round(bal, 3), "conjunction_end": bool(conj),
                             **({"phrase_exception": drawn[-1]} if phrase else {}),
                             **({"locked_last_resort": True} if lone_ok else {}),
+                            **({"first_row_lone": drawn[0]} if first_lone and first_row_lone(
+                                drawn, [measure(t, size) for t in drawn]) else {}),
                             **({"off_ladder": True} if tier is None else {})}))
     return None
 

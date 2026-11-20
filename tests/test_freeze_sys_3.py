@@ -320,3 +320,37 @@ def test_an_unqualified_ton_in_a_us_customary_run_is_a_short_ton():
     # in a metric run the same headline is read as tonnes, which the body does not sign
     metric = dict(run, narration_script="It weighed nearly 1,090 tonnes and stood 42 metres tall.")
     assert figure_gate.headline_faults(metric)
+
+
+# --------------------------------------------------------------------------- SYS-B-6: the no-lone-row rule on the first row
+def test_a_one_word_first_row_under_the_balance_minimum_is_a_lone_row():
+    from src import heading
+    assert not heading.valid(["CARVED", "FROM SOLID SALT"])
+    assert heading.valid(["WHY ROMAN CONCRETE", "HEALS ITSELF"])
+    assert heading.valid(["SALT", "MINE"])                         # two words: no stack to be lone in
+    assert heading.valid(["CARVED", "FROM SOLID SALT"], first_lone_ok=True)
+    assert "one-word first row" in heading.broken_rule(["CARVED", "FROM SOLID SALT"])
+    assert heading.broken_rule(["WHY ROMAN CONCRETE", "HEALS ITSELF"]) == ""
+
+
+def test_the_engine_never_shrinks_a_heading_only_to_move_a_word():
+    from src import heading
+
+    def measure(t, size):
+        return len(t) * size * 0.5
+    # a balanced re-break at the size is taken over a lone first row
+    form = heading.set_heading("HOT MIXING SECRET DISCOVERY", measure, 1400, (124,))
+    assert form is not None and form.size == 124 and "first_row_lone" not in form.record
+    # where no ladder form avoids it, the lone first row stands at the DESIGN size, recorded (never the next tier)
+    form = heading.set_heading("HOT MIXING DISCOVERY", measure, 1200, (138, 124))
+    assert form is not None and form.size == 138 and form.record.get("first_row_lone") == "HOT"
+
+
+def test_one_heading_sets_two_fields_as_one_lockup():
+    from src import heading
+
+    def measure(t, size):
+        return len(t) * size * 0.5
+    form = heading.one_heading("CARVED FROM", "SOLID SALT", measure, 2000, (92,))
+    assert form is not None and form.lockup and " ".join(form.lines) == "CARVED FROM SOLID SALT"
+

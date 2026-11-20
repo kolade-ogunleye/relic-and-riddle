@@ -1755,6 +1755,34 @@ def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> boo
 CAPTION_LADDER = (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE)   # px: the 9:16 sizes a burst draws at
 
 
+def _rung_above(size: float) -> int:
+    """The next CAPTION_LADDER rung above `size` (FONT_SIZE at the top; the bond floor for a word shrunk under it)."""
+    return min((r for r in CAPTION_LADDER if r > size), default=max(CAPTION_LADDER))
+
+
+def bounded_caption_sizes(fits: list[int], joined: list[bool]) -> list[int]:
+    """Lane C cycle 3 (MO-cap-size): the size each 9:16 burst draws at, so that two bursts shown back to back
+    (joined[i]: burst i hands over to burst i + 1 with no pause) differ by at most one CAPTION_LADDER rung.
+
+    A burst that must draw at the bond floor (OF ARMY GROUP NORTH at 66 between bursts at 80) was a 17.5% size pop
+    at its handover; its neighbours now step down one rung (74) instead, and theirs stay at 80 (80 -> 74 -> 66 -> 74
+    -> 80: at most one rung, 7.5% or 10.8%, a step). No burst ever draws larger than its own fit (`fits`); a burst
+    shrinks only as far as the bound requires, so legibility gives way to rhythm only beside a shrunk burst (trade-off
+    order: the 'one size per run' alternative shrank about half of all real bursts). A single over-long word under
+    the bond floor (CAPTION_MIN_SIZE) bounds its neighbours at the floor. Across a pause the plate fades out and in,
+    so no bound holds there."""
+    sizes = list(fits)
+    changed = True
+    while changed:   # each pass only lowers a size, and sizes are bounded below: it ends
+        changed = False
+        for i in range(len(sizes)):
+            near = [sizes[j] for j in (i - 1, i + 1) if 0 <= j < len(sizes) and joined[min(i, j)]]
+            limit = min((_rung_above(s) for s in near), default=sizes[i])
+            if sizes[i] > limit:
+                sizes[i], changed = limit, True
+    return sizes
+
+
 def _two_line_clears_graphics(size: float, height: int = VIDEO_HEIGHT) -> bool:
     """Whether a two-line 9:16 plate at caption size `size` (REEL_PLATE_H plus one baseline pitch, its bottom on the
     one-line plate's) stays inside the band reserved for captions (safe_zones.caption_band_top, which stands the
@@ -2345,6 +2373,23 @@ def line_defect_bursts(phrases) -> list[str]:
     return out
 
 
+def never_end_lines(phrases) -> list[dict[str, Any]]:
+    """Lane C cycle 3 (stress realism, LINE_END_BREAK): each 9:16 burst drawn on two lines (reel_caption_lines) whose
+    line 1 ends on a never-end word (never_end_end, the one predicate burst ends are read with): its text with " / "
+    between the lines, the word, and whether the break is the ruled hedge break (_hedge_break: MORE THAN / 590 SQUARE
+    FEET, lander ruling 1, accepted). The board's line record counts the same lines, so the two never disagree."""
+    out = []
+    for p in phrases:
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        layout = reel_caption_lines(ws)
+        if layout is None or not never_end_end(ws[layout[0] - 1]):
+            continue
+        k = layout[0]
+        out.append({"text": " ".join(ws[:k]) + " / " + " ".join(ws[k:]), "ends_on": _bare(ws[k - 1]),
+                    "hedge_break": _hedge_break(_phrase_words(ws), k)})
+    return out
+
+
 def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]],
                   widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
@@ -2381,6 +2426,12 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             "line_defect": [] if widescreen else line_defect_bursts(phrases),
             # lane C cycle 2: and those whose line break splits a proper name (recorded, as ruled)
             "name_split": [] if widescreen else name_split_bursts(phrases),
+            # lane C cycle 3 (stress realism): every line inside a 9:16 burst that ends on a never-end word, as the
+            # board counts them, the ruled hedge break (MORE THAN / 590 SQUARE FEET) marked, and the one total of
+            # never-end ends a reader sees (burst ends plus line ends that are no ruled hedge break)
+            "never_end_lines": [] if widescreen else never_end_lines(phrases),
+            "never_end_total": len(never_end_bursts(phrases)) + (0 if widescreen else sum(
+                not row["hedge_break"] for row in never_end_lines(phrases))),
             # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
             # the defect it removed (caption_phrases' bond_extra)
             "bond_extra": list(bond_extra or [])}
@@ -3643,13 +3694,24 @@ def name_bonds(raw: list[str]) -> set[int]:
     n = len(raw)
     starts = _sentence_starts(raw)
     mid_caps = {_bare(w) for k, w in enumerate(raw) if k not in starts and _capitalised(w)}
+    # lane C cycle 3 (stress LINE_END): a hedge phrase before its figure is no part of a name, whatever its case.
+    # Upper-case copy (2560-2540 BC MORE THAN 535 METERS) read BC MORE as a name, and the bonds that crossed it cut
+    # the hedge from its figure ('BC MORE' | 'THAN 535 meters'). No real narration has an upper-case hedge (0 in 69
+    # word timings, dev and the production sample), so this guards a class, not a seen run.
+    tokens = [_norm(r) for r in raw]
+    hedged: set[int] = set()
+    for s in range(n):
+        for h in HEDGE_PHRASES:
+            if tuple(tokens[s:s + len(h)]) == h and _is_figure_at(tokens, s + len(h)):
+                hedged.update(range(s, s + len(h)))
 
     def opens(k: int) -> bool:
-        return _capitalised(raw[k]) and (k not in starts or _bare(raw[k]) in mid_caps)
+        return _capitalised(raw[k]) and k not in hedged and (k not in starts or _bare(raw[k]) in mid_caps)
 
-    def continues(w: str) -> bool:
+    def continues(w: str, k: int) -> bool:
         core = w.strip("\"'“”‘’()[]")
-        return _capitalised(w) or _regnal(w) or (core[:1].isupper() and _bare(core) in SPELLED_NUMBERS)
+        return k not in hedged and (_capitalised(w) or _regnal(w)
+                                    or (core[:1].isupper() and _bare(core) in SPELLED_NUMBERS))
 
     bonds: set[int] = set()
     i = 0
@@ -3661,11 +3723,11 @@ def name_bonds(raw: list[str]) -> set[int]:
         # a possessive ends a name (RUSSIA'S | CATHERINE PALACE: two names, review 2026-11-04)
         while j + 1 < n and not _ends_clause(raw[j]) and not _possessive(raw[j]):
             nxt = raw[j + 1]
-            if (continues(nxt) and not (_bare(nxt) == "i" and j == i)) or (   # CARTER I BELIEVE: the pronoun
+            if (continues(nxt, j + 1) and not (_bare(nxt) == "i" and j == i)) or (   # CARTER I BELIEVE: the pronoun
                     _bare(raw[j]) in NAME_NUMBERED and re.fullmatch(r"\d{1,4}[,;.:!?]*", nxt)):  # AUGUST 5, CAVE 10
                 j += 1
             elif (_bare(nxt) in NAME_PARTICLES and j + 2 < n and not _ends_clause(nxt)
-                  and _capitalised(raw[j + 2])):
+                  and _capitalised(raw[j + 2]) and j + 2 not in hedged):
                 j += 2
             elif _bare(nxt) in NAME_HEADS and nxt[:1].islower():
                 j += 1
@@ -4693,6 +4755,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Pass 1: each burst's geometry
         geo: list[dict[str, Any]] = []
         base = 0
+        held: list[int] = []
+        if not is_widescreen:
+            # One size per Reel: bursts are formed to fit at a CAPTION_LADDER rung; only a single over-long word
+            # shrinks further. Freeze pass N1: a name too wide for one line draws on two (reel_caption_lines).
+            # Lane C cycle 3: bursts shown back to back differ by at most one rung (bounded_caption_sizes).
+            fits, kb = [], 0
+            for phrase in phrases:
+                lines = reel_caption_lines(phrase) if max_caption_width == MAX_CAPTION_WIDTH else None
+                has_key = any(kb + j in key for j in range(len(phrase)))
+                fits.append(lines[1] if lines else _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0,
+                                                                      max_width=max_caption_width))
+                kb += len(phrase)
+            held = bounded_caption_sizes(fits, [pi + 1 < len(phrases) and abs(timings[pi][1] - timings[pi + 1][0])
+                                                < 1e-6 for pi in range(len(phrases))])
         for pi, phrase in enumerate(phrases):
             show, hide, _ = timings[pi]
             lines, two = None, None
@@ -4711,11 +4787,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 ink_mid = (cap_top + desc_bottom) / 2 - wide_fs * shrink / 2
                 center_y = round(box_y + box_h / 2 - ink_mid)
             else:
-                # One size per Reel: bursts are formed to fit at a CAPTION_LADDER rung; only a single over-long word
-                # shrinks further. Freeze pass N1: a name too wide for one line draws on two (reel_caption_lines).
                 lines = reel_caption_lines(phrase) if max_caption_width == MAX_CAPTION_WIDTH else None
-                fit = lines[1] if lines else _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0,
-                                                               max_width=max_caption_width)
+                fit = held[pi]
                 ass_size = FONT_SIZE_ASS if fit >= FONT_SIZE else round(fit / 0.5625)
                 size_tag = f"{{\\fs{ass_size}}}" if fit < FONT_SIZE else ""
                 if lines:
@@ -4783,8 +4856,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 half = caption_span / 2
                 box_x = max(round(center_x - half), min(box_x, round(center_x + half) - box_w))
             whole = pi == 0 and whole_first   # round 4: the first burst whole and settled on frame 0
-            fade_in = 0 if is_widescreen or whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
-            fade_out = 0 if is_widescreen or joined_next[pi] else CAPTION_PLATE_FADE_OUT_MS
+            # Lane C cycle 3 (MO-C2): both formats fade the plate in and out at a pause (the 60/80 ms motion token);
+            # 16:9 switched in one frame there. Back to back, either format hands over in one frame.
+            fade_in = 0 if whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
+            fade_out = 0 if joined_next[pi] else CAPTION_PLATE_FADE_OUT_MS
             fad = f"\\fad({fade_in},{fade_out})" if fade_in or fade_out else ""
 
             # Layer 0: the plate, fixed for the whole burst (sized to every word of it, spoken or not)
@@ -4816,7 +4891,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             contrast_rows.append({"burst": pi, "text": " ".join(shown), "gold": bool(gold_words)})
 
             if is_widescreen:
-                # Layer 1, 16:9: the whole burst at once, still, from show to hide
+                # Layer 1, 16:9: the whole burst at once, still, from show to hide, fading with its plate
                 def _wide_word(ji: int, w: str) -> str:
                     if ji not in gold_words:
                         return f"{{\\c{_col_past()}}}{_ass_escape(w)}"
@@ -4824,7 +4899,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     return ((f"{{\\c{_col_past()}}}{lead}" if lead else "") + f"{{\\c{_col_emphasis()}}}{core}"
                             + (f"{{\\c{_col_past()}}}{tail}" if tail else ""))
                 line = " ".join(_wide_word(ji, w) for ji, w in enumerate(shown))
-                raw_events.append((1, show, hide, "CapText", f"{pos}{g['size_tag']}{line}"))
+                text_fad = f"{{{fad}}}" if fad else ""
+                raw_events.append((1, show, hide, "CapText", f"{pos}{text_fad}{g['size_tag']}{line}"))
                 continue
 
             # Layer 1, 9:16: one event per spoken word; the words still to come are transparent placeholders. A

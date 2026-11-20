@@ -1,0 +1,157 @@
+"""Design-freeze lane C (captions), cycle 3 (queue LANE-C-cycle3.md and the stress realism run), closed by class in
+src/video_composer.py:
+
+- MO-cap-size: two 9:16 bursts shown back to back differ by at most one CAPTION_LADDER rung (bounded_caption_sizes);
+  no burst draws larger than its own fit, and only a burst beside a shrunk one gives way.
+- MO-C2: the 16:9 plate and its line fade in and out at a pause with the 60/80 ms plate-fade token, as 9:16 does.
+- Stress LINE_END (all caps): a hedge phrase before its figure is no part of a proper name whatever its case, so the
+  bursts never cut it from its figure (name_bonds).
+- Stress realism LINE_END_BREAK: the composer's record lists every line inside a 9:16 burst that ends on a never-end
+  word (never_end_lines), the ruled hedge break marked, and one total with the burst ends (never_end_total).
+
+Invariants over the real runs' bursts (the freeze-panel catalogue's caption cases with their own word timings) and
+labelled synthetic narrations; never pinned sizes or breaks.
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+import pytest
+
+from src import video_composer as vc
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "docs" / "reviews" / "freeze-panel-2026-11-04" / "fixtures"))
+import fixtures as _fx
+
+REAL = [c for c in _fx.load("captions")]
+REEL = [c for c in REAL if c["format"] == "9:16"]
+
+
+def _timed(text: str) -> list[dict]:
+    words, at = [], 0.0
+    for w in text.split():
+        dur = round(0.11 + 0.055 * len(re.sub(r"[^\w]", "", w)), 3)
+        words.append({"word": w, "start": round(at, 3), "dur": dur})
+        at += dur + (0.49 if re.search(r"[.!?]$", w) else 0.22 if re.search(r"[,;:]$", w) else 0.04)
+    return words
+
+
+def _events(ass: Path) -> list[tuple[str, str, str, str]]:
+    out = []
+    for line in ass.read_text(encoding="utf-8").splitlines():
+        if line.startswith("Dialogue:"):
+            parts = line[len("Dialogue:"):].split(",", 9)
+            out.append((parts[1].strip(), parts[2].strip(), parts[3].strip(), parts[9]))
+    return out
+
+
+def _secs(t: str) -> float:
+    h, m, s = t.split(":")
+    return int(h) * 3600 + int(m) * 60 + float(s)
+
+
+def _drawn_sizes(ass: Path) -> list[tuple[float, float, float]]:
+    """(show, hide, px) per 9:16 burst as drawn: its plate's interval and its CapText \\fs (the style's size when
+    none), in frame pixels."""
+    ev = _events(ass)
+    plates = [(_secs(s), _secs(e)) for s, e, style, _ in ev if style == "CapBox"]
+    out = []
+    for s, e in plates:
+        fs = {int(m.group(1)) if (m := re.search(r"\\fs(\d+)", t)) else vc.FONT_SIZE_ASS
+              for ts, _, style, t in ev if style == "CapText" and s <= _secs(ts) < e}
+        px = [vc.FONT_SIZE if f >= vc.FONT_SIZE_ASS else f * 0.5625 for f in fs]
+        out.append((s, e, min(px)))
+    return out
+
+
+def _rung_index(px: float) -> int:
+    """The ladder position a drawn size sits at or under (0 = FONT_SIZE): sizes are compared by rung, not by pixel."""
+    ladder = sorted(vc.CAPTION_LADDER, reverse=True)
+    return next((k for k, r in enumerate(ladder) if px >= r - 1), len(ladder))
+
+
+@pytest.mark.parametrize("case", REEL, ids=[c["topic"] for c in REEL])
+def test_back_to_back_bursts_differ_by_at_most_one_rung(case, tmp_path):
+    ass = vc.VideoComposer().build_subtitles(_fx.words(case), tmp_path / "c.ass",
+                                             emphasis=list(case.get("emphasis_words") or []) or None)
+    sizes = _drawn_sizes(ass)
+    for (s1, e1, a), (s2, _, b) in zip(sizes, sizes[1:]):
+        if abs(e1 - s2) < 0.011:   # handed over with no pause
+            assert abs(_rung_index(a) - _rung_index(b)) <= 1, (s1, a, s2, b)
+
+
+def test_bounded_sizes_never_grow_a_burst_and_bound_each_handover():
+    fits = [80, 80, 66, 80, 80, 74, 80, 58, 80]
+    joined = [True] * (len(fits) - 1) + [False]
+    out = vc.bounded_caption_sizes(fits, joined)
+    assert all(o <= f for o, f in zip(out, fits))
+    for i in range(len(out) - 1):
+        lo, hi = sorted((out[i], out[i + 1]))
+        assert hi <= vc._rung_above(lo) or hi == lo
+    # across a pause nothing is bounded: the plate fades out and in
+    assert vc.bounded_caption_sizes([80, 66], [False, False]) == [80, 66]
+    # only what the bound needs: the burst two away from a floor burst keeps its size
+    assert vc.bounded_caption_sizes([80, 80, 66, 80, 80], [True] * 4 + [False]) == [80, 74, 66, 74, 80]
+
+
+def test_the_wide_plate_and_line_fade_at_a_pause(tmp_path):
+    text = ("The ring is forty kilometres wide. It formed slowly over millions of years. "
+            "Wind and sand shaped every ridge.")   # labelled synthetic narration (a test text, not a script)
+    words = _timed(text)
+    words[6]["start"] += 1.5   # a real pause before the second sentence
+    for w in words[7:]:
+        w["start"] += 1.5
+    ass = vc.VideoComposer().build_subtitles(words, tmp_path / "w.ass", width=1920, height=1080)
+    ev = _events(ass)
+    plates = [(s, e, t) for s, e, style, t in ev if style == "CapBox"]
+    lines = {s: t for s, e, style, t in ev if style == "CapText"}
+    assert plates
+    ends = [_secs(e) for _, e, _ in plates]
+    starts = [_secs(s) for s, _, _ in plates]
+    for i, (s, e, t) in enumerate(plates):
+        after_pause = i == 0 or abs(starts[i] - ends[i - 1]) > 1e-6
+        before_pause = i == len(plates) - 1 or abs(ends[i] - starts[i + 1]) > 1e-6
+        fad = re.search(r"\\fad\((\d+),(\d+)\)", t)
+        got = (int(fad.group(1)), int(fad.group(2))) if fad else (0, 0)
+        want = (vc.CAPTION_PLATE_FADE_IN_MS if after_pause else 0, vc.CAPTION_PLATE_FADE_OUT_MS if before_pause else 0)
+        assert got == want, (i, got, want)
+        line_fad = re.search(r"\\fad\((\d+),(\d+)\)", lines[s])
+        assert ((int(line_fad.group(1)), int(line_fad.group(2))) if line_fad else (0, 0)) == want
+
+
+@pytest.mark.parametrize("text", [
+    "Altar copper salt 2560-2540 BC MORE THAN 535 meters of wall.",
+    "THE ROMAN ARMY HAULED NEARLY 1,090 TONNES OF STONE.",
+    "Altar copper salt 2560-2540 BC more than 535 meters of wall.",
+])   # labelled synthetic narrations: upper-case copy (0 in real narration) and its lower-case control
+def test_a_hedge_never_leaves_its_figure_whatever_its_case(text):
+    words = _timed(text)
+    bonds = vc.caption_bonds(words, names=False)
+    at = -1
+    for p in vc.caption_phrases(words, None, False)[:-1]:
+        at += len(p)
+        assert at not in bonds, [" ".join(w["word"] for w in q) for q in vc.caption_phrases(words, None, False)]
+    raw = [w["word"] for w in words]
+    hedge_at = next(i for i, w in enumerate(raw) if w.lower() in ("more", "nearly"))
+    assert hedge_at - 1 not in vc.name_bonds(raw)
+
+
+@pytest.mark.parametrize("case", REEL, ids=[c["topic"] for c in REEL])
+def test_the_record_counts_every_never_end_line_inside_a_burst(case):
+    words = _fx.words(case)
+    phrases = vc.caption_phrases(words, list(case.get("emphasis_words") or []) or None, False)
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    drawn = []
+    for p in phrases:
+        ws = [w["word"] for w in p]
+        lay = vc.reel_caption_lines(ws)
+        if lay and vc.never_end_end(ws[lay[0] - 1]):
+            drawn.append(" ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]))
+    assert [r["text"] for r in rec["never_end_lines"]] == drawn
+    assert rec["never_end_total"] == len(rec["never_end"]) + sum(not r["hedge_break"] for r in rec["never_end_lines"])
+    # every never-end line outside the ruled hedge break is also a recorded line defect
+    defects = set(rec["line_defect"])
+    assert all(r["text"] in defects for r in rec["never_end_lines"] if not r["hedge_break"])

@@ -247,9 +247,11 @@ def test_widescreen_bursts_are_shown_whole_and_still(tmp_path):
     _, wide = _build(tmp_path, words, emphasis=["Derinkuyu", "280 feet"], width=1920, height=1080)
     texts, boxes = _events(wide, "CapText"), _events(wide, "CapBox")
     assert len(texts) == len(boxes)                                        # one text event per burst
-    for (s, e, t), (bs, be, _) in zip(texts, boxes):
+    for (s, e, t), (bs, be, b) in zip(texts, boxes):
         assert (s, e) == (bs, be)
-        assert CAPTION_HIDDEN not in t and COL_FUTURE not in t and "\\t(" not in t and "\\fad" not in t
+        assert CAPTION_HIDDEN not in t and COL_FUTURE not in t and "\\t(" not in t
+        # lane C cycle 3 (MO-C2): still, but the line fades with its plate at a pause (the plate-fade token)
+        assert re.findall(r"\\fad\(\d+,\d+\)", t) == re.findall(r"\\fad\(\d+,\d+\)", b)
     gold = [w for _, _, t in texts for c, w in re.findall(r"\\c(&H[0-9A-F]+&)\}([^{ ]+)", t) if c == COL_EMPHASIS]
     # Round 4 (caption panel): one gold span a still 16:9 line, the figure with its hedge (single_gold_span); this
     # burst carried two spans, DERINKUYU and ROUGHLY 280 FEET, until then.

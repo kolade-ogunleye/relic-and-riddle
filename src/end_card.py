@@ -111,7 +111,6 @@ END_SCREEN_GAP = 60
 # The 16:9 hand-off (panel round 4): YouTube's own line, pointing the eye at the watch-next slot. A fixed brand line
 # with no topic claim (the Reel's share ask stays on the 9:16 bridge and in the captions): brand.HANDOFF_LINE.
 LANDSCAPE_SHARE_SIZES = (64, 60, 56)
-LANDSCAPE_MASTHEAD_W = 620
 LANDSCAPE_PUSH = 0.02    # the 16:9 push over END_SCREEN_SECONDS, easing to rest (panel round 3: YouTube's tiles sit
                          # over it, so it barely moves)
 LANDSCAPE_SCRIM_X = (1000, 1500)   # the 16:9 dim is full left of the first x and eases to LANDSCAPE_RIGHT_DIM by the
@@ -125,7 +124,6 @@ KICKER = "WATCH NEXT"    # generic: the video YouTube shows in the slot is not k
 # The kicker is the system's (src/brand_system.py kicker.*, cycle 0): the text face at 800 in tracked gold capitals led
 # by a flat gold rule, at the wide canvas's kicker size (it was IBM Plex Mono 600 at 30 px, 0.18 em: a second kicker
 # voice, RUBRIC anchor BC-A2).
-KICKER_GAP = 24          # px from the slot's hairline frame (or the slot) to the kicker's ink bottom
 SLOT_FRAME_OFFSET = 12   # the optional hairline frames around the YouTube element slots
 CREDITS_LINE = "IMAGE CREDITS IN DESCRIPTION"   # only when the description really carries credit lines
 CREDITS_SIZE = 22
@@ -268,16 +266,18 @@ def says_follow(text: str) -> bool:
     return bool(_FOLLOW_WORD.search(text or ""))
 
 
-def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
+def _masthead(max_w: int, room: float | None = None, canvas: str = "tall") -> dict[str, Any]:
     """The system's masthead (src/brand_system.py masthead.*: the gold diamond, then the name in tracked masthead
-    capitals in bone), at the largest size from the tall canvas's masthead size whose group fits MASTHEAD_W and
-    `max_w` (the end card's brand moment). Round 5: where even that size is wider than `room` (a longer brand name),
+    capitals in bone). On the tall canvas, at the largest size from its masthead size whose group fits MASTHEAD_W and
+    `max_w` (the end card's brand moment); on the wide canvas (the 16:9 end screen) at the system's wide masthead
+    size, type_px("masthead", "wide"), never grown (freeze lane E cycle 3: the token decides; it drew 64 from the tall
+    size while the board's table said 60). Round 5: where even that size is wider than `room` (a longer brand name),
     the size steps down the system's fit ladder (masthead.fit_ladder, to tok("masthead.fit_floor") of it); below the
     floor the group stays too wide and frames() refuses it with its reason."""
     from .brand_system import masthead_spec, type_px
     from .masthead import fit_ladder
     goal = min(MASTHEAD_W, max_w)
-    start = int(type_px("masthead", "tall"))
+    start = int(type_px("masthead", canvas))
     room = goal if room is None else room
 
     def at(size):
@@ -289,6 +289,8 @@ def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
         return {"text": brand.MASTHEAD, "font": font, "track": spec["track"], "mark_r": r, "gap": gap,
                 "width": round(group), "size": size, "edge": spec["edge"]}
     first = at(start)
+    if canvas != "tall" and first["width"] <= room:
+        return first   # the canvas's own size: only the tall end card grows into its brand moment
     if first["width"] > room:
         for size in fit_ladder(start)[1:]:   # round 7 (sweep): the ladder's own sizes, never rounded below its floor
             got = at(size)
@@ -310,6 +312,12 @@ def _masthead(max_w: int, room: float | None = None) -> dict[str, Any]:
     return best
 
 
+def landscape_masthead(room: float) -> dict[str, Any]:
+    """The 16:9 end screen's masthead: the wide canvas's masthead size (the token), down the fit ladder only where
+    its group is wider than `room`. What a record or a board table should quote as the end screen's size."""
+    return _masthead(round(room), room=room, canvas="wide")
+
+
 def reel_column(width: int = WIDTH, height: int = HEIGHT) -> tuple[float, int]:
     """(centre x, width) of the 9:16 card's column: the Reel box, its group centred in it (x 480 at 1080 x 1920).
     QF-24: the shared organic Reel box (x 113-848) leaves 616 px centred on the frame (its right rail, 232 px, is wider
@@ -328,6 +336,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     Reel safe area (reel_column) and spread through its height. 16:9 (the YouTube end screen): the masthead top-left
     in title-safe, then the share line, left-aligned, all left of the end screen's video element and above its
     subscribe button (END_SCREEN_SLOTS); no follow line (the subscribe element asks)."""
+    from .brand_system import tok, type_px
     from .typography import drawable, field_font
     landscape = width > height
     words = drawable(share, brand.TEXT_FONT).split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
@@ -338,8 +347,10 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         max_w = min(END_SCREEN_SLOTS[k][0] for k in END_SCREEN_VIDEO_SLOTS) - END_SCREEN_GAP - x0
         plan = ((1, LANDSCAPE_SHARE_SIZES), (2, LANDSCAPE_SHARE_SIZES), (3, LANDSCAPE_SHARE_SIZES), (4, (48,)),
                 (5, (44, 40, 36)))   # the last step only when the floor (above the subscribe slot) bites
-        m = _masthead(LANDSCAPE_MASTHEAD_W, room=max_w)
-        top0 = y0 + m["font"].getbbox("R", anchor="lt")[3] + 40 + 70
+        m = landscape_masthead(max_w)
+        # the column's kicker: the system's kicker face at the wide canvas's size (end_screen_extras draws it)
+        kfont = get_font(brand.TEXT_FONT, type_px("kicker", "wide"), weight=tok("kicker.weight"))
+        top0 = y0 + m["font"].getbbox("R", anchor="lt")[3] + 40 + 70 + _column_kicker_step(kfont)
         floor = END_SCREEN_SLOTS["subscribe"][1] - END_SCREEN_GAP
     else:
         cx, max_w = reel_column(width, height)
@@ -364,7 +375,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
                 lines.append([])
             lines[-1].append(w)
     line_h = round(share_font.size * 1.24)
-    mast = _masthead(max_w if not landscape else LANDSCAPE_MASTHEAD_W, room=max_w)
+    mast = landscape_masthead(max_w) if landscape else _masthead(max_w, room=max_w)
     follow = not landscape and not says_follow(share)
     follow_font = spacing = follow_w = None
     for size in FOLLOW_SIZES:  # the largest follow line that fits the safe width
@@ -378,7 +389,11 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         mark_c = (x0 + mast["mark_r"], y0 + (cap[1] + cap[3]) / 2)
         rule_y = y0 + cap[3] + 40
         rule = (x0, x0 + 240)
-        top = rule_y + 70
+        # The WATCH NEXT kicker leads the hand-off line in the text column (freeze lane E cycle 3): its cap line
+        # where the line's was, the line one kicker.gap below its baseline (_column_kicker_step).
+        k_cap = rule_y + 70 + share_font.getbbox("H", anchor="la")[1]
+        kicker_baseline = k_cap + cap_height(kfont)
+        top = rule_y + 70 + _column_kicker_step(kfont)
         align_x = x0
     ink = probe.textbbox((0, 0), brand.FOLLOW_LINE, font=follow_font)
     if not landscape:   # the group (masthead cap top to the last line's ink) centred in the Reel box, inside it
@@ -407,6 +422,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
             "follow_y": follow_y, "box": box, "max_width": max_w, "follow": follow, "top": top,
             "masthead": mast, "masthead_xy": mast_xy, "mark_centre": mark_c, "rule_y": rule_y, "rule": rule,
             "align_x": align_x, "landscape": landscape, "masthead_top": mast_xy[1], "centre_x": cx,
+            "kicker_baseline": kicker_baseline if landscape else None, "kicker_font": kfont if landscape else None,
             "share_widths": [probe.textlength(" ".join(ln), font=share_font) for ln in lines]}
 
 
@@ -606,28 +622,40 @@ def kicker_rise(a: float) -> int:
     return round(tok("motion.rise_s") * (1 - a))
 
 
-def end_screen_extras(width: int = LANDSCAPE_WIDTH) -> dict[str, Any]:
+def _column_kicker_step(kfont) -> int:
+    """px the hand-off line moves down to seat the column's kicker (`kfont`) above it: the kicker's cap height plus
+    the system's one kicker gap (tok("kicker.gap") em: its baseline to the heading's cap line)."""
+    from .brand_system import tok
+    return round(cap_height(kfont) + tok("kicker.gap") * kfont.size)
+
+
+def end_screen_extras(width: int = LANDSCAPE_WIDTH, lay: dict[str, Any] | None = None) -> dict[str, Any]:
     """Where the 16:9 end screen's quiet extras go: the WATCH NEXT kicker (the system's kicker: its gold rule, then
-    tracked gold capitals in the text face) above the video slot (its rule left-aligned with it), the optional
-    hairline frames KICKER_GAP / SLOT_FRAME_OFFSET around the YouTube element slots, and the optional credits line
-    bottom-left, right of the subscribe slot and above YouTube's progress bar and timestamp."""
-    from .brand_system import tok, type_px
+    tracked gold capitals in the text face) leading the hand-off line in the text column, left-aligned with it
+    (freeze lane E cycle 3: above the video slot it labelled an empty area whenever YouTube drew no element there,
+    late or suppressed, and its cap line aligned with nothing; in the column it labels the line and the frame reads
+    finished with or without YouTube's elements), the optional hairline frames SLOT_FRAME_OFFSET around the YouTube
+    element slots, and the optional credits line bottom-left, right of the subscribe slot and above YouTube's
+    progress bar and timestamp. `lay`: the 16:9 layout (default: the hand-off line's)."""
+    from .brand_system import tok
+    if lay is None:
+        lay = layout(brand.HANDOFF_LINE, width, LANDSCAPE_HEIGHT)
     vx0, vy0, vx1, vy1 = END_SCREEN_SLOTS["video"]
     sx0, sy0, sx1, sy1 = END_SCREEN_SLOTS["subscribe"]
     wx0, wy0, wx1, wy1 = END_SCREEN_SLOTS["video2"]
     o = SLOT_FRAME_OFFSET
-    size = type_px("kicker", "wide")
-    kfont = get_font(brand.TEXT_FONT, size, weight=tok("kicker.weight"))
+    kfont = lay["kicker_font"]
+    size = kfont.size
     ink = kfont.getbbox(KICKER, anchor="ls")
-    kick_baseline = vy0 - o - KICKER_GAP - ink[3]
+    kx, kick_baseline = lay["align_x"], lay["kicker_baseline"]
     ch = cap_height(kfont)
     rule_w, rule_gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
     thick = max(3, round(ch * tok("kicker.rule_thick")))
     mid = kick_baseline - ch / 2
     cfont = get_font(brand.DATA_FONT, CREDITS_SIZE, weight=500)
-    return {"kicker": {"text": KICKER, "font": kfont, "xy": (vx0, kick_baseline), "track": tok("kicker.track") * size,
-                       "text_xy": (vx0 + rule_w + rule_gap, kick_baseline),
-                       "rule": (vx0, round(mid - thick / 2), vx0 + rule_w - 1, round(mid - thick / 2) + thick - 1),
+    return {"kicker": {"text": KICKER, "font": kfont, "xy": (kx, kick_baseline), "track": tok("kicker.track") * size,
+                       "text_xy": (kx + rule_w + rule_gap, kick_baseline),
+                       "rule": (kx, round(mid - thick / 2), kx + rule_w - 1, round(mid - thick / 2) + thick - 1),
                        "top": kick_baseline + ink[1]},
             "frames": {"video": (vx0 - o, vy0 - o, vx1 + o, vy1 + o), "subscribe": (sx0 - o, sy0 - o, sx1 + o, sy1 + o),
                        "video2": (wx0 - o, wy0 - o, wx1 + o, wy1 + o)},
@@ -640,9 +668,9 @@ def _overlap(a: tuple[float, float, float, float], b: tuple[float, float, float,
 
 def end_screen_problems(lay: dict[str, Any], width: int = LANDSCAPE_WIDTH, *, credits: bool = False) -> list[str]:
     """What, on a 16:9 layout, runs into YouTube's end-screen elements: the text column (masthead to the last line)
-    against every slot (with its hairline frame) and the player's timestamp zone, the kicker against the other
-    slots and the timestamp zone, and (when drawn) the credits line likewise. Empty when all clear."""
-    ex = end_screen_extras(width)
+    and its kicker against every slot (with its hairline frame) and the player's timestamp zone, and (when drawn)
+    the credits line likewise. Empty when all clear."""
+    ex = end_screen_extras(width, lay)
     m = lay["masthead"]
     x0 = lay["masthead_xy"][0] - 2 * m["mark_r"] - m["gap"]
     col_right = max(x0 + m["width"], lay["rule"][1], lay["align_x"] + max(lay["share_widths"]))
@@ -651,7 +679,7 @@ def end_screen_problems(lay: dict[str, Any], width: int = LANDSCAPE_WIDTH, *, cr
     kw = _tracked_width(k["font"], k["text"], k["track"])
     kicker = (k["xy"][0], k["top"], k["xy"][0] + kw, k["xy"][1])
     zones = {**ex["frames"], "timestamp": YOUTUBE_TIMESTAMP_ZONE}
-    items = {"text column": (column, zones), "kicker": (kicker, {n: z for n, z in zones.items() if n != "video"})}
+    items = {"text column": (column, zones), "kicker": (kicker, zones)}
     if credits:
         c = ex["credits"]
         cw = _tracked_width(c["font"], c["text"], c["track"])
@@ -704,8 +732,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     (held_layout; `room` bounds a 9:16 card, see there; stats["reading"] records it). `stats`, when given, receives
     the measured dim, the layout and each line's contrast
     on the last frame. 16:9 only: the dim is a scrim behind the text column (the right side, under YouTube's video
-    element, lighter and sharper), the push is at most LANDSCAPE_PUSH and the WATCH NEXT kicker fades in above the
-    video slot after the share line (its contrast in stats["contrast_kicker"]); `slot_frames` draws GOLD_DIM
+    element, lighter and sharper), the push is at most LANDSCAPE_PUSH and the WATCH NEXT kicker leads the line in the
+    text column, in with the gold rule (its contrast in stats["contrast_kicker"]); `slot_frames` draws GOLD_DIM
     hairlines around the element slots (only for a channel whose YouTube Studio elements are placed at exactly
     END_SCREEN_SLOTS); `credits` adds IMAGE CREDITS IN DESCRIPTION (only when the description carries them;
     stats["contrast_credits"]). The 16:9 screen says HANDOFF, YouTube's hand-off to the watch-next slot, in place of
@@ -774,7 +802,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     words = _word_xs(lay, width)
     word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], brand.BONE) for _, _, w, x, y in words]
     follow_plate = None
-    extras = end_screen_extras(width) if landscape else None
+    extras = end_screen_extras(width, lay) if landscape else None
     kicker_plate = credits_plate = None
     # The end screen's overlay labels (the follow line, the WATCH NEXT kicker) are ONE set (cycle 0 round 8 R1):
     # planned together by the one overlay-label rule (operator ruling 2) on one treatment, typography.plan_label_set
@@ -855,8 +883,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             fa = ease((t - (BELL_AT - follow_in)) / follow_in)   # the follow line lands with the bell
             if fa > 0:
                 frame = follow_plate.draw(frame, fa, round(follow_rise * (1 - fa)))
-        if kicker_plate is not None:
-            ka = ease((t - done) / 0.5)
+        if kicker_plate is not None:   # it leads the line: in with the gold rule, before the line's first word
+            ka = ease((t - RULE_AT) / mast_in)
             if ka > 0:
                 rise = kicker_rise(ka)
                 frame = kicker_plate.draw(frame, ka, rise)

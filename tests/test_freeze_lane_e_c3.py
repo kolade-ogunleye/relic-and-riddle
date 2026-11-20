@@ -100,3 +100,23 @@ def test_the_end_screen_scrim_is_monotone_and_full_over_the_text_column():
     # the ramp is a field: its steepest column step on the worst ground stays inside the gate
     ink_l = float(np.dot(end_card.brand.INK, (0.299, 0.587, 0.114)))
     assert np.abs(np.diff(s)).max() * end_card.DIM_MAX * (255 - ink_l) <= tok("scrim.slope_max")
+
+
+def test_the_end_screen_masthead_is_the_wide_canvas_token():
+    from src.brand_system import type_px
+    lay = end_card.layout(end_card.HANDOFF, end_card.LANDSCAPE_WIDTH, end_card.LANDSCAPE_HEIGHT)
+    m = lay["masthead"]
+    assert m["width"] <= lay["max_width"]
+    assert m["size"] == type_px("masthead", "wide")       # the token decides; never grown into a brand moment
+    assert end_card.landscape_masthead(lay["max_width"])["size"] == m["size"]
+
+
+def test_nothing_drawn_points_into_a_youtube_slot():
+    """The renderer cannot know whether YouTube fills its element slots: nothing it draws sits in or labels one (the
+    kicker leads the line in the text column); only the optional hairline frames trace them."""
+    for share in (end_card.HANDOFF, SHARE):
+        lay = end_card.layout(share, end_card.LANDSCAPE_WIDTH, end_card.LANDSCAPE_HEIGHT)
+        assert end_card.end_screen_problems(lay) == [] and end_card.end_screen_problems(lay, credits=True) == []
+        k = end_card.end_screen_extras(end_card.LANDSCAPE_WIDTH, lay)["kicker"]
+        assert k["xy"][0] == lay["align_x"]
+        assert k["xy"][0] < min(end_card.END_SCREEN_SLOTS[s][0] for s in end_card.END_SCREEN_VIDEO_SLOTS)

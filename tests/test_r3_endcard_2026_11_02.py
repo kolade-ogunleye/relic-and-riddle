@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
-from src import brand, end_card, safe_zones
+from src import brand, brand_system, end_card, safe_zones
 
 SHARE = "Send this to the codebreaker you know, and follow for more."
 
@@ -192,17 +192,29 @@ def test_the_landscape_push_is_capped_and_eases_to_rest():
     assert (v >= 0).all() and v[-1] < v[0] / 20                            # slows to rest
 
 
-def test_the_16x9_kicker_labels_the_video_slot_and_measures(short_end_screen):
+def _overlap(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def test_the_16x9_kicker_leads_the_line_in_the_column_and_measures(short_end_screen):
     stats = {}
     frames = list(end_card.frames(_plate(), "Send this to a space enthusiast you know.", stats))
     assert set(stats["contrast"]) == {"brand", "share"}                    # the extras keep their own keys
     assert stats["contrast_kicker"] is not None and stats["contrast_kicker"] >= brand.TEXT_CONTRAST
     assert stats["kicker"] == end_card.KICKER and not any(c.isdigit() for c in end_card.KICKER)
-    ex = end_card.end_screen_extras()
-    vx0, vy0 = end_card.END_SCREEN_SLOTS["video"][:2]
-    assert ex["kicker"]["xy"][0] == vx0                                    # left-aligned with the slot
-    assert ex["kicker"]["xy"][1] <= vy0 - end_card.SLOT_FRAME_OFFSET - end_card.KICKER_GAP + 1
-    assert ex["kicker"]["top"] >= round(1080 * 0.05)                        # inside title-safe
+    # lane E cycle 3: in the text column (never over a YouTube slot, which may be empty), left-aligned with the
+    # line, one kicker gap above the line's cap line, below the masthead's rule
+    lay = end_card.layout(end_card.HANDOFF, 1920, 1080)
+    ex = end_card.end_screen_extras(1920, lay)
+    k = ex["kicker"]
+    assert k["xy"][0] == lay["align_x"]
+    cap_top = lay["top"] + lay["share_font"].getbbox("H", anchor="la")[1]
+    assert abs(cap_top - k["xy"][1] - brand_system.tok("kicker.gap") * k["font"].size) <= 1
+    assert k["top"] > lay["rule_y"] and k["top"] >= round(1080 * 0.05)    # under the rule, inside title-safe
+    kw = k["font"].getlength(k["text"]) + k["track"] * (len(k["text"]) - 1)
+    box = (k["xy"][0], k["top"], k["text_xy"][0] + kw, k["xy"][1])
+    for slot in end_card.END_SCREEN_SLOTS.values():
+        assert not _overlap(box, slot)
     assert "contrast_credits" not in stats and stats["slot_frames"] is False
     assert frames[-1].size == (1920, 1080)
 

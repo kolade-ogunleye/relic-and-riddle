@@ -235,8 +235,11 @@ def test_the_cover_job_refuses_per_surface_and_records_it():
     payload: dict = {}
     # round 8 (lander ruling): the run is held, not stopped: the refused surface is None, its refusal on the card
     assert main.cover_job_results(results, payload) == [("reel.jpg", "grid.jpg"), None]
-    assert payload["layout_holds"] == [{"surface": "YouTube thumbnail", "refused": "TextFitError",
-                                        "code": "TextFitError", "reason": results[1][2].reason}]
+    # freeze SYS batch 3: a refusal that names its rule records it too (refusal.record), the rest unchanged
+    (hold,) = payload["layout_holds"]
+    assert {k: v for k, v in hold.items() if k != "rule"} == {"surface": "YouTube thumbnail", "refused": "TextFitError",
+                                                              "code": "TextFitError", "reason": results[1][2].reason}
+    assert hold.get("rule", "") == (getattr(results[1][2], "rule", "") or "")
     from src.telegram_bot import layout_hold_lines
     assert layout_hold_lines(payload["layout_holds"]) == [f"YouTube thumbnail: {results[1][2].reason}"]
     assert main.cover_job_results(main.cover_job((("a", lambda: 1), ("b", lambda: 2))), {}) == [1, 2]

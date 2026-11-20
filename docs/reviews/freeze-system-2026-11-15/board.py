@@ -612,12 +612,21 @@ def row13_table(out: Path, work: Path) -> list[str]:
     def t(name):   # a token as the tree holds it now (a renamed one shows as gone, never a stale copy)
         v = sys_value(name)
         return f"<{name}: not in this tree>" if v is None else v
+    # SYS-E-2 (lane E cycle 3): the end screen's masthead and gold rule as the renderer lays them out (end_card.layout
+    # on the wide canvas with the hand-off line), never a separate call with another room
+    wide = end_card.layout(brand.HANDOFF_LINE, 1920, 1080)
+    tall = end_card.layout(brand.FOLLOW_LINE, 1080, 1920)
+    rule_wide, rule_tall = wide["rule"][1] - wide["rule"][0], tall["rule"][1] - tall["rule"][0]
     rows = [
         ("element", "carousel", "YouTube", "end screen 16:9", "loop bridge / covers / hook"),
         ("masthead", (f"{brand.MASTHEAD_FONT} 700 {brand_system.type_px('masthead', 'carousel'):.1f}px "
                       f"tr {t('masthead.track')}em, {t('masthead.colour_dark')}/{t('masthead.colour_light')}"),
-         f"same, {brand_system.type_px('masthead', 'wide'):.0f}px", f"same, brand moment {end_card._masthead(620)['size']}px",
+         f"same, {brand_system.type_px('masthead', 'wide'):.0f}px",
+         f"same, {wide['masthead']['size']:.0f}px (layout; wide token {brand_system.type_px('masthead', 'wide'):.0f})",
          f"absent (cap at 124 px < {t('masthead.grid_cap')} px)"),
+        ("gold rule under the wordmark", "-", "-",
+         f"GOLD, {rule_wide} px, draws out {end_card.RULE_AT:g}-{end_card.RULE_AT + end_card.RULE_IN:g} s",
+         f"9:16 end card: GOLD, {rule_tall} px, same timing"),
         ("masthead ground", (f"scrim peak <= {t('scrim.masthead_peak')}, halo <= {t('halo.masthead_max')}, "
                              f"gate {t('contrast.masthead_gate')} target {t('contrast.masthead_target')}"),
          "same", "same (dimmed card)", "-"),

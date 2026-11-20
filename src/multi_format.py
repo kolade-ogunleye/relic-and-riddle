@@ -236,6 +236,18 @@ def story_fields(slide: dict[str, Any], poll: dict[str, Any] | None = None) -> t
     return l1, l2
 
 
+ACCENT_RISE_MIN = 2   # px of ink above the cap line that count as an accent's rise (a capital's antialiasing overshoot is 1)
+
+
+def accent_rise(d, text: str, font, at_least: int = ACCENT_RISE_MIN) -> int:
+    """How far `text`'s highest ink rises above `font`'s cap line (an accented capital: "Á", "Ł"), px; 0 when under
+    `at_least` (lane D cycle 3: a line's accents keep the line gap to the line above them, as the kicker's do)."""
+    if not text:
+        return 0
+    rise = -d.textbbox((0, 0), text, font=font, anchor="ls")[1] - cap_height(font)
+    return rise if rise >= at_least and rise > 0 else 0
+
+
 def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict[str, Any] | None = None) -> int:
     """The Story's ONE title size (round 7, F10; ruling FREEZE-PARK round 4 (2)): for each frame, the largest size
     from the design size (TYPE tall display_xl; tight 124) down to the ruled one-line floor (106) at which every
@@ -1054,6 +1066,10 @@ class MultiFormatGenerator:
                 if form is None:   # no break at this size: the field on one line (fits() then refuses it)
                     form = Form(tuple(text.split()), (), size, 0)
                 for line_runs in field_runs(text, form.cuts, gold):
+                    # lane D cycle 3 (stress realism, reachable on real copy: the Gol Gumbaz Story 'WITHOÚT
+                    # TENSION' at 1.19, the Antikythera kicker over an accented title at 1.02): a line's accents
+                    # keep the gap to the kicker or the line above, the pitch growing by their rise
+                    y += accent_rise(d, " ".join(r for r, _ in line_runs), f)
                     y += cap_height(f) if not out else round(cap_height(f) * 1.13)
                     dx = 0
                     for run, role in line_runs:
@@ -1180,8 +1196,10 @@ class MultiFormatGenerator:
             l2, _, s2 = fit_line(d, l2, brand.DISPLAY_FONT, t_min, title_w[0], t_min)
             hero = None
             ct = cap_height(font_t)
-            t_rows = [r for r in (("title_1", ct, l1, font_t, brand.BONE, 0),
-                                  ("title_2", ct + round(ct * 1.13), l2, font_t, brand.GOLD, 0)) if r[2]]
+            b1 = ct + accent_rise(d, l1, font_t)                       # lane D cycle 3: accents keep the gaps
+            t_rows = [r for r in (("title_1", b1, l1, font_t, brand.BONE, 0),
+                                  ("title_2", b1 + round(ct * 1.13) + accent_rise(d, l2, font_t), l2, font_t,
+                                   brand.GOLD, 0)) if r[2]]
             t_height = t_rows[-1][1] if t_rows else 0
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
         body_lines, font_b, b_short = [], get_font(brand.TEXT_FONT, STORY_BODY_PX, weight=STORY_BODY_WEIGHT), False
@@ -1567,6 +1585,12 @@ class MultiFormatGenerator:
                     p.contrast = m
         for name, ps in by_name.items():
             record_contrast(lay, name, ps)
+            if name == "stat" and lay is not None and getattr(lay, "elements", None):
+                # lane D cycle 3 (stress realism, Richat 1793474473): a stat figure is ONE lockup whose rows _rows
+                # lays out in reading order (hedge, number, unit lines). drawn_text's geometric order read the
+                # stacked unit "MILLION / YEARS AGO" beside the tall number as "94-104 YEARS MILLION AGO" (the
+                # number's box overlaps both unit lines), so the drawn-figure gate failed a figure drawn whole.
+                lay.elements[-1]["text"] = " ".join(" ".join(str(p.text).split()) for p in ps)
         top = min(d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
         return im, top
 
@@ -1877,9 +1901,14 @@ class MultiFormatGenerator:
         _render_state.heading_form = form
         for j, line_runs in enumerate(form.runs() if form else ()):
             ch = cap_height(font_h)
+            line_text = " ".join(t for t, _ in line_runs)
             if j == 0 and kicker:   # the kicker's gap is to the heading's highest ink (an accented capital rises)
-                rise = -d.textbbox((0, 0), " ".join(t for t, _ in line_runs), font=font_h, anchor="ls")[1] - ch
-                y += max(0, rise)
+                y += accent_rise(d, line_text, font_h, 0)
+            elif j > 0:
+                # lane D cycle 3 (stress realism, reachable on real copy: Gol Gumbaz 'THE WHISPERING / VÁULT'
+                # touched line 1 at 1.58): a second line's accents keep the line gap to the line above, so the
+                # pitch grows by the accent's rise, never the accent into the first line's ink
+                y += accent_rise(d, line_text, font_h)
             y += ch if j == 0 else round(ch * 1.13)
             x = 0
             for text, role in line_runs:
@@ -2536,11 +2565,10 @@ class MultiFormatGenerator:
         lead = deck_lead(script_payload)
         cards = [dict(card, **{k: spoken_units(card[k], narration, lead) for k in ("heading", "body")
                                if isinstance(card.get(k), str)}) for card in cards]
-        if diagram and slide_drawing(diagram[1]):
-            # lane D cycle 2 (lander ruling 2): a drawing for the slide carries its own verified words (the scale
-            # figure as the heading, the line of meaning as the body: scale_slide_copy); no new wording
-            words = slide_drawing(diagram[1])
-            cards[diagram[0]] = dict(cards[diagram[0]], heading=words["heading"], body=words["body"])
+        # Lane D cycle 3 (lander correction of ruling 4): the diagram slide keeps its OWN signed heading and body; the
+        # drawing carries only its own labels (render_scale drawing_floor draws no title, figure or meaning), so the
+        # deck has one title system and no slide's signed copy is replaced (cycle 2 set the drawing's scale copy
+        # here and the Aswan deck lost "ANCIENT WORK MARKS" and its body).
 
         # SYS-D-5: the deck's one content-heading tier, over both copies (one size per deck, one form per heading)
         tier = self._deck_heading_tier(cards, archetypes)
@@ -2685,7 +2713,9 @@ _DIAGRAM_WORDS = {
     "section": ("deep", "depth", "level", "levels", "storey", "storeys", "carved", "below", "down", "feet", "metres"),
     "ventilation": ("air", "shaft", "shafts", "ventilation", "breathe", "fresh"),
     "defense": ("door", "doors", "stone", "rolling", "roll", "seal", "sealed", "wheel"),
-    "scale": ("tall", "high", "height", "deep", "depth", "wide", "size"),
+    # lane D cycle 3: a length is a scale's dimension too (the Aswan drawing compares a LENGTH; with no length word
+    # it went to slide 3 by the tie-break, a slide about tool marks, now that the slide keeps its own words)
+    "scale": ("tall", "high", "height", "deep", "depth", "wide", "width", "size", "long", "length", "scale"),
     "route": ("route", "road", "journey", "path", "trade"),
 }
 DIAGRAM_SLIDES = (2, 3)   # slide 3 or 4 (0-based): after the hook and its first fact
@@ -2823,7 +2853,7 @@ _DIAGRAM_FIELDS = {"scale": ("scale_fact", "render_scale"), "section": ("cross_s
                    "route": ("route", "render_route"), MAP_KIND: (None, "render_map")}
 
 
-DRAWING_SIDECAR = ".drawing.json"   # beside a slide drawing's poster: {"drawing_floor", "size", "heading", "body"}
+DRAWING_SIDECAR = ".drawing.json"   # beside a slide drawing's poster: {"drawing_floor", "size"}
 
 
 def slide_drawing(poster: Path) -> dict[str, Any] | None:
@@ -2837,25 +2867,6 @@ def slide_drawing(poster: Path) -> dict[str, Any] | None:
     return rec if isinstance(rec, dict) and rec.get("drawing_floor") else None
 
 
-def scale_slide_copy(fact: dict[str, Any]) -> dict[str, str] | None:
-    """The diagram slide's words for a scale drawing, from the drawing's own verified fields only (lander ruling 2,
-    lane D cycle 2): the heading is the scale figure ("ABOUT 138 FT LONG", graphics.scale_figure: the signed lead,
-    hedged), the body the line of meaning (graphics.scale_meaning_lines: the payload's and the reference file's
-    figures and words). No new wording. None when the fact has no landmark to compare with."""
-    from . import graphics
-    try:
-        feet = float(fact["value"]) * (3.28084 if fact.get("unit") == "m" else 1.0)
-    except (KeyError, TypeError, ValueError):
-        return None
-    ref = graphics.pick_reference(feet)
-    if ref is None or feet <= 0:
-        return None
-    depth = fact.get("dimension") == "depth"
-    figure, _conversion = graphics.scale_figure(fact, feet, depth)
-    meaning = graphics.scale_meaning_lines(fact, feet, ref[0], ref[1], depth)
-    return {"heading": " ".join(figure.split()), "body": " ".join(" ".join(meaning).split())}
-
-
 def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | None,
                    room: tuple[int, int] | None = None, slide_width: int | None = None) -> tuple[Path | None, str]:
     """(the poster a diagram slide embeds, why): the run's stored poster only when it was drawn under the active brand
@@ -2866,8 +2877,8 @@ def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | Non
     from older code with a #FED700 bar, unchanged under the second palette.
     `room` (lane D cycle 2, lander ruling 2, with lane A's render_scale drawing_floor): a scale is drawn as the
     DRAWING alone for the slide's room (w, h), every label at graphics.diagram_label_floor(slide_width) or more,
-    never a video poster shrunk into the slide; its record (slide_drawing) sits beside it, with the slide's words
-    (scale_slide_copy)."""
+    never a video poster shrunk into the slide; its record (slide_drawing) sits beside it. The slide sets its own
+    signed heading and body (lane D cycle 3); the drawing says nothing but its own labels."""
     from . import graphics
     poster = Path(poster)
     kind0 = poster.stem.replace("graphic_", "", 1)
@@ -2922,11 +2933,8 @@ def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | Non
     if not made or not out.with_suffix(".jpg").is_file():
         return None, f"the {kind} renderer drew nothing from the signed field"
     if floor is not None:
-        words = scale_slide_copy(spec)
-        if words is None:
-            return None, "the scale drawing has no verified words for the slide"
         Path(str(out.with_suffix(".jpg")) + DRAWING_SIDECAR).write_text(
-            json.dumps({"drawing_floor": floor, "size": list(size), **words}, indent=1, ensure_ascii=False),
+            json.dumps({"drawing_floor": floor, "size": list(size)}, indent=1, ensure_ascii=False),
             encoding="utf-8", newline="\n")
         return out.with_suffix(".jpg"), "drawn for the slide's room from the signed field under the active brand"
     return out.with_suffix(".jpg"), "redrawn from the signed field under the active brand"

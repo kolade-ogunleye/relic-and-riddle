@@ -465,7 +465,7 @@ def test_the_dense_timeline_and_the_colour_vision_roles_follow_the_brand():
         assert colour_vision.roles_for(None)["land"] == third.colour("LAND_TINT")
     assert theirs is None or theirs["year_font"].getname()[0] == "Cinzel"
     assert timeline_dense.plan(events, 1080, 1920)["year_font"].getname()[0] == "Anton"
-    assert colour_vision.ROLES["gold"] == (242, 182, 48) and colour_vision.HOME_TINT == (168, 137, 81)
+    assert colour_vision.ROLES["gold"] == (242, 182, 48) and colour_vision.HOME_TINT == brand.DEFAULT_BRAND.colour("HOME_TINT")
 
 
 

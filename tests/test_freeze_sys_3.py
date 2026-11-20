@@ -213,3 +213,25 @@ def test_a_signed_decimal_is_drawn_at_its_signed_precision():
     signed = figures.signed_figures(["The shaft reaches 1,447.9 ft."])
     assert figures.truth_faults(figures.signed_number(1447.9) + " FT", signed) == []
     assert figures.truth_faults("1,448 FT", signed)     # rounding stays a fault: the gate does not accept it
+
+
+# --------------------------------------------------------------------------- SYS-S1-2: map fills are marks, pairwise
+def test_the_default_map_fills_clear_the_mark_gate_pairwise_over_their_relief():
+    from src import brand
+    from src.brand_system import GATES
+    assert brand.map_fill_problems(brand.DEFAULT_BRAND) == []
+    for a, b in brand.MAP_MARK_PAIRS:
+        assert brand.map_pair_ratio(brand.DEFAULT_BRAND, a, b) >= GATES["contrast.mark"], (a, b)
+    # the round-6 fills (home on neighbour ~2:1) are refused at configure time
+    old = brand.DEFAULT_BRAND.derive("round 6 fills", palette={"HOME_TINT": (168, 137, 81), "LAND_TINT": (88, 92, 100)})
+    found = brand.map_fill_problems(old)
+    assert any("HOME_TINT against LAND_TINT" in p for p in found)
+    assert any("LAND_TINT against SEA_TOP" in p for p in found)
+
+
+def test_the_neighbour_fill_is_on_the_warm_palette():
+    import colorsys
+    from src import brand
+    r, g, b = brand.DEFAULT_BRAND.colour("LAND_TINT")
+    h, s, _v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+    assert s > 0 and (h * 360 <= 60 or h * 360 >= 330)    # a warm grey, never the cool slate

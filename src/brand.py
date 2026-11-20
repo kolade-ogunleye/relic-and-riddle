@@ -50,8 +50,11 @@ BRAND_PALETTE: Mapping[str, RGB | str] = MappingProxyType({
     "HOME": (92, 74, 42),
     "BORDER": (96, 98, 104),
     "GRID": (24, 28, 34),
-    "LAND_TINT": (88, 92, 100),   # the relief map's other land (round 6)
-    "HOME_TINT": (168, 137, 81),  # the relief map's home country (round 6)
+    # freeze cycle 3 (SYS-S1-2, AD r2 AD-map-home-3to1: home (163,132,78) on neighbour (92,96,104) drew 1.81:1, land on
+    # sea 3.0): the relief map's fills clear the 3:1 mark gate pairwise across MAP_RELIEF_ENVELOPE (map_fill_problems);
+    # the neighbour a warm grey on the palette's stone axis (BC r1: the slate was off the warm palette)
+    "LAND_TINT": (110, 104, 96),  # the relief map's other land (round 6: (88, 92, 100))
+    "HOME_TINT": (255, 205, 105), # the relief map's home country (round 6: (168, 137, 81))
     "SEA_TOP": (14, 22, 34),      # the relief map's sea gradient, top
     "SEA_DEEP": (7, 11, 19),      # and bottom
     "MAP_NAME": "STONE_LT",       # a neighbour's name (round 6)
@@ -273,6 +276,26 @@ MAP_HUE_APART = 45.0
 MAP_SAT_MIN = 0.15
 MAP_WATER_HUES = (170.0, 250.0)
 MAP_HOME_SEA = (("HOME", ("SEA",)), ("HOME_TINT", ("SEA_TOP", "SEA_DEEP")))
+# Freeze cycle 3 (SYS-S1-2): the relief map's fills are marks (WCAG 1.4.11): the home against its neighbours and the
+# sea, and the neighbours against the sea, each at least the mark gate (3:1) pairwise. The relief shades a fill, so the
+# pairs are judged at the ends of MAP_RELIEF_ENVELOPE: the factors (sRGB, on each channel) the renderer may multiply a
+# role by (graphics' home relief, RELIEF_HOME_FLOOR..1.0, and its neighbour shade); the renderer reads the envelope
+# from here and keeps every drawn fill inside it, so a palette that passes here passes on the drawn pixels.
+MAP_RELIEF_ENVELOPE: Mapping[str, tuple[float, float]] = MappingProxyType({
+    "HOME_TINT": (0.94, 1.0), "LAND_TINT": (0.95, 1.05), "SEA_TOP": (1.0, 1.0), "SEA_DEEP": (1.0, 1.0)})
+MAP_MARK_PAIRS = (("HOME_TINT", "LAND_TINT"), ("HOME_TINT", "SEA_TOP"), ("HOME_TINT", "SEA_DEEP"),
+                  ("LAND_TINT", "SEA_TOP"), ("LAND_TINT", "SEA_DEEP"))
+
+
+def _shaded(rgb: RGB, factor: float) -> RGB:
+    return tuple(max(0, min(255, round(c * factor))) for c in rgb)   # type: ignore[return-value]
+
+
+def map_pair_ratio(cfg: "BrandConfig", a: str, b: str) -> float:
+    """The worst ratio of roles `a` and `b` over their relief envelopes (each at either end)."""
+    ea, eb = MAP_RELIEF_ENVELOPE.get(a, (1.0, 1.0)), MAP_RELIEF_ENVELOPE.get(b, (1.0, 1.0))
+    ca, cb = cfg.colour(a), cfg.colour(b)
+    return min(_ratio(_shaded(ca, fa), _shaded(cb, fb)) for fa in ea for fb in eb)
 
 
 def _hue_sat(rgb: RGB) -> tuple[float, float]:
@@ -296,8 +319,11 @@ def map_fill_problems(cfg: "BrandConfig") -> list[str]:
             apart = abs((hh - sh + 180) % 360 - 180)
             if hs >= MAP_SAT_MIN and ss >= MAP_SAT_MIN and apart < MAP_HUE_APART:
                 out.append(f"map {home} {hc} reads as {sea} {sc}: hues {apart:.0f} deg apart (< {MAP_HUE_APART:.0f})")
-            if home == "HOME_TINT" and _ratio(hc, sc) < GATES["contrast.mark"]:
-                out.append(f"map {home} on {sea} is {_ratio(hc, sc):.2f}:1, under the {GATES['contrast.mark']}:1 mark gate")
+    for a, b in MAP_MARK_PAIRS:   # cycle 3: pairwise, over the relief envelope
+        worst = map_pair_ratio(cfg, a, b)
+        if worst < GATES["contrast.mark"]:
+            out.append(f"map {a} against {b} is {worst:.2f}:1 at its relief's worst, under the "
+                       f"{GATES['contrast.mark']}:1 mark gate")
     return out
 
 

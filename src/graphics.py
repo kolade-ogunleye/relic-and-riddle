@@ -725,7 +725,7 @@ def scale_range(width: int, height: int) -> tuple[float, float]:
 def scale_label_font(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> FreeTypeFont:
     """The scale bar's labels' font on a frame (never under the 9:16 label floor: cycle 0 round 7, F16)."""
     k = 1.0 if height > width else min(width / 1920, height / 1080)
-    return data_font(max(1, floored(SCALE_LABEL_PX * k, width, height)), SCALE_LABEL_WEIGHT)
+    return data_font(max(1, data_floored(SCALE_LABEL_PX * k, width, height)), SCALE_LABEL_WEIGHT)
 
 
 @dataclass(frozen=True)
@@ -2676,6 +2676,15 @@ def label_plates_for(rest: Image.Image, layout: MarkerLayout) -> list[tuple[str,
     rows += [(xy, text, field_font(text, place_font(px)), anchor) for text, xy, anchor, px in layout.extra]
     plates = place_plates(rest, rows)
     n = len(layout.rows)
+    if n and all(getattr(p, "empty", False) for p in plates[:n]):
+        # freeze cycle 3 (lane A, stress realism 4 / item 17: the real Kailasa map drew its marker with no name, the
+        # refusal in the log only): a locator whose site name no overlay-label variant carries is declined, recorded
+        # (make_all's layout_holds), never delivered as an unnamed pin
+        err = LayoutError(f"map declined: the site's name {' '.join(t for t, _xy, _a in layout.rows)!r} is under "
+                          f"the {GATES['contrast.place']}:1 place-label target in every overlay-label variant "
+                          "(typography.plan_label_set)")
+        err.code = "map_site_label_refused"
+        raise err
     return [("place" if j < n else "region", p) for j, p in enumerate(plates)]
 
 
@@ -4474,6 +4483,23 @@ def _plan_thin(rest: Image.Image, xy: tuple[float, float], text: str, font: Free
     real fault that propagates. A plate whose ratio could not be measured is the explicit `contrast is None`
     (thin_unmeasured), which the record carries."""
     return plan_text(rest, xy, text, font, fill, anchor, track=track, halo_px=halo_px, min_halo=min_halo)
+
+
+def _plan_gated(rest: Image.Image, xy: tuple[float, float], text: str, font: FreeTypeFont, fills: Sequence,
+                anchor: str = "ls", track: float = 0) -> TextPlate:
+    """_plan_thin in the first of `fills` (a tier's colour, then the lighter tiers above it) whose plate reaches the
+    text gate (brand.TEXT_CONTRAST, 4.5) on `rest`; the last fill's plate where none does (its record shows it).
+    Freeze cycle 3 (lane A, stress item 12): a 9:16 timeline span in STONE on a bright hero planned 4.09-4.14 with its
+    halo at its deepest and was accepted under the gate; a lighter tier is the one move left that keeps it."""
+    plate = None
+    for fill in fills:
+        plate = _plan_thin(rest, xy, text, font, fill, anchor, halo_px=None, track=track)
+        if plate.contrast is None or plate.contrast >= brand.TEXT_CONTRAST:
+            if fill != fills[0]:
+                log.info("Text %r set in a lighter tier %s to reach %.1f:1 (%.2f).", text, fill, brand.TEXT_CONTRAST,
+                         plate.contrast or 0.0)
+            return plate
+    return plate
 
 
 def thin_unmeasured(plate: Any) -> bool:
@@ -6567,7 +6593,13 @@ def spine_colour(ground: Image.Image, mask: Image.Image) -> tuple[int, int, int]
     probe = ground.convert("RGB").copy()
     probe.paste(brand.GOLD_DIM, (0, 0), mask)
     ratio = nontext_contrast(probe, mask, ground=ground)
-    return brand.GOLD_DIM if ratio is None or ratio >= NONTEXT_MIN else brand.GOLD
+    # freeze cycle 3 (lane A, stress realism 6: the real Roman concrete 16:9 spine measured 2.99 against 3.0 as
+    # delivered): planned with the placement margin text has (contrast.place / contrast.text), so the encode and the
+    # drawn antialiasing never take a GOLD_DIM spine under the mark gate
+    return brand.GOLD_DIM if ratio is None or ratio >= NONTEXT_MIN * SPINE_PLACE_MARGIN else brand.GOLD
+
+
+SPINE_PLACE_MARGIN = 4.8 / 4.5      # the text tiers' place-over-gate margin (brand_system contrast.place / .text)
 
 
 def timeline_backdrop(photo: Path | None, width: int, height: int) -> Image.Image:
@@ -6831,6 +6863,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     _top, bottom = get_text_bounds(width, height)
     x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)   # the spine: its dots' left edge on the inset
     xt = x0 + round(56 * width / VIDEO_WIDTH)
+    year_right = get_text_box(width, height)[2]       # cycle 3: no year's ink past the text column
     label_w = tall_label_measure(width, height)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     many = len(events) > 2
@@ -6937,6 +6970,12 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
         spacing = capped_spacing(timeline_positions(events, y_first, y_last, needs), events, caps)
         steps = [b - a for a, b in zip(spacing.positions, spacing.positions[1:])]
         ok = (spacing.honest or not honest) and all(st >= nd - 1 for st, nd in zip(steps, needs))
+        # freeze cycle 3 (lane A, stress item 13: '4000 BC' / '5467 BC' ran to x 879, past the Reel box's 848): a
+        # year size whose widest year group runs past the text column is not a layout (the next size is tried)
+        def year_reach(en: dict[str, Any]) -> float:   # as drawn: the group's left ink edge on xt
+            b = year_ink_boxes(xt, 0, en["year_n"], en["approx"], f_year)
+            return _union(b)[2] + (xt - b[0][0]) if b else xt
+        ok = ok and all(year_reach(en) <= year_right for en in entries)
         return ok, (f_year, cap_y, entries, y_first, y_last, f_gap, needs, band, spacing, clear, separate, cut,
                     leading)
 
@@ -7155,7 +7194,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
             xy = spot or xy
             log.warning("Timeline span %r set at %d px without its full air: its band is %d px.", text,
                         SPAN_MIN_PX, b - a)
-        plate = _plan_thin(ground, xy, text, font, brand.STONE, "ls", halo_px=None, track=2)
+        plate = _plan_gated(ground, xy, text, font, (brand.STONE, brand.STONE_LT, brand.BONE), "ls", track=2)
         gaps.append((k, plate))
         plates.append((f"gap{k}", derive_gap(plate, events[k - 1], events[k])))
     # the years' ink outweighs their labels' (TALL_INK_RATIO), logged where it does not
@@ -8481,6 +8520,15 @@ def floored(px: float, width: int, height: int) -> int:
     return max(round(px), label_floor(width, height))
 
 
+def data_floored(px: float, width: int, height: int) -> int:
+    """`px` raised to the frame's DATA-label floor on either orientation (brand_system.TYPE_FLOOR "data_label": 27 px
+    on 9:16 at 1080, 30 on 16:9 at 1920). Freeze cycle 3 (lane A, stress items 2 and 8, real Derinkuyu): the 16:9
+    rulers' figures were set at 28 (scale) and 26 (section) px, under the 30 px floor label_floor leaves unenforced
+    on 16:9; a ruler, axis or scale-bar figure reads this floor on both."""
+    from .brand_system import label_floor_px
+    return max(round(px), math.ceil(label_floor_px(width, height, "data_label") - 1e-6))
+
+
 def lead_unit(fact: dict[str, Any]) -> str:
     """The unit a signed scale fact leads in: its own ("M" for a metre fact, else "FT"); the other is its conversion."""
     return "M" if str(fact.get("unit") or "").strip().lower() == "m" else "FT"
@@ -8663,9 +8711,15 @@ def render_scale(fact: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     canvas of `width` x `height` (the slide's art box), every label at `drawing_floor` px or more (the carousel's
     TYPE_FLOOR, diagram_label_floor): never a video poster shrunk into a slide (labels fell to ~19 px)."""
     feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
-    ref = pick_reference(feet)
-    if ref is None or feet <= 0:
-        return None
+    ref = pick_reference(feet) if feet > 0 else None
+    if ref is None:
+        # freeze cycle 3 (lane A, stress item 1): a recorded decline, never a silent None (the refusal names the rule)
+        err = LayoutError(f"scale graphic declined: no sourced reference landmark within 1/3x-3x of {feet:g} ft "
+                          f"(reference_facts.selected_reference)" if feet > 0 else
+                          f"scale graphic declined: the signed size {fact.get('value')!r} {fact.get('unit')!r} "
+                          "is not a positive length")
+        err.code = "scale_no_reference" if feet > 0 else "scale_not_positive"
+        raise err
     ref_label, ref_feet, _ = ref
     depth = fact.get("dimension") == "depth"
     feed = _FEED_PX.set(FEED_MIN_DELIVERED * width / FEED_PHONE_PT)   # landmark prototype: the least feed detail
@@ -8681,13 +8735,16 @@ def render_scale(fact: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
 # the Statue of Liberty's Fort Wood star wall (about 110 ft across) against 305 ft; Elizabeth Tower's 12 m square
 # shaft with its clock stage and corner pinnacles against 96.3 m; the Great Pyramid's 230.3 m base against its
 # original 146.5 m (faces at 51.8 degrees); an adult man's arms-at-side width, about 0.27 of his height.
-SILHOUETTE_WIDTH = {"liberty": 0.36, "elizabeth": 0.15, "pyramid": 1.57, "person": 0.256}
+# Freeze cycle 3 (lane A, stress item 1: a 60 ft subject, Memnon, had no landmark in 1/3x-3x and the scale returned
+# None): Washington's carved head on Mount Rushmore, 60 ft (NPS), fills the 17-102 ft gap between the person and the
+# Statue of Liberty; its width is the face and the wig's rolls against the head's height.
+SILHOUETTE_WIDTH = {"liberty": 0.36, "elizabeth": 0.15, "pyramid": 1.57, "person": 0.256, "rushmore": 0.70}
 
 
 def _landmark_kind(label: str) -> str:
     low = label.lower()
     return ("liberty" if "liberty" in low else "elizabeth" if ("elizabeth" in low or "big ben" in low) else
-            "pyramid" if "pyramid" in low else "person")
+            "pyramid" if "pyramid" in low else "rushmore" if "rushmore" in low else "person")
 
 
 # Landmark prototype (claude/freeze-landmark-proto): one flat-vector style for the landmarks and the subject. Four
@@ -8926,6 +8983,12 @@ def _draw_elizabeth(p: _LandmarkPen) -> None:
     p.rect(-0.066, 0.0, 0.066, 0.03)
     p.rect(-0.0623, 0.03, 0.0623, 0.53)
     p.rect(0.03, 0.03, 0.0623, 0.53, p.shade)
+    # freeze cycle 3 (lane A, the earlier ruling: Elizabeth Tower in the landmark prototype's four tones): a RIM
+    # inside the lit left arris of the shaft, the clock stage and the belfry (rim_u, the feed-width band)
+    r = p.rim_u / FEED_PATH_UNITS
+    rims = p.rim_u <= LANDMARK_BAND_MAX_U
+    if rims:
+        p.rect(-0.0623, 0.03, -0.0623 + r, 0.53, p.rim)
     if p.detail:
         for x in (-0.045, -0.015, 0.015, 0.045):                         # the shaft's vertical panels
             p.line([(x, 0.05), (x, 0.52)], p.gold)
@@ -8938,6 +9001,8 @@ def _draw_elizabeth(p: _LandmarkPen) -> None:
     # The clock stage, a little wider, with its dial, gable and corner pinnacles.
     p.rect(-0.069, 0.53, 0.069, 0.618)
     p.rect(0.034, 0.53, 0.069, 0.618, p.shade)
+    if rims:
+        p.rect(-0.069, 0.53, -0.069 + r, 0.618, p.rim)
     p.ellipse(0.0, 0.571, 0.036, 0.036, fill=(*brand.BONE, 255), outline=p.ink, width=max(1, p.lw))
     if p.detail:
         p.line([(0.0, 0.571), (0.0, 0.597)], width=max(1, p.lw))
@@ -8948,6 +9013,8 @@ def _draw_elizabeth(p: _LandmarkPen) -> None:
     # The belfry and its arcade.
     p.rect(-0.058, 0.618, 0.058, 0.70)
     p.rect(0.03, 0.618, 0.058, 0.70, p.shade)
+    if rims:
+        p.rect(-0.058, 0.618, -0.058 + r, 0.70, p.rim)
     p.poly([(-0.05, 0.618), (0.05, 0.618), (0.0, 0.652)])
     for x in (-0.03, 0.0, 0.03):
         p.poly([(x - 0.009, 0.632), (x + 0.009, 0.632), (x + 0.009, 0.676), (x, 0.688), (x - 0.009, 0.676)], p.ink)
@@ -8968,22 +9035,66 @@ def _draw_elizabeth(p: _LandmarkPen) -> None:
 def _draw_person(p: _LandmarkPen) -> None:
     """An adult standing, arms at his sides: head an eighth of his height, shoulders about a quarter wide, hands
     at mid-thigh, legs a little under half his height."""
-    p.ellipse(0.0, 0.94, 0.042, 0.06, fill=p.fill)
-    p.rect(-0.019, 0.85, 0.019, 0.89)
+    # freeze cycle 3 (lane A, the earlier ruling: the person in the landmark prototype's four tones): lit from the
+    # upper left as every landmark, the figure's right arm, leg and the right of its head and torso in SHADE, a RIM
+    # inside its lit left contour; the proportions are unchanged (the measured height is the figure's whole height)
+    lt, sh = p.light, p.shade
+    p.ellipse(0.0, 0.94, 0.042, 0.06, fill=lt)
+    p.poly([(0.012, 0.882), (0.03, 0.9), (0.042, 0.94), (0.03, 0.985), (0.012, 0.998), (0.026, 0.94)], sh)  # head
+    p.rect(-0.019, 0.85, 0.019, 0.89, lt)
+    p.rect(0.006, 0.85, 0.019, 0.89, sh)
     p.poly([(-0.112, 0.812), (-0.1, 0.835), (-0.05, 0.858), (0.05, 0.858), (0.1, 0.835), (0.112, 0.812),
             (0.086, 0.76), (0.074, 0.62), (0.088, 0.5), (0.088, 0.47), (-0.088, 0.47), (-0.088, 0.5),
-            (-0.074, 0.62), (-0.086, 0.76)])
+            (-0.074, 0.62), (-0.086, 0.76)], lt)
+    p.poly([(0.03, 0.858), (0.05, 0.858), (0.1, 0.835), (0.112, 0.812), (0.086, 0.76), (0.074, 0.62),
+            (0.088, 0.5), (0.088, 0.47), (0.03, 0.47)], sh)                                        # torso's right
     for s in (-1, 1):
+        tone = lt if s < 0 else sh
         p.poly([(s * 0.098, 0.838), (s * 0.122, 0.81), (s * 0.128, 0.74), (s * 0.126, 0.6), (s * 0.128, 0.455),
-                (s * 0.106, 0.455), (s * 0.104, 0.6), (s * 0.094, 0.74), (s * 0.088, 0.79)])        # arm
-        p.ellipse(s * 0.114, 0.43, 0.014, 0.03, fill=p.fill)                                       # hand
+                (s * 0.106, 0.455), (s * 0.104, 0.6), (s * 0.094, 0.74), (s * 0.088, 0.79)], tone)  # arm
+        p.ellipse(s * 0.114, 0.43, 0.014, 0.03, fill=tone)                                         # hand
         p.poly([(s * 0.088, 0.5), (s * 0.002, 0.5), (s * 0.002, 0.46), (s * 0.012, 0.27), (s * 0.016, 0.035),
-                (s * 0.052, 0.035), (s * 0.06, 0.27), (s * 0.084, 0.42)])                         # leg
-        p.poly([(s * 0.012, 0.0), (s * 0.074, 0.0), (s * 0.07, 0.022), (s * 0.052, 0.04), (s * 0.016, 0.04)])  # foot
+                (s * 0.052, 0.035), (s * 0.06, 0.27), (s * 0.084, 0.42)], tone)                   # leg
+        p.poly([(s * 0.012, 0.0), (s * 0.074, 0.0), (s * 0.07, 0.022), (s * 0.052, 0.04), (s * 0.016, 0.04)], tone)
+    if p.rim_u <= LANDMARK_BAND_MAX_U:             # the lit left contour's rim: the outer arm's edge, feed width
+        r = p.rim_u / FEED_PATH_UNITS
+        p.poly([(-0.122, 0.81), (-0.128, 0.74), (-0.126, 0.6), (-0.128, 0.455), (-0.128 + r, 0.455),
+                (-0.126 + r, 0.6), (-0.128 + r, 0.74), (-0.122 + r, 0.81)], p.rim)
+
+
+def _draw_rushmore(p: _LandmarkPen) -> None:
+    """George Washington's carved head on Mount Rushmore in the prototype's four tones, path units (1000 = 60 ft,
+    chin to crown). Reference (NPS, "How Big Are The Heads?", nps.gov/moru/learn/kidsyouth/how-big-are-the-heads.htm):
+    the head 60 ft, the nose 21 ft (-> 350 units), the mouth 18 ft wide (-> 300), the eyes 11 ft wide (-> 183). The
+    face's breadth and the wig's side rolls are read from the carving's photographs (approximate, not a cited
+    figure), kept to SILHOUETTE_WIDTH's 0.70. Frontal, lit from the upper left: the right cheek, the nose's right
+    side and the right roll in shade, a RIM inside the lit left contour, the eyes and mouth in the dark ink."""
+    lt, sh, dk = p.light, p.shade, p.dark
+    # the wig's side rolls behind the face (Washington's 18th-century queue), the right one in shade
+    p.path("M-300 430 Q-372 560 -340 760 Q-300 800 -270 740 Q-300 600 -270 470 Z", lt)
+    p.path("M300 430 Q372 560 340 760 Q300 800 270 740 Q300 600 270 470 Z", sh)
+    # the face mass: chin, jaw, cheeks and the crown
+    p.path("M-150 0 H150 Q280 80 315 380 Q335 700 200 900 Q100 1000 0 1000 Q-100 1000 -200 900 Q-335 700 -315 380 "
+           "Q-280 80 -150 0 Z", lt)
+    p.path("M70 0 H150 Q280 80 315 380 Q335 700 200 900 Q150 950 90 975 Q240 700 210 380 Q180 110 70 0 Z", sh)
+    # the hair swept back from the brow over the crown (a cap in shade, its lit left part a step lighter: the rim)
+    p.path("M-318 640 Q-330 900 -150 975 Q0 1010 150 975 Q330 900 318 640 Q280 800 150 830 Q0 850 -150 830 "
+           "Q-280 800 -318 640 Z", sh)
+    p.path("M-318 640 Q-330 900 -150 975 Q-100 990 -60 995 Q-250 930 -280 760 Z", p.rim)
+    p.band(-230, 230, 650)                                                   # the brow's shadow
+    if p.fine(30):                                                            # the eyes, 11 ft across
+        p.path("M-185 580 Q-95 625 -5 580 Q-95 548 -185 580 Z", dk)
+        p.path("M5 580 Q95 625 185 580 Q95 548 5 580 Z", dk)
+    p.path("M0 640 L62 318 Q30 296 0 300 Z", sh)                             # the nose's shaded side, 21 ft
+    if p.fine(14):
+        p.path("M-58 314 Q-40 296 -18 304 Q-38 318 -58 314 Z", dk)            # the nostrils
+        p.path("M58 314 Q40 296 18 304 Q38 318 58 314 Z", dk)
+    if p.fine(15):
+        p.path("M-150 200 Q0 175 150 200 Q0 222 -150 200 Z", dk)              # the mouth, 18 ft wide
 
 
 _LANDMARK_DRAWINGS = {"liberty": _draw_liberty, "elizabeth": _draw_elizabeth, "pyramid": _draw_pyramid,
-                      "person": _draw_person}
+                      "person": _draw_person, "rushmore": _draw_rushmore}
 
 
 def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour,
@@ -9010,6 +9121,8 @@ def _silhouette_width(label: str) -> float:
 
 SCALE_SAFE_AIR = 24   # px a 9:16 scale drawing's labels keep inside the Reel box's edge (RUBRIC PL1: >= 24 px)
 SCALE_TEXT_GAP = 44   # px of clear air between a 9:16 scale drawing and its words (2026-11-02)
+SCALE_HEAD_AIR = 36   # px a landmark's figure and note keep from the heading's lines (freeze cycle 3, MG-4: one
+#                       heading gap; they sat ~0 px under "42 M")
 SECTION_FOOT = 16     # px of ground drawn under a depth shaft's floor (it holds the floor's ruler figure)
 SCALE_NOTE_LIFT = 14  # px from a depth's ground line up to its bracket note's baseline (ring clear of the line)
 
@@ -9178,7 +9291,7 @@ def hold_push(t: float) -> float:
 # SUBJECT_UPRIGHT_ASPECT of its height wide (and never wider than the old block), a length LIES on the ground line,
 # its signed length along it and SUBJECT_LYING_ASPECT of that as its thickness (the object never stood: round 8).
 SUBJECT_UPRIGHT_ASPECT = 0.5
-SUBJECT_LYING_ASPECT = 0.12
+SUBJECT_LYING_ASPECT = 0.16    # cycle 3: 0.12 + the obelisk's upper face (OBELISK_BUTT_RATIO x OBELISK_TOP_FACE)
 SUBJECT_MIN_PX = 14            # the least drawn thickness / width of a subject (a hairline reads as a rule)
 
 
@@ -9222,6 +9335,7 @@ def _monolith_lying(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float,
 OBELISK_BUTT_RATIO = 4.2 / 41.75
 OBELISK_TAPER = 0.66
 OBELISK_PYRAMIDION = 1.0       # the pyramidion's length per top width
+OBELISK_TOP_FACE = 0.55        # cycle 3: the upper face's drawn depth per butt thickness (seen a little from above)
 
 
 def subject_kind(fact: dict[str, Any]) -> str | None:
@@ -9243,13 +9357,21 @@ def _obelisk_lying(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float, 
     lp = min(length * 0.5, ts * OBELISK_PYRAMIDION)
     xs = x1 - lp                                                           # shaft's end, pyramidion's foot
     lit, shade, rim = (*brand.GOLD, 255), (*brand.GOLD_DIM, 255), (*brand.BONE, 255)
+    front = (*(round((a + b) / 2) for a, b in zip(brand.GOLD, brand.GOLD_DIM)), 255)
     y = base_y
-    d.polygon([(x0, y), (x0, y - t), (xs, y - ts), (xs, y)], fill=lit)               # the shaft's lit face
-    d.polygon([(xs, y), (xs, y - ts), (x1, y - ts / 2)], fill=lit)                   # the pyramidion's upper facet
+    # freeze cycle 3 (lane A, MG-3: the lying obelisk read as a thin sliver beside the statue): its upper face is
+    # drawn too, seen a little from above (straight up, so its length along the ground stays the signed one): the lit
+    # GOLD top face over the front face a half step into shade, which gives the stone its body at feed size
+    dz = t * OBELISK_TOP_FACE
+    d.polygon([(x0, y - t), (xs, y - ts), (x1, y - ts / 2), (xs, y - ts - dz * OBELISK_TAPER), (x0, y - t - dz)],
+              fill=lit)                                                              # the upper face, lit
+    d.polygon([(x0, y), (x0, y - t), (xs, y - ts), (xs, y)], fill=front)             # the shaft's front face
+    d.polygon([(xs, y), (xs, y - ts), (x1, y - ts / 2)], fill=front)                 # the pyramidion's upper facet
     d.polygon([(xs, y), (xs, y - ts / 2), (x1, y - ts / 2)], fill=shade)             # its lower facet in shade
     r = max(min_px, t * 0.1)
-    if t >= 4 * r:                                         # the lit top arris, only where it is a rim, not a stripe
-        d.polygon([(x0, y - t), (xs, y - ts), (x1, y - ts / 2), (xs, y - ts + r), (x0, y - t + r)], fill=rim)
+    if dz >= 2 * r:                                        # the lit far arris, only where it is a rim, not a stripe
+        d.polygon([(x0, y - t - dz), (xs, y - ts - dz * OBELISK_TAPER), (x1, y - ts / 2),
+                   (xs, y - ts - dz * OBELISK_TAPER + r), (x0, y - t - dz + r)], fill=rim)
 
 
 def _monolith(d: ImageDraw.ImageDraw, x0: float, x1: float, base_y: float, h: float) -> None:
@@ -9402,7 +9524,11 @@ def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, 
         if not note:
             return fig, [], (x_t, tick_y, x_end), {"note": "", "shown": False, "form": name}
         col = (fig.box[0], None) if way == "r" else (None, fig.box[2])   # the note aligns to the figure's edge
-        lines = tracked_wrap(note, font_n, _block_measure(clear, fig.box, way, font_n), note_track)
+        measure = _block_measure(clear, fig.box, way, font_n)
+        lines = (tracked_wrap(note, font_n, measure, note_track, strict=True, max_lines=REFERENT_ROWS)
+                 or tracked_wrap(note, font_n, measure, note_track))     # cycle 3: the hard rule first
+        if lines is not None and len(lines) > 1:     # cycle 3: balanced rows ("GROUND TO / TORCH TIP", not "... / TIP")
+            lines = ruled_rows(lines, font_n, measure, note_track)
         if lines is None or len(lines) > REFERENT_ROWS:
             tried.append(f"{name}: no wrap in {REFERENT_ROWS} rows at {note_px} px")
             continue
@@ -9720,8 +9846,11 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         lm = landmark_mask((width, height), ref_label, ref_cx, base_y, ref_feet * px_ft)
 
         def clear_n(b: Box) -> bool:
+            # freeze cycle 3 (lane A, MG-4: "42 M" over "305 FT / GROUND TO TORCH TIP" ~0 px apart): the heading's
+            # lines keep SCALE_HEAD_AIR from the landmark's figure and note, the drawing's own words 6 px
             return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
+                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
         fig_pl, rows_n, tick, rec_n = referent_block(ground, _short(ref_feet, unit), f_blk, 2, note,
                                                      max(SCALE_RULER_PX - 4, floor), tick_r, tick_l, ref_top, 1.0,
@@ -9941,16 +10070,19 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     else:
         base_y = draw_bottom
         block = 200.0
-        f_rule_w = data_font(g.f(28))
+        f_rule_w = data_font(data_floored(g.f(28), width, height))   # cycle 3: the 16:9 data floor
         rule_x = WIDE_LEFT + 16 + max(ruler_label_width(t, f_rule_w, S(1)) for _f, t in
                                       height_ruler(max(feet, ref_feet), unit)) / g.k   # round 4: the figures end here
         lying = subject_lying(fact)
         top_ft = max(ft for ft, _ in height_ruler(max(feet, ref_feet), unit))
-        px_ft = (base_y - top_d - 40) / max(feet, ref_feet, top_ft)
+        # freeze cycle 3 (lane A, stress item 3: 'ABOUT 335.7 FT' set at y 125, over title-safe's 129): the room over
+        # the tallest part holds the subject's own figure (its baseline 18 over the block, its cap, 8 px of air)
+        lab_room = max(40.0, 18 + cap_height(figure_font(g.f(30))) / g.k + 8)
+        px_ft = (base_y - top_d - lab_room) / max(feet, ref_feet, top_ft)
         for _ in range(5):     # lane A cycle 1: the subject's extent depends on the scale (subject_extent)
             bw, _bh = subject_extent(feet, px_ft, block, lying)
             room = dx1 - dx0 - 60 - bw - 60
-            px_ft = min((base_y - top_d - 40) / max(feet, ref_feet, top_ft),
+            px_ft = min((base_y - top_d - lab_room) / max(feet, ref_feet, top_ft),
                         (dx1 - dx0 - 160) / max(1.0, feet + ref_feet * width_per_px) if lying else
                         room / max(1.0, ref_feet * width_per_px))
         blk_w, blk_h = subject_extent(feet, px_ft, block, lying)
@@ -9962,7 +10094,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     # hard at x 1000 mid-frame), from title-safe to just short of the column of words.
     gx0, gx1 = WIDE_LEFT, cx0 - 50
     f_note = figure_font(g.f(30))               # stated quantities on the drawing: the figure face (rulings 3, 8)
-    f_rule = data_font(g.f(28))
+    f_rule = data_font(data_floored(g.f(28), width, height))     # cycle 3: never under the 16:9 data floor
     # name, text, font, colour, x, baseline, anchor; a ruler figure's anchor is "ruler" and its y is its tick's (its
     # datum's), the label centred on it (F11, ruler_label)
     ann: list[tuple[str, str, Any, Any, float, float, str]] = []
@@ -11553,7 +11685,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     else:
         timed.append(("approx", _plan(final, (X(L.title_x + 2), Y(cap_base)), caption, f_small, brand.STONE_LT, "ls",
                                       track=S(3)), 0.3, None, None))
-    f_ruler = data_font(floored(g.f(L.small_px - 2), width, height))   # round 3: the axis in the data face
+    f_ruler = data_font(data_floored(g.f(L.small_px - 2), width, height))   # round 3: data face; cycle 3: its floor
     surface_spans = [(0.0, X(L.surface_gap)), (X(ruler_x - 16), float(width))]   # the surface line, gapped for "0 FT"
     ruler_rows = []
     for j, ft in enumerate(range(0, int(axis_end) + 1, tick)):
@@ -12893,8 +13025,9 @@ def make_all(payload: dict[str, Any], topic: dict[str, Any], work_dir: Path, pho
                                     sidecar(result), Path(declaration["sources"][0]["path"])])
             return result
         except LayoutError as e:   # QF-23: refused rather than drawn with its copy cut; held for the review card
-            log.error("Graphic '%s' held: its text cannot be set whole (%s); continuing without it.", name, e)
-            payload.setdefault("layout_holds", []).append({"deck": f"graphics/{name}", "error": str(e), "moved": []})
+            log.error("Graphic '%s' held (%s: %s); continuing without it.", name, e.code, e.reason)
+            payload.setdefault("layout_holds", []).append({"deck": f"graphics/{name}", "error": str(e), "moved": [],
+                                                           "code": e.code})
             return None
         except Exception as e:  # noqa: BLE001  never raises (make_all): one failed graphic, not the run
             log.warning("Graphic '%s' failed (%s); continuing without it.", name, e)

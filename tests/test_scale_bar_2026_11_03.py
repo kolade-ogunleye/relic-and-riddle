@@ -118,7 +118,10 @@ def test_place_scale_bar_shifts_off_labels_and_the_home_fill() -> None:
     box = lay.box
     sub = home[int(box[1]):int(box[3]), int(box[0]):int(box[2])] > 127
     assert sub.mean() <= graphics.SCALE_HOME_MAX
-    assert lay.x > graphics.SCALE_ORIGIN_TALL[0] and (lay.x - graphics.SCALE_ORIGIN_TALL[0]) % 40 == 0
+    # freeze lane A cycle 3: the origin is inside the 9:16 text column (A-S1-2); the shifts step from it
+    start = graphics.place_scale_bar(bar, 1080, 1920, []).x
+    assert start >= graphics.get_text_box(1080, 1920)[0]
+    assert lay.x > start and (lay.x - start) % 40 == 0
     label = (60, 990, 380, 1050)
     lay2 = graphics.place_scale_bar(bar, 1080, 1920, [label])
     assert not graphics.LayoutConstraintSolver.boxes_intersect(lay2.box, label)

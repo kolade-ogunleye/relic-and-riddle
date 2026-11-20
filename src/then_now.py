@@ -720,24 +720,43 @@ def _keep_picture_ground(im: Image.Image, trims: list) -> list:
     return out
 
 
-def _cover_window(size: tuple[int, int], big: tuple[int, int], z: float = 1.0, v: float = 0.5) -> tuple[float, ...]:
-    """The source box (of a photo `size`) a cover crop to `big` at zoom `z` takes, centred across and with its
-    centre at `v` of the photo's height (clamped inside the photo)."""
+def _cover_window(size: tuple[int, int], big: tuple[int, int], z: float = 1.0, v: float = 0.5,
+                  u: float = 0.5) -> tuple[float, ...]:
+    """The source box (of a photo `size`) a cover crop to `big` at zoom `z` takes, its centre at `u` of the photo's
+    width (0.5: centred across; freeze cycle 3) and at `v` of its height (both clamped inside the photo)."""
     sw, sh = size
     s = max(big[0] / sw, big[1] / sh)
     ww, wh = big[0] / s / z, big[1] / s / z
     cy = min(max(v * sh, wh / 2), sh - wh / 2)
-    x0 = (sw - ww) / 2
-    return (x0, cy - wh / 2, x0 + ww, cy + wh / 2)
+    cx = min(max(u * sw, ww / 2), sw - ww / 2)
+    return (cx - ww / 2, cy - wh / 2, cx + ww / 2, cy + wh / 2)
 
 
-def _subject_top(src: Image.Image, big: tuple[int, int]) -> float | None:
+# Freeze cycle 3 (lane A, A-S2-1: the Memnon 9:16 THEN pane was 55-70 % flat sky with both colossi sliced at the
+# frame's edges): a landscape pair cover-cropped to 9:16 keeps under 40 % of its width, and centred across, a pair
+# framed by two subjects keeps the gap between them. The shared window is also searched ACROSS (FRAME_U: the same
+# horizontal place for both photos, so a registered pair stays registered; the subject box's centre first where the
+# photo system knows one, hero_window.subject_box), and of the windows that pass, the one whose THEN pane holds its
+# structure most in its middle columns (FRAME_MIDDLE) at the least zoom is taken: the subject in the pane, not cut by
+# its edges. No topic, no photo list.
+FRAME_U = (0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9)
+FRAME_MIDDLE = 0.6                  # the share of a pane's columns read as its middle
+
+
+def _middle_density(pane: Any) -> float:
+    """_edge_density over the middle FRAME_MIDDLE of `pane`'s columns."""
+    w = pane.shape[1]
+    a = int(w * (1 - FRAME_MIDDLE) / 2)
+    return _edge_density(pane[:, a:w - a])
+
+
+def _subject_top(src: Image.Image, big: tuple[int, int], u: float = 0.5) -> float | None:
     """The old photo's subject top as a share of its height: the first row of its 15-row smoothed row edge-energy
     profile (over the columns a centred cover crop to `big` keeps, each row read as its most structured
     SUBJECT_BLOCK px block) above SUBJECT_LEVEL of the profile's maximum."""
     import cv2
     import numpy as np
-    x0, _, x1, _ = _cover_window(src.size, big)
+    x0, _, x1, _ = _cover_window(src.size, big, u=u)
     s = big[1] / src.height if big[1] / src.height < 1 else 1.0
     small = src.convert("RGB").crop((round(x0), 0, round(x1), src.height))
     small = small.resize((max(1, round(small.width * s)), max(1, round(small.height * s))), Image.BILINEAR)
@@ -806,11 +825,18 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
     if dens >= FRAME_EDGE_MIN and flat <= FRAME_FLAT_SHARE:
         return _out(srcs[0], srcs[1], _fitted)
     info["gate"] = "THEN pane empty"
-    subject = _subject_top(ims[0], big)
     per_px = min(_cover_window(im.size, big)[3] - _cover_window(im.size, big)[1] for im in ims) / big[1]
     z_max = min(FRAME_Z_MAX, per_px / FRAME_MIN_SOURCE)
+    # the horizontal places tried (FRAME_U), the subject box's centre first where the photo system knows one
+    us = list(FRAME_U)
+    if masks[0] is not None and masks[0].getbbox():
+        bx0, _by0, bx1, _by1 = masks[0].getbbox()
+        us.insert(0, round((bx0 + bx1) / 2 / masks[0].width, 4))
+    us = list(dict.fromkeys(us))
+    subjects_u = {u: _subject_top(ims[0], big, u) for u in us}
+    subject = subjects_u[us[0]] if subjects_u.get(0.5) is None else subjects_u[0.5]
     info.update({"subject_top_share": None if subject is None else round(subject, 4), "z_max": round(z_max, 3)})
-    if subject is None or z_max < 1.0:
+    if all(s is None for s in subjects_u.values()) or z_max < 1.0:
         log.info("Then-and-now 9:16: the THEN pane is empty and no shared window fixes it (%s); centred crop kept.",
                  "no subject found" if subject is None else f"zoom limit {z_max:.2f}")
         info["window"] = "centred (no window found)"
@@ -820,47 +846,60 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
     want = sum(SUBJECT_TOP) / 2 * split
     old_im = ims[0]
     best = None                                    # the in-band window with the most THEN structure
-    for k in range(int((z_max - 1.0) / FRAME_Z_STEP + 1e-6) + 1):
-        z = round(1.0 + k * FRAME_Z_STEP, 4)
-        x0, _, x1, _ = _cover_window(old_im.size, big, z)
-        wh = (x1 - x0) * big[1] / big[0]
-        s_row = subject * old_im.height
-        top = s_row - (lead + want * ch / height) * wh / big[1]
-        top = min(max(top, 0.0), old_im.height - wh)
-        v = (top + wh / 2) / old_im.height
-        row = ((s_row - top) * big[1] / wh - lead) * height / ch
-        if not SUBJECT_TOP[0] * split <= row <= SUBJECT_TOP[1] * split:
-            log.debug("Then-and-now 9:16 window: zoom %.2f puts the subject at row %.0f.", z, row)
+    passed = None                                  # (score, ...) of the windows that pass both panes
+    for u in us:
+        s_top = subjects_u[u]
+        if s_top is None:
             continue
-        cand = [im.resize(big, Image.LANCZOS, box=_cover_window(im.size, big, z, v)).convert("RGB") for im in ims]
-        tp, lp = panes(*cand)
-        dt, dl = _edge_density(tp), _edge_density(lp)
-        log.debug("Then-and-now 9:16 window: zoom %.2f, subject row %.0f, pane edges %.3f / %.3f.", z, row, dt, dl)
-        if dl >= FRAME_EDGE_MIN and (best is None or dt > best[0] + 1e-9):
-            best = (dt, dl, z, v, row, cand)
-        if dt >= FRAME_EDGE_MIN and dl >= FRAME_EDGE_MIN:
-            info.update({"zoom": z, "window": "shared", "v_centre": round(v, 4), "subject_row": round(row, 1),
-                         "subject_row_share": round(row / split, 4), "then_pane_edge_after": round(dt, 4),
-                         "now_pane_edge_after": round(dl, 4),
-                         "source_px_per_frame_px": round(per_px / z, 3)})
-            log.info("Then-and-now 9:16: shared window at zoom %.2f, the subject top at %.1f%% of the THEN pane.",
-                     z, 100 * row / split)
-            return _out(cand[0], cand[1], lambda m, z=z, v=v: m.resize(big, Image.NEAREST,
-                                                                        box=_cover_window(m.size, big, z, v)))
+        for k in range(int((z_max - 1.0) / FRAME_Z_STEP + 1e-6) + 1):
+            z = round(1.0 + k * FRAME_Z_STEP, 4)
+            x0, _, x1, _ = _cover_window(old_im.size, big, z, u=u)
+            wh = (x1 - x0) * big[1] / big[0]
+            s_row = s_top * old_im.height
+            top = s_row - (lead + want * ch / height) * wh / big[1]
+            top = min(max(top, 0.0), old_im.height - wh)
+            v = (top + wh / 2) / old_im.height
+            row = ((s_row - top) * big[1] / wh - lead) * height / ch
+            if not SUBJECT_TOP[0] * split <= row <= SUBJECT_TOP[1] * split:
+                log.debug("Then-and-now 9:16 window: zoom %.2f at %.2f puts the subject at row %.0f.", z, u, row)
+                continue
+            cand = [im.resize(big, Image.LANCZOS, box=_cover_window(im.size, big, z, v, u)).convert("RGB")
+                    for im in ims]
+            tp, lp = panes(*cand)
+            dt, dl = _edge_density(tp), _edge_density(lp)
+            log.debug("Then-and-now 9:16 window: zoom %.2f at %.2f, subject row %.0f, pane edges %.3f / %.3f.",
+                      z, u, row, dt, dl)
+            score = _middle_density(tp) / z         # the THEN structure in the pane's middle, per zoom
+            if dl >= FRAME_EDGE_MIN and dt >= FRAME_BEST_GAIN * dens and (best is None or score > best[7] + 1e-9):
+                best = (dt, dl, z, v, row, cand, u, score)
+            if dt >= FRAME_EDGE_MIN and dl >= FRAME_EDGE_MIN:
+                if passed is None or score > passed[0] + 1e-9:
+                    passed = (score, dt, dl, z, v, row, cand, u)
+                break                                  # this place's least zoom that passes
+    if passed is not None:
+        _score, dt, dl, z, v, row, cand, u = passed
+        info.update({"zoom": z, "window": "shared", "v_centre": round(v, 4), "u_centre": round(u, 4),
+                     "subject_row": round(row, 1), "subject_row_share": round(row / split, 4),
+                     "then_pane_edge_after": round(dt, 4), "now_pane_edge_after": round(dl, 4),
+                     "source_px_per_frame_px": round(per_px / z, 3)})
+        log.info("Then-and-now 9:16: shared window at zoom %.2f across %.2f, the subject top at %.1f%% of the THEN "
+                 "pane.", z, u, 100 * row / split)
+        return _out(cand[0], cand[1], lambda m, z=z, v=v, u=u: m.resize(big, Image.NEAREST,
+                                                                          box=_cover_window(m.size, big, z, v, u)))
     # Review round 3 (T7a): a soft old print (Colossi then_0, an 1876 albumen print) never reaches FRAME_EDGE_MIN
     # under Canny(50, 150), so no window passed and the pane stayed sky. The in-band window (the subject's top at
     # SUBJECT_TOP of the pane) with the most THEN structure is taken when it carries at least FRAME_BEST_GAIN x the
     # centred pane's, and recorded as below the threshold; otherwise the centred crop is kept.
     if best is not None and best[0] >= FRAME_BEST_GAIN * dens:
-        dt, dl, z, v, row, cand = best
+        dt, dl, z, v, row, cand, u, _score = best
         info.update({"zoom": z, "window": "shared (most THEN structure; under FRAME_EDGE_MIN)", "v_centre": round(v, 4),
-                     "subject_row": round(row, 1), "subject_row_share": round(row / split, 4),
+                     "u_centre": round(u, 4), "subject_row": round(row, 1), "subject_row_share": round(row / split, 4),
                      "then_pane_edge_after": round(dt, 4), "now_pane_edge_after": round(dl, 4),
                      "source_px_per_frame_px": round(per_px / z, 3)})
         log.info("Then-and-now 9:16: no window reaches edge density %.2f; the subject-top window at zoom %.2f "
-                 "(THEN pane %.3f against %.3f centred) is used.", FRAME_EDGE_MIN, z, dt, dens)
-        return _out(cand[0], cand[1], lambda m, z=z, v=v: m.resize(big, Image.NEAREST,
-                                                                    box=_cover_window(m.size, big, z, v)))
+                 "across %.2f (THEN pane %.3f against %.3f centred) is used.", FRAME_EDGE_MIN, z, u, dt, dens)
+        return _out(cand[0], cand[1], lambda m, z=z, v=v, u=u: m.resize(big, Image.NEAREST,
+                                                                          box=_cover_window(m.size, big, z, v, u)))
     log.info("Then-and-now 9:16: the THEN pane is empty and no zoom up to %.2f places the subject; centred crop kept.",
              z_max)
     info["window"] = "centred (no window found)"
@@ -995,7 +1034,10 @@ def marker_xy(which: str, width: int, height: int, side: str = "left", word: str
     if width > height:
         _, y0, _, _ = get_text_box(width, height)
         return (split - 64, y0 + 40, "rt") if which == "then" else (split + 64, y0 + 40, "lt")
-    x0, y0, x1, _ = safe_zones.graphics_box(width, height)
+    _gx0, y0, _gx1, _ = safe_zones.graphics_box(width, height)
+    # freeze cycle 3 (lane A, MG-8: Roman's plates started 4 px inside the Reel box): across, the text column (the box
+    # inset by safe_zones.TEXT_INSET, as every card), so a left- or right-set plate keeps the system's margin
+    x0, _, x1, _ = safe_zones.text_box("reel", width, height)
     # lane A cycle 1: side "centre:<x>" centres the marker on the line x (marker_lines centres each line on it)
     x, anchor = ((x1 - 18, "rt") if side == "right" else (int(side.split(":")[1]), "mt")
                  if side.startswith("centre:") else (x0 + 18, "lt"))
@@ -1483,7 +1525,7 @@ KICKER_PLATE_ROOM = 24     # px: a held plate's pad round the widest line, kept 
 def marker_sides(width: int, height: int, half_w: float) -> tuple[str, ...]:
     """The 9:16 markers' candidate sides: "left", the centred columns "centre:<x>" (x on the box, `half_w` the
     widest marker's half ink width plus 18 px from either box edge) and "right"."""
-    x0, _y0, x1, _ = safe_zones.graphics_box(width, height)
+    x0, _y0, x1, _ = safe_zones.text_box("reel", width, height)    # cycle 3: the text column (marker_xy)
     lo, hi = x0 + 18 + half_w, x1 - 18 - half_w
     if hi <= lo:
         return ("left", "right")

@@ -81,9 +81,13 @@ def test_the_reel_box_is_the_shared_organic_rectangle_with_a_240px_caption_band(
     # the Stories keep their own (Meta) profile: the Reel screenshots say nothing about the Story viewer
     assert safe_zones.safe_box("story") == (65, 269, 1015, 1248)
     # the graphics read the same statement: their text box and shared inset edges sit inside the organic box
-    assert graphics.get_text_box(W, H) == (113, 330, 848, GRAPHICS_FOOT) and graphics.TEXT_BOTTOM == GRAPHICS_FOOT
-    assert (graphics.INSET_X0, graphics.INSET_X1) == (120, 820) == (graphics.inset_x0(), graphics.inset_x1())
-    assert graphics.inset_x0(540, 960) == 60 and graphics.inset_x1(540, 960) == 410
+    # freeze lane A cycle 3 (panel 4 MG-1): the 9:16 text column is the Reel box inset by safe_zones.TEXT_INSET
+    col = safe_zones.text_box("reel", W, H)
+    assert graphics.get_text_box(W, H) == (col[0], 330, col[2], GRAPHICS_FOOT) and graphics.TEXT_BOTTOM == GRAPHICS_FOOT
+    assert (graphics.INSET_X0, graphics.INSET_X1) == (graphics.inset_x0(), graphics.inset_x1())
+    assert graphics.INSET_X0 == col[0] and graphics.INSET_X1 <= col[2]
+    assert graphics.inset_x0(540, 960) >= safe_zones.text_box("reel", 540, 960)[0]
+    assert graphics.inset_x1(540, 960) <= safe_zones.text_box("reel", 540, 960)[2]
 
 
 def test_captions_keep_their_640px_measure_centred_in_the_reel_box(tmp_path):
@@ -211,7 +215,9 @@ def test_the_design_grid_keeps_the_frame_scale_on_the_narrower_box():
     g = graphics._Grid(W, H)
     assert g.k == 1.0                                           # the type is not scaled to the narrower box
     assert g.x(g.DESIGN_X0) == graphics.inset_x0()               # the design's inset edge on the shared one
-    assert g.ix(g.bx1) == pytest.approx(g.DESIGN_X0 + 848 - 120) and g.iy(g.by1) == pytest.approx(GRAPHICS_FOOT)
+    # freeze lane A cycle 3: the column is the inset text box (safe_zones.text_box), its edges the design's measure
+    assert g.ix(g.bx1) == pytest.approx(g.DESIGN_X0 + graphics.get_text_box(W, H)[2] - graphics.inset_x0())
+    assert g.iy(g.by1) == pytest.approx(GRAPHICS_FOOT)
     small = graphics._Grid(540, 960)
     assert small.k == 0.5 and small.x(small.DESIGN_X0) == graphics.inset_x0(540, 960)
 

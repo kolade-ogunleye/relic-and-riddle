@@ -99,7 +99,7 @@ def second_brand(brand, display: str | None = "Montserrat"):
     palette = {k: (v if isinstance(v, str) else (v[2], v[1], v[0])) for k, v in base.palette.items()}
     return base.derive("Second test brand", palette=palette, fonts={"display": display or base.fonts["display"]},
                        text={"masthead": "SECOND TEST BRAND", "follow": "FOLLOW FOR THE NEXT ONE",
-                             "handoff": "The next one is right here."})
+                             "handoff": "The next one is waiting."})
 
 
 def third_brand(brand):
@@ -112,7 +112,7 @@ def third_brand(brand):
     return base.derive("Third test brand", palette=palette,
                        fonts={"display": "Cinzel", "data": "Cinzel", "caption_wide": "Cinzel"},
                        text={"masthead": "THIRD TEST BRAND", "follow": "FOLLOW FOR THE NEXT FIND",
-                             "handoff": "The next find is right here."})
+                             "handoff": "The next find is waiting."})
 
 
 def main() -> None:

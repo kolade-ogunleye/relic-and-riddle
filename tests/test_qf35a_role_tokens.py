@@ -226,7 +226,7 @@ def _second_brand():
     palette = {k: (v if isinstance(v, str) else (v[2], v[1], v[0])) for k, v in base.palette.items()}
     return base.derive("Second test brand", palette=palette, fonts={"display": "Montserrat"},
                        text={"masthead": "SECOND TEST BRAND", "follow": "FOLLOW FOR THE NEXT ONE",
-                             "handoff": "The next one is right here."})
+                             "handoff": "The next one is waiting."})
 
 
 def test_default_brand_is_todays_values():
@@ -265,7 +265,7 @@ def test_old_module_names_follow_the_active_brand():
         assert design_cards.STRIKE_BACK != (177, 135, 40) and ad.DEFAULT_PALETTE["accent"] == second.colour("TEAL")
         assert brand.DISPLAY_FONT == "Montserrat"
     assert graphics.GOLD == (242, 182, 48) and vc.COL_EMPHASIS == "&H0030B6F2&" and end_card.HANDOFF == (
-        "The next riddle is right here.")
+        "The next riddle is waiting.")
     with pytest.raises(ValueError):
         brand.BrandConfig("incomplete", palette={"INK": (0, 0, 0)})
 

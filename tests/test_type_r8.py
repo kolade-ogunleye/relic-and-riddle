@@ -23,7 +23,7 @@ def _second():
     palette = {k: (v if isinstance(v, str) else (v[2], v[1], v[0])) for k, v in base.palette.items()}
     return base.derive("Second test brand", palette=palette, fonts={"display": "Montserrat"},
                        text={"masthead": "SECOND TEST BRAND", "follow": "FOLLOW FOR THE NEXT ONE",
-                             "handoff": "The next one is right here."})
+                             "handoff": "The next one is waiting."})
 
 
 def _draw():

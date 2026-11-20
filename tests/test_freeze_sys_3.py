@@ -445,3 +445,16 @@ def test_the_writer_check_and_the_release_gate_agree_on_a_headline(curated_paylo
                                             "narration_script": "It weighs nearly 1,090 to 1,168 tonnes."})
         assert (not writer) == ok and (not gate) == ok, (title, writer, gate)
 
+
+# --------------------------------------------------------------------------- SYS-E-3: the hand-off points at no place
+def test_no_brands_hand_off_line_points_at_a_place():
+    from src import brand
+    assert brand.DEFAULT_BRAND.text["handoff"] == "The next riddle is waiting."
+    assert brand.handoff_problems(brand.DEFAULT_BRAND) == []
+    for line in ("The next riddle is right here.", "Watch the next one below.", "Tap here for more."):
+        cfg = brand.DEFAULT_BRAND.derive("place", text={"handoff": line})
+        assert brand.handoff_problems(cfg), line
+        with pytest.raises(brand.BrandRefused):
+            brand.configure(cfg)
+    assert brand.handoff_problems(brand.DEFAULT_BRAND.derive("ok", text={"handoff": "There's always another riddle."})) == []
+    assert brand.handoff_problems(brand.DEFAULT_BRAND.derive("ok", text={"handoff": "Another riddle is waiting."})) == []

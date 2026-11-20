@@ -106,7 +106,9 @@ BRAND_FONTS: Mapping[str, str | None] = MappingProxyType({
 BRAND_TEXT: Mapping[str, str] = MappingProxyType({
     "masthead": "RELIC & RIDDLE",
     "follow": "FOLLOW FOR THE NEXT RELIC",        # the end card's follow line
-    "handoff": "The next riddle is right here.",  # the 16:9 end screen's hand-off to the watch-next slot
+    # the 16:9 end screen's hand-off (freeze SYS-E-3: it points at no place: YouTube's end-screen elements may never
+    # draw, and "right here" on a bare frame points at the photograph; HANDOFF_PLACE_WORDS, checked for every brand)
+    "handoff": "The next riddle is waiting.",
 })
 
 
@@ -326,6 +328,21 @@ def map_mark_ratios(cfg: "BrandConfig") -> dict[str, float]:
     return out
 
 
+# Freeze SYS-E-3: the end screen's hand-off line makes no claim about place: the renderer cannot know whether the
+# platform draws its end-screen elements (late, suppressed in some players and embeds, made-for-kids), so a word that
+# points at a place points at nothing, or at the photograph.
+HANDOFF_PLACE_WORDS = frozenset(("here", "right", "left", "below", "above", "beside", "underneath", "next to",
+                                 "this way", "click", "tap"))
+
+
+def handoff_problems(cfg: "BrandConfig") -> list[str]:
+    """Why `cfg`'s hand-off line points at a place ([]: it does not)."""
+    import re as _re
+    line = " ".join(str(cfg.text.get("handoff") or "").lower().split())
+    found = sorted(w for w in HANDOFF_PLACE_WORDS if _re.search(r"(?<![a-z])" + _re.escape(w) + r"(?![a-z])", line))
+    return [f"hand-off line {cfg.text.get('handoff')!r} points at a place ({', '.join(found)})"] if found else []
+
+
 def _hue_sat(rgb: RGB) -> tuple[float, float]:
     import colorsys
     h, s, _ = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
@@ -432,7 +449,8 @@ def configure(config: BrandConfig | None, validate: bool = True) -> BrandConfig:
     global _active
     if validate and config is not None and config is not DEFAULT_BRAND:
         from .brand_system import validate_display
-        fails = validate_display(config) + map_fill_problems(config)   # SYS batch 2: and the map fills
+        fails = (validate_display(config) + map_fill_problems(config)   # SYS batch 2: and the map fills
+                 + handoff_problems(config))                         # SYS-E-3: and the hand-off line
         if fails:
             raise BrandRefused(config.name, fails)
     previous, _active = _active, config or DEFAULT_BRAND

@@ -436,7 +436,7 @@ def _end_screen(**kw):
         end_card.SECONDS = end_card.END_SCREEN_SECONDS = 0.2
         end_card.reading_need = lambda *a, **k: 0.0   # short: the reading hold is lane E's own test
         try:
-            list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "The next riddle is right here.", {}, **kw))
+            list(end_card.frames(Image.new("RGB", size, (60, 60, 60)), "The next riddle is waiting.", {}, **kw))
         finally:
             end_card.SECONDS, end_card.END_SCREEN_SECONDS, end_card.reading_need = old
     return go

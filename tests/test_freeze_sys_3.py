@@ -458,3 +458,42 @@ def test_no_brands_hand_off_line_points_at_a_place():
             brand.configure(cfg)
     assert brand.handoff_problems(brand.DEFAULT_BRAND.derive("ok", text={"handoff": "There's always another riddle."})) == []
     assert brand.handoff_problems(brand.DEFAULT_BRAND.derive("ok", text={"handoff": "Another riddle is waiting."})) == []
+
+
+# --------------------------------------------------------------------------- SYS-E-4: the loop seam's inputs recorded
+def test_the_composer_records_the_loop_seams_inputs_and_the_bridge_rebuilds_from_them(tmp_path):
+    import json
+    import math
+    from types import SimpleNamespace
+
+    from PIL import Image
+
+    from src import end_card, video_composer as vc
+    from src.still_camera import frame_count, motion_for
+    W, H = 1080, 1920
+    scenes = [tmp_path / "motion_01.mp4", tmp_path / "scene_02.jpg", tmp_path / "scene_03.jpg"]
+    scenes[0].write_bytes(b"")
+    for p in scenes[1:]:
+        Image.new("RGB", (W, H), (90, 80, 70)).save(p)
+    durations, vo_dur, fades = [4.0, 5.0, 6.2], 15.2, [0.4, 0.5]
+    n = len(scenes)
+    # the cameras as compose_video renders them (the frame counts loop_motion reads)
+    boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
+    end = math.ceil(vo_dur * vc.VIDEO_FPS) / vc.VIDEO_FPS
+    close_kind = vc._camera_kind(scenes[-1], n - 1, n, set(), W, H)
+    close = motion_for(close_kind, frame_count(end - (boundaries[-1] - fades[-1] / 2), vc.VIDEO_FPS))
+    hook = motion_for("hook", frame_count(boundaries[0] + fades[0] / 2, vc.VIDEO_FPS), lead=True)
+    rec = vc.loop_seam_record(scenes, durations, vo_dur, set(), W, H, fades, {0: hook, n - 1: close})
+    rec = json.loads(json.dumps(rec))                                   # as the manifest keeps it
+    assert rec["scene_durations"] == durations and rec["seam_kinds"] == {"open": "hook", "close": close_kind}
+    assert rec["opening_transition"] == 0.4 and rec["closing_transition"] == 0.5 and rec["fps"] == vc.VIDEO_FPS
+    for key in ("close_zoom", "close_push", "open_push"):
+        assert rec["predicted"][key] == rec["cameras"][key], key
+    last, first = Image.new("RGB", (W, H), (120, 100, 80)), Image.new("RGB", (W, H), (70, 90, 110))
+    a, b = {}, {}
+    for _ in end_card.loop_bridge(last, first, "Send this to a friend.", a, **rec["cameras"]):
+        pass
+    for _ in end_card.loop_bridge(last, first, "Send this to a friend.", b, close_zoom=close.end_zoom,
+                                  close_push=round(close.end_velocity, 6), open_push=round(hook.start_velocity, 6)):
+        pass
+    assert a["mad_last"] == b["mad_last"]

@@ -358,6 +358,26 @@ def seam_from_cameras(motions: dict[int, Any], n: int) -> dict[str, float]:
     return out
 
 
+def loop_seam_record(scene_images: List[Any], durations: List[float], vo_dur: float, macro_indices: Set[int],
+                     width: int, height: int, fades: List[float], motions: dict[int, Any]) -> Dict[str, Any]:
+    """What the loop bridge's seam was built from (freeze SYS-E-4, manifest["loop_seam"]): the scene durations (the
+    bridge's own frame-rounded boundaries), both seam transitions, the macro scenes, the seam scenes' camera kinds,
+    loop_motion's prediction and what the rendered cameras did (the values the bridge used), so an audit can rebuild
+    the frames before frame 0 (an AI hook clip's pre-roll) and check loop_motion against the cameras."""
+    n = len(scene_images)
+    closing, opening = (fades[-1] if fades else 0.0), (fades[0] if fades else 0.0)
+    return {"scene_durations": [round(float(d), 4) for d in durations],
+            "opening_transition": opening, "closing_transition": closing,
+            "macro_indices": sorted(int(i) for i in macro_indices),
+            "seam_kinds": {"open": _camera_kind(scene_images[0], 0, n, macro_indices, width, height) if n else None,
+                           "close": (_camera_kind(scene_images[-1], n - 1, n, macro_indices, width, height)
+                                     if n else None)},
+            "predicted": loop_motion(scene_images, durations, vo_dur, macro_indices, width, height,
+                                     closing_transition=closing, opening_transition=opening),
+            "cameras": seam_from_cameras(motions, n),
+            "vo_dur": round(float(vo_dur), 3), "fps": VIDEO_FPS}
+
+
 class RenderError(RuntimeError):
     pass
 
@@ -5450,6 +5470,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         head = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-threads", str(os.cpu_count() or 0),
                 *input_args, "-filter_complex", ";".join(filter_parts)]
         log.info("Rendering master -> %s", output_mp4_path.name)
+        loop_seam = None   # SYS-E-4: the seam's inputs (None without a bridge: 16:9, or no card)
         try:
             motions = render_cameras(cameras, (width, height))
             if not card:
@@ -5460,6 +5481,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 motion = loop_motion(scene_images, motion_durations, vo_dur, macro_indices, width, height,
                                      closing_transition=fades[-1] if fades else 0.0,
                                      opening_transition=fades[0] if fades else 0.0)
+                loop_seam = loop_seam_record(scene_images, motion_durations, vo_dur, macro_indices, width, height,
+                                             list(fades or []), motions)
                 motion = {**motion, **seam_from_cameras(motions, n)}   # what the cameras really did
                 from .font_engine import surface
                 with surface("end card"):
@@ -5501,6 +5524,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         manifest["video_encoder"] = {"master": list(encoder_args),
                                      "intermediate": list(_get_intermediate_video_encoder()) if card else None,
                                      "delivery_args": list(delivery_args)}
+        manifest["loop_seam"] = loop_seam
         if caption_overlap:   # freeze pass G1: the bursts drawn opaque over a graphic's text
             manifest["caption_graphic_overlap"] = caption_overlap
         manifest_path = output_mp4_path.with_suffix(".composition.json")

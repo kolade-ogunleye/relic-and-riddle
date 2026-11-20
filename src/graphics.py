@@ -2426,7 +2426,7 @@ def leader_marker(anchor: tuple[float, float], label: str, width: int, height: i
     if land is not None:
         _count, components, stats, _centres = cv2.connectedComponentsWithStats(
             np.asarray(land, np.uint8), connectivity=8)
-        tb = get_text_box(width, height)
+        tb = map_text_box(width, height)
         limit = PART_SMALL_SHARE * (tb[2] - tb[0]) * (tb[3] - tb[1])
         small = np.flatnonzero(stats[:, cv2.CC_STAT_AREA] <= limit)
         protected = np.isin(components, small[small != 0])
@@ -2900,7 +2900,7 @@ def polar_lift(width: int, height: int) -> float:
     (as view_centre_lat puts it), on 16:9 none."""
     if width >= height:
         return 0.0
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     return max(0.0, height / 2 - (tb[1] + MAP_PIN_Y_SHARE * (tb[3] - tb[1])))
 
 
@@ -3003,7 +3003,7 @@ def view_centre_lat(site_lat: float, width: int, height: int, span: float, area:
     south of it, never past 89.5 degrees), on 16:9 and for a region's area at the centre."""
     if width >= height or area:
         return site_lat, 0.0
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     want = height / 2 - (tb[1] + MAP_PIN_Y_SHARE * (tb[3] - tb[1]))
     if want <= 0:
         return site_lat, 0.0
@@ -3764,7 +3764,7 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
         d_other = cv2.distanceTransform((~other).astype(np.uint8), cv2.DIST_L2, 5) if other.any() else None
     else:
         d_home = d_other = None
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     aim = aim or anchor
     label_air = COUNTRY_LABEL_AIR * k
     near_px = COUNTRY_NEAR_PX * k
@@ -3881,7 +3881,7 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
         # 735 px wide, 88 fewer than the ads box: FRENCH SOUTHERN AND ANTARCTIC LANDS measures 802 px at 24) steps
         # down the COUNTRY_SMALL_PX sizes the fill already takes, to their floor, before it is dropped; a name the
         # box holds keeps its size
-        tb = get_text_box(width, height)
+        tb = map_text_box(width, height)
         f_ = get_font(brand.TEXT_FONT, out_px, weight=600)
         wide = ink_box((0.0, 0.0), name, f_, "mm", f_.size * COUNTRY_TRACK)
         steps = [px for px in small if px < out_px]
@@ -4050,7 +4050,7 @@ def water_labels(width: int, height: int, from_frame: Callable[[float, float], t
     font = get_font(brand.TEXT_FONT, floored(WATER_PX * k, width, height), weight=500)
     track = font.size * WATER_TRACK
     land_a = np.asarray(land, bool)
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     if tb[2] <= tb[0] or tb[3] <= tb[1]:
         return []
     to_frame = to_frame or _affine_inverse(from_frame, width, height)
@@ -4252,7 +4252,7 @@ def neighbours_in_view(width: int, height: int, home: geo.Country | None,
     """Round 9 (review 6): (display name upper-cased, adjacent) of every nameable country with ground in the text
     box, in neighbour_rank's order (the home's neighbours first). Rasterised at a quarter of the frame."""
     import numpy as np
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     w4, h4 = max(1, width // 4), max(1, height // 4)
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
     hm = Image.new("L", (w4, h4), 0)
@@ -4344,7 +4344,7 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     import numpy as np
     k = 1.0 if height > width else min(width / 1920, height / 1080)
     px0 = map_name_px(width, height)
-    tb = get_text_box(width, height)
+    tb = map_text_box(width, height)
     x0, y0, x1, y1 = (int(v) for v in tb)
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
@@ -5698,6 +5698,18 @@ def get_text_box(width: int, height: int) -> tuple[int, int, int, int]:
     else:
         x0, _, x1, _ = safe_zones.text_box("reel", width, height)
     return x0, top, x1, bottom
+
+
+def map_text_box(width: int, height: int) -> tuple[int, int, int, int]:
+    """Where a map's or route's geographic names (the site, its region, neighbours, countries, waters) may sit: on
+    9:16 the Reel box's own width, not the 687 px text column. Freeze lane A cycle 3: a name set by geography is not
+    column copy; the column took the Morocco route's only room for ALGERIA (tests/test_qf24_route_neighbours), and the
+    safe box is the gate their ink keeps. 16:9 and the column copy (titles, scale bars) keep get_text_box."""
+    token = _BOX_COLUMN.set(True)
+    try:
+        return get_text_box(width, height)
+    finally:
+        _BOX_COLUMN.reset(token)
 
 
 def centred_text_width(width: int, height: int) -> int:
@@ -12523,6 +12535,10 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     for leg in legs:
         ImageDraw.Draw(leg_m).line(leg, fill=255, width=ROUTE_LEG_W + 2 * ROUTE_LEG_CASE)
     keep_off |= np.asarray(leg_m) > 0
+    # freeze cycle 3 (A-S1-2: the bar's figures overprinted Catherine Palace's origin dot): the stops' dots are labels
+    # to the bar, so a place clear of every dot outranks one off the land
+    dots = [(x_ - stop_r[k_] - 4, y_ - stop_r[k_] - 4, x_ + stop_r[k_] + 4, y_ + stop_r[k_] + 4)
+            for k_, (x_, y_) in enumerate(pts)]
     bar_range = scale_range(width, height)
     bar_font = scale_label_font(width, height)
 
@@ -12536,8 +12552,6 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         box_x = None if portrait else ((sx0 - 13.0, width / 2 - 1) if corner == "l" else (width / 2, sx1 + 30.0))
         # freeze cycle 3 (A-S1-2): the stops' dots are labels to the bar (its figures overprinted Catherine Palace's
         # origin dot): a place clear of every dot outranks one off the land
-        dots = [(x_ - stop_r[k_] - 4, y_ - stop_r[k_] - 4, x_ + stop_r[k_] + 4, y_ + stop_r[k_] + 4)
-                for k_, (x_, y_) in enumerate(pts)]
         lay = place_scale_bar(bar, width, height, dots, obstacles=keep_off, box_x=box_x, prefer=corner)
         figs = [ink_box(xy, text, bar_font, "ls", bar_font.size * SCALE_LABEL_TRACK)
                 for _n, text, xy in scale_bar_label_specs(bar, lay.x, lay.y, bar_font)]

@@ -66,6 +66,15 @@ def test_tall_text_column_is_the_inset_reel_box(size):
     assert graphics.inset_x0(w, h) >= col[0]
 
 
+def test_map_names_keep_the_safe_box_and_column_copy_the_column():
+    """A map's geographic names keep the Reel box (the gate); column copy keeps the 687 px column; 16:9 one box."""
+    gb = safe_zones.graphics_box(1080, 1920)
+    mb = graphics.map_text_box(1080, 1920)
+    assert (mb[0], mb[2]) == (gb[0], gb[2]) and mb[1:4:2] == graphics.get_text_box(1080, 1920)[1:4:2]
+    assert graphics.map_text_box(1920, 1080) == graphics.get_text_box(1920, 1080)
+    assert graphics.get_text_box(1080, 1920)[0] > gb[0]          # the context var never leaks out
+
+
 @pytest.mark.parametrize("lat", [10.0, 45.0, 60.0])
 def test_tall_scale_bar_stays_inside_the_text_column(lat):
     """A-S1-2: the bar's ticks, casing and figures inside the 9:16 text column, wherever it is placed."""

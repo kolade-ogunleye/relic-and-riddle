@@ -192,7 +192,11 @@ def test_wide_timeline_spans_the_frame(wide) -> None:
     # round 4 review 6: the spine is no longer always at y 540 (a flag lengthens so no span's "LATER" sits level
     # with a year, and the spine moves to keep both rows title-safe): its row is the one the gold runs along
     frame = np.asarray(wide["frames"][-1]).astype(np.int16)
-    near = np.abs(frame - np.array(brand.GOLD_DIM, np.int16)).max(axis=2) <= 30
+    # freeze lane A cycle 3: the spine's token is GOLD_DIM, stepped to GOLD where GOLD_DIM misses the mark gate with
+    # the place margin (spine_colour): either token is the spine
+    near = np.zeros(frame.shape[:2], bool)
+    for token in (brand.GOLD_DIM, brand.GOLD):
+        near |= np.abs(frame - np.array(token, np.int16)).max(axis=2) <= 30
     spine_row = 380 + int(np.argmax(near[380:700, 170:1400].sum(axis=1)))
     gold = near[spine_row]
     assert gold[170:200].any() and gold[1400:].any()              # the spine runs from x 160 well past x 1400

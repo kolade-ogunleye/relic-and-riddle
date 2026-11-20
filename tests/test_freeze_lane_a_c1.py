@@ -80,8 +80,12 @@ def _el(rec: dict, name: str) -> dict | None:
 def _px_per_unit(rec: dict) -> float:
     """The ruler's scale on the drawing, from its own records: px per ruler unit between the zero and the next tick."""
     rulers = sorted((r for r in rec["rulers"]), key=lambda r: r["value"])
-    zero, step = rulers[0], next(r for r in rulers[1:] if r["value"] > 0)
-    return abs(step["datum"] - zero["datum"]) / step["value"]
+    # freeze lane A cycle 3: between two non-zero ticks where the ruler has them (the zero's datum is the ground
+    # line's centre, 1-2 px off the ticks' grid: over a subject taller than its landmark that offset alone exceeded
+    # the 2.5 px tolerance), else from the zero
+    pos = [r for r in rulers if r["value"] > 0]
+    a, b = (pos[0], pos[1]) if len(pos) >= 2 else (rulers[0], pos[0])
+    return abs(b["datum"] - a["datum"]) / (b["value"] - a["value"])
 
 
 # ------------------------------------------------------------------------------------------------ R4 gap note
@@ -158,7 +162,8 @@ def test_subject_extent_states_only_the_signed_dimension():
     for feet in (5.0, 60.0, 138.0, 600.0):
         for px_ft in (0.3, 1.7, 4.0):
             w, h = graphics.subject_extent(feet, px_ft, 170, True)
-            assert w == pytest.approx(feet * px_ft) and h <= max(graphics.SUBJECT_MIN_PX, 0.12 * w + 1e-9)
+            assert w == pytest.approx(feet * px_ft) and h <= max(graphics.SUBJECT_MIN_PX,
+                                                                 graphics.SUBJECT_LYING_ASPECT * w + 1e-9)
             w, h = graphics.subject_extent(feet, px_ft, 170, False)
             assert h == pytest.approx(feet * px_ft) and w <= max(graphics.SUBJECT_MIN_PX, min(170, 0.5 * h) + 1e-9)
     assert graphics.subject_lying(OBELISK) and not graphics.subject_lying(MONOLITH)

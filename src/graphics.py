@@ -115,7 +115,33 @@ INSET_X0, INSET_X1 = TEXT_LEFT + INSET_PAD_LEFT, TEXT_RIGHT - INSET_PAD_RIGHT
 def inset_x0(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
     """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide): the graphics box's left edge
     plus INSET_PAD_LEFT, scaled."""
-    return safe_zones.graphics_box(width, height)[0] + round(INSET_PAD_LEFT * width / VIDEO_WIDTH)
+    pad = INSET_PAD_BOX if _BOX_COLUMN.get() else INSET_PAD_LEFT
+    return safe_zones.graphics_box(width, height)[0] + round(pad * width / VIDEO_WIDTH)
+
+
+# Operator ruling R8-3 (2026-11-17): "keep the 687 px column and step down the size ladder; the box-column fallback is
+# used only when the floor" cannot hold the copy. A 9:16 graphic is laid out in the text column (safe_zones.text_box);
+# a renderer whose copy that column refuses at its floor is laid out again with _BOX_COLUMN set, on the Reel box's
+# own width (the graphics' old inset edge, INSET_PAD_BOX), and says so in its log (with_box_column).
+INSET_PAD_BOX = 7
+import contextvars as _ctxvars  # noqa: E402  (also imported below, where the poster-only flag is defined)
+
+_BOX_COLUMN: _ctxvars.ContextVar[bool] = _ctxvars.ContextVar("box_column", default=False)
+
+
+def with_box_column(render: Callable[[], Any], what: str) -> Any:
+    """`render()`; where it refuses its copy in the text column (TextFitError), once more in the box column (R8-3)."""
+    from .typography import TextFitError
+    try:
+        return render()
+    except TextFitError as e:
+        log.info("%s: the 687 px column refuses its copy at the floor (%s); laid out in the box column (R8-3).",
+                 what, e)
+        token = _BOX_COLUMN.set(True)
+        try:
+            return render()
+        finally:
+            _BOX_COLUMN.reset(token)
 
 
 def inset_x1(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
@@ -5667,7 +5693,10 @@ def get_text_box(width: int, height: int) -> tuple[int, int, int, int]:
         return int(width * 0.08), top, int(width * 0.92), bottom
     # freeze cycle 3 (lane A, panel 4 MG-1): the 9:16 text column is the Reel box inset by the system's margin token
     # (safe_zones.text_box: x 137-824 at 1080), as every card's; the graphics' words ran to the box's own edges
-    x0, _, x1, _ = safe_zones.text_box("reel", width, height)
+    if _BOX_COLUMN.get():       # R8-3's fallback: the Reel box's own width (with_box_column)
+        x0, _, x1, _ = safe_zones.graphics_box(width, height)
+    else:
+        x0, _, x1, _ = safe_zones.text_box("reel", width, height)
     return x0, top, x1, bottom
 
 
@@ -6756,7 +6785,7 @@ def tall_label_measure(width: int, height: int) -> float:
     (2026-11-03: the rows were drawn at xt + 4 and measured from there)."""
     x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)
     xt = x0 + round(56 * width / VIDEO_WIDTH)
-    return TEXT_RIGHT * width // VIDEO_WIDTH - xt - 2 * SPAN_OVERSHOOT
+    return get_text_box(width, height)[2] - xt - 2 * SPAN_OVERSHOOT   # cycle 3: the column's right (R8-3)
 
 
 def tall_left_x(xt: float, baseline: float, text: str, font, track: float) -> float:
@@ -6834,7 +6863,7 @@ def render_timeline(events: list[dict[str, Any]], out: Path, width: int = VIDEO_
         return None
     if width > height:
         return _render_timeline_wide(events, out, width, height, photo)
-    return _render_timeline_tall(events, out, width, height, photo)
+    return with_box_column(lambda: _render_timeline_tall(events, out, width, height, photo), "Timeline 9:16")
 
 
 def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, height: int,
@@ -7141,7 +7170,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     # kept; never level with a year (a span beside a year read as part of the date). Montserrat TALL_SPAN_WEIGHT in
     # STONE, a tier under the TALL_LABEL_FILL labels; its air keeps SPAN_MIN_SEPARATION x the entries' own air.
     gaps = []
-    col_right = TEXT_RIGHT * width // VIDEO_WIDTH
+    col_right = get_text_box(width, height)[2]     # cycle 3: the column's right (R8-3), the box's in its fallback
     bands = {k: (entries[k - 1]["y"] + entries[k - 1]["bottom"], entries[k]["y"] + entries[k]["top"])
              for k in range(1, len(entries))}
     lab_min = min(en["font"].size for en in entries)

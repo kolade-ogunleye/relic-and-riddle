@@ -28,7 +28,9 @@ def test_scale_says_what_the_comparison_means(tmp_path: Path, monkeypatch, fact,
     out = graphics.render_scale(fact, tmp_path / "scale.mp4")
     rec = _record(out)
     texts = {e["name"]: e["text"] for e in rec["elements"]}
-    assert texts["meaning0"] == first and texts["figure"].startswith("ABOUT ")
+    # freeze lane A cycle 3: a 32 m subject now compares with the nearer sourced landmark (the 60 ft Rushmore head),
+    # whose sentence goes on after the subject's figure: the subject and its signed figure still lead it
+    assert texts["meaning0"].startswith(first.rstrip(".,")) and texts["figure"].startswith("ABOUT ")
     x0, y0, x1, y1 = graphics.get_text_box(1080, 1920)
     for e in rec["elements"]:
         assert e["drawn"] >= 4.5, e

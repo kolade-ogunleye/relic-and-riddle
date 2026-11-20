@@ -442,8 +442,53 @@ FEEDS = {
     "yt_home": {"title": "YouTube home", "w": 246, "aspect": (16, 9), "cols": 3, "gap": 16, "bg": (255, 255, 255)},
     "yt_suggested": {"title": "YouTube suggested", "w": 168, "aspect": (16, 9), "cols": 1, "gap": 8, "bg": (255, 255, 255)},
     "fb_feed": {"title": "Facebook feed", "w": 390, "aspect": None, "cols": 3, "gap": 24, "bg": (240, 242, 245)},
+    # cycle 3: a Facebook Page's Reels tab (the operator's captures: 12 tiles, ~312 x 545 px each, every one the first
+    # frame of a comparable Reel); our designed Reel cover and our Reel's first frame among them at that tile size
+    "fb_reels": {"title": "Facebook Page Reels tab", "w": 312, "aspect": (312, 545), "cols": 3, "gap": 4,
+                 "bg": (240, 242, 245)},
 }
 PEER_SLOTS = 8
+
+
+# Facebook's multi-photo post in the feed (operator evidence, evidence/peers/fb_feed/peer_01.png, a 1137 px wide
+# capture): the first 5 photos as a collage, 2 square halves on top and 3 square thirds below, a 4 px gap at 1137 px
+# (measured: top tiles x 0-566 / 570-1137, y 230-796; bottom x 0-376 / 380-756 / 760-1137, y 800-1177), "+N" over the
+# 5th when the post has more. The feed never shows the first photo alone.
+FB_COLLAGE_GAP = 4 / 1137
+FB_COLLAGE_PHOTOS = 5
+
+
+def fb_collage_boxes(w: int) -> list[tuple[int, int, int, int]]:
+    """The 5 photo boxes of a Facebook multi-photo post `w` px wide: two square halves, then three square thirds."""
+    g = max(1, round(w * FB_COLLAGE_GAP))
+    top = (w - g) // 2
+    bot = (w - 2 * g) // 3
+    boxes = [(0, 0, top, top), (top + g, 0, w, top)]
+    y = top + g
+    xs = [0, bot + g, 2 * (bot + g)]
+    boxes += [(x, y, (x + bot) if k < 2 else w, y + bot) for k, x in enumerate(xs)]
+    return boxes
+
+
+def fb_collage(photos: list, w: int = 1137):
+    """`photos` (a deck's Facebook slides, in order) as Facebook's feed draws a multi-photo post: the first 5 each
+    centre-cropped into its box (fb_collage_boxes), "+N" over the 5th when there are N more."""
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
+    boxes = fb_collage_boxes(w)
+    out = Image.new("RGB", (w, boxes[-1][3]), (39, 39, 39))   # the gap colour of the capture (dark mode)
+    for box, im in zip(boxes, photos[:FB_COLLAGE_PHOTOS]):
+        size = (box[2] - box[0], box[3] - box[1])
+        out.paste(ImageOps.fit(im.convert("RGB"), size, Image.LANCZOS), box[:2])
+    more = len(photos) - FB_COLLAGE_PHOTOS
+    if more > 0:
+        x0, y0, x1, y1 = boxes[-1]
+        tile = out.crop(boxes[-1]).convert("RGBA")
+        tile.alpha_composite(Image.new("RGBA", tile.size, (0, 0, 0, 90)))
+        d = ImageDraw.Draw(tile)
+        f = ImageFont.load_default(size=max(10, round((y1 - y0) * 0.2)))
+        d.text((tile.width / 2, tile.height / 2), f"+{more}", fill=(255, 255, 255), font=f, anchor="mm")
+        out.paste(tile.convert("RGB"), (x0, y0))
+    return out
 
 
 def feed_tile(im, feed: str):
@@ -481,7 +526,8 @@ def supplied_peers(peers_dir: Path | None, feed: str) -> list[tuple[str, Any]]:
 def peer_note(feed: str, n_supplied: int, peers_dir: Path | None) -> str:
     """What fills a feed's peer slots: supplied posts, STAND-INs (the channel's own other runs) or both."""
     if n_supplied >= PEER_SLOTS:
-        return f"PEERS: {n_supplied} supplied posts ({peers_dir / feed})"
+        return (f"PEERS: {n_supplied} supplied posts ({peers_dir / feed})" + (
+            f", {PEER_SLOTS} per block, each block the next {PEER_SLOTS} in turn" if n_supplied > PEER_SLOTS else ""))
     why = (f"no peer posts supplied: board.py --peers <dir> with <dir>/{feed}/*.jpg" if peers_dir is None else
            f"{peers_dir / feed} holds {n_supplied} post(s)")
     if n_supplied:
@@ -497,22 +543,29 @@ def peer_feed(feed: str, ours: list[tuple[str, Any]], pool: list[tuple[str, Any]
     what it has, a feed without posts stays STAND-IN and says so)."""
     from PIL import Image, ImageDraw, ImageFont
     spec = FEEDS[feed]
-    supplied = supplied_peers(peers_dir, feed)[:PEER_SLOTS]
-    note = peer_note(feed, len(supplied), peers_dir)
+    every = supplied_peers(peers_dir, feed)
+    note = peer_note(feed, len(every), peers_dir)
     tiles = []
     f = ImageFont.load_default(size=14)
-    for name, im in ours:
+    for j, (name, im) in enumerate(ours):
+        # more posts than slots: each block takes the next PEER_SLOTS in turn, so every supplied post is shown
+        start = (j * PEER_SLOTS) % len(every) if len(every) > PEER_SLOTS else 0
+        supplied = (every[start:] + every[:start])[:PEER_SLOTS]
         mixed = 0 < len(supplied) < PEER_SLOTS   # each slot says which it is (all STAND-IN: the title says so)
         peers = [(f"PEER {n}" if mixed else n, p) for n, p in supplied]
         others = [(f"STAND-IN {n}" if mixed else n, p) for n, p in pool if _topic(n) != _topic(name)]
+        block_note = note
         if len(peers) < PEER_SLOTS:
-            fill = others or peers
-            if not fill:
+            if not others and not peers:
                 continue
-            peers += [fill[k % len(fill)] for k in range(PEER_SLOTS - len(peers))]
+            if others:
+                peers += [others[k % len(others)] for k in range(PEER_SLOTS - len(peers))]
+            else:   # no other run to stand in: the supplied posts once each, never repeated as if more peers
+                block_note = (f"PEERS: {len(peers)} supplied post(s) ({peers_dir / feed}), each once; no STAND-IN "
+                              "for this block (no other run of the channel has this surface)")
         slots = [feed_tile(p, feed) for _n, p in peers]
         names = [n for n, _p in peers]
-        mid = PEER_SLOTS // 2
+        mid = min(PEER_SLOTS // 2, len(peers))
         slots.insert(mid, feed_tile(im, feed))
         names.insert(mid, f"OURS {name}")
         cols = spec["cols"]
@@ -538,5 +591,5 @@ def peer_feed(feed: str, ours: list[tuple[str, Any]], pool: list[tuple[str, Any]
         what = name.split(" | ")[0]   # cycle 3: which of ours the block holds (a Reel's first frame says so first)
         if what.startswith("REEL FIRST FRAME"):
             what = f"{what}: {name.split(' | ')[1]}"
-        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1}, {what} | {note}", out))
+        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1}, {what} | {block_note}", out))
     return tiles, note

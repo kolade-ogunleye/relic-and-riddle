@@ -102,6 +102,72 @@ def test_reel_first_frame_block_says_what_it_is(mods):
         assert "REEL FIRST FRAME" in tiles[0][0] and "card__hook__amber__916__f00" in tiles[0][0]
 
 
+def test_fb_reels_tab_shows_cover_and_first_frame_among_peers(mods, tmp_path):
+    """The Page's Reels tab (operator captures, ~312 x 545 tiles): our designed Reel cover and our Reel's first frame
+    each sit among the supplied peers at the tab's tile size, labelled."""
+    be = mods["board_evidence"]
+    d = tmp_path / "fb_reels"
+    d.mkdir()
+    for k in range(12):
+        Image.new("RGB", (312 if k % 2 else 311, 545 if k < 6 else 543), (k * 20, 50, 90)).save(d / f"peer_{k:02d}.png")
+    ours = [("cover__amber_room_heist__reel", Image.new("RGB", (1080, 1920), (200, 0, 0))),
+            ("REEL FIRST FRAME as the tile (no designed cover) | card__hook__amber__916__f00 | STAND-IN: x",
+             Image.new("RGB", (1080, 1920), (0, 200, 0)))]
+    tiles, note = be.peer_feed("fb_reels", ours, [], tmp_path)
+    assert len(tiles) == 2 and note.startswith("PEERS: 12 supplied") and "8 per block" in note and "STAND-IN" not in note
+    assert "Facebook Page Reels tab at 312 px" in tiles[0][0] and "cover__amber_room_heist__reel" in tiles[0][0]
+    assert "REEL FIRST FRAME" in tiles[1][0]
+    tile = be.feed_tile(ours[0][1], "fb_reels")
+    assert tile.size == (312, 545)
+    # ours is the middle slot of the 3-column block, at the tab's tile size (red, the cover's colour)
+    spec = be.FEEDS["fb_reels"]
+    x = spec["gap"] + 1 * (spec["w"] + spec["gap"]) + 100
+    y = spec["gap"] + 1 * (545 + spec["gap"]) + 100
+    assert tiles[0][1].getpixel((x, y)) == (200, 0, 0)
+
+
+def test_fb_collage_matches_the_feeds_multi_photo_geometry(mods):
+    """Facebook's feed draws a multi-photo post as 2 square halves over 3 square thirds (measured on the operator's
+    1137 px capture: top x 0-566 / 570-1137, 566 tall; bottom x 0-376 / 380-756 / 760-1137, ~377 tall; 4 px gaps)."""
+    be = mods["board_evidence"]
+    boxes = be.fb_collage_boxes(1137)
+    assert boxes[:2] == [(0, 0, 566, 566), (570, 0, 1137, 566)]
+    assert [(b[0], b[2]) for b in boxes[2:]] == [(0, 376), (380, 756), (760, 1137)]
+    assert all(b[1] == 570 and abs((b[3] - b[1]) - 377) <= 1 for b in boxes[2:])
+    for w in (390, 500, 1137):   # every width: halves and thirds, each square, no overlap, the full width
+        bx = be.fb_collage_boxes(w)
+        assert bx[1][2] == w and bx[-1][2] == w
+        assert all(abs((b[2] - b[0]) - (b[3] - b[1])) <= 1 for b in bx)
+        assert bx[0][2] < bx[1][0] and bx[2][2] < bx[3][0] < bx[3][2] < bx[4][0]
+
+
+@pytest.mark.parametrize("n", [3, 5, 8])
+def test_fb_collage_draws_the_first_five_and_counts_the_rest(mods, n):
+    be = mods["board_evidence"]
+    photos = [Image.new("RGB", (1080, 1350), (30 * k, 200, 10)) for k in range(n)]
+    im = be.fb_collage(photos, 390)
+    boxes = be.fb_collage_boxes(390)
+    assert im.size == (390, boxes[-1][3])
+    for k, b in enumerate(boxes[:min(n, 5 if n <= 5 else 4)]):   # the 5th is dimmed under "+N"
+        cx, cy = (b[0] + b[2]) // 2, b[1] + 5
+        assert im.getpixel((cx, cy)) == (30 * k, 200, 10)
+    b = boxes[4]
+    if n > 5:   # "+N" over the 5th: dimmed, white type at its centre
+        assert im.getpixel(((b[0] + b[2]) // 2, b[1] + 3)) != (120, 200, 10)
+        centre = im.crop((b[0] + 10, b[1] + 10, b[2] - 10, b[3] - 10))
+        assert int(np.asarray(centre)[..., 0].max()) > 240
+    elif n < 5:  # an empty box stays the gap colour
+        assert im.getpixel(((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)) == (39, 39, 39)
+
+
+def test_a_lone_peer_is_never_repeated_as_more_peers(mods, tmp_path):
+    be = mods["board_evidence"]
+    peers = _peer_dir(tmp_path, "fb_feed", 1)
+    ours = [("social__alpha_site_1793272675__fb_collage", Image.new("RGB", (1137, 950)))]
+    tiles, _ = be.peer_feed("fb_feed", ours, [], peers)   # no other run to stand in
+    assert len(tiles) == 1 and "each once; no STAND-IN" in tiles[0][0] and "ours: slot 2" in tiles[0][0]
+
+
 def test_peer_feed_without_a_dir_names_the_option(mods):
     be = mods["board_evidence"]
     assert "board.py --peers <dir>" in be.peer_note("ig_grid", 0, None)

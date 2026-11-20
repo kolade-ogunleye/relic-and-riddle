@@ -949,7 +949,6 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     reels = load(lambda n: n.startswith("cover__") and n.endswith("__reel"))
     youtube = load(lambda n: n.startswith("cover__") and n.endswith("__youtube"))
     car1 = load(lambda n: n.startswith("social__") and n.endswith("__carousel_carousel_slide_01"))
-    fb1 = load(lambda n: n.startswith("social__") and n.endswith("__fb_carousel_slide_01"))
     extra_c = bx._cache.get("covers") or []
     deck = (bx._cache.get("deck") or [])[:1]
     extra_reels = [(c["name"] + "__reel", c["reel"]) for c in extra_c if c.get("reel") is not None]
@@ -964,11 +963,23 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
         hooks = []
     first = [(i["name"], i["image"]) for i in hooks if i.get("image") is not None and i["name"].endswith("__f00")]
     first_label = {n: f"REEL FIRST FRAME as the tile (no designed cover) | {be.label(n)}" for n, _ in first}
+    # cycle 3 (operator evidence, peers/fb_feed/peer_01.png): our Facebook carousel goes out as a multi-photo post, and
+    # the feed shows it as the collage of its first 5 photos (board_evidence.fb_collage), never slide 1 alone
+    decks: dict[str, list] = {}
+    for n in sorted(x for x in surf if x.startswith("social__") and "__fb_carousel_slide_" in x):
+        decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
+    collages = [(f"{run}__fb_collage", be.fb_collage([Image.open(surf[n]).convert("RGB") for n in names]))
+                for run, names in decks.items()]
+    first_label.update({n: (f"FB MULTI-PHOTO COLLAGE as the feed shows it (first {min(len(decks[n[:-12]]), 5)} of "
+                            f"{len(decks[n[:-12]])} Facebook slides) | {be.label(n)}") for n, _ in collages})
     plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels + first, reels + car1),
             "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car + first, car1 + reels),
             "yt_home": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
             "yt_suggested": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
-            "fb_feed": ([x for x in fb1 if hero(x[0])] + first, fb1)}
+            "fb_feed": (([x for x in collages if hero(x[0])] or collages) + first, collages),
+            # cycle 3: the Page's Reels tab, whose tiles are each Reel's first frame: our designed Reel cover and our
+            # Reel's first frame, each among the peers (--peers <dir>/fb_reels/*.png)
+            "fb_reels": ([x for x in reels if hero(x[0])] + extra_reels + first, reels)}
     made = []
     for feed, (ours, pool) in plan.items():
         ours = [(first_label.get(n) or be.label(n), im) for n, im in ours]
@@ -1137,7 +1148,7 @@ def main() -> None:
     ap.add_argument("--surface-jobs", type=Path, help="render only these render_surfaces.py jobs (one name per line, "
                     "as surfaces.json `seconds` keys): a small board for a check")
     ap.add_argument("--peers", type=Path, help="peer posts for the feed sheets: <dir>/<feed>/*.jpg, feed one of "
-                    "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed (none: the slots are the channel's other runs, "
+                    "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed, fb_reels (none: the slots are the channel's other runs, "
                     "labelled STAND-IN; a feed folder that is missing or holds fewer than 8 posts is filled with "
                     "labelled STAND-INs)")
     ap.add_argument("--end-topics", default="", help="rows 9 / 12: only these board grounds' end sequences "

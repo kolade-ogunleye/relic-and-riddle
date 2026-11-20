@@ -218,6 +218,12 @@ A REPEAT finding names a phrase the narration says twice: reword the later sente
 the phrase is said once, keeping its facts and its hedge (one hedge can cover two related figures). Never let an edit
 say again a phrase the narration already says (the REPEATS list), and keep every disputed figure's hedge wherever the
 figure is stated (MANDATORY HEDGES).
+A CAPTION finding names a sentence whose on-screen captions must break right after a word that cannot end a caption
+line ("of", "in", "the", "whether", "upon") because the words around it leave no natural break. Rephrase only that
+clause of that sentence ("find" = the whole sentence) so the word stays beside what it introduces, for example by
+reordering the clause or splitting a long run of names and phrases with a comma; keep every fact, figure, name, date
+and hedge, and about the same number of words. Never add or remove a sentence. If the sentence is the first, the
+penultimate or the last, apply the same edit to hook_sentence, payoff_sentence or closing_sentence.
 An OPENING finding is about how the narration starts: place the site (its region or country) in one of the first
 sentences, open on the story the title and caption tell, or cut the first sentence to the words the finding gives,
 each with verified facts only and every hedge kept. Never add a sentence for it: name the place inside an existing
@@ -1952,6 +1958,126 @@ def hedge_note(narration: str, sheet: Any = _UNSET_SHEET) -> str:
             "Judge whether it should stand on a firmer fact.")
 
 
+# ---------------------------------------------------------------- caption breaks (QF-150)
+# The captions never end a line or a burst on a never-end word (video_composer.never_end_end: OF, IN, THE, WHETHER,
+# MOST ...) where a valid break exists; where none exists under the caps and the bonds (a proper name is one unit),
+# the composer records the defect ("DEPENDING ON WHETHER |", "AT / THE CATHERINE PALACE"). Lander ruling: those are
+# recorded at render and fixed at source, here: the narration is planned into bursts by the composer's own
+# caption_phrases on its words with nominal timing, before it is voiced, and a sentence whose plan keeps such a
+# defect gets one narrow edit (ScriptEngine._fix_caption_breaks) that rephrases that clause, facts unchanged. The
+# voice is never stretched: the edit keeps the length; a defect the edit cannot remove ships recorded
+# (payload["caption_lint"], the composer's reading_rate record), never blocking a draft.
+CAPTION_BREAK_PROBLEM = "Caption break: "
+# Nominal timing (fit on the 69 real runs' words.json, 2026-11-19): a word holds 0.053 s per letter plus 0.09 s from
+# its start to the next word's; a clause mark adds a pause, a sentence end a longer one. Only the dwell and reading-rate
+# terms of the composer's repair read the timing, so the plan is close to the voiced one at the narrator's usual pace.
+_NOMINAL_PER_CHAR_S = 0.053
+_NOMINAL_BASE_S = 0.09
+_NOMINAL_CLAUSE_PAUSE_S = 0.47
+_NOMINAL_SENTENCE_PAUSE_S = 0.55
+
+
+def caption_tokens(narration: str) -> List[str]:
+    """The narration's words as the voice says them and the captions draw them (audio_engine.align_words_with_script's
+    tokens: asides stripped, regal numerals spoken)."""
+    return audio_engine.strip_ssml_tags(audio_engine.normalize_speech_text(narration or "")).split()
+
+
+def nominal_caption_words(narration: str) -> List[Dict[str, Any]]:
+    """The narration's caption words ({"word", "start", "dur"}) at the narrator's nominal pace."""
+    out, t = [], 0.0
+    for token in caption_tokens(narration):
+        span = _NOMINAL_PER_CHAR_S * len(re.sub(r"\W", "", token)) + _NOMINAL_BASE_S
+        out.append({"word": token, "start": round(t, 3), "dur": round(span * 0.85, 3)})
+        t += span
+        if re.search(r"[.!?][\"'”’)]*$", token):
+            t += _NOMINAL_SENTENCE_PAUSE_S
+        elif re.search(r"[,;:—–][\"'”’)]*$", token):
+            t += _NOMINAL_CLAUSE_PAUSE_S
+    return out
+
+
+def caption_break_findings(narration: str, emphasis: Optional[List[str]] = None,
+                           words: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    """Each 9:16 caption defect the composer would keep on this narration (video_composer.caption_phrases, its own
+    burst planning, caps and bonds): {"kind": "burst" | "line", "sentence": its sentence, "phrase": the words up to
+    the never-end word, "shown": the burst as drawn ("|" a burst end, " / " a line break), "at": the word index}.
+    `words` defaults to the nominal timing (nominal_caption_words); real timed words give the composer's record."""
+    from .video_composer import (
+        TERMINAL_PUNCT,
+        caption_phrases,
+        never_end_end,
+        reel_caption_lines,
+        reel_line_defect,
+    )
+    words = [dict(w) for w in (words if words is not None else nominal_caption_words(narration))]
+    if not words:
+        return []
+    sentences, current = [], []
+    for w in words:
+        current.append(w["word"])
+        if TERMINAL_PUNCT.search(w["word"]):
+            sentences.append(" ".join(current))
+            current = []
+    if current:
+        sentences.append(" ".join(current))
+    sentence_at, sid = [], 0
+    for w in words:
+        sentence_at.append(sid)
+        sid += bool(TERMINAL_PUNCT.search(w["word"]))
+    phrases = caption_phrases(words, emphasis)
+    out, at = [], 0
+    for k, p in enumerate(phrases):
+        ws = [w["word"] for w in p]
+        if k < len(phrases) - 1 and never_end_end(ws[-1]):
+            end = at + len(ws) - 1
+            out.append({"kind": "burst", "at": end, "sentence": sentences[sentence_at[end]],
+                        "phrase": " ".join(ws[-3:]), "shown": " ".join(ws) + " |"})
+        if reel_line_defect(ws):
+            j = reel_caption_lines(ws)[0]
+            out.append({"kind": "line", "at": at + j - 1, "sentence": sentences[sentence_at[at + j - 1]],
+                        "phrase": " ".join(ws[max(0, j - 3):j + 2]), "shown": " ".join(ws[:j]) + " / " + " ".join(ws[j:])})
+        at += len(p)
+    return out
+
+
+def caption_break_problems(narration: str, emphasis: Optional[List[str]] = None) -> List[str]:
+    """One problem per sentence whose captions would end a burst or a line on a never-end word with no valid break
+    (caption_break_findings), naming the phrase: the one narrow edit's findings (ScriptEngine._fix_caption_breaks).
+    Never blocking (blocking_problems): a defect the edit cannot remove ships recorded."""
+    try:
+        found = caption_break_findings(narration, emphasis)
+    except Exception as e:   # noqa: BLE001  advice only: a planning failure never stops a draft (the render records it)
+        log.warning("Caption break lint could not plan the narration (%s).", e)
+        return []
+    by_sentence: Dict[str, List[str]] = {}
+    for f in found:
+        by_sentence.setdefault(f["sentence"], []).append(f["shown"])
+    return [f"{CAPTION_BREAK_PROBLEM}the captions of “{sentence}” must break at "
+            + "; ".join(f"“{s}”" for s in dict.fromkeys(shown))
+            + ", ending on a word that cannot end a caption, because no natural break exists there. Rephrase that "
+            "clause so a natural break exists (the word kept beside what it introduces, or a shorter clause), keeping "
+            "every fact, figure, name and hedge, and the sentence's length"
+            for sentence, shown in by_sentence.items()]
+
+
+def _caption_break_sentences(problems: List[str]) -> List[str]:
+    """The sentences caption_break_problems names."""
+    return [m.group(1) for p in problems
+            for m in [re.match(re.escape(CAPTION_BREAK_PROBLEM) + r"the captions of “(.+?)” must break at ", p)] if m]
+
+
+def caption_break_record(narration: str, emphasis: Optional[List[str]] = None) -> Dict[str, Any]:
+    """The run's record of the lint (payload["caption_lint"]): the defects the plan keeps, each as drawn."""
+    try:
+        found = caption_break_findings(narration, emphasis)
+    except Exception as e:   # noqa: BLE001  the record says the plan failed, never stops the stage
+        return {"checked": False, "error": str(e)[:200]}
+    return {"checked": True, "bursts": [f["shown"] for f in found if f["kind"] == "burst"],
+            "lines": [f["shown"] for f in found if f["kind"] == "line"],
+            "sentences": len({f["sentence"] for f in found})}
+
+
 # ---------------------------------------------------------------- engagement bait
 # Meta demotes posts that ask for likes, reactions, votes, shares to a number of people, tags or set comment
 # replies (about.fb.com/news/2017/12/news-feed-fyi-fighting-engagement-bait-on-facebook/). An ask to share this
@@ -2563,7 +2689,8 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     attempt too (production, Hal Saflieni 2026-10-27)."""
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
             + payoff_problems(pkg.narration_script, pkg.payoff_sentence) + hedge_problems(pkg.narration_script)
-            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg) + cover_fit_problems(pkg))
+            + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg) + cover_fit_problems(pkg)
+            + caption_break_problems(pkg.narration_script, pkg.emphasis_words))   # QF-150: advice, never blocking
 
 
 def cover_fit_problems(pkg: ScriptPackage) -> list[str]:
@@ -2610,9 +2737,11 @@ def blocking_problems(problems: List[str]) -> List[str]:
     # Cycle 0 round 8 (lander ruling): a cover headline that cannot set at its floors (COVER_FIT_PROBLEM) gets the copy
     # edit (_narrow_edits) and never sends the whole draft back; one the edit cannot fix ships and is refused at render,
     # recorded on the review card (main.cover_job_results), never a silent stop
+    # QF-150 (lander ruling): a caption break the plan cannot make gets one narrow edit (_fix_caption_breaks) and is
+    # otherwise recorded (payload["caption_lint"]): it never sends a draft back or costs a rewrite
     return [p for p in problems
             if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM,
-                                 "Cover fit: "))]
+                                 "Cover fit: ", CAPTION_BREAK_PROBLEM))]
 
 
 def hook_signal_note(narration: str) -> str:
@@ -2734,8 +2863,12 @@ class ScriptEngine:
         held: Dict[str, List[str]] = {}
         if previous is not None:
             previous, held = hold_attribution(previous)
+        self.last_caption_edit = None   # QF-150: this call's caption break edit, if one was asked
         try:
-            return restore_attribution(self._generate_script(topic, max_attempts, revision_notes, previous), held)
+            payload = restore_attribution(self._generate_script(topic, max_attempts, revision_notes, previous), held)
+            if isinstance(payload.get("caption_lint"), dict):   # QF-150: _finalize's record, with this call's edit
+                payload["caption_lint"]["edit"] = self.last_caption_edit
+            return payload
         finally:
             _length_history["on"] = False
             _draft_topic.reset(told)
@@ -3205,7 +3338,7 @@ class ScriptEngine:
                 return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
         fit = any(p.startswith("Cover fit: ") for p in problems)   # round 8: edited even when nothing else blocks
         if not (blocking() or fit) or not all(narrow(p) for p in blocking()):
-            return pkg, problems
+            return self._fix_caption_breaks(pkg, problems, sheet)   # QF-150: asked only when nothing blocks
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
             # A Story body over three lines is shortened in place (one short call), as on its own.
             shortened = self._shorten_story_slides(pkg, blocking(), sheet)
@@ -3226,7 +3359,66 @@ class ScriptEngine:
             fixed = self._fix_repeats(pkg, blocking(), sheet)
             if fixed is not None:
                 pkg, problems = fixed, draft_problems(fixed)
-        return pkg, problems
+        return self._fix_caption_breaks(pkg, problems, sheet)
+
+    def _fix_caption_breaks(self, pkg: ScriptPackage, problems: List[str], sheet: Optional[Dict[str, Any]]
+                            ) -> Tuple[ScriptPackage, List[str]]:
+        """QF-150: a draft whose captions would keep a never-end break (caption_break_problems) gets one surgical edit
+        of the sentences named, asked once per narration and only when nothing else blocks (a draft going back for a
+        rewrite carries the findings in its feedback instead: no call is added for it, and none when nothing is
+        flagged). The edit is kept only when every other sentence stands word for word, the sentence count and every
+        figure (digits and spelled numbers) are unchanged, no blocking problem is new, and the flagged sentences are
+        fewer with none newly flagged; else the draft goes on as it was and the defect is recorded
+        (payload["caption_lint"]). The result is fact-checked in full like any draft."""
+        faults = [p for p in problems if p.startswith(CAPTION_BREAK_PROBLEM)]
+        tried = self.__dict__.setdefault("_captions_tried", set())
+        if not faults or sheet is None or blocking_problems(problems) or pkg.narration_script in tried:
+            return pkg, problems
+        tried.add(pkg.narration_script)
+        self.last_caption_edit = {"asked": len(faults), "kept": False}
+        try:
+            edited = self._revise_surgically(pkg.model_dump(), "CAPTION: " + " ".join(faults), sheet)
+        except LLMError as e:
+            log.warning("Caption break edit failed (%s); the draft goes on as it was.", e)
+            return pkg, problems
+        if edited is None:
+            return pkg, problems
+        edited = prune_graphics(edited)
+        def said(sentence: str) -> str:   # a sentence as the findings quote it (its caption tokens)
+            return " ".join(caption_tokens(sentence))
+        named = {said(s) for s in _caption_break_sentences(faults)}
+        old_s, new_s = _split_sentences(pkg.narration_script), _split_sentences(edited.narration_script)
+        why = ""
+        if len(old_s) != len(new_s):
+            why = "the sentence count changed"
+        elif any(a != b and said(a) not in named for a, b in zip(old_s, new_s)):
+            why = "a sentence it was not asked to change changed"
+        elif (sorted(re.findall(r"\d[\d,.]*\d|\d", edited.narration_script))
+              != sorted(re.findall(r"\d[\d,.]*\d|\d", pkg.narration_script))
+              or sorted(spelled_numbers(edited.narration_script)) != sorted(spelled_numbers(pkg.narration_script))):
+            why = "a figure changed"
+        after = draft_problems(edited)
+        new = [p for p in blocking_problems(after) if p not in blocking_problems(problems)]
+        left = [p for p in after if p.startswith(CAPTION_BREAK_PROBLEM)]
+        # a sentence flagged now that was neither flagged nor edited: the edit moved a break elsewhere
+        fresh = {said(s) for s in _caption_break_sentences(left)} - named - {
+            said(b) for a, b in zip(old_s, new_s) if a != b}
+        if not why and new:
+            why = "it brought " + " ".join(new)[:160]
+        if not why and (len(left) >= len(faults) or fresh):
+            why = "the captions still cannot break there"
+        if why:
+            log.warning("Caption break edit not kept (%s); the draft goes on as it was.", why)
+            return pkg, problems
+        if edited.sentence_trace:   # the writer's sentence trace follows the reworded sentence (the trace check's hint)
+            changed = {a: b for a, b in zip(old_s, new_s) if a != b}
+            edited = edited.model_copy(update={"sentence_trace": [
+                row.model_copy(update={"sentence": changed[row.sentence]}) if row.sentence in changed else row
+                for row in edited.sentence_trace]})
+        self.last_caption_edit = {"asked": len(faults), "kept": True, "left": len(left)}
+        log.info("Caption breaks fixed by a short edit: %s", " ".join(faults)[:300])
+        improve.note_problems(faults, "structure")   # still the writer's miss, for the findings ledger
+        return edited, after
 
     def _edit_story(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
         """The opening's faults (_opening_faults: the site not placed in the first sentences, a story the title and
@@ -3452,6 +3644,10 @@ class ScriptEngine:
         })
         from .topic_proposer import origin_note
         payload["topic_origin_note"] = origin_note(topic)
+        # QF-150: the caption plan's kept never-end breaks, for the run's record (generate_script adds the edit's
+        # outcome; the run's final record is made again on the checked narration, main._write_and_check_script)
+        payload["caption_lint"] = {**caption_break_record(payload["narration_script"], payload.get("emphasis_words")),
+                                   "edit": None}
         return payload
 
     def verify_claims(self, script_payload: Dict[str, Any], topic: Optional[Dict[str, Any]] = None,

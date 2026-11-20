@@ -565,6 +565,10 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         rec[seq.clip["path"].name] = {"row": row, "what": what, "frames": seq.n, "seconds": round(seq.n / bm.FPS, 3),
                                       "drawn_encoded_decoded_s": getattr(seq, "seconds", None),
                                       "sha256": seq.clip["sha256"], "encoder": seq.clip["encoder"]}
+        st = getattr(seq, "stats", None) or {}
+        if "ladder" in st:   # cycle 3 (lane E): the composer's ladder as tried, and the renderer's own seam reading
+            rec[seq.clip["path"].name].update(variant=st.get("variant"), ladder=st["ladder"],
+                                              seam=bm.seam_reading(st))
 
     for topic in END_TOPICS or [bm.END_TOPIC]:   # cycle 3: every board ground with a catalogue case
         made += end_motion(out, clips, topic, "" if topic == bm.END_TOPIC else f"__{topic}", clip_rec)
@@ -635,7 +639,7 @@ def end_motion(out: Path, clips: Path, topic: str, suffix: str, clip_rec) -> lis
         kind = "endscreen" if name.startswith("endscreen") else "endcard"
         cls, why = be.pairing(f"{kind}__{seq.index}_{seq.topic}")
         clip_rec(seq, "9, 12", f"{name} of the catalogue's {seq.topic} case {seq.index}"
-                 + (f" ({cls}: {why})" if cls != be.REAL else ""))
+                 + (f" ({cls}: {why})" if cls != be.REAL else "") + bridge_note(seq))
     where = f" ({topic})" if suffix else ""
     # the 16:9 end screen: every 3rd frame, and its curves
     es = end.get("endscreen_169")
@@ -671,8 +675,10 @@ def end_motion(out: Path, clips: Path, topic: str, suffix: str, clip_rec) -> lis
         total = br.n - 1
         tiles = [(f"{'Reel frame 0' if frame_no(n) == total else f'k{frame_no(n):02d}'} t={frame_no(n) / bm.FPS:.3f}s "
                   f"(frame {frame_no(n)} of {total})", im) for n, im in bm.strip(br, scale_h=576)]
-        if suffix or name != "bridge_follow_916":   # the pre-cycle-3 sheet keeps its tiles; the others say which
-            tiles = [(f"{n} | bridge {what}{where}", im) for n, im in tiles]
+        # cycle 3 (lane E): every bridge tile says which rung of the composer's ladder shipped and the renderer's
+        # own seam reading (never a decoded clip's)
+        tiles = [(f"{n} | bridge {what}{where}" if k else f"{n} | bridge {what}{where}{bridge_note(br)}", im)
+                 for k, (n, im) in enumerate(tiles)]
         sheet(tiles, out / sname, tile_h=576, cols=8)
         t = [i / bm.FPS for i in range(br.n)]
         bm.plot({"frame mean": (t, br.luma), **{k: (t, v) for k, v in br.regions.items()}},
@@ -682,16 +688,32 @@ def end_motion(out: Path, clips: Path, topic: str, suffix: str, clip_rec) -> lis
         if name == "bridge_follow_916":
             bm.plot({"FOLLOW alpha (end_card.follow_alpha)": (t[:total], [end_card.follow_alpha(i, total)
                                                                           for i in range(total)]),
-                     "frame-to-frame MAD / 25": (t, [m / 25 for m in br.mad])},
-                    f"loop bridge{where}: FOLLOW's alpha as the renderer computes it, and the frame steps",
+                     "frame-to-frame MAD / 25 (decoded, motion only)": (t, [m / 25 for m in br.mad])},
+                    f"loop bridge{where}: FOLLOW's alpha as the renderer computes it, and the frame steps "
+                    f"(seam: renderer {bm.seam_reading(br.stats)['mad_last']})",
                     "alpha (0-1)", (0, 1)).save(out / f"{sname}_alpha.png")
             made.append(f"{sname}_alpha")
         else:
-            bm.plot({"frame-to-frame MAD": (t, br.mad)}, f"loop bridge {what}{where}: frame-to-frame mean absolute "
-                    "difference (the seam is the last step)", "MAD (0-255)", (0, max(10.0, max(br.mad) * 1.1))
+            bm.plot({"frame-to-frame MAD (decoded, motion only)": (t, br.mad)},
+                    f"loop bridge {what}{where}: frame-to-frame mean absolute difference (seam: renderer "
+                    f"{bm.seam_reading(br.stats)['mad_last']})", "MAD (0-255)", (0, max(10.0, max(br.mad) * 1.1))
                     ).save(out / f"{sname}_steps.png")
             made.append(f"{sname}_steps")
     return made
+
+
+def bridge_note(seq) -> str:
+    """A loop bridge's shipped rung of the composer's ladder (board_motion.shipped_bridge) and its seam as the
+    renderer measures it (board_motion.seam_reading); "" for any other sequence."""
+    import board_motion as bm
+    st = getattr(seq, "stats", {}) or {}
+    if "ladder" not in st:
+        return ""
+    seam = bm.seam_reading(st)
+    failed = [f"{t['variant']} ({'; '.join(t['problems'])})" for t in st["ladder"] if not t["ok"]]
+    return (f" | shipped variant: {st.get('variant')} (composer's ladder"
+            + (f"; refused first: {', '.join(failed)}" if failed else "") + ")"
+            + f" | seam {seam['mad_last']} of under {seam['gate_max']}, measured on {seam['measure']}")
 
 
 RISE_TILES = 16   # the rise strip's most tiles (every kept frame of the rise when fewer)

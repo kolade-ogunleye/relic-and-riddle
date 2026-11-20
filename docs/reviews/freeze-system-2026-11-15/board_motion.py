@@ -241,12 +241,74 @@ def _end_jobs(topic: str) -> dict[str, Any]:
         first = Image.open(fx.frame(tall["first_frame"]["from"], 0.0)).convert("RGB")
         # the line the composer passes (render_surfaces.card_share: end_card_share of the run), not the raw one
         jobs["endcard_916"] = ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall)
-        jobs["bridge_follow_916"] = ((1080, 1920), lambda st: _then(end_card.loop_bridge(
-            last_t, first, tall["share_line"], st, line=False, follow=True), first), it, tall)
-        # without FOLLOW, as the composer ships it when FOLLOW is off or dropped (line=end_card.LOOP_LINE)
-        jobs["bridge_916"] = ((1080, 1920), lambda st: _then(end_card.loop_bridge(
-            last_t, first, tall["share_line"], st, line=end_card.LOOP_LINE, follow=False), first), it, tall)
+        # cycle 3 (lane E): each bridge as the composer ships it, through its gate ladder (shipped_bridge): FOLLOW on
+        # (config.LOOP_FOLLOW_OVERLAY's default) and FOLLOW off (line=end_card.LOOP_LINE either way)
+        jobs["bridge_follow_916"] = ((1080, 1920), lambda st: _then(shipped_bridge(
+            last_t, first, tall["share_line"], st, follow=True), first), it, tall)
+        jobs["bridge_916"] = ((1080, 1920), lambda st: _then(shipped_bridge(
+            last_t, first, tall["share_line"], st, follow=False), first), it, tall)
     return {n: jobs[n] for n in END_NAMES if n in jobs}
+
+
+class BridgeNotShipped(ValueError):
+    """Every rung of the composer's loop-bridge ladder fails its gate: the Reel ends at the narration, no bridge."""
+
+
+def bridge_ladder(follow: bool) -> list[tuple[str, dict[str, Any]]]:
+    """The composer's loop-bridge ladder (video_composer._render_with_loop_bridge), rung by rung: the bridge as made
+    (line=end_card.LOOP_LINE, FOLLOW as asked, the composer's motion: the board has no run camera, so the
+    renderer's own push defaults), then without its push and on the longest crossfade, then (FOLLOW asked) without
+    FOLLOW, then without both. test_freeze_board_c3 holds this to the composer's source."""
+    from src import end_card
+    kw: dict[str, Any] = {"line": end_card.LOOP_LINE, "follow": follow}
+    still = {**kw, "close_push": 0.0, "open_push": 0.0, "crossfade": end_card.LOOP_CROSSFADE[1]}
+    rungs = [("as made", kw), ("without its push", still)]
+    if follow:
+        rungs += [("without FOLLOW", {**kw, "follow": False}), ("without its push and FOLLOW", {**still, "follow": False})]
+    return rungs
+
+
+def shipped_bridge(last, first, share: str, stats: dict[str, Any], follow: bool):
+    """The loop bridge the composer ships: the first rung of bridge_ladder whose gate (end_card.check_loop_bridge)
+    passes, drawn with that rung's options; `stats` gets the renderer's own stats and "ladder" (each rung tried:
+    variant, ok, problems) and "variant" (the one drawn). Every rung failing raises BridgeNotShipped, recorded by
+    the board as a refusal (the Reel ends at the narration)."""
+    from src import end_card
+    tried = []
+    for variant, kw in bridge_ladder(follow):
+        gate = end_card.check_loop_bridge(last, first, share, **kw)
+        tried.append({"variant": variant, "ok": gate["ok"], "problems": gate["problems"],
+                      "seam": seam_reading(gate["stats"])})
+        if gate["ok"]:
+            stats.update(ladder=tried, variant=variant, options={k: v for k, v in kw.items()})
+            return end_card.loop_bridge(last, first, share, stats, **kw)
+    stats.update(ladder=tried, variant=None)
+    raise BridgeNotShipped("every rung of the composer's loop-bridge ladder fails its gate: "
+                           + "; ".join(f"{t['variant']}: {', '.join(t['problems'])}" for t in tried))
+
+
+def seam_reading(stats: dict[str, Any]) -> dict[str, Any]:
+    """The seam as the renderer measures it (never read from a decoded clip): the last frame's distance from frame 0
+    (stats["mad_last"]) and how it is measured (stats["mad_measure"], end_card.LOOP_SEAM_MEASURE where the tree
+    has them), beside the gate it is held to (end_card.LOOP_MAX_MAD)."""
+    from src import end_card
+    measure = stats.get("mad_measure") or getattr(end_card, "LOOP_SEAM_MEASURE", None)
+    return {"mad_last": stats.get("mad_last"), "gate_max": getattr(end_card, "LOOP_MAX_MAD", None),
+            "measure": measure if measure is not None else
+            "the renderer's own frames, full size (this tree has no end_card.LOOP_SEAM_MEASURE)"}
+
+
+def _encode_end(surface: str, make, stats: dict[str, Any], path: Path, size) -> dict[str, Any] | None:
+    """One end sequence drawn and encoded, or None when it is not made: the renderer refuses it (board_evidence
+    .guarded records it), or, for a loop bridge, every rung of the composer's ladder fails its gate (recorded here
+    the same way: the Reel then ships no bridge)."""
+    import board_evidence as be
+    try:
+        frames = make(stats)
+    except BridgeNotShipped as e:
+        be.REFUSED.append((surface, "not shipped (the composer's bridge ladder)", str(e)[:400]))
+        return None
+    return be.guarded(surface, encode, frames, path, size)
 
 
 def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:
@@ -257,7 +319,7 @@ def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:
     size, make, idx, _case_ = _end_jobs(topic)[name]
     stats: dict[str, Any] = {}
     path = clips / f"{name}__{idx}_{topic}.mp4"
-    clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+    clip = _encode_end(f"{name} ({topic}, case {idx})", make, stats, path, size)
     if clip is None:
         path.unlink(missing_ok=True)
     return {"clip": clip, "stats": stats, "seconds": time.perf_counter() - t0}
@@ -281,7 +343,7 @@ def end_sequences(clips: Path, topic: str = END_TOPIC) -> dict[str, Any]:
         else:
             stats: dict[str, Any] = {}
             path = clips / f"{name}__{idx}_{topic}.mp4"
-            clip = be.guarded(f"{name} ({topic}, case {idx})", encode, make(stats), path, size)
+            clip = _encode_end(f"{name} ({topic}, case {idx})", make, stats, path, size)
             drawn = 0.0
             if clip is None:
                 path.unlink(missing_ok=True)

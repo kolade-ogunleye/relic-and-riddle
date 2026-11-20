@@ -206,6 +206,65 @@ def test_social_draws_only_what_production_delivers(tmp_path):
                 assert name not in (res.get("rerouted") or {})
 
 
+def test_bridge_ladder_is_the_composers(mods):
+    """Lane E: the board draws the bridge through the composer's ladder; its rungs are held to the composer's own
+    source, so the two cannot drift apart unseen."""
+    import inspect
+
+    from src import end_card
+    from src import video_composer as vc
+    src = inspect.getsource(vc.VideoComposer._render_with_loop_bridge)
+    for fragment in ('"line": card_mod.LOOP_LINE', '"close_push": 0.0, "open_push": 0.0',
+                     '"crossfade": card_mod.LOOP_CROSSFADE[1]', '("push", still)', '("FOLLOW", {**kw, "follow": False})',
+                     '("push and FOLLOW", {**still, "follow": False})'):
+        assert fragment in src, fragment
+    bm = mods["board_motion"]
+    rungs = dict(bm.bridge_ladder(True))
+    assert list(rungs) == ["as made", "without its push", "without FOLLOW", "without its push and FOLLOW"]
+    assert rungs["as made"] == {"line": end_card.LOOP_LINE, "follow": True}
+    assert rungs["without its push"] == {"line": end_card.LOOP_LINE, "follow": True, "close_push": 0.0,
+                                         "open_push": 0.0, "crossfade": end_card.LOOP_CROSSFADE[1]}
+    assert rungs["without its push and FOLLOW"]["follow"] is False
+    assert [v for v, _ in bm.bridge_ladder(False)] == ["as made", "without its push"]
+
+
+def test_shipped_bridge_takes_the_first_passing_rung(mods, monkeypatch):
+    from src import end_card
+    bm = mods["board_motion"]
+    calls = []
+
+    def gate(last, first, share, **kw):
+        ok = kw.get("close_push") == 0.0
+        return {"ok": ok, "problems": [] if ok else ["the seam steps 9.1"], "stats": {"mad_last": 4.0 if ok else 9.1},
+                "note": None}
+
+    def bridge(last, first, share, stats, **kw):
+        calls.append(kw)
+        stats["mad_last"] = 4.0
+        return iter(["frame"])
+    monkeypatch.setattr(end_card, "check_loop_bridge", gate)
+    monkeypatch.setattr(end_card, "loop_bridge", bridge)
+    st: dict = {}
+    assert list(bm.shipped_bridge(None, None, "x", st, follow=True)) == ["frame"]
+    assert st["variant"] == "without its push" and calls == [dict(bm.bridge_ladder(True))["without its push"]]
+    assert [t["ok"] for t in st["ladder"]] == [False, True] and st["ladder"][0]["seam"]["mad_last"] == 9.1
+    monkeypatch.setattr(end_card, "check_loop_bridge",
+                        lambda *a, **k: {"ok": False, "problems": ["hitch"], "stats": {}, "note": None})
+    st = {}
+    with pytest.raises(bm.BridgeNotShipped):
+        bm.shipped_bridge(None, None, "x", st, follow=False)
+    assert st["variant"] is None and len(st["ladder"]) == 2
+
+
+def test_seam_reading_is_the_renderers(mods, monkeypatch):
+    from src import end_card
+    bm = mods["board_motion"]
+    r = bm.seam_reading({"mad_last": 3.2, "mad_measure": "270x480 luma"})
+    assert r["mad_last"] == 3.2 and r["measure"] == "270x480 luma" and r["gate_max"] == end_card.LOOP_MAX_MAD
+    monkeypatch.setattr(end_card, "LOOP_SEAM_MEASURE", "the tree's measure", raising=False)
+    assert bm.seam_reading({"mad_last": 1.0})["measure"] == "the tree's measure"
+
+
 def test_peer_feed_without_a_dir_names_the_option(mods):
     be = mods["board_evidence"]
     assert "board.py --peers <dir>" in be.peer_note("ig_grid", 0, None)

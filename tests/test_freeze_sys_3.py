@@ -178,3 +178,13 @@ def test_a_stacked_unit_beside_its_figure_reads_top_to_bottom():
     # runs on one line still read left to right; lines top to bottom
     assert drawn_text([_P("129 FT", (200, 0, 300, 40)), _P("MORE THAN", (0, 0, 190, 40)),
                        _P("DEEP", (0, 60, 80, 100))]) == "MORE THAN 129 FT DEEP"
+
+
+# --------------------------------------------------------------------------- a drawn hedge that bounds the other way
+def test_a_drawn_hedge_that_bounds_the_other_way_is_a_fault():
+    from src import figures
+    signed = figures.signed_figures(["It rises more than 129 feet.", "It holds up to 40 people."])
+    assert figures.truth_faults("UP TO 129 FT", signed)
+    assert figures.truth_faults("MORE THAN 40 PEOPLE", signed)
+    assert figures.truth_faults("OVER 129 FT", signed) == []
+    assert figures.truth_faults("NEARLY 40 PEOPLE", signed) == []

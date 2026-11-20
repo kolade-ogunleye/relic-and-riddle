@@ -51,6 +51,20 @@ COUNT_UNITS = ("people", "persons", "levels", "level", "storeys", "storey", "sto
 HEDGES = ("as many as", "as much as", "more than", "fewer than", "less than", "at least", "up to", "an estimated",
           "estimated", "approximately", "approx.", "roughly", "about", "almost", "nearly", "around", "over",
           "some", "circa", "c.", "est.", "~", "under", "just over", "just under", "well over")
+# A hedge's direction (freeze cycle 3, SYS batch 3): a lower bound ("MORE THAN 129 FT": the quantity is at least it) or
+# an upper bound ("UP TO 129 FT"); the rest approximate. A drawn hedge of the opposite direction to every signed one
+# states another quantity (the gate passed "UP TO 129 FT" for a signed "more than 129 feet").
+HEDGE_LOWER = frozenset(("MORE THAN", "AT LEAST", "OVER", "JUST OVER", "WELL OVER"))
+HEDGE_UPPER = frozenset(("UP TO", "AS MANY AS", "AS MUCH AS", "FEWER THAN", "LESS THAN", "UNDER", "JUST UNDER",
+                         "ALMOST", "NEARLY"))
+
+
+def hedge_direction(hedge: str) -> int:
+    """+1 for a lower-bound hedge, -1 for an upper-bound one, 0 for an approximate one or none."""
+    h = " ".join(str(hedge or "").upper().split())
+    return 1 if h in HEDGE_LOWER else -1 if h in HEDGE_UPPER else 0
+
+
 # A hedge drawn on a figure (abbreviations and signs spelled out: "EST." on a size read as "established").
 HEDGE_DRAWN = {"~": "ABOUT", "approx.": "APPROXIMATELY", "est.": "ESTIMATED", "an estimated": "ESTIMATED",
                "c.": "CIRCA"}
@@ -560,6 +574,10 @@ def truth_faults(drawn: str, signed: Iterable[str] | Iterable[Figure]) -> list[s
             if not d.hedge and all(s.hedge for s, _v in exact):
                 faults.append(f"{d.drawn()!r}: the signed figure is hedged ({exact[0][0].hedge}) and the drawn one "
                               "is not")
+            elif hedge_direction(d.hedge) and all(hedge_direction(s.hedge) == -hedge_direction(d.hedge)
+                                                  for s, _v in exact):
+                faults.append(f"{d.drawn()!r}: the drawn hedge ({d.hedge}) bounds the figure the other way from the "
+                              f"signed one ({exact[0][0].hedge})")
             continue
         part = [(s, v) for s, v in views if set(d.values) < set(v.values)]
         if part:

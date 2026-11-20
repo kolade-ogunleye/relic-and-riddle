@@ -167,3 +167,65 @@ def test_every_delivered_cover_is_444_within_its_limit(tmp_path):
     for path, surface in ((cover, "reel"), (grid, "grid"), (yt_path, "youtube")):
         assert _sampling(path)[0] == 0, path
         assert Path(path).stat().st_size <= ve.COVER_LIMITS[surface]
+
+
+# ------------------------------------------------- the signed short YouTube headline (lane B cycle 3 follow-up)
+def test_the_headline_bound_is_derived_from_the_thumbnails_measure():
+    import string
+    from PIL import ImageDraw as _D
+
+    from src import brand
+    from src.script_engine import youtube_headline_instruction
+    from src.typography import get_font
+    b = yt.headline_bound()
+    font = get_font(brand.DISPLAY_FONT, b["size_px"])
+    m = _D.Draw(Image.new("RGB", (8, 8)))
+    adv = m.textlength(string.ascii_uppercase, font=font) / 26
+    assert b["size_px"] == yt.feed_floor_px(yt.HERO_FLOOR) and b["measure_px"] == yt.COLUMN_MIN
+    assert b["chars_per_row"] * adv <= yt.COLUMN_MIN + m.textlength(" ", font=font)
+    assert (b["chars_per_row"] + 1) * adv > yt.COLUMN_MIN
+    assert f"at most {b['chars_per_row']} characters" in youtube_headline_instruction()
+
+
+LONG_TITLE = {"title": "The Secret Labyrinth Deep Beneath Harbour", "youtube_title": "",
+              "narration_script": "Roughly 137 to 138 feet of stone lie under the harbour. The tunnels were cut by hand."}
+
+
+def test_a_signed_short_headline_sets_the_thumbnail_first(tmp_path):
+    import main as M
+    from src.visual_engine import VisualEngine
+    cover = M.documentary_cover(LONG_TITLE["title"], payload=dict(LONG_TITLE))
+    got, problems = M.signed_youtube_headline(["HAND-CUT", "TUNNELS"], cover, dict(LONG_TITLE))
+    assert problems == [] and got["youtube_line1"] == "HAND-CUT" and got["youtube_line2"] == "TUNNELS"
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    out = VisualEngine().generate_youtube_thumbnail(hero, dict(LONG_TITLE, thumbnail=got), tmp_path / "yt.jpg")
+    import json
+    qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
+    assert qa["headline_source"] == "youtube_headline"
+    assert {e["text"] for e in qa["elements"] if e["name"].startswith("title")} <= {"HAND-CUT", "TUNNELS"}
+
+
+@pytest.mark.parametrize("lines, why", [
+    (["138 FT", "TUNNELS"], "signed span"),                # the signed figure is "roughly 137 to 138 feet"
+    (["INCOMPREHENSIBILITIES", "AGAIN"], "YouTube thumbnail"),   # a word wider than the measure never sets
+    (["A", "B", "C"], "lines"),
+], ids=["span end", "measure", "three lines"])
+def test_a_signed_headline_that_fails_a_gate_is_left_out_with_its_reason(lines, why):
+    import main as M
+    cover = M.documentary_cover(LONG_TITLE["title"], payload=dict(LONG_TITLE))
+    got, problems = M.signed_youtube_headline(lines, cover, dict(LONG_TITLE))
+    assert "youtube_line1" not in got and problems and any(why in p for p in problems), problems
+
+
+def test_the_thumbnail_falls_back_to_the_title_when_the_signed_headline_does_not_set(tmp_path):
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    payload = {"title": "Lost Gears Old Tide", "youtube_title": "",
+               "thumbnail": {"line1": "LOST GEARS", "line2": "OLD TIDE", "youtube_line1": "INCOMPREHENSIBILITIES",
+                             "youtube_line2": "UNDERSTANDABLENESS"}}
+    out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    import json
+    qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
+    assert qa["headline_source"] == "title" and qa["youtube_headline_refused"]

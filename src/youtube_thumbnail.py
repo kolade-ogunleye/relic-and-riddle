@@ -502,6 +502,22 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
                                                                                           sizes[-1])))))
 
 
+def headline_bound() -> dict:
+    """The signed YouTube headline's length bound, derived from the thumbnail's own measure (lane B cycle 3 follow-up;
+    never a pinned number): the rows the lockup sets (two: line 1 bone, line 2 gold) and the characters a row holds at
+    the hero's feed floor (feed_floor_px(HERO_FLOOR)) in the narrowest column a reviewed feature can leave
+    (COLUMN_MIN), at the display face's mean capital advance. It guides the writer; the gate is the render itself
+    (src/cover_fit.py), so a line within the bound that still does not set goes back to the writer."""
+    import string
+    font = get_font(brand.DISPLAY_FONT, feed_floor_px(HERO_FLOOR))
+    from PIL import Image as _Image
+    measure = ImageDraw.Draw(_Image.new("RGB", (8, 8)))
+    advance = measure.textlength(string.ascii_uppercase, font=font) / len(string.ascii_uppercase)
+    space = measure.textlength(" ", font=font)
+    chars = int((COLUMN_MIN + space) // max(1.0, advance))
+    return {"rows": 2, "chars_per_row": chars, "measure_px": COLUMN_MIN, "size_px": font.size}
+
+
 def refusal_rule(text: str, width_of, width: float, size: float, room=None, max_rows: int = 3) -> str:
     """Why no form of the headline `text` sets (lane B cycle 3, panel 4 / lander: a refusal names the rule that
     refused, never only "no form"): every break of its words into one to `max_rows` rows at the floor `size` is read;

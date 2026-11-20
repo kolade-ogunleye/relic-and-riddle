@@ -3611,7 +3611,8 @@ class ScriptEngine:
             f"Location: {location_str}\n\n"
             f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
             f"Write the complete 5-act investigative documentary script for YouTube and Facebook In-Stream Video (16:9 widescreen).\n"
-            f"Target duration: 3:30 to 4:45 minutes (approx. 550 to 750 spoken words across 5 acts)."
+            f"Target duration: 3:30 to 4:45 minutes (approx. 550 to 750 spoken words across 5 acts).\n\n"
+            + youtube_headline_instruction()
         )
         if feedback:
             prompt += f"\n\n<revision_feedback>\n{feedback}\n</revision_feedback>"
@@ -3642,6 +3643,19 @@ class ScriptEngine:
                 all_findings.extend(findings or [f"Act {act.act_number}: verification did not pass."])
 
         return len(all_findings) == 0, all_findings
+
+
+def youtube_headline_instruction() -> str:
+    """The deep-dive writer's brief for youtube_headline (lane B cycle 3 follow-up), its bound read from the
+    thumbnail's measure (youtube_thumbnail.headline_bound), never a pinned number. Topic-agnostic."""
+    from .youtube_thumbnail import headline_bound
+    b = headline_bound()
+    return (f"youtube_headline: the 16:9 thumbnail's headline, {b['rows']} short lines at most (line 2 is the payoff), "
+            f"each line at most {b['chars_per_row']} characters including spaces (the thumbnail's narrowest column "
+            f"at its size floor). It may differ from the title and must not repeat the YouTube title's words. Use only "
+            "what the facts state: a figure keeps its qualifier and both ends of a range (or leave the figure out); "
+            "never end a line on an article, preposition or conjunction; each line a whole phrase. Return it as a "
+            "list of strings.")
 
 
 DEEP_DIVE_SYSTEM_PROMPT = """Write a five-act historical documentary grounded exclusively in the supplied verified fact sheet.

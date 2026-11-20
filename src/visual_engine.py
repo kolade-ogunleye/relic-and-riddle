@@ -58,8 +58,13 @@ def grid_crop(cover: Image.Image) -> Image.Image:
 # cover JPEG (Reel cover, profile grid tile, YouTube thumbnail) is a standard YCbCr JPEG with NO chroma subsampling
 # (4:4:4, Pillow subsampling=0), at the highest quality on COVER_QUALITIES that keeps the file within its platform's
 # limit. 4:2:0 halved the chroma of the gold type and the dimmed hero (decisions/QF-13.md); an RGB-transform JPEG is
-# not used. YouTube's custom thumbnail limit is 2 MiB (decisions/QF-13.md); the Reel cover and grid tile go to
-# Instagram / Facebook, whose image limit is 8 MB (the stricter of the two, read as 8,000,000 bytes).
+# not used. YouTube's custom thumbnail limit is 2 MiB (decisions/QF-13.md). The Reel cover and grid tile go to
+# Instagram and Facebook; the smaller verified limit is Instagram's (read 2026-11-19), "File size: 8MB maximum" for a
+# Reels cover photo and "8 MB maximum" for an image post, https://developers.facebook.com/docs/instagram-platform/
+# instagram-graph-api/reference/ig-user/media ; Facebook: "Files can not exceed 10MB" (https://developers.facebook.com/
+# docs/graph-api/reference/page/photos/) and "Maximum thumbnail file size 10MB" for a reel cover
+# (https://developers.facebook.com/docs/graph-api/reference/video/thumbnails). "MB" is read as 8,000,000 bytes (the
+# stricter reading).
 COVER_SUBSAMPLING = 0                    # 4:4:4
 COVER_QUALITIES = tuple(range(100, 49, -5))   # highest first; never under 50
 COVER_LIMITS = {"youtube": 2 * 1024 * 1024, "reel": 8_000_000, "grid": 8_000_000}
@@ -507,7 +512,21 @@ class VisualEngine:
         inputs = youtube_render_inputs(script_payload, hero_image_path)
         meta: dict[str, Any] = {}
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
-        im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
+        from .refusal import LayoutError
+        try:
+            im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
+            if youtube_headline(script_payload):
+                meta["headline_source"] = "youtube_headline"
+        except LayoutError as e:
+            # lane B cycle 3 follow-up: the signed short headline is tried first; where it does not set, the title's
+            # own lines (documentary_cover_copy) before the refusal, recorded
+            if not youtube_headline(script_payload):
+                raise
+            th = {k: v for k, v in (script_payload.get("thumbnail") or {}).items()
+                  if k not in ("youtube_line1", "youtube_line2")}
+            fallback = youtube_render_inputs(dict(script_payload, thumbnail=th), hero_image_path)
+            meta = {"headline_source": "title", "youtube_headline_refused": str(e)}
+            im, drawn_plates = youtube_thumbnail.render(meta=meta, **fallback)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoding = save_cover_jpeg(im, output_path, "youtube")
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
@@ -519,7 +538,8 @@ class VisualEngine:
                                          "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
-                                         "headline_fragment", "headline_pair_kept")},
+                                         "headline_fragment", "headline_pair_kept", "headline_source",
+                                         "youtube_headline_refused")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
              "encoding": encoding,
              "elements": [{"name": n, "text": getattr(pl, "text", ""), "box": [int(v) for v in pl.box]}
@@ -650,7 +670,19 @@ def youtube_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
     """The cover copy the YouTube thumbnail sets (generate_youtube_thumbnail), each figure in the narration's unit:
     the one copy its pre-render fit check reads too (src/cover_fit.py; main's deep-dive draft retry), so the check
     and the render never see different words (SYS-R8-3)."""
-    return _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
+    copy = documentary_cover_copy(script_payload)
+    signed = youtube_headline(script_payload)
+    if signed:   # lane B cycle 3 follow-up: the run's signed 16:9 headline first (youtube_render_inputs falls back)
+        copy = dict(copy, line1=signed[0], line2=signed[1])
+    return _in_spoken_units(copy, script_payload)
+
+
+def youtube_headline(script_payload: Dict[str, Any]) -> tuple[str, str] | None:
+    """The run's signed short YouTube headline (thumbnail.youtube_line1 / youtube_line2, from the deep dive's
+    youtube_headline, held by trace_check.youtube_headline_problems), in capitals, or None."""
+    th = script_payload.get("thumbnail") or {}
+    l1, l2 = (" ".join(str(th.get(k) or "").split()).upper() for k in ("youtube_line1", "youtube_line2"))
+    return (l1, l2) if (l1 or l2) else None
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

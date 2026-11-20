@@ -155,3 +155,77 @@ def test_the_record_counts_every_never_end_line_inside_a_burst(case):
     # every never-end line outside the ruled hedge break is also a recorded line defect
     defects = set(rec["line_defect"])
     assert all(r["text"] in defects for r in rec["never_end_lines"] if not r["hedge_break"])
+
+
+# ---------------------------------------------------------------- lander cycle-3 rulings 2 and 5
+# Labelled synthetic narrations (test texts written for the rules, not scripts), the real runs' classes in other words
+GROUPS = (
+    "The rocks cooled between 94 and 104 million years ago, and the dome rose.",
+    "Divers dated the wreck from roughly 205 BC to 87 BC. The ship was lost.",
+    "Engineers moved from nearly 1,090 tonnes to 1,168 tonnes. Work stopped.",
+    "The trenches, by one estimate, cut only shallow ground.",
+    "Survival rose to an estimated eighty percent. Then it fell.",
+    "The text dates to between 1404 and 1438. Nobody knows more.",
+)
+
+
+def test_an_era_range_is_one_figure_group():
+    raw = "from roughly 205 BC to 87 BC.".split()
+    bonds = vc.caption_bonds(raw, names=False)
+    assert all(k in bonds for k in range(1, len(raw) - 1))
+
+
+@pytest.mark.parametrize("text", GROUPS)
+def test_no_burst_cut_falls_inside_a_settable_figure_group(text):
+    words = _timed(text)
+    phrases = vc.caption_phrases(words, None, False)
+    assert vc.figure_split_cuts(phrases) == [], [" ".join(w["word"] for w in p) for p in phrases]
+    for p in phrases:   # a group past the caps sets on two lines, each line within one burst's caps
+        ws = [w["word"] for w in p]
+        lay = vc.reel_caption_lines(ws)
+        if vc._figure_group_over_caps(ws):
+            assert lay is not None
+            for line in (ws[:lay[0]], ws[lay[0]:]):
+                assert len(line) <= vc.MAX_BURST_WORDS and len(" ".join(line)) <= vc.MAX_BURST_CHARS
+            assert not vc.unit_link(ws[lay[0] - 1], ws[lay[0]])
+
+
+@pytest.mark.parametrize("case", REAL, ids=[f"{c['topic']} {c['format']}" for c in REAL])
+def test_every_figure_group_cut_left_is_one_no_burst_can_set_and_is_recorded(case):
+    words = _fx.words(case)
+    wide = case["format"] == "16:9"
+    phrases = vc.caption_phrases(words, list(case.get("emphasis_words") or []) or None, wide)
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases), widescreen=wide)
+    assert rec["figure_split"] == vc.figure_split_cuts(phrases)
+    if wide:
+        return
+    raw = [w["word"] for w in words]
+    links = vc._figure_bonds(raw) | vc.unit_links(raw)
+    at = -1
+    for p in phrases[:-1]:
+        at += len(p)
+        if at in links:   # the cut's whole group: no burst can set it (too wide on each line, or no seam)
+            a, b = at, at + 1
+            while a - 1 in links:
+                a -= 1
+            while b in links:
+                b += 1
+            assert not vc._reel_figure_group_fits(raw[a:b + 1]), raw[a:b + 1]
+
+
+def test_a_group_no_burst_sets_never_yields_after_its_joiner():
+    words = _timed("The wreck sank between approximately 70 and 60 BC. Divers found it.")
+    for p in vc.caption_phrases(words, None, False)[:-1]:
+        assert vc._norm(p[-1]["word"]) not in vc.RANGE_JOINERS
+
+
+def test_the_wide_plate_keeps_to_the_plate_steps_within_a_run(tmp_path):
+    text = ("The ring is forty kilometres wide and it formed slowly over millions of years while wind and sand "
+            "shaped every single ridge of its rim.")   # labelled synthetic narration
+    ass = vc.VideoComposer().build_subtitles(_timed(text), tmp_path / "w.ass", width=1920, height=1080)
+    ev = [(s, e, t) for s, e, style, t in _events(ass) if style == "CapBox"]
+    widths = [int(m.group(1)) for _, _, t in ev if (m := re.search(r"l (\d+) 0 b", t))]
+    assert len(ev) > vc.CAPTION_PLATE_STEPS and len(set(widths)) <= vc.CAPTION_PLATE_STEPS
+    xs = [(int(m.group(1)), w) for (_, _, t), w in zip(ev, widths) if (m := re.search(r"pos\((\d+),", t))]
+    for x, w in xs:   # centred on the line
+        assert abs(x + (w + 14) / 2 - 960) <= 1

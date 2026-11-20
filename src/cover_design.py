@@ -1746,40 +1746,65 @@ def sandwich_fill(copy, focus, source_size, figure=None):
 
 
 def _provenance(im, lay):
-    """The on-screen disclosure over a generated hero illustration: the existing wording
-    (video_composer.RECON_BADGE_LABEL), IBM Plex Mono in STONE_LT on an INK plate at the window's lower-left edge,
-    inside the profile-grid square, measured like every other line."""
-    from .video_composer import RECON_BADGE_LABEL
+    """The on-screen disclosure over a generated hero illustration. Lane F cycle 3 (lander ruling): the feed form
+    (video_composer.RECON_BADGE_FEED_LABEL) in the badge face, BONE on an INK plate, sized so its cap holds the
+    profile grid's floor on the 124 px tile (GRID_HOOK["provenance"]), at the window's lower-left edge,
+    on one line or, where the window is narrower than that, broken at its word space; measured like every other
+    line, and held to the floor, the 3:4 crop and the tile's contrast by grid_proof (a hook element now)."""
+    from .typography import tracked_width
+    from .video_composer import RECON_BADGE_FEED_LABEL, feed_badge_px
     comp = (lay.meta.get("composition") if lay is not None else None) or {}
     box = comp.get("image_box") or [84, 560, 996, 1100]
-    x0, y1 = max(84, int(box[0]) + 24), min(1460, int(box[3]) - 24)
-    font = get_font(brand.DATA_FONT, PROVENANCE_PX, weight=600)
-    from .typography import tracked_width
-    w = tracked_width(RECON_BADGE_LABEL, font, 1.0)
+    font = get_font(brand.BADGE_FONT, feed_badge_px(GRID_HOOK["provenance"] / GRID_SCALE[0]), weight=600)
+    pad_x, pad_y = PROVENANCE_PAD
+    left, right = max(84, int(box[0])), min(int(box[2]), CROP_34[2] - 84)
+    y1 = min(1460, int(box[3]) - 24)
+    room = right - left - 2 * pad_x
+    words = RECON_BADGE_FEED_LABEL.split()
+    lines = [RECON_BADGE_FEED_LABEL]
+    if tracked_width(RECON_BADGE_FEED_LABEL, font, 0) > room and len(words) > 1:
+        # the most even break at a word space (the label's own words, never a cut one)
+        k = min(range(1, len(words)), key=lambda i: abs(tracked_width(" ".join(words[:i]), font, 0)
+                                                       - tracked_width(" ".join(words[i:]), font, 0)))
+        lines = [" ".join(words[:k]), " ".join(words[k:])]
     cap = cap_h_of(font)
-    plate = (x0, y1 - cap - 2 * PROVENANCE_PAD[1], x0 + w + 2 * PROVENANCE_PAD[0], y1)
+    step = round(cap * PROVENANCE_STEP)
+    w = max(tracked_width(ln, font, 0) for ln in lines)
+    # 24 px in from the window's left edge where the plate then stays inside the window, else flush on that edge, so
+    # the plate never straddles the window's right edge (panel 4 PL r1)
+    x0 = left + 24 if left + 24 + w + 2 * pad_x <= right else left
+    plate = (x0, y1 - cap - step * (len(lines) - 1) - 2 * pad_y, x0 + w + 2 * pad_x, y1)
     im = im.convert("RGBA")
     ImageDraw.Draw(im).rectangle(plate, fill=brand.INK + (255,))
-    im, p = place_text(im, (x0 + PROVENANCE_PAD[0], y1 - PROVENANCE_PAD[1]), RECON_BADGE_LABEL, font,
-                       brand.STONE_LT, anchor="ls", target=5.1, track=1.0, halo_px=0)
+    ps = []
+    for k, ln in enumerate(lines):
+        base = plate[1] + pad_y + cap + k * step
+        im, p = place_text(im, (x0 + pad_x, base), ln, font, brand.BONE, anchor="ls", target=5.1, track=0,
+                           halo_px=0)
+        ps.append(p)
     if lay is not None:
         # Kept in the renderer's record, not as a layout element: it sits on the photograph on purpose (the
         # window it labels), which the layout check would otherwise report as an overlap.
-        lay.meta.setdefault("plates", {})["provenance"] = [p]
-        lay.meta["provenance"] = {"label": RECON_BADGE_LABEL, "plate": [round(v) for v in plate],
-                                  "contrast": p.contrast}
+        lay.meta.setdefault("plates", {})["provenance"] = ps
+        lay.meta["provenance"] = {"label": RECON_BADGE_FEED_LABEL, "lines": lines, "plate": [round(v) for v in plate],
+                                  # a window narrower than the badge at the grid floor: legibility first, recorded
+                                  "straddles_window": plate[2] > right,
+                                  "px": font.size, "contrast": min((p.contrast for p in ps if p.contrast is not None),
+                                                                   default=None)}
     return im
 
 
-PROVENANCE_PX, PROVENANCE_PAD = 30, (14, 10)
+PROVENANCE_STEP = 1.45     # x cap: the feed badge's line step where it takes two lines
+PROVENANCE_PX, PROVENANCE_PAD = 30, (12, 16)   # PROVENANCE_PX: the old size (unused since lane F c3)
 
 # The profile-grid proof (round 3): which recorded elements must carry the hook at grid size, and their floors in
 # px of cap height at 124 px wide. Texture elements (eyebrow, tagline, dimension word, disclosure) may go small,
 # but must never be the only carrier of a fact-bearing word (a qualifier, a unit, a date).
 # r7: the hedge line ("qualifier") is a hook like the monument's kicker: it carries the figure's qualifier.
-GRID_HOOK = {"title_1": 9, "title_2": 9, "figure": 9, "figure_unit": 9, "figure_qualifier": 9,
+# lane F c3 (lander ruling): the disclosure is a hook element at the grid floor, never texture
+GRID_HOOK = {"title_1": 9, "title_2": 9, "figure": 9, "figure_unit": 9, "figure_qualifier": 9, "provenance": 9,
              "qualifier": QUALIFIER_GRID_CAP, "brand": MASTHEAD_GRID_CAP}
-GRID_TEXTURE = ("eyebrow", "tagline", "figure_dim", "provenance")
+GRID_TEXTURE = ("eyebrow", "tagline", "figure_dim")
 CROP_34 = (0, 240, 1080, 1680)
 
 

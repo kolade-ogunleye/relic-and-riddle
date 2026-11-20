@@ -70,7 +70,7 @@ HERO_FLOOR, LINE_FLOOR = 12, 7   # px of cap height at 168 px wide: the hero lin
 _STOP = {"THE", "A", "AN", "OF", "IN", "AND", "ON", "AT", "TO", "BY", "FROM", "HOW", "WHY", "WHAT"}
 # Feed-size texture: no floor, no contrast gate. r7: never a hedge or a year's event word ("qualifier",
 # "figure_qualifier"): wherever a figure is shown its qualifier holds LINE_FLOOR at 168 px, else the figure is not shown.
-_TEXTURE = frozenset({"brand", "figure_dim", "provenance"})
+_TEXTURE = frozenset({"brand", "figure_dim"})   # lane F c3: the disclosure is gated at feed size
 QUAL_LEADING = 18         # px between the two lines of a two-line hedge kicker ("BY ONE / ESTIMATE")
 NUM_MAX = 300             # the numeral's ceiling (Anton). Round 4 proposed 400; held at 300: the larger type
                           # passes the feed gate on the branch's hard-photo test, which then no longer exercises
@@ -989,7 +989,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 im = p.draw(im)
                 plates.append((name, p))
     if illustration:
-        im, p = _provenance(im)
+        im, p = _provenance(im, plates)
         plates.append(("provenance", p))
     if fb:
         meta["text_over_focus"] = [n for n, p in plates if n != "brand" and _intersects(p.box, fb)]
@@ -998,16 +998,39 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     return im.convert("RGB"), plates
 
 
-def _provenance(im: Image.Image):
-    """The existing on-screen disclosure (video_composer.RECON_BADGE_LABEL) bottom-left, clear of the timestamp
-    corner: IBM Plex Mono in STONE_LT on an INK plate."""
-    from .video_composer import RECON_BADGE_LABEL
-    f = get_font(brand.DATA_FONT, 30, weight=600)
-    w = ImageDraw.Draw(im).textlength(RECON_BADGE_LABEL, font=f)
-    y1 = H - 64
-    ImageDraw.Draw(im).rectangle((LEFT, y1 - cap_height(f) - 20, LEFT + w + 28, y1), fill=brand.INK + (255,))
-    p = plan_text(im, (LEFT + 14, y1 - 10), RECON_BADGE_LABEL, f, brand.STONE_LT, "ls", target=5.1, halo_px=0)
+def _provenance(im: Image.Image, plates=()):
+    """The disclosure over a generated hero, bottom-left, clear of the timestamp corner: the feed form
+    (video_composer.RECON_BADGE_FEED_LABEL, lane F cycle 3) in the badge face, BONE on an INK plate, sized so its cap
+    holds LINE_FLOOR at 168 px wide (feed_badge_px), like every other gated line. Placed under the type column, or
+    where that collides with a drawn line, in the top-left corner; recorded on the plate (`collides`) when neither
+    is clear, so downscale_check fails it rather than drawing it over another line."""
+    from .video_composer import RECON_BADGE_FEED_LABEL, feed_badge_px
+    f = get_font(brand.BADGE_FONT, feed_badge_px(BADGE_CAP_168 * W / FEED_WIDTHS[0]), weight=600)
+    w = ImageDraw.Draw(im).textlength(RECON_BADGE_FEED_LABEL, font=f)
+    cap = cap_height(f)
+    pad_x, pad_y = BADGE_PAD
+
+    def plate_at(y1):
+        return (LEFT, y1 - cap - 2 * pad_y, LEFT + w + 2 * pad_x, y1)
+
+    boxes = [p.box for _, p in plates if not getattr(p, "empty", False)]
+    hit = None
+    for y1 in (H - 64, 54 + cap + 2 * pad_y):     # under the column, else the top-left corner
+        box = plate_at(y1)
+        hit = [b for b in boxes if _intersects(box, tuple((b[0] - BADGE_AIR, b[1] - BADGE_AIR, b[2] + BADGE_AIR,
+                                                           b[3] + BADGE_AIR)))]
+        if not hit:
+            break
+    ImageDraw.Draw(im).rectangle(box, fill=brand.INK + (255,))
+    p = plan_text(im, (LEFT + pad_x, box[3] - pad_y), RECON_BADGE_FEED_LABEL, f, brand.BONE, "ls", target=5.1,
+                  halo_px=0)
+    p.collides = bool(hit)
     return p.draw(im), p
+
+
+BADGE_CAP_168 = LINE_FLOOR     # the feed badge's cap at YouTube's 168 px tile: the system's line floor (SYS-F-2: token)
+BADGE_PAD = (24, 22)           # design px of INK plate round the feed badge's ink
+BADGE_AIR = 24                 # design px the feed badge keeps from every other drawn line
 
 
 def downscale_check(im: Image.Image, meta: dict) -> bool:
@@ -1042,7 +1065,9 @@ def downscale_check(im: Image.Image, meta: dict) -> bool:
         if c is not None and c < 4.5:
             fails.append(f"{name} contrast {c} at 246 wide")
 
-        if p.box[2] > SHADE_END:
+        if p.box[2] > SHADE_END and name != "provenance":   # the disclosure carries its own INK plate
             fails.append(f"{name} reaches past the ink's fade (x {p.box[2]})")
+        if getattr(p, "collides", False):
+            fails.append(f"{name} has no place clear of the drawn lines at its feed size")
     meta["downscale"], meta["downscale_fails"], meta["downscale_ok"] = out, fails, not fails
     return not fails

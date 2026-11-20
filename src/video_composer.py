@@ -166,6 +166,22 @@ TRANS_DUR = 0.40
 # is (operator decision 2026-11-03; "[ HISTORICAL RECONSTRUCTION ]" until then, the same 29 monospaced characters, so
 # the plates keep their width). The covers and the YouTube thumbnail draw this same constant.
 RECON_BADGE_LABEL = "AI ILLUSTRATION · NOT A PHOTO"
+# Lane F cycle 3 (lander ruling under the operator's delegation): on the feed surfaces (YouTube thumbnail, Reel cover
+# and its profile-grid tile) the disclosure is this short form, sized so its cap holds the surface's feed floor; the
+# full label stays on the video. The platforms' own AI labels are set as well, always.
+RECON_BADGE_FEED_LABEL = "AI ILLUSTRATION"
+
+
+def feed_badge_px(cap_px: float) -> int:
+    """The least badge-face size (brand.BADGE_FONT at 600) whose drawn cap is at least `cap_px` design px: the feed
+    badge's size from its surface's floor (SYS-F-2 will hold the tier as a token)."""
+    import math
+
+    from .typography import cap_height, get_font
+    px = max(8, math.floor(cap_px))
+    while cap_height(get_font(_brand.BADGE_FONT, px, weight=600)) < cap_px and px < 1000:
+        px += 1
+    return px
 
 
 def _is_reconstruction_scene(item) -> bool:

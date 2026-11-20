@@ -314,3 +314,89 @@ def test_lane_f_callout_text_registers_with_its_measure(ox, dx):
     q = SimpleNamespace(empty=False, origin=(0, 0), box=(0, 0, 1, 1), xy=(0, 0))
     placed = callouts._placed(q, a.ox + round(dx), a.oy + round(dx))
     assert (tx, ty) == placed.origin
+
+
+# ------------------------------------------------------------------------------------------------ cycle 3, rulings
+@pytest.mark.parametrize("ground", ["sky", "dark", "warm"])
+def test_lane_f_hook_wash_keeps_the_subject(ground, photos):
+    """Lander ruling (the hook's frame 0 is a feed tile; subject visibility outranks ornament): a wash keeps at least
+    HOOK_ABOVE_KEPT of the photo's brightness above the claim with the contrast gate met; where no wash does, the
+    plate, its reason recorded."""
+    plan = F.hook_plan(photos[ground], "Quartzite ridges form the ring", "f_geo")
+    sc = plan.meta["scrim"]
+    assert sc["above_kept"] >= dc.HOOK_ABOVE_KEPT or sc["mode"] == "plate", sc
+    if sc["mode"] == "wash":
+        assert sc["halo"] is not None and sc["above_kept"] >= dc.HOOK_ABOVE_KEPT
+    else:
+        assert "plate_reason" not in sc or "70%" in sc["plate_reason"]
+    assert all(p.contrast is None or p.contrast >= 4.5 for _, p in plan.meta["_contrast"])
+
+
+def test_lane_f_above_kept_reads_the_dimming():
+    from PIL import Image
+    base = Image.new("RGBA", (40, 100), (200, 200, 200, 255))
+    none = Image.new("RGBA", (40, 100), (0, 0, 0, 0))
+    half = Image.new("RGBA", (40, 100), brand.INK + (128,))
+    assert dc._above_kept(base, none, 50) == 1.0
+    assert 0.4 < dc._above_kept(base, half, 50) < 0.7
+
+
+def _covers():
+    import tests.test_r3_covers_2026_11_02 as R
+    return R
+
+
+@pytest.mark.parametrize("illustration", [True, False])
+def test_lane_f_feed_badge_on_the_cover_is_legible_at_the_grid_and_only_on_illustrations(illustration):
+    """Lander ruling (feed-size AI badge): on the Reel cover the disclosure is RECON_BADGE_FEED_LABEL, its cap at
+    least the grid floor on the 124 px tile, inside the 3:4 crop, at the tile's contrast gate, and drawn when and
+    only when the hero is an AI illustration."""
+    from src.cover_design import GRID_CONTRAST, GRID_HOOK
+    from src.video_composer import RECON_BADGE_FEED_LABEL
+    R = _covers()
+    _, lay = R._cover(R.GUMBAZ, "depth_sandwich", illustration=illustration)
+    if not illustration:
+        assert "provenance" not in lay.meta and "provenance" not in lay.meta.get("plates", {})
+        return
+    tag = lay.meta["provenance"]
+    assert " ".join(tag["lines"]) == tag["label"] == RECON_BADGE_FEED_LABEL
+    el = lay.meta["grid_proof"]["elements"]["provenance"]
+    assert el["class"] == "hook" and el["cap_124"] >= GRID_HOOK["provenance"] and el["inside_34"]
+    assert el["contrast_124"] is not None and el["contrast_124"] >= GRID_CONTRAST
+    assert not [f for f in lay.meta["grid_proof"]["fails"] if f.startswith("provenance")]
+    x0, y0, x1, y1 = tag["plate"]
+    win = lay.meta["composition"]["image_box"]
+    assert 84 <= x0 and x1 <= 1080 - 84 and 240 <= y0 and y1 <= 1680     # inside the margins and the 3:4 crop
+    assert win[0] <= x0 and win[1] <= y0 and y1 <= win[3], (tag["plate"], win)
+    # inside the window wherever the window is as wide as the badge at the grid floor; else recorded
+    assert (x1 <= win[2]) != tag["straddles_window"], (tag["plate"], win)
+
+
+def test_lane_f_feed_badge_stays_inside_a_wide_enough_window():
+    """The cover badge never straddles the photo window's edge when the window holds it (panel 4 PL r1)."""
+    R = _covers()
+    _, lay = R._cover(R.GUMBAZ, "badge", illustration=True)
+    tag, win = lay.meta["provenance"], lay.meta["composition"]["image_box"]
+    if win[2] - win[0] >= tag["plate"][2] - tag["plate"][0]:
+        assert not tag["straddles_window"] and tag["plate"][2] <= win[2]
+
+
+@pytest.mark.parametrize("illustration", [True, False])
+def test_lane_f_feed_badge_on_the_thumbnail_is_legible_at_168_and_only_on_illustrations(illustration):
+    """Lander ruling: on the YouTube thumbnail the disclosure is RECON_BADGE_FEED_LABEL, its cap at least the line
+    floor at 168 px wide and its contrast at least 4.5 at 246 px, clear of every drawn line, and drawn when and only
+    when the hero is an AI illustration."""
+    from src import youtube_thumbnail as yt
+    from src.video_composer import RECON_BADGE_FEED_LABEL
+    R = _covers()
+    meta = {}
+    _, plates = yt.render(R._photo(), R.RICHAT, meta=meta, illustration=illustration)
+    names = {n: p for n, p in plates}
+    if not illustration:
+        assert "provenance" not in names
+        return
+    p = names["provenance"]
+    assert p.text == RECON_BADGE_FEED_LABEL and not p.collides
+    row = meta["downscale"]["provenance"]
+    assert row["cap_168"] >= yt.LINE_FLOOR and row["contrast_246"] >= 4.5
+    assert not [f for f in meta["downscale_fails"] if f.startswith("provenance")]

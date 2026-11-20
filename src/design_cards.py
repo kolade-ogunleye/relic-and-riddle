@@ -4003,8 +4003,9 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         eb = _row_plates(bg, [eyebrow_row])
         plates = plates + eb
         field = np.maximum(field, _halo_field(bg.size, eb, eyebrow_row[3]))
-    under, tried = Image.new("RGBA", bg.size, (0, 0, 0, 0)), []
-    if lum >= HOOK_PLATE_LUM:
+    def plate(why: str | None = None) -> tuple[Image.Image, dict]:
+        tried: list[dict] = []
+        under = Image.new("RGBA", bg.size, (0, 0, 0, 0))
         y0, y1 = box[1] - HOOK_PLATE_PAD[0], box[3] + HOOK_PLATE_PAD[1]
         if plate_top is not None:
             # one panel from the masthead down (no second strip, no gap); with `plate_bottom` (the designed, evenly
@@ -4021,25 +4022,54 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
                 break
         rec = {"luminance": round(lum, 3), "mode": "plate", "strength": tried[-1]["strength"],
                "halo": tried[-1]["halo"], "tried": tried, "plate": [round(y0), round(y1)],
-               "feather": feather}
+               "feather": feather, "above_kept": _above_kept(base, under, box[1])}
+        if why:
+            rec["plate_reason"] = why
         if eyebrow_row is not None:
             rec["eyebrow_patch"], rec["eyebrow_halo"] = 0.0, tried[-1]["halo"]
         return under, rec
+
+    if lum >= HOOK_PLATE_LUM:
+        return plate()
     steps = _steps_from(lum, HOOK_WASH_START, HOOK_WASH_STEPS)
     right = max([p.box[2] for p in plates if not getattr(p, "empty", False)] + [box[0]]) + HOOK_WASH_RIGHT_AIR
-    for i, st in enumerate(steps):
-        wash = _wash_layer(bg.size, head, box[3], st, right)    # open at the top and to the right, no edge
-        last = i == len(steps) - 1
-        h, worst, under = _least_halo(base, wash, field, plates, 1.0 if last else HOOK_GLOW_MAX)
-        tried.append({"strength": st, "min": round(worst, 2), "halo": h})
-        if h is not None:
-            break
-    rec: dict[str, Any] = {"luminance": round(lum, 3), "mode": "wash", "strength": tried[-1]["strength"],
-                           "halo": tried[-1]["halo"], "tried": tried, "wash": [round(head), round(box[3])],
-                           "wash_right": round(right)}
-    if eyebrow_row is not None:
-        rec["eyebrow_patch"], rec["eyebrow_halo"] = 0.0, tried[-1]["halo"]
-    return under, rec
+    washes = []
+    # lane F cycle 3 (lander ruling: the hook's frame 0 is a feed tile; subject visibility outranks ornament): the
+    # wash keeps at least HOOK_ABOVE_KEPT of the photo's brightness above the claim with the contrast gate met;
+    # today's wash, open from the frame's top, first; then one opened only from the block (feathered above it);
+    # where neither does, the plate
+    for top in dict.fromkeys((head, max(head, box[1]))):
+        tried: list[dict] = []
+        for i, st in enumerate(steps):
+            wash = _wash_layer(bg.size, top, box[3], st, right)    # open to the right, no edge
+            last = i == len(steps) - 1
+            h, worst, under = _least_halo(base, wash, field, plates, 1.0 if last else HOOK_GLOW_MAX)
+            tried.append({"strength": st, "min": round(worst, 2), "halo": h})
+            if h is not None:
+                break
+        kept = _above_kept(base, under, box[1])
+        rec: dict[str, Any] = {"luminance": round(lum, 3), "mode": "wash", "strength": tried[-1]["strength"],
+                               "halo": tried[-1]["halo"], "tried": tried, "wash": [round(top), round(box[3])],
+                               "wash_right": round(right), "above_kept": kept}
+        if eyebrow_row is not None:
+            rec["eyebrow_patch"], rec["eyebrow_halo"] = 0.0, tried[-1]["halo"]
+        washes.append(rec["wash"][0])
+        if tried[-1]["halo"] is not None and kept >= HOOK_ABOVE_KEPT:
+            return under, rec
+    return plate(f"no wash ({', '.join(f'open from y {t}' for t in washes)}) keeps {HOOK_ABOVE_KEPT:.0%} of the "
+                 "photo's brightness above the claim with the contrast gate met")
+
+
+HOOK_ABOVE_KEPT = 0.70      # lander ruling (lane F c3): the wash keeps at least this share of the photo's brightness
+
+
+def _above_kept(base: Image.Image, under: Image.Image, top: float) -> float:
+    """The share of the photo's mean luminance (L) the ground keeps over the rows above the claim block (y 0 to its
+    scrim box's top): 1.0 untouched; how much a wash or plate dims the subject above the claim."""
+    t = max(1, int(top))
+    bare = np.asarray(base.convert("L"), np.float32)[:t]
+    shown = np.asarray(Image.alpha_composite(base, under).convert("L"), np.float32)[:t]
+    return round(float(shown.mean()) / max(1e-6, float(bare.mean())), 3)
 
 
 def _hook_mast_foot() -> int:
@@ -4407,14 +4437,17 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         _provenance(ground0.convert("RGBA"), lay)
         prov = lay.meta["provenance"]["plate"]
         md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=brand.INK + (255,))
-        pp = lay.meta["plates"]["provenance"][0]
-        if pp.contrast is None or pp.contrast < HOOK_TARGET:
-            raise CardRefused(f"the disclosure reaches only {pp.contrast}")
         card._el("provenance_plate", "mark", "", "", None, 0, brand.INK, prov[:2], "", 0.0, tuple(prov), hook)
         card.roles["provenance_plate"] = "mark"
-        card._el("provenance", "text", pp.text, brand.DATA_FONT, 600, pp.font.size, brand.STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
-        card.roles["provenance"], card.drawn["provenance"] = "data", pp.text
-        plates.append(pp)
+        # lane F cycle 3 (lander ruling: frame 0 is a feed tile): the feed badge, on one line or two, every line drawn
+        for k, pp in enumerate(lay.meta["plates"]["provenance"]):
+            if pp.contrast is None or pp.contrast < HOOK_TARGET:
+                raise CardRefused(f"the disclosure reaches only {pp.contrast}")
+            nm = "provenance" if k == 0 else f"provenance_{k + 1}"
+            card._el(nm, "text", pp.text, brand.BADGE_FONT, 600, pp.font.size, brand.BONE, pp.xy, "ls", 1.0, pp.box,
+                     hook)
+            card.roles[nm], card.drawn[nm] = "data", pp.text
+            plates.append(pp)
     r_ = {"hook": True, "bg": bg, "under": under, "marks": marks, "top": top, "plates": plates, "last_t": 0.0}
     frame0 = _hook_compose(r_, 0)
     proof = grid_proof(frame0, lay)
@@ -4431,7 +4464,8 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     frames, seconds = _frames(HOOK_SECONDS)
     contrast = [(nm, p) for nm, p in card.contrast]
     if spec.photo_kind == "generated":
-        contrast.append(("provenance", lay.meta["plates"]["provenance"][0]))
+        contrast += [("provenance" if k == 0 else f"provenance_{k + 1}", pp)
+                     for k, pp in enumerate(lay.meta["plates"]["provenance"])]
     # H5: the drawn contrast, measured on frames 0 and 32 as the chapter and myth cards measure theirs
     drawn = {}
     frame32 = _hook_compose(r_, 32)

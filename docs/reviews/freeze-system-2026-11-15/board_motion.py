@@ -194,37 +194,59 @@ def _card_share(fx, case) -> str:
 
 
 def _case(fx, topic: str, fmt: str):
+    """(index, case) of the catalogue's end-card case for `topic` in `fmt`, or (None, None) when it has none."""
     cases = fx.load("endcard")
-    i, c = next((i, c) for i, c in enumerate(cases) if c["topic"] == topic and c.get("format") == fmt)
-    return i, c
+    return next(((i, c) for i, c in enumerate(cases) if c["topic"] == topic and c.get("format") == fmt), (None, None))
 
 
-END_TOPIC = "unfinished_obelisk_aswan"
-END_NAMES = ("endscreen_169", "endcard_916", "bridge_follow_916")
+END_TOPIC = "unfinished_obelisk_aswan"   # the first board ground: row 12's unsuffixed sheets (as before cycle 3)
+# cycle 3 (MO r1/r2, p3 MO-5): every ground gets each end sequence its catalogue case allows, and the loop bridge both
+# ways it can ship: with FOLLOW (config.LOOP_FOLLOW_OVERLAY) and without (the composer's QF-83 fallback ladder)
+END_NAMES = ("endscreen_169", "endcard_916", "bridge_follow_916", "bridge_916")
 PREFETCH: dict[tuple[str, str], Any] = {}   # (topic, name) -> Future of board_evidence.captured(draw_end, ...)
 
 
+def end_topics(heroes) -> list[str]:
+    """The board grounds (`heroes`, in board order, END_TOPIC first) that have an end-card case in the catalogue."""
+    fx = _fx()
+    topics = {c["topic"] for c in fx.load("endcard")}
+    order = [END_TOPIC] + [h for h in heroes if h != END_TOPIC]
+    return [h for h in order if h in topics]
+
+
+def end_names(topic: str) -> list[str]:
+    """The end sequences `topic`'s catalogue cases allow (END_NAMES order)."""
+    fx = _fx()
+    have = {c.get("format") for c in fx.load("endcard") if c["topic"] == topic}
+    return [n for n in END_NAMES if ("16:9" if n.endswith("_169") else "9:16") in have]
+
+
 def _end_jobs(topic: str) -> dict[str, Any]:
-    """name -> (size, make(stats) -> the frames, case index, case): the three end sequences of `topic` as
-    end_sequences draws them."""
+    """name -> (size, make(stats) -> the frames, case index, case): the end sequences of `topic` as end_sequences
+    draws them (end_names: the formats its catalogue cases have)."""
     from PIL import Image, ImageOps
 
     from src import end_card
     fx = _fx()
     iw, wide = _case(fx, topic, "16:9")
     it, tall = _case(fx, topic, "9:16")
-    last_w = _still(fx, wide.get("last_frame", {}).get("from") or wide.get("last"))
-    if last_w.width < last_w.height:
-        last_w = ImageOps.fit(last_w, (1920, 1080), Image.LANCZOS)
-    last_t = _still(fx, tall.get("last_frame", {}).get("from") or tall.get("last"))
-    first = Image.open(fx.frame(tall["first_frame"]["from"], 0.0)).convert("RGB")
-    return {
-        "endscreen_169": ((1920, 1080), lambda st: end_card.frames(last_w, wide["share_line"], st), iw, wide),
+    jobs: dict[str, Any] = {}
+    if wide is not None:
+        last_w = _still(fx, wide.get("last_frame", {}).get("from") or wide.get("last"))
+        if last_w.width < last_w.height:
+            last_w = ImageOps.fit(last_w, (1920, 1080), Image.LANCZOS)
+        jobs["endscreen_169"] = ((1920, 1080), lambda st: end_card.frames(last_w, wide["share_line"], st), iw, wide)
+    if tall is not None:
+        last_t = _still(fx, tall.get("last_frame", {}).get("from") or tall.get("last"))
+        first = Image.open(fx.frame(tall["first_frame"]["from"], 0.0)).convert("RGB")
         # the line the composer passes (render_surfaces.card_share: end_card_share of the run), not the raw one
-        "endcard_916": ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall),
-        "bridge_follow_916": ((1080, 1920), lambda st: _then(end_card.loop_bridge(last_t, first, tall["share_line"], st,
-                                                                                 line=False, follow=True), first), it, tall),
-    }
+        jobs["endcard_916"] = ((1080, 1920), lambda st: end_card.frames(last_t, _card_share(fx, tall), st), it, tall)
+        jobs["bridge_follow_916"] = ((1080, 1920), lambda st: _then(end_card.loop_bridge(
+            last_t, first, tall["share_line"], st, line=False, follow=True), first), it, tall)
+        # without FOLLOW, as the composer ships it when FOLLOW is off or dropped (line=end_card.LOOP_LINE)
+        jobs["bridge_916"] = ((1080, 1920), lambda st: _then(end_card.loop_bridge(
+            last_t, first, tall["share_line"], st, line=end_card.LOOP_LINE, follow=False), first), it, tall)
+    return {n: jobs[n] for n in END_NAMES if n in jobs}
 
 
 def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:
@@ -242,11 +264,12 @@ def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:
 
 
 def end_sequences(clips: Path, topic: str = END_TOPIC) -> dict[str, Any]:
-    """The 16:9 end screen, the 9:16 end card and the 9:16 loop bridge with FOLLOW (into the Reel's frame 0) of the
-    catalogue's `topic` cases, each drawn once, encoded once, decoded once (drawn and encoded by a worker when
-    board.py --workers prefetched it)."""
-    if "end" in _cache:
-        return _cache["end"]
+    """The 16:9 end screen, the 9:16 end card and the 9:16 loop bridge with and without FOLLOW (into the Reel's frame
+    0) of the catalogue's `topic` cases, each drawn once, encoded once, decoded once (drawn and encoded by a worker
+    when board.py --workers prefetched it)."""
+    done = _cache.setdefault("end", {})
+    if topic in done:
+        return done[topic]
     out: dict[str, Any] = {}
     jobs = _end_jobs(topic)
     for name, (size, make, idx, case) in jobs.items():
@@ -270,8 +293,13 @@ def end_sequences(clips: Path, topic: str = END_TOPIC) -> dict[str, Any]:
         seq.stats, seq.case, seq.index, seq.topic = stats, case, idx, topic
         seq.seconds = round(drawn + time.perf_counter() - t0, 1)
         out[name] = seq
-    _cache["end"] = out
+    done[topic] = out
     return out
+
+
+def all_end() -> list[tuple[str, str, Any]]:
+    """(topic, name, seq) of every end sequence drawn so far in this process."""
+    return [(t, n, s) for t, seqs in (_cache.get("end") or {}).items() for n, s in seqs.items()]
 
 
 def _then(it, first):
@@ -286,8 +314,10 @@ def _end_regions(name: str, stats: dict[str, Any], size) -> dict[str, tuple]:
     m = (stats.get("masthead") or {}).get("box")
     if m:
         reg["masthead box"] = tuple(int(round(v)) for v in m)
-    if stats.get("box") and name != "bridge_follow_916":
-        reg["share block"] = tuple(int(round(v)) for v in stats["box"])
+    if stats.get("box") and not name.startswith("bridge"):
+        # end_card's layout box is the FOLLOW line's when the card has one (end_card.held_layout), else the share
+        # block's (cycle 3: it was labelled "share block" either way)
+        reg["FOLLOW line" if stats.get("follow") else "share block"] = tuple(int(round(v)) for v in stats["box"])
     if stats.get("follow_box"):
         reg["FOLLOW box"] = tuple(int(round(v)) for v in stats["follow_box"])
     if name == "endscreen_169":   # the field: the text column (left) and under the video slot (right)
@@ -417,6 +447,97 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any] | None:
            "stills": [Path(s).name for s in stills]}
     _cache["dissolve"] = out
     return out
+
+
+INK_OVER_GROUND = 60   # luma steps over the row's ground: the card's light type on its dimmed ground
+GROUND_PCT = 20       # the row's ground: its 20th luma percentile (type covers well under 80 % of a row)
+
+
+def share_block_box(seq: Seq, rest_i: int) -> tuple[tuple[int, int, int, int] | None, str]:
+    """(box, how) of the share block's type on the rest frame, measured (cycle 3, MO r1 MO-evid-rise-B, MO r2 MO-EV2:
+    the layout box is the FOLLOW line's when the card has one, so a crop from it missed the share block). The
+    renderer's records bound the search: below the masthead's box, above the FOLLOW line's box (or to the share
+    box's foot plus one line), across the safe width; inside it the type's rows are those with pixels
+    INK_OVER_GROUND above the row's ground (GROUND_PCT), kept in runs at least 0.35 of the share size tall (a rule's few rows
+    are not type)."""
+    st = getattr(seq, "stats", {}) or {}
+    im = seq.kept.get(rest_i)
+    w, h = seq.size
+    box, size = st.get("box"), float(st.get("share_size") or 0)
+    if im is None or not box or not size:
+        return None, "no rest frame or layout record"
+    mast = (st.get("masthead") or {}).get("box")
+    top = int(mast[3]) + 4 if mast else 0
+    bottom = int(box[1]) - 2 if st.get("follow") else min(h, int(box[3] + size))
+    half = float(st.get("safe_width") or w) / 2
+    x0, x1 = max(0, int(w / 2 - half)), min(w, int(w / 2 + half))
+    if bottom - top < size * 0.5:
+        return None, f"no room between the masthead and the FOLLOW line ({top}-{bottom})"
+    a = np.asarray(im.crop((x0, top, x1, bottom)).convert("L"), np.float32)
+    ink = a > (np.percentile(a, GROUND_PCT, axis=1, keepdims=True) + INK_OVER_GROUND)
+    rows = ink.sum(1) >= max(2, 0.004 * a.shape[1])
+    runs, start = [], None
+    for y, on in enumerate(list(rows) + [False]):
+        if on and start is None:
+            start = y
+        elif not on and start is not None:
+            runs.append((start, y))
+            start = None
+    merged: list[list[int]] = []
+    for s, e in runs:   # a line's letters and its accents / descenders: gaps under a fifth of the size join
+        if merged and s - merged[-1][1] <= max(2, size * 0.2):
+            merged[-1][1] = e
+        else:
+            merged.append([s, e])
+    lines = [(s, e) for s, e in merged if e - s >= 0.35 * size]
+    if not lines:
+        return None, "no type rows found between the masthead and the FOLLOW line"
+    # the share block is the last group of lines (the one over the FOLLOW line / at the box's foot): a gap of a
+    # share size or more parts it from anything above (the masthead and its rule, if the record's box is short)
+    block = [lines[-1]]
+    for s, e in reversed(lines[:-1]):
+        if block[0][0] - e >= size:
+            break
+        block.insert(0, (s, e))
+    y0, y1 = block[0][0], block[-1][1]
+    cols = np.where(ink[y0:y1].any(0))[0]
+    return ((x0 + int(cols[0]), top + y0, x0 + int(cols[-1]) + 1, top + y1),
+            f"measured on the rest frame: {len(block)} type line(s) over the "
+            f"{'FOLLOW line' if st.get('follow') else 'share box foot'}")
+
+
+def rise_ink_px(seq: Seq, box: tuple, rest_i: int, pad: int = 26, reach: int = 24) -> dict[int, int]:
+    """The share block's vertical offset (px below rest) on each kept frame: the frame's type pixels (INK_OVER_GROUND
+    / 2 over its row's ground, so fading type still counts) moved up 0..reach-1 px, and the shift that lands the
+    most of them on the rest frame's type pixels (its precision). A partly revealed block is a subset of the rest
+    frame's type, so it matches at its own offset; the ground before the dim (texture, not type) lands on type at
+    no shift and is left out (precision under RISE_MATCH_MIN), as is a frame with no type and a best shift on the
+    search's edge (cycle 3: the luma-profile match of rise_px reads 0 wherever the ground or the masthead
+    dominates its box)."""
+    if rest_i not in seq.kept:
+        return {}
+    x0, y0, x1, y1 = box
+
+    def mask(im):   # the ground per row from the whole frame row (the box is the type's own, mostly type)
+        a = np.asarray(im.crop((0, max(0, y0 - pad), im.width, min(im.height, y1 + pad))).convert("L"), np.float32)
+        ground = np.percentile(a, GROUND_PCT, axis=1, keepdims=True)
+        return a[:, x0:x1] > ground + INK_OVER_GROUND / 2
+    ref = mask(seq.kept[rest_i])
+    out = {}
+    for i, im in seq.kept.items():
+        m = mask(im)
+        n = int(m.sum())
+        if n < 0.02 * ref.sum():
+            continue
+        score = [float((m[s:] & ref[:len(ref) - s]).sum()) / n if s else float((m & ref).sum()) / n
+                 for s in range(reach)]
+        best = int(np.argmax(score))
+        if best < reach - 1 and score[best] >= RISE_MATCH_MIN:
+            out[i] = best
+    return out
+
+
+RISE_MATCH_MIN = 0.6   # the least share of a frame's type pixels that must land on the rest frame's type
 
 
 def rise_px(seq: Seq, box: tuple, rest_i: int) -> dict[int, int]:

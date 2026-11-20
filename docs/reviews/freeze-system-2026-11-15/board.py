@@ -1029,7 +1029,8 @@ def bx_captions() -> list[dict]:
 JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts": 126, "social": 101, "scale": 91,
                "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
                "cover": 8}
-SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px")    # merged by union (a job's own records)
+SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged by union (a job's own records)
+                   "retired", "rerouted")   # cycle 3: retired frames not drawn, slides re-routed
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 
@@ -1245,13 +1246,17 @@ def main() -> None:
     from PIL import Image
     sj = out / "surfaces.json"
     surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    for k in ("retired", "rerouted"):   # cycle 3: what the board drew as production draws it today, not as recorded
+        if (surfaces_rec or {}).get(k):
+            manifest[k] = surfaces_rec[k]
     for r, (name, prefixes) in sorted(ROWS.items()):
         if r not in rows:
             continue
         t0 = time.perf_counter()
         n_refused = len(be.REFUSED)
         pngs = sorted((out / "surfaces").glob("*.png"))
-        pick = [p for p in pngs if on_row(r, prefixes, p.stem)]
+        retired = set((surfaces_rec or {}).get("retired") or {})   # cycle 3: a retired frame's old file is not shown
+        pick = [p for p in pngs if on_row(r, prefixes, p.stem) and p.stem not in retired]
         heroes = hero_pick(pick)
         # round 8 (AD E3, CD-20): every tile labelled through board_evidence.label, its pairing class first
         tiles = [(be.label(p.stem), Image.open(p).convert("RGB")) for p in heroes]
@@ -1320,8 +1325,12 @@ def main() -> None:
             for n, im in tiles:
                 o, box = bx.story_overlay(im)
                 px = sizes.get(n.split(" | ")[0])
-                over.append((f"{n} | title_px {px} (multi_format.story_title_px over the Story) | Story safe box "
-                             f"{box} (safe_zones.safe_box('story'))", o))
+                if isinstance(px, dict):   # cycle 3: the frame's own layout record (what it drew at)
+                    size = (f"title_px {px.get('drawn')} (this frame's layout record; the Story's one size "
+                            f"{px.get('story')})")
+                else:                      # an older surfaces.json: the size the harness passed
+                    size = f"title_px {px} (multi_format.story_title_px over the Story, as the harness passed it)"
+                over.append((f"{n} | {size} | Story safe box {box} (safe_zones.safe_box('story'))", o))
             sheets["row06_story_safe_box"] = (over, 960, 4)
         if r in (7, 11):
             items = extra("caption encodes", lambda: bx.caption_frames(tree, work, clips), [])

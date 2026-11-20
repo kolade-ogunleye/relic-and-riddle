@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -166,6 +168,42 @@ def test_a_lone_peer_is_never_repeated_as_more_peers(mods, tmp_path):
     ours = [("social__alpha_site_1793272675__fb_collage", Image.new("RGB", (1137, 950)))]
     tiles, _ = be.peer_feed("fb_feed", ours, [], peers)   # no other run to stand in
     assert len(tiles) == 1 and "each once; no STAND-IN" in tiles[0][0] and "ours: slot 2" in tiles[0][0]
+
+
+DEV = Path(os.environ.get("RR_FIXTURE_REPO") or r"C:\Users\omokolade\GitHub\relic-and-riddle")
+SOCIAL_RUN = "run_richat_structure_sahara_eye_1793272675"
+
+
+@pytest.mark.skipif(not (DEV / "output" / SOCIAL_RUN / "stories" / "still_layout.json").is_file(),
+                    reason="needs the dev checkout's recorded social run")
+def test_social_draws_only_what_production_delivers(tmp_path):
+    """Lane D's verification: the board redrew the retired Story poll frame and stale archetypes. A retired frame is
+    recorded, not drawn; every carousel slide takes today's routing; each Story frame carries its own layout record's
+    title size."""
+    from src.multi_format import RETIRED_STORY_FRAMES, MultiFormatGenerator
+    jobs = tmp_path / "jobs"
+    jobs.write_text(f"social {SOCIAL_RUN}\n", encoding="utf-8")
+    out = tmp_path / "surfaces.json"
+    subprocess.run([sys.executable, str(BOARD / "run_surfaces.py"), str(QF35A / "render_surfaces.py"), str(ROOT),
+                    str(DEV), str(out), "--jobs", str(jobs)], check=True, timeout=1500, capture_output=True)
+    res = json.loads(out.read_text(encoding="utf-8"))
+    tag = SOCIAL_RUN[4:]
+    retired = {f"social__{tag}__story_{Path(n).stem}" for n in RETIRED_STORY_FRAMES}
+    assert retired and retired <= set(res.get("retired") or {})
+    assert not retired & set(res["surfaces"]) and not retired & set(res["errors"])
+    stories = {k: v for k, v in res["story_title_px"].items()}
+    assert stories and all(isinstance(v, dict) and v["drawn"] and v["story"] for v in stories.values())
+    for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb")):
+        recs = json.loads((DEV / "output" / SOCIAL_RUN / sub / "still_layout.json").read_text(encoding="utf-8"))
+        rs = sorted((v["recipe"] for v in recs.values() if v.get("recipe")), key=lambda r: int(r["index"]))
+        now = MultiFormatGenerator.sequence_archetypes([r["card"] for r in rs])
+        for r, a in zip(rs, now):
+            key = next(k for k in recs if (recs[k].get("recipe") or {}).get("index") == r["index"])
+            name = f"social__{tag}__{kind}_{Path(key).stem}"
+            if r["archetype"] not in ("diagram", a):
+                assert res["rerouted"][name] == {"recorded": r["archetype"], "current": a}
+            else:
+                assert name not in (res.get("rerouted") or {})
 
 
 def test_peer_feed_without_a_dir_names_the_option(mods):

@@ -469,17 +469,15 @@ def main() -> None:
         """One recorded frame redrawn as production draws it: a Story at its deck's one title size (the recipe's,
         else story_title_px over the deck); a carousel slide with the run's lead unit and its deck window (round 8)."""
         if kind == "story":
-            im, _ = gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
-                                            r.get("poll") or {}, tight=bool(rec.get("tight")),
-                                            title_px=int(r.get("title_px") or title_px or 0) or None)
-        else:
-            im, _ = gen._render_carousel_slide(
-                r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
-                int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
-                tight=bool(rec.get("tight")), subject=r.get("subject") or "",
-                heading_frame=int(r.get("heading_frame") or 2), lead=r.get("lead"),
-                window=int(r.get("window") or 0))
-        return im
+            return gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
+                                           r.get("poll") or {}, tight=bool(rec.get("tight")),
+                                           title_px=int(r.get("title_px") or title_px or 0) or None)
+        return gen._render_carousel_slide(
+            r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
+            int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
+            tight=bool(rec.get("tight")), subject=r.get("subject") or "",
+            heading_frame=int(r.get("heading_frame") or 2), lead=r.get("lead"),
+            window=int(r.get("window") or 0))
 
     def swap_recipe(r: dict, entry: dict | None) -> dict:
         """A recorded slide recipe with the copy set's words (cycle 3): the card's heading / body, the Story's lines,
@@ -506,36 +504,61 @@ def main() -> None:
         entry = copy_set[n_case % len(copy_set)] if copy_set else None
 
         def social(run=run, entry=entry):
-            from src.multi_format import story_title_px
+            from src import multi_format as mf
             gen = MultiFormatGenerator()
+            retired_frames = tuple(getattr(mf, "RETIRED_STORY_FRAMES", ()))
             for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb"), ("stories", "story")):
                 rec_file = run / sub / "still_layout.json"
                 if not rec_file.is_file():
                     continue
                 recs = json.loads(rec_file.read_text(encoding="utf-8"))
+                # cycle 3 (lane D verification): only what production delivers today. A retired Story frame (the
+                # poll's question, QF-80) is recorded, never drawn; the Story's count is the frames it still makes
+                for frame_name in sorted(recs):
+                    if kind == "story" and frame_name in retired_frames:
+                        result.setdefault("retired", {})[f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"] = (
+                            "retired frame kind (multi_format.RETIRED_STORY_FRAMES): production no longer makes or "
+                            "posts it; not drawn")
+                live = {k: v for k, v in recs.items() if not (kind == "story" and k in retired_frames)}
+                ordered = [r for r in (swap_recipe(v.get("recipe") or {}, entry) for v in live.values()) if r]
+                ordered.sort(key=lambda r: int(r.get("index", 0)))
                 title_px = None
+                current: dict[int, str] = {}
                 if kind == "story":   # cycle 0 round 8 (panel AD E1): the Story's ONE title size, as production
                     # passes it (multi_format.py: story_title_px over the Story's slides, poll {}); a recipe that
-                    # recorded its size keeps it
-                    slides = [r["slide"] for r in sorted((swap_recipe(v.get("recipe") or {}, entry)
-                                                          for v in recs.values()),
-                                                         key=lambda r: int(r.get("index", 0))) if r]
-                    title_px = story_title_px(slides, poll={}) if slides else None
-                for frame_name, rec in sorted(recs.items()):
+                    # recorded its size keeps it. Cycle 3: over the frames production still makes
+                    slides = [r["slide"] for r in ordered]
+                    title_px = mf.story_title_px(slides, poll={}) if slides else None
+                elif ordered and hasattr(MultiFormatGenerator, "sequence_archetypes"):
+                    # cycle 3: every slide through today's archetype routing (a recorded archetype can be stale:
+                    # Richat's slides 4 and 5 recorded "comparison"); a recorded drawing slide keeps its poster
+                    routed = MultiFormatGenerator.sequence_archetypes([r["card"] for r in ordered])
+                    current = {int(r["index"]): a for r, a in zip(ordered, routed)}
+                for frame_name, rec in sorted(live.items()):
                     r = swap_recipe(rec.get("recipe") or {}, entry)
                     if not r:
                         continue
                     key = f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"
+                    if kind == "story" and len(ordered) != int(r.get("count") or 0):
+                        r = dict(r, count=len(ordered))
+                    if kind != "story" and r.get("archetype") != "diagram":
+                        now = current.get(int(r.get("index") or 0), r.get("archetype"))
+                        if now != r.get("archetype"):
+                            result.setdefault("rerouted", {})[key] = {"recorded": r.get("archetype"), "current": now}
+                            r = dict(r, archetype=now)
                     try:   # round 8: one frame's refusal never takes the run's other frames with it
-                        im = draw_social(gen, kind, r, rec, title_px)
+                        im, lay = draw_social(gen, kind, r, rec, title_px)
                     except LayoutError as e:   # a refusal: the one record shape {"refused", "class", "code"}
                         result["surfaces"][key] = refused(e)
                         continue
                     except Exception:  # noqa: BLE001
                         result["errors"][key] = traceback.format_exc()[-1200:]
                         continue
-                    if kind == "story":
-                        result.setdefault("story_title_px", {})[key] = int(r.get("title_px") or title_px or 0) or None
+                    if kind == "story":   # cycle 3: the frame's own layout record (the size it drew at)
+                        meta = getattr(lay, "meta", None) or {}
+                        result.setdefault("story_title_px", {})[key] = {
+                            "drawn": meta.get("title_px"), "story": meta.get("story_title_px"),
+                            "passed": int(r.get("title_px") or title_px or 0) or None}
                     frames_of(key, [im])
         job("social", f"social {run.name}", social)
 

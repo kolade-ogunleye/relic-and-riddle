@@ -235,3 +235,21 @@ def test_the_neighbour_fill_is_on_the_warm_palette():
     r, g, b = brand.DEFAULT_BRAND.colour("LAND_TINT")
     h, s, _v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
     assert s > 0 and (h * 360 <= 60 or h * 360 >= 330)    # a warm grey, never the cool slate
+
+
+# --------------------------------------------------------------------------- SYS-A-5 / SYS-S2-1: one never-end rule
+def test_a_wrapped_label_never_ends_a_line_on_a_never_end_word_where_a_ruled_break_holds():
+    from PIL import Image, ImageDraw
+    from src import heading, typography
+    d = ImageDraw.Draw(Image.new("RGB", (10, 10)))
+    font = typography.get_font("Montserrat", 40, weight=800)
+    for text, width in (("AMBER IN COMPLETED ROOM", 480), ("ITALY TAKES THE DODECANESE", 520),
+                        ("DISASSEMBLED BY GERMAN TROOPS", 560), ("AMBER IN COMPLETED ROOM", 400)):
+        lines = typography.balanced_wrap(d, text, font, width)
+        assert " ".join(lines) == text                                    # every word, in order
+        assert all(typography.line_width(d, ln, font) <= width for ln in lines)
+        assert all(heading.end_ok(ln.split()[-1]) for ln in lines[:-1]), lines
+    # a figure is never cut from its unit by the re-break
+    lines = typography.balanced_wrap(d, "The tower rises 129 ft over the plain of the river", font, 500)
+    assert not any(ln.endswith("129") for ln in lines)
+

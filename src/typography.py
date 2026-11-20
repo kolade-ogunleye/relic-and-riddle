@@ -217,7 +217,62 @@ def balanced_wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeType
             best, hi = trial, mid
         else:
             lo = mid + 1
-    return best
+    return ruled_lines(draw, text, font, max_width, best, stroke)
+
+
+def ruled_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
+                lines: List[str], stroke: int = 0) -> List[str]:
+    """`lines` (a wrap of `text`), unless a line other than the last ends where the heading engine never ends a line
+    (heading.break_points: brand_system.LINE_END_NEVER, a quantity never cut; the last-resort words allowed): then the
+    break into the same number of lines whose every cut is a break point, its widest line the narrowest, where one
+    holds within `max_width`; else `lines` as they were (freeze cycle 3, SYS-A-5 / SYS-S2-1: "AMBER IN / COMPLETED
+    ROOM" on a number card's label; one never-end list for every wrapper, the heading engine's)."""
+    if len(lines) < 2:
+        return lines
+    from .heading import break_points
+    words = [_plain(t) for t in glue(text).split(" ") if t]
+    cuts, i = [], 0
+    for ln in lines[:-1]:
+        acc: List[str] = []
+        while i < len(words) and " ".join(acc) != " ".join(ln.split(" ")):
+            acc.append(words[i])
+            i += 1
+        if " ".join(acc) != " ".join(ln.split(" ")):
+            return lines              # the lines are not this text's words (a caller's own split): leave them
+        cuts.append(i)
+    allowed = set(break_points(words, last_resort=True))
+    if all(c in allowed for c in cuts):
+        return lines
+    n, rows = len(words), len(lines)
+    width: dict = {}
+
+    def w(a: int, b: int) -> float:
+        if (a, b) not in width:
+            width[(a, b)] = line_width(draw, " ".join(words[a:b]), font, stroke)
+        return width[(a, b)]
+    starts = [0] + sorted(allowed)
+    # best[(j, r)]: (widest line, previous cut) for words[:j] on r lines, every cut allowed
+    best: dict = {(0, 0): (0.0, None)}
+    for r in range(1, rows + 1):
+        ends = range(n, n + 1) if r == rows else sorted(allowed)
+        for j in ends:
+            for a in starts:
+                if a >= j or (a, r - 1) not in best:
+                    continue
+                wide = w(a, j)
+                if wide > max_width:
+                    continue
+                cand = max(best[(a, r - 1)][0], wide)
+                if (j, r) not in best or cand < best[(j, r)][0]:
+                    best[(j, r)] = (cand, a)
+    if (n, rows) not in best:
+        return lines
+    out, j = [], n
+    for r in range(rows, 0, -1):
+        a = best[(j, r)][1]
+        out.append(" ".join(words[a:j]))
+        j = a
+    return out[::-1]
 
 
 import logging as _logging

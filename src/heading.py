@@ -365,14 +365,20 @@ def _issue(form: Form) -> Form:
 
 
 def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None,
-            first_lone_ok=False):
-    best = None
+            want_lone=False):
+    """The best form of a stage: (score, cuts, conj, balance), or None. With `want_lone` (set_heading): (best, the best
+    form with an unbalanced one-word first row), the first refused by valid() (SYS-B-6), so the caller can keep it
+    where no form at the heading's balance minimum replaces it (never a trade for another form under the minimum)."""
+    best = best_lone = None
     for cuts in cut_sets:
         lines = lines_of(words, cuts)
         if not fits(lines):
             continue
         lens = [measure(t) for t in lines]
-        if not valid(lines, lone_ok, lens, phrase_seam, first_lone_ok=first_lone_ok):
+        if not valid(lines, lone_ok, lens, phrase_seam, first_lone_ok=True):
+            continue
+        lone_first = not lone_ok and first_row_lone(lines, lens)
+        if lone_first and not want_lone:
             continue
         conj = sum(bare(words[k - 1]) in brand_system.LINE_END_LAST_RESORT
                    and not lines[i].endswith(tuple(_CLOSE)) for i, k in enumerate(cuts))
@@ -380,9 +386,12 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
         if strict and cuts and (conj or bal < balance_min):
             continue
         score = (0 if seam_pref is None or seam_pref in cuts else 1, len(cuts), conj, -bal)
-        if best is None or score < best[0]:
+        if lone_first:
+            if best_lone is None or score < best_lone[0]:
+                best_lone = (score, cuts, conj, bal)
+        elif best is None or score < best[0]:
             best = (score, cuts, conj, bal)
-    return best
+    return (best, best_lone) if want_lone else best
 
 
 def set_heading(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
@@ -419,11 +428,6 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
         stages.append((tier, size, multi, balance_min, True))
     for tier, size in enumerate(sizes):
         stages.append((tier, size, multi, 0.0, False))
-    # SYS-B-6: a one-word first row under the balance minimum is refused by valid(); where no ladder form avoids it,
-    # it stands at the DESIGN size (recorded first_row_lone) before any smaller or off-ladder form: the heading never
-    # shrinks only to move a word (measured on real decks: the same lines one tier down, or one line off the ladder)
-    first_lone_stage = (0, sizes[0], multi, 0.0, False)
-    stages.append(first_lone_stage)
     if extra_lines > max_lines:   # an interior's next resort: more lines on the ladder (valid forms), before any fit
         more = [c for n in range(max_lines, extra_lines) for c in itertools.combinations(points, n)]
         for tier, size in enumerate(sizes):
@@ -449,14 +453,9 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                 size -= 2
     # ruling 4: a lockup's payoff run is a complete phrase (the authored seam, else the engine's ideal one)
     phrase_seam = seam if seam is not None else (ideal_seam(words) if lockup else None)
-    for stage in stages:
-        tier, size, cut_sets, bmin, strict = stage
-        lone_ok = cut_sets is lone_sets
-        first_lone = stage is first_lone_stage
-        got = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s), lone_ok,
-                      phrase_seam, first_lone_ok=first_lone)
-        if got is None:
-            continue
+    floor = brand_system.SPEC["heading.balance_min"]
+
+    def issue(tier, size, got, lone_ok):
         _, cuts, conj, bal = got
         acc = seam if seam is not None else (cuts[-1] if cuts else ideal_seam(words))
         drawn = lines_of(words, cuts)
@@ -466,9 +465,31 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                            {"balance": round(bal, 3), "conjunction_end": bool(conj),
                             **({"phrase_exception": drawn[-1]} if phrase else {}),
                             **({"locked_last_resort": True} if lone_ok else {}),
-                            **({"first_row_lone": drawn[0]} if first_lone and first_row_lone(
+                            **({"first_row_lone": drawn[0]} if not lone_ok and first_row_lone(
                                 drawn, [measure(t, size) for t in drawn]) else {}),
                             **({"off_ladder": True} if tier is None else {})}))
+    # SYS-B-6 (lander rulings): a form whose one-word first row is under the balance minimum gives way only to a form
+    # AT the minimum, at the same size. Where the stage prefers it over its other forms (all under the minimum), it
+    # stands; where the stage has no other form, it is held while every later stage at the same size is read for one
+    # at the minimum, and else stands (recorded first_row_lone), before any smaller size: never a trade for a split
+    # under the minimum (NO / METEORITE IMPACT stays), never a shrink only to move a word.
+    held = None
+    for tier, size, cut_sets, bmin, strict in stages:
+        lone_ok = cut_sets is lone_sets
+        best, lone = _choose(words, cut_sets, fits_at(size), bmin, seam, strict, lambda t, s=size: measure(t, s),
+                             lone_ok, phrase_seam, want_lone=True)
+        if held is not None:      # only a form at the minimum at the held size replaces it; nothing smaller
+            if size == held[1] and best is not None and best[3] >= floor:
+                return issue(tier, size, best, lone_ok)
+            continue
+        if best is not None and (lone is None or best[0] <= lone[0] or best[3] >= floor):
+            return issue(tier, size, best, lone_ok)
+        if lone is not None:
+            if best is not None:
+                return issue(tier, size, lone, lone_ok)
+            held = (tier, size, lone, lone_ok)
+    if held is not None:
+        return issue(*held)
     return None
 
 

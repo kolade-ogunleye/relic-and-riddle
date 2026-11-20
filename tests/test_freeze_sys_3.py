@@ -371,3 +371,13 @@ def test_the_gate_reads_the_youtube_figure_row_as_one_statement(tmp_path):
     qa["elements"] = qa["elements"][:2]          # the hedge dropped from the drawing
     (tmp_path / "thumbnail_youtube.qa.json").write_text(json.dumps(qa), encoding="utf-8")
     assert [f for f in figure_gate.check_run(tmp_path, payload)["faults"] if "thumbnail_youtube" in f]
+
+
+def test_a_lone_first_row_is_never_traded_for_a_form_under_the_balance_minimum():
+    from src import heading
+
+    def measure(t, size):
+        return len(t) * size * 0.5
+    # NO / METEORITE IMPACT: the only other form, NO METEORITE / IMPACT, is under the minimum and splits a compound
+    form = heading.set_heading("NO METEORITE IMPACT", measure, 1100, (124,))
+    assert form is not None and form.lines == ("NO", "METEORITE IMPACT") and form.record.get("first_row_lone") == "NO"

@@ -508,14 +508,50 @@ def _parts_phrase(a: str, b: str) -> bool:
     return a.lower().strip(".,;:") not in fn and b.lower().strip(".,;:") not in fn
 
 
+HEDGE_PHRASES = ("more than", "less than", "fewer than", "at least", "at most", "as many as", "as much as",
+                 "as few as", "as little as", "up to")
+
+
+def _hedge_across(a: Sequence[str], b: Sequence[str]) -> bool:
+    """Lane F cycle 3 (stress FIGURE_GATE, hook "MORE / THAN 129 FT": the gate read the figure's line without its
+    hedge): a hedge phrase directly before a figure (LIMITERS, the figure gate's added words, HEDGE_PHRASES) runs
+    across the break between the words `a` (one line, lower case) and `b` (the next): the hedge and its figure stay on
+    one line, so each drawn line carries its figure's whole qualifier."""
+    words, cut = list(a) + list(b), len(a)
+    phrases = {tuple(w.strip(".,;:").lower() for w in p.split())
+               for p in (*LIMITERS, *ADDED_BEFORE_FIGURE, *HEDGE_PHRASES) if p.split()}
+    for j, w in enumerate(words):
+        if j < cut or not w[:1].isdigit():
+            continue            # only a figure on the second line can have its hedge cut off by the break
+        for ph in phrases:
+            i = j - len(ph)
+            if i >= 0 and i < cut and tuple(words[i:j]) == ph:
+                return True
+    return False
+
+
+def _hedged_run(text: str) -> str | None:
+    """The first hedge phrase of `text` with its figure and a unit after it ("MORE THAN 129 FT"), as drawn; None."""
+    words = text.split()
+    low = [w.strip(".,;:").lower() for w in words]
+    for k in range(1, len(words)):
+        if not low[k][:1].isdigit():
+            continue
+        for ph in sorted({tuple(p.lower().split()) for p in (*LIMITERS, *ADDED_BEFORE_FIGURE, *HEDGE_PHRASES)},
+                         key=len, reverse=True):
+            i = k - len(ph)
+            if i >= 0 and tuple(low[i:k]) == ph:
+                end = k + 2 if k + 1 < len(words) and _unit(low[k + 1]) else k + 1
+                return " ".join(words[i:end])
+    return None
+
+
 def _qualifier_split(lines: Sequence[str]) -> bool:
     """True when a line ends on a limiter and the next starts with its figure (the hedge left on another line),
     or a line ends on a figure and the next starts with its magnitude word or unit ("2.3 / MILLION")."""
-    singles = {lim for lim in LIMITERS}
     for a, b in itertools.pairwise(lines):
         words = [w.strip(".,;:").lower() for w in a.split()]
-        tail = {" ".join(words[-2:]), words[-1] if words else ""}
-        if tail & singles and b[:1].isdigit():
+        if _hedge_across(words, [w.strip(".,;:").lower() for w in b.split()]):
             return True
         head = b.split()[0].strip(".,;:").lower() if b.split() else ""
         if words and words[-1][:1].isdigit() and (head in _MAG_WORDS or (_unit(head) and head != "in")):
@@ -524,11 +560,11 @@ def _qualifier_split(lines: Sequence[str]) -> bool:
 
 
 def _design_wrap(text: str, face: str, weight: int | None, px: float, measure: float, max_lines: int,
-                 geo: _Geo, even: bool = False, cohesive: bool = False) -> list[str] | None:
+                 geo: _Geo, even: bool = False, cohesive: bool = False, min_lines: int = 1) -> list[str] | None:
     """The line breaks decided once at design size (1080 or 1920 wide), so every render size shows the same
     composition (round 2 review 9: 3 lines at 1080x1920, 4 at 720x1280). Only if a design line would not fit
     the scaled measure (font px rounding) is it re-broken at the frame's own size."""
-    lines = _wrap(text, get_font(face, round(px), weight=weight), round(measure), max_lines, even=even,
+    lines = _wrap(text, get_font(face, round(px), weight=weight), round(measure), max_lines, min_lines, even=even,
                   cohesive=cohesive)
     if lines is None or geo.k == 1:
         return lines
@@ -538,7 +574,7 @@ def _design_wrap(text: str, face: str, weight: int | None, px: float, measure: f
     slack = 0 if geo.wide else DESIGN_WRAP_SLACK
     if all(_width(ln, f) <= geo.px(measure + slack) for ln in lines):
         return lines
-    return _wrap(text, f, geo.px(measure), max_lines, even=even, cohesive=cohesive)
+    return _wrap(text, f, geo.px(measure), max_lines, min_lines, even=even, cohesive=cohesive)
 
 
 def _union(boxes: Sequence[Sequence[int]]) -> tuple[int, int, int, int]:
@@ -1669,6 +1705,40 @@ def _chapter_wide_rise(off: Sequence[int], P: int, col_tall: int) -> int:
     return col_tall if len(off) == 2 and h < col_tall - CHAPTER_TALL_SLACK else h
 
 
+def _phrase_splits(lines: Sequence[str]) -> int:
+    """Breaks of `lines` that part two content words (_parts_phrase: neither a function word, the first not closing
+    on punctuation): "A DESERT / LANDMARK" parts a phrase, "INTRODUCTION: / A DESERT" does not."""
+    return sum(_parts_phrase(a.split()[-1], b.split()[0]) for a, b in itertools.pairwise(lines) if a.split() and b.split())
+
+
+def _chapter_wide_three(t: str, fit: tuple[int, list[str]], col_tall: int, measure: int, geo: _Geo
+                        ) -> tuple[int, list[str]]:
+    """Lane F cycle 3 (16:9 chapter title against the numeral): a two-line title that cannot span the numeral
+    column's ink (top-aligned under the operator decision of 2026-11-05, so its foot stands above the numeral's) is
+    set in three lines instead, at the largest CHAPTER_WIDE_TWO size whose three lines span no more than that ink
+    (+ CHAPTER_TALL_SLACK), when that break is clean (heading-valid with no lone row, no stop-word end) and parts
+    fewer phrases than the two lines did. The block then ends on the numeral's baseline, and a title the copy breaks
+    itself ("INTRODUCTION: / A DESERT LANDMARK / FROM SPACE") takes the 9:16 card's form. Otherwise the two lines
+    stand as they were."""
+    P2, two = fit
+    if len(two) != 2:
+        return fit
+    off2 = _chapter_wide_off(two, P2, col_tall)
+    if _chapter_wide_rise(off2, P2, col_tall) == off2[-1] + round(0.86 * P2):
+        return fit            # the two lines already end on the numeral's baseline
+    for P in CHAPTER_WIDE_TWO:
+        if round(0.86 * P) + 2 * round(0.98 * P) > col_tall + CHAPTER_TALL_SLACK:
+            continue
+        ls = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 3, geo, even=True, cohesive=True, min_lines=3)
+        if (ls and len(ls) == 3 and not _stop_end(ls) and heading_valid(ls)
+                and _phrase_splits(ls) < _phrase_splits(two)
+                and _lead(ls, P, round(0.98 * P), round(0.86 * P))[-1] + round(0.86 * P)
+                <= col_tall + CHAPTER_TALL_SLACK):
+            return P, ls
+        return fit            # only the numeral-spanning size: never a smaller three-line title
+    return fit
+
+
 def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], int]:
     """9:16 (freeze panel C6): (block height from the kicker rule's top to the last title baseline, the title lines'
     offsets (A1), the block's top R): centred on min(CHAPTER_TALL_CENTRE, TALL_FOOT - H / 2), never above 288."""
@@ -1679,8 +1749,16 @@ def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], i
     # round 7 (F18): the block's vertical placement is the system token card.tall_centre (a share of the frame's
     # height; 0.45 -> 864), never past the graphics box's foot
     from .brand_system import tok as _tok
-    centre = max(top + H / 2, min(round(_tok("card.tall_centre") * 1920), bottom - CHAPTER_INK_FOOT - H / 2))
+    centre = max(top + H / 2, min(round(_tok("card.tall_centre") * 1920), bottom - _chapter_ink_foot(P, lines) - H / 2))
     return H, off, round(centre - H / 2)
+
+
+def _chapter_ink_foot(P: int, lines: Sequence[str]) -> int:
+    """Design px the last title line's ink runs below its baseline: a round letter's overshoot (CHAPTER_INK_FOOT), or
+    more where the line draws a descender (lane F cycle 3, stress OUT_OF_SAFE: the tail of a Q in "QUARRY CANAL" ran 9
+    px under the 9:16 graphics foot). Two px more for the scaled frames' font rounding."""
+    depth = _ink(lines[-1], get_font(brand.DISPLAY_FONT, P))[3] if lines else 0
+    return CHAPTER_INK_FOOT if depth <= CHAPTER_INK_FOOT else depth + 2
 
 
 # The canvases a card planner draws on, where it does not draw both the 9:16 and the 16:9 (tests/surface_registry.py
@@ -1739,6 +1817,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             if fit is None:
                 raise CardRefused(f"the 16:9 title does not fit two lines at {two[-1] if two else '-'} px, the "
                                   f"type floor", code="no_fit")
+            fit = _chapter_wide_three(t, fit, col_tall, measure, geo)
     if fit is None:
         refused = None
         try:
@@ -1750,13 +1829,13 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
         if not geo.wide:
             # C6: three lines when they set at least CHAPTER_THREE_GAIN px larger than two (or two cannot be set
             # without a stop-word end) and the block stays inside the graphics box
-            room = CHAPTER_TALL_BOX[1] - CHAPTER_TALL_BOX[0] - CHAPTER_INK_FOOT
+            room = CHAPTER_TALL_BOX[1] - CHAPTER_TALL_BOX[0]
 
             def three(P: int) -> list[str] | None:
                 ls = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 3, geo, even=True)
                 if not ls or len(ls) != 3:
                     return None
-                return ls if _chapter_tall_block(P, ls)[0] <= room else None
+                return ls if _chapter_tall_block(P, ls)[0] <= room - _chapter_ink_foot(P, ls) else None
             try:
                 fit3 = _w1_ladder(sizes, three)
             except CardRefused:
@@ -2006,7 +2085,15 @@ def plan_myth_fact(spec: MythFact, sheet: dict, width: int = 1080, height: int =
     if spec.fact_src is not None:
         raise CardRefused("the fact line is the myth field's own correction: no other source is taken",
                           code="no_provenance")
-    f = card_field(sheet, spec.myth_src, "myths")
+    try:
+        f = card_field(sheet, spec.myth_src, "myths")
+    except CardRefused as e:
+        if not _MYTH_COPY_REFUSAL.search(e.reason):
+            raise
+        # lane F cycle 3: the field gate's reason names the format that could not set the copy; the record also
+        # names the card it refuses (a 9:16 card refused because the 16:9 card cannot set the field, and so on)
+        raise CardRefused(f"this {_fmt(geo.wide)} myth card is refused with its field under {e.reason}",
+                          code=e.code) from e
     myth = " ".join(f["myth"].split())
     fact_t = " ".join(f["correction"].split())
     _expect(spec.myth_text, myth, "myth")
@@ -2315,6 +2402,15 @@ def myth_set(m_draw: str, f_draw: str, host: str | None, geo: _Geo) -> tuple[Any
 
 
 MYTH_FORMATS = ((False, (1080, 1920)), (True, (1920, 1080)))   # every format a myth card is drawn in: 9:16, 16:9
+# Lane F cycle 3: the rule a myth field is refused under when one format cannot set it. Every format's card is then
+# refused with the field; its reason names this rule, the format that could not set the copy and the card refused.
+MYTH_COPY_RULE = "the myth copy rule (a myth field is drawn only when every format sets it whole)"
+# the rule's reason, also as a check record sealed before cycle 3 wrote it (no rule named, one format's words)
+_MYTH_COPY_REFUSAL = re.compile(re.escape(MYTH_COPY_RULE) + r"|the (?:9:16|16:9) myth card (?:cannot set it|takes a myth)")
+
+
+def _fmt(wide: bool) -> str:
+    return "16:9" if wide else "9:16"
 
 
 def myth_chars_max() -> int:
@@ -2329,16 +2425,17 @@ def myth_fit_problem(myth: str, correction: str, source_url: str = "") -> str:
     m, c = (" ".join(str(x or "").split()) for x in (myth, correction))
     host = display_host((urlparse(str(source_url or "")).hostname or "").lower()).upper() or None
     for wide, size in MYTH_FORMATS:
-        fmt = "16:9" if wide else "9:16"
+        fmt = _fmt(wide)
         lim_m, lim_f = MYTH_CHARS[wide]
         if len(m) > lim_m or len(c) > lim_f:
-            return f"the {fmt} myth card takes a myth of at most {lim_m} and a correction of at most {lim_f} characters"
+            return (f"{MYTH_COPY_RULE}: the {fmt} myth card takes a myth of at most {lim_m} and a correction of at "
+                    f"most {lim_f} characters")
         try:
             fit, _ = myth_set(typeset(m).upper(), typeset(c).upper(), host, _Geo(*size))
         except LayoutError as e:     # CardRefused, GlyphRefused (a glyph no bundled face draws): the one refusal type
-            return f"the {fmt} myth card cannot set it: {getattr(e, 'reason', None) or e}"
+            return f"{MYTH_COPY_RULE}: the {fmt} myth card cannot set it: {getattr(e, 'reason', None) or e}"
         if fit is None:
-            return f"the {fmt} myth card cannot set it whole within its line limits at the floor size"
+            return f"{MYTH_COPY_RULE}: the {fmt} myth card cannot set it whole within its line limits at the floor size"
     return ""
 
 
@@ -4103,6 +4200,18 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
                 continue
             if got:
                 return got
+        # lane F cycle 3: a hedge stays on its figure's line (_qualifier_split), so a short hedged claim ("MORE THAN
+        # 129 FT") that no line count sets on its own ladder steps one and two lines down to the three-line floor
+        # (HOOK_SIZES[3]) before the claim is refused
+        for n_l in (1, 2):
+            sizes = [P for P in HOOK_SIZES[3] if P < HOOK_SIZES[n_l][-1]]
+            try:
+                got = _w1_ladder(sizes, lambda P: (lambda ls: ls if ls and len(ls) == n_l else None)(
+                    _wrap(upper, get_font(brand.DISPLAY_FONT, P), measure, n_l, min_lines=n_l, even=n_l > 1)))
+            except CardRefused:
+                continue
+            if got:
+                return got
         if refused is not None:
             raise refused
         return None
@@ -4134,7 +4243,14 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         if cands:
             left, margin = MYTH_BOX_COLUMN[0], "box"
     if not cands:
-        raise CardRefused(f"the claim does not fit three lines at {HOOK_SIZES[3][-1]} px")
+        run = _hedged_run(upper)
+        floor = HOOK_SIZES[3][-1]
+        if run and _width(run, get_font(brand.DISPLAY_FONT, floor)) > MYTH_BOX_COLUMN[1]:
+            # lane F cycle 3: the hedge stays on its figure's line (_qualifier_split), so a hedged figure wider than
+            # the column at the floor refuses the hook, recorded, rather than drawing the figure without its hedge
+            raise CardRefused(f"the hook's hedged figure {run!r} must set on one line and is wider than the 9:16 "
+                              f"column at {floor} px, the type floor", code="no_fit")
+        raise CardRefused(f"the claim does not fit three lines at {floor} px", code="no_fit")
     P, lines = cands[0]
     f_claim = get_font(brand.DISPLAY_FONT, P)
     f_eb = get_font(brand.TEXT_FONT, EYEBROW_PX, weight=800)
@@ -4183,36 +4299,17 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     bg = cover_crop(photo, size).convert("RGB")
     if spec.photo_kind != "generated" and is_photograph(Path(photo)):
         bg = grade(bg)
-    if position == "normal" and spec.photo_kind != "generated":
-        # review 2026-11-03 (round 3, C): on a bright ground the claim moves up under the masthead, so the two share
-        # one compact plate (a title panel) instead of a tall panel with an empty middle; never onto the subject
-        box_n = (76, geo["block_top"] - (EYEBROW_SCRIM_AIR if eyebrow else 24), 908, geo["L"] + 30)
-        # operator decision 2026-11-04 (review: the rework's flush-left panel stood 48 px off the masthead's axis):
-        # on the plate the claim is centred under the centred masthead again, refit to HOOK_MEASURE_CENTRED so its
-        # lines stay inside the box on its axis (QF-24: x 113..848 on x 480); the plate keeps H6 (4)'s moved-up position and
-        # feathered edges
-        try:
-            c_fit = hook_fit(HOOK_MEASURE_CENTRED)
-        except CardRefused:
-            c_fit = None
-        if c_fit and _ground_lum(bg, box_n) >= HOOK_PLATE_LUM:
-            kept = (P, lines, f_claim)
-            P, lines = c_fit
-            f_claim = get_font(brand.DISPLAY_FONT, P)
-            g_c = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines)
-            g_top = _hook_geometry(len(lines), P, bool(eyebrow), lines=lines,
-                                   L=1010 - (g_c["block_top"] - top_block))
-            if not (focus and _overlap(focus, block_box(g_top, centred=True)) > FOCUS_OVERLAP):
-                geo, position = g_top, "plate"
-            else:
-                P, lines, f_claim = kept
+    # Lane F cycle 3 (panel 4 BC r1, CD r2: the alignment and band changed with the ground): ONE rule on every ground.
+    # The claim stands flush left on the column's left edge (as the chapter and myth cards' 9:16 type) in the position
+    # the subject allows ("normal", else "top"); only its ground changes with the photo (_hook_scrim: the wash, or on
+    # a bright ground the evenly padded INK plate behind the same block). The bright-ground move under the masthead
+    # and the centring on its axis (review 2026-11-03 round 3; operator 2026-11-04) existed for the masthead, which
+    # the hook no longer draws (operator ruling 2, 2026-11-16).
     block_top, L = geo["block_top"], geo["L"]
     lay = Layout("hook_frame", size, graphics_box())
     n = len(lines)
-    on_plate = position == "plate"       # one title panel under the masthead
-    centred = on_plate                   # operator 2026-11-04: the panel centred again (the rework's flush left undone)
-    # freeze panel H3: one alignment axis per position: flush left at the column's left edge on the wash (the masthead's mark too),
-    # all centred on the plate. The masthead's geometry and layout record; its plate is re-planned at HOOK_TARGET
+    centred = False                      # lane F cycle 3: flush left on every ground (one alignment rule)
+    # the masthead's geometry and layout record; its plate is re-planned at HOOK_TARGET
     lay.meta["masthead"] = hook_masthead_record()
     xs = [line_x(ln, centred) for ln in lines]
     eb_x = round(cx - eb_w / 2) if centred else left
@@ -4241,16 +4338,14 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     # with an eyebrow the scrim starts EYEBROW_SCRIM_AIR above its rule (round 1 review 6: 24 px left the GOLD rule
     # on the scrim's soft edge, 1.7-2.5 on bright, white and busy photos)
     scrim_box = (76, block_top - (EYEBROW_SCRIM_AIR if eyebrow else 24), 908, L + 30)
-    plate_bottom = None
-    if on_plate:   # the same air above the masthead's ink and below the claim's ink (review 2026-11-03, round 4)
-        plate_bottom = max(b + _ink(ln, f_claim)[3] for ln, b in zip(lines, geo["baselines"])) + HOOK_PLATE_AIR
-    if on_plate:  # QF-87: no masthead: the panel holds the claim block alone, HOOK_PLATE_AIR above its first ink
-        ink_top = min(b + _ink(ln, f_claim)[1] for ln, b in zip(lines, geo["baselines"]))
-        if eyebrow:
-            ink_top = min(ink_top, geo["E"] - 46)        # the eyebrow's GOLD rule is the block's first ink
-        mast_top = ink_top - HOOK_PLATE_AIR
-    else:
-        mast_top = None
+    # where the ground calls for the plate (_hook_scrim), it is evenly padded: HOOK_PLATE_AIR above the block's first
+    # ink and below the claim's ink foot (review 2026-11-03, round 4; QF-87: the panel holds the claim block alone);
+    # the wash ignores both
+    plate_bottom = max(b + _ink(ln, f_claim)[3] for ln, b in zip(lines, geo["baselines"])) + HOOK_PLATE_AIR
+    ink_top = min(b + _ink(ln, f_claim)[1] for ln, b in zip(lines, geo["baselines"]))
+    if eyebrow:
+        ink_top = min(ink_top, geo["E"] - 46)        # the eyebrow's GOLD rule is the block's first ink
+    mast_top = ink_top - HOOK_PLATE_AIR
     under, scrim_rec = _hook_scrim(bg, scrim_box, rows, eb_row, eb_box, plate_top=mast_top,
                                    plate_bottom=plate_bottom, feather=HOOK_PLATE_FEATHER)
     # freeze panel H5: a warm, saturated ground under the block gets a soft radial INK scrim behind it

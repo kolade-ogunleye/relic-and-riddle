@@ -490,29 +490,20 @@ def test_h2_gold_rule(photos):
 
 
 def test_h3_one_axis_per_position(photos):
-    """H3: one axis per position: the box's left edge on the wash (QF-24: x 113, the organic box; x 100 on the ads
-    box); on the plate all centred on one axis (fix round 1, operator 2026-11-04: the rework's flush-left plate, round
-    2's H6 (4), stood 48 px off the masthead's axis and is undone; QF-24: the box's axis, x 480, its 735 px edge to
-    edge, the masthead inside it; on the ads box x 540 and its centred width, 192..888, where on the organic box the
-    drawn masthead ran to x 857), refit inside HOOK_MEASURE_CENTRED; the plate's first ink 56 px under the masthead's
-    box."""
-    plan = hook_plan(photos["dark"], eyebrow="The Richat ring")
-    assert plan.meta["anchors"]["position"] == "normal"
-    e = els(plan)
-    # QF-87 (lander ruling 2026-11-13: the row's rule 'masthead >= 9 px at the 124 px tile or absent' reaches the hook frame): the 64 px masthead is 5.2 px there, so the card draws none and lay.meta['masthead'] says why (was: the mark flush left at LEFT too)
-    assert "brand_mark" not in e and abs(e["eyebrow_rule"].box[0] - LEFT) <= 2
-    assert abs(e["eyebrow"].box[0] - LEFT) <= 2 and all(abs(e[n].box[0] - LEFT) <= 2 for n in ("title_0", "title_1"))
-    normal_p = plan.meta["anchors"]["P"]
-    plan = hook_plan(photos["sky"], eyebrow="The Richat ring")
-    assert plan.meta["anchors"]["position"] == "plate" and plan.meta["anchors"]["P"] <= normal_p
-    e = els(plan)
-    for n in ("eyebrow", "title_0", "title_1", "eyebrow_rule"):
-        assert abs((e[n].box[0] + e[n].box[2]) / 2 - AXIS) <= 3 and LEFT <= e[n].box[0] and e[n].box[2] <= RIGHT, (
-            n, e[n].box)
-    # QF-87: no masthead on the plate either (was: centred on AXIS inside the box, the first ink 56 px under it)
-    assert "brand" not in e and "brand_mark" not in e
-    first = min(x.box[1] for x in plan.elements if x.name.startswith(("title_", "eyebrow")))
-    assert first - dc._hook_mast_foot() >= 56
+    """H3; lane F cycle 3 (panel 4 BC r1 / CD r2: the alignment changed with the ground; operator ruling 2 of
+    2026-11-16 removed the masthead the plate's claim was centred under): ONE axis on every ground, the column's
+    left edge (QF-24: x 137 on the 687 px margin column), for the eyebrow, its rule and every claim line; on the
+    plate as on the wash, at the same size and position; no masthead (QF-87)."""
+    plans = {g: hook_plan(photos[g], eyebrow="The Richat ring") for g in ("dark", "sky")}
+    assert plans["dark"].meta["scrim"]["mode"] == "wash" and plans["sky"].meta["scrim"]["mode"] == "plate"
+    for g, plan in plans.items():
+        assert plan.meta["anchors"]["position"] == "normal", g
+        e = els(plan)
+        assert "brand" not in e and "brand_mark" not in e
+        assert abs(e["eyebrow_rule"].box[0] - LEFT) <= 2 and abs(e["eyebrow"].box[0] - LEFT) <= 2, g
+        assert all(abs(e[n].box[0] - LEFT) <= 2 for n in ("title_0", "title_1")), g
+    assert plans["dark"].meta["anchors"]["P"] == plans["sky"].meta["anchors"]["P"]
+    assert plans["dark"].meta["anchors"]["block_top"] == plans["sky"].meta["anchors"]["block_top"]
 
 
 def test_h4_dissolve(photos):
@@ -810,7 +801,9 @@ CHAPTER_FLOOR = {False: 84, True: 96}
 TALL_REFUSED_ACTS: set = set()   # round 8: none (act 2 takes the box column at its floor, ruling 3)
 RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
     # lane F cycle 2: the 16:9 total stands with its numeral (measure 1192, was 1307): one or two steps smaller
-    (True, 1): (128, ["INTRODUCTION: A DESERT", "LANDMARK FROM SPACE"]),
+    # lane F cycle 3: act 1's two lines (128, "INTRODUCTION: A DESERT / LANDMARK FROM SPACE") stood 46 px above the
+    # numeral's foot and parted a phrase; three lines sized to the numeral break at the copy's colon, as on 9:16
+    (True, 1): (112, ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]),
     (True, 4): (120, ["ARCHAEOLOGICAL EVIDENCE", "AND REFUTED CLAIMS"]),
     (True, 5): (144, ["INTERNATIONAL", "HERITAGE RECOGNITION"]),
     # QF-24: on the organic box's 735 px title measure (788 on the ads box) acts 1 and 4 set at 92 (were 100); act 4
@@ -850,11 +843,14 @@ def test_d1_every_richat_act_is_drawn(size):
         titles = [x for x in p.elements if x.name.startswith("title_")]
         if wide:
             g = _WideGrid(*size)
-            assert len(lines) == 2, (n, lines)
+            # lane F cycle 3: two lines, or three sized to the numeral (_chapter_wide_three) ending on its baseline
+            assert len(lines) in (2, 3), (n, lines)
             assert max(x.box[2] for x in titles) <= g.x(1766) + 1
             cap_top = a["title_baselines"][0] - round(0.86 * a["title_px"])
             col_top = a["Bn"] - dc._numeral_tall(ACTS)       # the video's numeral column's ink top (C5)
             assert abs(cap_top - col_top) <= dc.CHAPTER_TALL_SLACK, (n, cap_top, col_top)
+            if len(lines) == 3:
+                assert a["title_baselines"][-1] == a["Bn"], n
             assert e[f"title_{len(lines) - 1}"].xy[1] <= e["numeral"].xy[1] + 1
             assert a["title_x"] == 574      # lane F cycle 2: the "/ 5" with its numeral (459 with it on the kicker)
         else:
@@ -1074,21 +1070,21 @@ def _union_box(boxes):
 
 
 def test_h6_plate_flush_left_and_feathered(photos):
-    """H6 (4), fix round 1 (operator 2026-11-04: the rework's flush-left panel stood 48 px off the masthead's axis):
-    on the bright plate the claim is centred under the centred masthead, refit inside HOOK_MEASURE_CENTRED (QF-24:
-    the box's 735 px on its axis, x 480; 192..888 on x 540 on the ads box), while the wash keeps flush left at the
-    box's left edge (QF-24: x 113; x 100 on the ads box); the plate's luma ramps over >= 60 px at its top and bottom
-    edges with no row step over 20."""
+    """H6 (4); lane F cycle 3 (panel 4 BC r1 / CD r2: the alignment and band changed with the ground; operator ruling
+    2 of 2026-11-16 removed the masthead the plate's claim was centred under): ONE rule. On the bright plate the
+    claim is set as on the wash, at the same size and position, flush left at the column's left edge; only the ground
+    differs. The plate's luma ramps over >= 60 px at its top and bottom edges with no row step over 20."""
     normal = hook_plan(photos["dark"], "Quartzite ridges form the ring", "f_geo")
     plan = hook_plan(photos["sky"], "Quartzite ridges form the ring", "f_geo")
     a = plan.meta["anchors"]
-    assert a["position"] == "plate" and a["P"] <= normal.meta["anchors"]["P"]
+    assert plan.meta["scrim"]["mode"] == "plate" and normal.meta["scrim"]["mode"] == "wash"
+    assert a["P"] == normal.meta["anchors"]["P"] and a["position"] == normal.meta["anchors"]["position"]
+    assert a["block_top"] == normal.meta["anchors"]["block_top"]
     e = els(plan)
-    # QF-87: no masthead (the 9-px-or-absent rule) on either position (was: its mark flush left on the wash)
     assert "brand_mark" not in els(normal) and abs(els(normal)["title_0"].box[0] - LEFT) <= 2
     titles = [x.box for n, x in e.items() if n.startswith("title_")]
-    for b in titles:
-        assert abs((b[0] + b[2]) / 2 - AXIS) <= 3 and b[0] >= LEFT and b[2] <= RIGHT, b
+    for b, nb in zip(titles, [x.box for n, x in els(normal).items() if n.startswith("title_")]):
+        assert b[0] == nb[0] and b[0] >= LEFT and b[2] <= RIGHT, (b, nb)
     assert "brand" not in e and "brand_mark" not in e   # QF-87 (was: the masthead centred on AXIS on the plate)
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = np.asarray(dc.frame_at(plan, 0).convert("L"), np.float32)[:, 900:1060].mean(axis=1)

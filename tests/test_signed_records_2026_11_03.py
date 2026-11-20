@@ -498,10 +498,11 @@ def test_the_16x9_chapter_title_fills_the_right_third(tmp_path):
     assert right >= 1920 * 2 / 3 + 200 and plan.meta["anchors"]["title_px"] >= 120
 
 
-def test_the_bright_hook_panel_is_evenly_padded_centred_and_has_no_foot_rule(tmp_path):
+def test_the_bright_hook_panel_is_evenly_padded_flush_left_and_has_no_foot_rule(tmp_path):
     """Review 2026-11-03 (round 4, blocking): 20 px above the masthead against 57 px under the claim, a GOLD foot
-    rule lost on yellow, and a centred masthead over a flush-left claim. The panel now has HOOK_PLATE_AIR on both
-    sides of its ink, the claim is centred under the masthead, and nothing GOLD runs along its foot."""
+    rule lost on yellow. The panel has HOOK_PLATE_AIR on both sides of its ink and nothing GOLD runs along its foot.
+    Lane F cycle 3 (one alignment rule; operator ruling 2 of 2026-11-16 removed the masthead the claim was centred
+    under): the claim stands flush left on the column edge, as on the wash."""
     s = sheet0()
     statement(s, "Astronauts see it from orbit", "orb")
     for rgb in ((250, 225, 60), (240, 240, 240), (190, 232, 240)):
@@ -516,9 +517,8 @@ def test_the_bright_hook_panel_is_evenly_padded_centred_and_has_no_foot_rule(tmp
         assert "brand" not in els and "brand_mark" not in els
         assert min(b[1] for b in titles) - y0 == dc.HOOK_PLATE_AIR, rgb
         assert abs((y1 - max(b[3] for b in titles)) - dc.HOOK_PLATE_AIR) <= 1, rgb
-        # QF-24 (decision QF-24/QF-87 layout, 2026-11-13 (d)): the organic Reel box's axis, x 480 (dc.HOOK_CENTRE_X)
-        for b in titles:
-            assert abs((b[0] + b[2]) / 2 - dc.HOOK_CENTRE_X) <= 3 and dc.HOOK_CENTRE_X == 480, (rgb, b)
+        for b in titles:   # lane F cycle 3: flush left on the column's left edge (its glyphs' side bearing aside)
+            assert abs(b[0] - dc.TALL_LEFT) <= 12, (rgb, b)
         assert "rule" not in plan.meta["scrim"]
         f0 = np.asarray(plan.meta["_ground0"]).astype(int)
         foot = f0[y1 - 8:y1 - 1].reshape(-1, 3)
@@ -536,7 +536,8 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
         # QF-87 (lander ruling 2026-11-13): no masthead, so no masthead band; the one plate holds the claim (was: from
         # the masthead's band to the claim)
         assert plan.meta["mast_band"] is None and plan.meta["masthead"]["shown"] is False
-        assert sc["mode"] == "plate" and plan.meta["anchors"]["position"] == "plate"
+        # lane F cycle 3: the plate is the ground's only part; the block keeps the position the subject allows
+        assert sc["mode"] == "plate" and plan.meta["anchors"]["position"] in ("normal", "top")
         y0, y1 = sc["plate"]
         assert y1 >= plan.meta["anchors"]["L"]
         a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]

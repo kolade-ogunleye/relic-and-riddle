@@ -43,6 +43,7 @@ encoder adds nothing. Network is blocked; nothing is written outside a temporary
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -216,8 +217,19 @@ def main() -> None:
             listed.append(name)
             return
         t0 = time.perf_counter()
+        # freeze lane A cycle 3: an omission ledger round each job, as graphics.make_all opens one (a map drawn
+        # without its scale bar, a neighbour's name left out: recorded, the surface drawn); a tree without the
+        # ledger (before SYS batch 3) renders as before
         try:
-            fn()
+            from src.refusal import collecting
+        except ImportError:
+            collecting = None
+        ctx = collecting() if collecting is not None else contextlib.nullcontext([])
+        try:
+            with ctx as omitted:
+                fn()
+            if omitted:
+                result.setdefault("omissions", {})[name] = [dict(r) for r in omitted]
         except Exception:  # noqa: BLE001  one failed case is recorded (both trees must fail alike), the rest render
             result["errors"][name] = traceback.format_exc()[-1200:]
         result["seconds"][name] = round(time.perf_counter() - t0, 2)

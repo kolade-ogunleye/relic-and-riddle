@@ -164,6 +164,15 @@ def test_every_style_names_the_site_nearest_and_the_country_away(tmp_path, monke
            if e["name"] == "country" and e["drawn"] < brand.TEXT_CONTRAST]
     assert not low, (low, st["layout"].get("scale_bar"))
     assert st["layout"]["style"] == style
+    # freeze lane A cycle 3 (lander ruling: a bar never displaces or touches a name): the bar is placed after every
+    # name, its box SCALE_LABEL_PAD clear of each one drawn, or it is omitted and recorded
+    sb = st["layout"].get("scale_bar") or {}
+    if sb.get("box"):
+        for n, p in st["plates"]:
+            if not n.startswith("scale"):
+                assert not graphics.LayoutConstraintSolver.boxes_intersect(tuple(sb["box"]), p.box), (n, p.text, sb)
+    else:
+        assert any(r["omitted"] == "the scale bar" for r in st["omitted"]), st["omitted"]
     if style == "leader":
         assert st["layout"]["leader"] is not None
 

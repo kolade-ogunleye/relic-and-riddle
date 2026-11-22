@@ -1125,6 +1125,13 @@ def scale_bar_record(fb: FurnitureBar | None) -> dict[str, Any]:
             "label": fb.bar.label, "soft_px": fb.soft, "pad": SCALE_MARK_PAD}
 
 
+def omit_neighbour_name(surface: str, name: str, reason: str) -> None:
+    """A neighbour's name left out, recorded on the omission ledger (refusal.omit; with none open the surface is
+    refused): freeze lane A cycle 3, it was a log line only (the Morocco route's ALGERIA)."""
+    from .refusal import omit
+    omit(surface, f"the neighbour's name {name.upper()}", "a map names its home's neighbours (round 11)", reason)
+
+
 def omit_scale_bar(surface: str, reason: str) -> None:
     """The bar left out, recorded on the omission ledger (refusal.omit; with none open the surface is refused)."""
     from .refusal import omit
@@ -5368,31 +5375,23 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             words.append(spot.box)
             cname = CountryName(c_text, spot.xy, spot.px, brand.INK, spot.box, spot.inside, 0.0, 0.0)
     import cv2
-    coast = (land_f.astype(np.uint8) - cv2.erode(land_f.astype(np.uint8), np.ones((3, 3), np.uint8))) > 0
-    if ids is not None:      # round 8 (review 4): the land borders are obstacles too (Narva's bar sat on Russia's)
-        coast |= land_borders(ids[0], width, height)
+    # round 8 (review 4): the land borders are obstacles to the bar too (Narva's bar sat on Russia's): `borders` below
     # and the marker keeps the bar off by MARKER_SCALE_AIR more than the words do (Narva's bar sat 40 px under the
     # pin's tip and read as part of the marker)
     mb = lay.marker_box
     m_air = MARKER_SCALE_AIR * k
-    # freeze lane A cycle 3 (the furniture ruling): the bar in the lower-left corner of the content box, or another
-    # corner, or shorter, never on a word, the pin or the home's outline, off the coasts and borders where any place
-    # is; else no bar (recorded)
+    # freeze lane A cycle 3 (lander ruling: names are data, the bar is furniture; a bar never displaces a name): the
+    # bar is placed AFTER every name (the neighbours', the seas', the country's, the site's), in the room they leave
+    # (furniture_scale_bar, below the name checks); until then it holds no place
     home_u8 = home_f.astype(np.uint8)
     home_line = (home_u8 - cv2.erode(home_u8, np.ones((3, 3), np.uint8))) > 0
-    placed = furniture_scale_bar(
-        scale_bar_family(lambda m: scale_bar(site_lat, kf, narration, m, bar_range=scale_range(width, height))),
-        width, height, words + [(mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air), _union([lb, mb])],
-        hard=home_line, soft=coast, room=~home_f)     # the neighbours' and the seas' names come after it
-    if placed is None:
-        omit_scale_bar(f"map {Path(out).name}" if out else "map",
-                       "no corner of the content box, at any shorter round length, is clear of the words, the pin "
-                       "and the home's outline")
-        bar, sbl = None, _scale_layout(scale_bar(site_lat, kf, narration, bar_range=scale_range(width, height)),
-                                       -10_000.0, -10_000.0, 1, (-10_001.0, -10_001.0, -10_000.0, -10_000.0))
-    else:
-        bar, sbl = placed.bar, placed.layout
-    gbox = place_globe(width, height, land_f, words + [sbl.box])
+    land_u8 = land_f.astype(np.uint8)
+    coastline = (land_u8 - cv2.erode(land_u8, np.ones((3, 3), np.uint8))) > 0
+    borders = land_borders(ids[0], width, height) if ids is not None else None
+    placed: FurnitureBar | None = None
+    bar, sbl = None, _scale_layout(scale_bar(site_lat, kf, narration, bar_range=scale_range(width, height)),
+                                   -10_000.0, -10_000.0, 1, (-10_001.0, -10_001.0, -10_000.0, -10_000.0))
+    gbox = place_globe(width, height, land_f, words)
     # round 9 (coordinator R6): on an island close-up the globe stays at rest as its locator inset (the frame is
     # mostly ocean; the globe says where in it the island is), instead of fading out before the pin lands; round 12
     # (review): so too on a close-up with next to no land in it (a site marked on the open sea: it was a pin on
@@ -5604,6 +5603,23 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             log.warning("Map: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
                         c_.box[0], c_.box[1], c_.fault)
     LAST_NAME_CHECKS[:] = checks
+    # freeze lane A cycle 3 (lander ruling): the scale bar now, in the room every name leaves: the lower-left corner
+    # of the content box first (furniture_scale_bar), never on a word, the pin, the home's outline or a coast; a thin
+    # border inside a fill is crossed only where no place is clear of the borders (the quietest); else no bar, recorded
+    named_boxes = [*words, (mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air), _union([lb, mb]),
+                   *(w_.box for w_, _p in waters), *(nm.box for nm in names), *(nb.box for nb in near_names),
+                   *([cname.box] if cname else []), *([gbox] if gbox else []),
+                   *((float(lab["box"][0]), float(lab["box"][1]), float(lab["box"][0] + lab["mask"].width),
+                      float(lab["box"][1] + lab["mask"].height)) for lab in shown_rest)]
+    placed = furniture_scale_bar(
+        scale_bar_family(lambda m: scale_bar(site_lat, kf, narration, m, bar_range=scale_range(width, height))),
+        width, height, named_boxes, hard=home_line | coastline, soft=borders)
+    if placed is None:
+        omit_scale_bar(f"map {Path(out).name}" if out else "map",
+                       "no corner of the content box, at any shorter round length, is clear of the names, the pin, "
+                       "the coasts and the home's outline")
+    else:
+        bar, sbl = placed.bar, placed.layout
     nb_plates = neighbour_plates(rest, near_names)
     nb_after_globe = {f"neighbour_{n.name.upper()}" for n in near_names if gbox is not None and not globe_rest
                       and LayoutConstraintSolver.boxes_intersect(n.box, gbox, MARKER_LABEL_CLEAR * k)}
@@ -5615,6 +5631,10 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             others = sorted(named_now - set(adjacent))
             log.info("Map: the home's neighbour(s) %s have no room for a name in the box; %s.", ", ".join(unplaced),
                      f"named instead: {', '.join(others)}" if others else "no other neighbour named either")
+            # freeze lane A cycle 3 (lander ruling, SYS-3 ledger): a name left out is recorded, never only logged
+            for nm in unplaced:
+                omit_neighbour_name(f"map {Path(out).name}" if out else "map", nm,
+                                    "no place on its own ground in the box keeps clear of the other words")
     if len(names) + len(shown_rest) + len(near_names) < 2:
         # round 13 (directive 3): says why: names are set only inside the graphics box (the captions' zone under it
         # is kept clear), and no other neighbour's ground there holds its name with air
@@ -12741,8 +12761,6 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     fam = scale_bar_family(lambda m: scale_bar(lat_c, kx / scale, narration,
                                                ROUTE_BAR_STEPS[0] if m is None else min(m, ROUTE_BAR_STEPS[0]),
                                                bar_range=bar_range))
-    placed = furniture_scale_bar(fam, width, height, [], hard=np.asarray(hard_m) > 0, soft=route_coast)
-
     def furniture_layout(fb: FurnitureBar) -> dict[str, Any]:
         bar, x, y = fb.bar, fb.layout.x, fb.layout.y
         figs = [f for f in (ink_box(xy, text, bar_font, "ls", bar_font.size * SCALE_LABEL_TRACK)
@@ -12752,7 +12770,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                                                                        for b in figs]
         return {"bar": bar, "x": x, "y": y, "boxes": boxes, "figs": figs,
                 "why": f"{fb.corner} corner at {bar.length:.0f} px{'' if bar.secondary else ', one unit'}"}
-    bars2, bars1 = ([furniture_layout(placed)] if placed is not None else []), []
+    bars2, bars1 = [], []     # cycle 3: the bar is placed after the names (below), never one of these layouts
     globes = [globe_layout("tr", 1.0), globe_layout("tl", 1.0)]
     small = [globe_layout("tr", 0.7), globe_layout("tl", 0.7)]
     layouts = ([(g, b) for b in bars2 for g in globes] + [(g, b) for b in bars1 for g in globes]
@@ -12794,10 +12812,6 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     assert best is not None
     (rank_key, glay, blay, (plates, leaders), unlabelled, vague, hero, stacked) = best
     rank = rank_key[4]
-    if blay is None:                     # cycle 3: a route without its scale is recorded, never only logged
-        omit_scale_bar(f"route {Path(out).name}" if out else "route",
-                       "no corner of the content box, at any shorter round length, is clear of the route's path and "
-                       "stops" if placed is None else "the stops' names hold their places only without it")
     for k in stacked:
         log.info("Route: the name of stop %d (%s) is stacked on another stop's name; no layout keeps it %d px off "
                  "one.", k, located[k]["label"], ROUTE_STACK_AIR)
@@ -12990,6 +13004,27 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
             log.warning("Route: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
                         c_.box[0], c_.box[1], c_.fault)
     LAST_NAME_CHECKS[:] = r_checks
+    # freeze lane A cycle 3 (lander ruling: a bar never displaces a name): the route's scale bar now, after every
+    # name (the stops', the leaders, the base's and the close-up's neighbours, the country's, the seas'), in the room
+    # they leave; never on the route's path, a stop's dot or a coast; else no bar, recorded
+    if home is not None:     # an adjacent neighbour left unnamed is recorded, never only logged (Morocco's ALGERIA)
+        named_fin = ({nm.upper() for nm in named} | gave_way_r | {n.name.upper() for n in r_near})
+        for nm in adj_r[:NEIGHBOUR_MAX]:
+            if nm.upper() not in named_fin:
+                omit_neighbour_name(f"route {Path(out).name}" if out else "route", nm,
+                                    "no place on its own ground in the box keeps clear of the route and its words")
+    route_names = ([sp[4] for _, sp in plates] + [_leader_box(ld) for ld in leaders if ld]
+                   + [w_.box for w_ in keep_wl] + [nb.box for nb in r_near] + [pl.box for _n, pl in r_cplates]
+                   + [(b_[0] / scale, b_[1] / scale, b_[2] / scale, b_[3] / scale) for _nm, b_ in named_bx]
+                   + ([gbox] if gbox else []))
+    placed = furniture_scale_bar(fam, width, height, route_names, hard=(np.asarray(hard_m) > 0) | route_coast)
+    blay = furniture_layout(placed) if placed is not None else None
+    bar = blay["bar"] if blay else None
+    bar_x, bar_y = (blay["x"], blay["y"]) if blay else (0.0, 0.0)
+    if blay is None:
+        omit_scale_bar(f"route {Path(out).name}" if out else "route",
+                       "no corner of the content box, at any shorter round length, is clear of the route's names, "
+                       "path, stops and coasts")
     r_nbplates = neighbour_plates(rest, r_near)
     waters: list[tuple[WaterLabel, _MaskPlate]] = []
     for w_ in keep_wl:                  # drawn into the map: there from the first frame, under the route

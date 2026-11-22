@@ -130,8 +130,8 @@ def test_place_scale_bar_shifts_off_labels_and_the_home_fill() -> None:
 @pytest.mark.skipif(not graphics.geo.available(), reason="Natural Earth data not downloaded")
 def test_the_greece_route_bar_keeps_off_crete_and_the_legs(tmp_path, monkeypatch) -> None:
     from tests.test_r4_graphics_2026_11_02 import _render_fast
-    # freeze lane A cycle 3 (the furniture ruling): the route's bar keeps SCALE_MARK_PAD from the legs (their casing)
-    # and the stops' dots, and off the coasts (Crete's) where any place is; the land itself is not data
+    # freeze lane A cycle 3 (the furniture ruling): the route's bar, placed after every name, keeps SCALE_MARK_PAD from
+    # the legs (their casing), the stops' dots and the coasts (Crete's); the land itself is not data
     cap: dict = {}
     real_place, real_with = graphics.furniture_scale_bar, graphics._with_bar
 
@@ -156,7 +156,7 @@ def test_the_greece_route_bar_keeps_off_crete_and_the_legs(tmp_path, monkeypatch
     pad = graphics.SCALE_MARK_PAD
     x0, y0, x1, y1 = (int(v) for v in box)
     assert not np.asarray(cap["hard"])[max(0, y0 - pad):y1 + pad, max(0, x0 - pad):x1 + pad].any()
-    if cap["got"].soft == 0:
+    if cap["got"].soft == 0 and cap["soft"] is not None:
         assert not np.asarray(cap["soft"])[y0:y1, x0:x1].any()
 
 

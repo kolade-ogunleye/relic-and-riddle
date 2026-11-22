@@ -187,6 +187,9 @@ def test_content_slides_share_their_kicker_and_heading_baselines(photos, tmp_pat
     assert len(content) >= 3 and all(not r["problems"] for r in recs)
     kicker_feet, heading_feet = set(), set()
     for rec in content:
+        if rec["recipe"].get("kicker_line_exempt"):   # lane D cycle 3: the collage-stepped FB tile (recorded)
+            assert rec["recipe"].get("heading_px") and facebook
+            continue
         kicker_feet.add(_box(rec, "kicker")[3])
     # round 7 (F3, the band): the heading's LAST baseline is shared and the body hangs from it, so the kicker and the
     # heading's top take one position per heading line count (one-line and two-line slides), never more

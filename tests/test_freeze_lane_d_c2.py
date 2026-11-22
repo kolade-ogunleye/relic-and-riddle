@@ -4,7 +4,8 @@ the heading list is the real decks' content headings whose IG and FB forms diffe
 
 1. One deck, one form: the Facebook copy sets every content heading in the Instagram form, on one frame (SYS-D-4).
 2. A scale diagram slide is the drawing drawn for the slide's room (graphics.render_scale drawing_floor, lane A),
-   laid 1:1, every label at the carousel floor, the slide's words only the drawing's verified figure and meaning.
+   laid 1:1, every label at the carousel floor (cycle 3: the slide keeps its own signed words; see
+   test_freeze_lane_d_c3).
 3. A Story frame's window keeps a foreign object out of its text column where the picture allows (deck window rule).
 """
 from __future__ import annotations
@@ -16,7 +17,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from src import graphics, multi_format
-from src.multi_format import MultiFormatGenerator, _render_state, current_poster, scale_slide_copy, slide_drawing
+from src.multi_format import MultiFormatGenerator, _render_state, current_poster, slide_drawing
 
 # the real content headings whose IG and FB forms differed before the FB tier was retired (cycle 1 scan)
 REAL_HEADINGS = [
@@ -70,7 +71,7 @@ def test_both_copies_share_one_frame():
 FACT = {"value": 138.0, "unit": "ft", "dimension": "length", "subject": "Unfinished obelisk", "approximate": True}
 
 
-def test_a_scale_diagram_is_drawn_for_the_slides_room_and_says_only_its_verified_words(tmp_path):
+def test_a_scale_diagram_is_drawn_for_the_slides_room(tmp_path):
     g = MultiFormatGenerator()
     room = g.diagram_room()
     stored = tmp_path / "graphics" / "graphic_scale.jpg"
@@ -82,16 +83,11 @@ def test_a_scale_diagram_is_drawn_for_the_slides_room_and_says_only_its_verified
     with Image.open(got) as im:
         assert im.size == room == tuple(rec["size"])
     assert rec["drawing_floor"] == pytest.approx(graphics.diagram_label_floor(g.CAROUSEL_SIZE[0]))
-    # the words: the drawing's figure and line of meaning, exactly (no new wording)
-    feet = FACT["value"]
-    ref = graphics.pick_reference(feet)
-    assert rec["heading"] == " ".join(graphics.scale_figure(FACT, feet, False)[0].split())
-    assert rec["body"] == " ".join(" ".join(graphics.scale_meaning_lines(FACT, feet, ref[0], ref[1], False)).split())
-    assert scale_slide_copy(FACT) == {"heading": rec["heading"], "body": rec["body"]}
+    assert "heading" not in rec and "body" not in rec            # cycle 3: the drawing brings no slide words
     # the gate holds it at 1:1 on both copies' frames; the slide lays it whole, inside the room, unscaled
     ok, why_ok = g.diagram_legible(got, ((False, 2), (True, 2), (False, 1), (True, 1)))
     assert ok and why_ok["label_px_at_least"] >= why_ok["slide_floor_px"]
-    card = {"heading": rec["heading"], "body": rec["body"]}
+    card = {"heading": "ANCIENT WORK MARKS", "body": "Crews burned and wedged the rock, leaving tool marks."}
     for fb in (False, True):
         _im, lay = g._render_carousel_slide("diagram", got, got, card, 2, 7, {}, "", fb, subject="S")
         x0, y0, x1, y1 = lay.meta["diagram"]["image_box"]
@@ -106,10 +102,9 @@ def test_a_drawing_that_overflows_a_frames_room_is_not_held(tmp_path):
     w, h = g.diagram_room()
     big = tmp_path / "graphic_scale.jpg"
     Image.new("RGB", (w, h + 40), (20, 20, 20)).save(big)
-    Path(str(big) + multi_format.DRAWING_SIDECAR).write_text(json.dumps({"drawing_floor": 36, "size": [w, h + 40],
-                                                                          "heading": "X", "body": "Y"}),
+    Path(str(big) + multi_format.DRAWING_SIDECAR).write_text(json.dumps({"drawing_floor": 36, "size": [w, h + 40]}),
                                                           encoding="utf-8")
-    assert not g.diagram_legible(big, ((False, 2),))[0]
+    assert not g.diagram_legible(big, ((False, 2), (True, 2)))[0]   # both copies' frames, as production judges
 
 
 # --------------------------------------------------------------------------------------- 3. the Story window
@@ -132,36 +127,6 @@ def test_a_story_window_keeps_a_foreign_object_out_of_its_text_column(tmp_path):
     plain = _photo_with_object(tmp_path / "plain.jpg", None)
     _im, lay = g._render_story_frame(plain, slide, 1, 3, {})
     assert lay.meta["window"]["centering"] == [0.5, 0.5]                      # centred, as before
-
-
-def test_both_copies_take_the_drawn_scale_slide_with_its_own_words(tmp_path):
-    photos = []
-    for i, colour in enumerate([(150, 120, 90), (70, 90, 120), (200, 190, 170), (90, 80, 60)]):
-        p = tmp_path / f"p{i}.jpg"
-        Image.new("RGB", (1600, 1200), colour).save(p)
-        photos.append(p)
-    run = tmp_path / "run"
-    stored = run / "graphics" / "graphic_scale.jpg"
-    stored.parent.mkdir(parents=True)
-    Image.new("RGB", (1080, 1920), (20, 20, 20)).save(stored)
-    cards = [{"heading": "THE GIANT STONE", "body": "A giant stone lies in the quarry."},
-             {"heading": "CARVED IN PLACE", "body": "Workers cut it from the bedrock."},
-             {"heading": "HOW LONG", "body": "Its size: about 138 feet long, a giant of the quarry."},
-             {"heading": "WORK MARKS", "body": "Tool marks still show on the rock."},
-             {"heading": "CRACKED", "body": "A crack ended the work."},
-             {"heading": "YOUR TAKE", "body": "Would you have finished it?"}]
-    payload = {"carousel_slides": cards, "scale_fact": FACT, "title": "The giant stone"}
-    words = scale_slide_copy(FACT)
-    g = MultiFormatGenerator()
-    for fb in (False, True):
-        slides = g.generate_carousel_sequence(photos * 2, payload, run, facebook=fb)
-        from src import still_layout
-        recs = [still_layout.load(s) for s in slides]
-        kinds = [r["recipe"]["archetype"] for r in recs]
-        assert kinds.count("diagram") == 1
-        rec = recs[kinds.index("diagram")]
-        assert rec["recipe"]["card"]["heading"] == words["heading"] and rec["recipe"]["card"]["body"] == words["body"]
-        assert slide_drawing(Path(rec["recipe"]["photo"])) and not rec["problems"]
 
 
 # --------------------------------------------------------------------------------------- 4. Story floors are gates

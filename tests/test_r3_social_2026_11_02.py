@@ -192,7 +192,8 @@ def test_kickers_and_the_masthead_are_planned_with_a_margin(photos) -> None:
     from src.brand_system import tok
     assert multi_format.KICKER_TARGET == tok("contrast.kicker") == 5.5
     assert tok("contrast.masthead_gate") == 5.5 and tok("contrast.masthead_target") == 6.5
-    _, lay = M()._render_carousel_slide("immersive", photos[1], photos[0], CARD, 1, 7, {}, "", True, subject="S")
+    # lane D cycle 3: the Facebook copy draws its masthead on the cover only, so the interior is judged on Instagram's
+    _, lay = M()._render_carousel_slide("immersive", photos[1], photos[0], CARD, 1, 7, {}, "", False, subject="S")
     assert lay.plates["kicker"][0].contrast >= 5.4 and lay.plates["header_brand"][0].contrast >= 5.5
 
 
@@ -378,7 +379,9 @@ def test_a_deck_takes_one_frame_and_every_content_kicker_stays_on_one_line(photo
         content = _content(_deck(photos, tmp_path, headings, facebook, name))
         assert len(content) >= 3
         assert {r["recipe"]["heading_frame"] for r in content} == {frame}
-        feet = {_kicker_foot(r) for r in content}
+        # lane D cycle 3: the collage-stepped Facebook tile is exempt (recorded with its reason)
+        assert all(facebook and r["recipe"].get("heading_px") for r in content if r["recipe"].get("kicker_line_exempt"))
+        feet = {_kicker_foot(r) for r in content if not r["recipe"].get("kicker_line_exempt")}
         # round 7 (F3): the kicker stands on one line per heading line count: at most two positions per deck
         assert len({round(f / 3) for f in feet}) <= 2, (name, feet)
         assert all(not r["problems"] for r in content)

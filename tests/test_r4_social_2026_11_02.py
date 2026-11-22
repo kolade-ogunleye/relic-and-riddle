@@ -58,7 +58,9 @@ COVER = {"heading": "THE EYE OF THE SAHARA",
 
 def test_the_facebook_cover_keeps_its_text_inside_the_hero_tiles_crop(tmp_path) -> None:
     photo = _photo(tmp_path / "c.jpg", (90, 100, 120))
-    _, fb = M()._render_carousel_slide("cover", photo, photo, COVER, 0, 7, {}, "", True)
+    # a 4-slide deck posts the 4-photo collage, whose cover tile is the 2:3 hero (lane D cycle 3: the inset is kept
+    # only there; a deck of 5 or more posts the 5-photo collage of squares)
+    _, fb = M()._render_carousel_slide("cover", photo, photo, COVER, 0, 4, {}, "", True)
     crop = collage_crop((CW, CH), 2 / 3)                         # the 4-photo collage's tall left tile
     gutter = 60
     for e in fb.elements:
@@ -131,10 +133,11 @@ def test_facebook_picks_the_strongest_slides_before_photo_novelty(tmp_path) -> N
     picked = [Path(x).name for x in facebook_pick(slides, 4)]   # four: the cap until 2026-11-03
     assert picked == ["carousel_slide_01.jpg", "carousel_slide_03.jpg", "carousel_slide_05.jpg",
                       "carousel_slide_07.jpg"]
-    # the gallery's five: the cover, the closing slide, the two strong slides, then the earliest other
+    # the gallery's five: the cover, the closing slide, the two strong slides, then the earliest other; the figure
+    # slide second (lane D cycle 3, ruling 4: the collage's second top tile is not a headline slide)
     five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
-    assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
-                    "carousel_slide_05.jpg", "carousel_slide_07.jpg"]
+    assert five == ["carousel_slide_01.jpg", "carousel_slide_05.jpg", "carousel_slide_02.jpg",
+                    "carousel_slide_03.jpg", "carousel_slide_07.jpg"]
     assert facebook_pick(slides) == facebook_pick(slides, multi_format.FACEBOOK_GALLERY)   # the default cap: five
 
 
@@ -158,8 +161,8 @@ def test_facebook_keeps_the_figure_slide_over_a_myth_bust_when_both_repeat_a_pho
     assert picked == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_05.jpg",
                       "carousel_slide_07.jpg"]
     five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
-    assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
-                    "carousel_slide_05.jpg", "carousel_slide_07.jpg"]
+    assert five == ["carousel_slide_01.jpg", "carousel_slide_05.jpg", "carousel_slide_02.jpg",
+                    "carousel_slide_03.jpg", "carousel_slide_07.jpg"]   # the figure second (lane D cycle 3)
     assert facebook_pick(slides) == facebook_pick(slides, multi_format.FACEBOOK_GALLERY)   # the default cap: five
 
 

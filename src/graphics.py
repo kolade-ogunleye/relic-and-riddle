@@ -4193,7 +4193,9 @@ def water_labels(width: int, height: int, from_frame: Callable[[float, float], t
     font = get_font(brand.TEXT_FONT, floored(WATER_PX * k, width, height), weight=500)
     track = font.size * WATER_TRACK
     land_a = np.asarray(land, bool)
-    tb = get_text_box(width, height)
+    # freeze lane A cycle 3: a sea's name is set by geography in the Reel box (map_text_box), not the 687 px column
+    # (the column left the 9:16 Amber map's Baltic, against the box's left edge, without its name)
+    tb = map_text_box(width, height)
     if tb[2] <= tb[0] or tb[3] <= tb[1]:
         return []
     to_frame = to_frame or _affine_inverse(from_frame, width, height)
@@ -5874,8 +5876,8 @@ def get_text_box(width: int, height: int) -> tuple[int, int, int, int]:
 
 
 def map_text_box(width: int, height: int) -> tuple[int, int, int, int]:
-    """Where a route's frame, stops and their names may sit: on 9:16 the Reel box's own width, not the 687 px text
-    column. Freeze lane A cycle 3: the column left far stops unnamed (tests/test_r4_graphics rr4 and rr8 9:16); the safe
+    """Where a route's frame, stops and their names, and any map's seas' names, may sit: on 9:16 the Reel box's own
+    width, not the 687 px text column. Freeze lane A cycle 3: the column left far stops unnamed (tests/test_r4_graphics rr4 and rr8 9:16); the safe
     box is the gate their ink keeps. 16:9, the locator maps' words and the column copy (titles, scale bars) keep
     get_text_box."""
     token = _BOX_COLUMN.set(True)

@@ -576,8 +576,10 @@ SCALE_LABEL_PX = 24                  # the data face (IBM Plex Mono) 600 on both
 #                                      ruling 3, the data face for rulers, axes and units; Montserrat 600 before)
 SCALE_LABEL_WEIGHT = 600
 SCALE_LABEL_TRACK = 0.0              # em (cycle 3: the mono face spaces itself; 0.08 was Montserrat's)
-SCALE_LABEL_AIR = 8                  # px from the line to the top label's baseline and the bottom label's cap top
-SCALE_LABEL_HALO = 0.6
+SCALE_LABEL_AIR = 12                 # px from the line to the top label's baseline and the bottom label's cap top
+#                                      (freeze cycle 3: 8 put the bar's own light line inside its figures' measured
+#                                      10 px ring, "80 MI" planned 3.89:1 at a full halo; 12 keeps the line out of it)
+SCALE_LABEL_HALO = 0.75             # freeze cycle 3: 0.6 left a corner bar's "80 MI" at 4.44:1 as drawn over relief
 SCALE_ORIGIN_TALL = (89.0, 1030.0)   # the zero tick's x and the line's y, 9:16
 SCALE_ORIGIN_WIDE = (140.0, 790.0)   # 16:9 (y above title-safe's foot, 820: the labels stay inside it)
 SCALE_SHIFT = 40.0                   # px a bar moves right (or left, mirrored) until it is clear
@@ -999,8 +1001,9 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
 # real Amber renders: the route's "500 KM / 200 MI" over Catherine Palace's dot and the route's start, the 16:9
 # route's bar against the same dot, the 9:16 map's bar across the Latvia / Lithuania borders; the lander's ruling).
 # Home: the lower-left corner of the map's content box (the 9:16 text column, 16:9 title-safe; above the caption
-# band), then the other corners in the fixed order SCALE_CORNERS, each nudged inward at most SCALE_CORNER_STEPS steps
-# of SCALE_SHIFT along each edge. A place is CLEAR when its box, padded SCALE_MARK_PAD, meets no label (every word,
+# band), then the other corners in the fixed order SCALE_CORNERS, each moved along its edge (from the corner inward,
+# SCALE_SHIFT a step) and at most SCALE_CORNER_STEPS steps off it: the bar stays on the content box's bottom or top
+# band, never mid-map. A place is CLEAR when its box, padded SCALE_MARK_PAD, meets no label (every word,
 # the pin, the stop dots' boxes) and no hard mark pixel (the route's path with its casing, the stop dots, the home
 # outline) and no soft pixel (coasts and other borders, "where possible"). Where no place of the bar is clear, the
 # shorter round bars (SCALE_SHORTER) are tried the same way; then the place with the fewest soft pixels that meets no
@@ -1008,7 +1011,12 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
 SCALE_CORNERS = ("ll", "lr", "ul", "ur")
 SCALE_CORNER_STEPS = 4
 SCALE_MARK_PAD = 12          # px (1080 / 1920 reference) the bar's box keeps from every mark
+SCALE_LABEL_PAD = 36         # and from every word: its figures' halo (21 px) and a word's measured ring (10 px) never
+#                              meet (12 px put the bar's halo in TURKEY's ring: 4.45:1 drawn)
 SCALE_SHORTER = (0.7, 0.5, 0.35)   # shares of the first bar's length the shorter round bars are capped at
+SCALE_ROOM_SHARE = 0.25      # the most of a clear place's box on the ground later names need (a neighbour's land, a
+#                              sea) before another clear place is preferred (the 9:16 Amber map's bar took Belarus's
+#                              room for BELARUS, then the Baltic's for BALTIC SEA)
 
 
 @dataclass(frozen=True)
@@ -1022,7 +1030,7 @@ class FurnitureBar:
 
 def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, labels: Sequence[Box],
                         hard: BoolArray | None = None, soft: BoolArray | None = None,
-                        box: Box | None = None) -> FurnitureBar | None:
+                        box: Box | None = None, room: BoolArray | None = None) -> FurnitureBar | None:
     """The bar's place by the furniture rule above, of `bars` (the first the preferred length, then shorter ones),
     or None (no place meets no label and no hard mark: the caller records the omission). O(bars x corners x steps^2)
     box tests on summed-area tables."""
@@ -1032,7 +1040,11 @@ def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, label
     k = 1.0 if tall else min(width / 1920, height / 1080)
     font = scale_label_font(width, height)
     tb = box if box is not None else get_text_box(width, height)
+    # the bar's words keep their measured ring (10 px) inside the content box too: set on its very foot, "80 MI"
+    # drew 4.44:1 against the ground under the box
+    tb = (tb[0], tb[1], tb[2], tb[3] - SCALE_MARK_PAD * k)
     pad = SCALE_MARK_PAD * k
+    label_pad = SCALE_LABEL_PAD * k
     step = SCALE_SHIFT * k
 
     def table(mask: BoolArray | None, grow: float):
@@ -1054,28 +1066,38 @@ def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, label
     def places(bar: ScaleBar):
         rel = scale_bar_box(bar, 0.0, 0.0, font)
         w, h = rel[2] - rel[0], rel[3] - rel[1]
+        across = max(0, int((tb[2] - tb[0] - w) // step))   # the whole edge, from the corner inward
         for corner in SCALE_CORNERS:
             for j in range(SCALE_CORNER_STEPS + 1):           # along the bottom / top edge first, then up / down it
-                for i in range(SCALE_CORNER_STEPS + 1):
+                for i in range(across + 1):
                     bx0 = tb[0] + i * step if corner[1] == "l" else tb[2] - w - i * step
                     by0 = tb[3] - h - j * step if corner[0] == "l" else tb[1] + j * step
                     if bx0 < tb[0] - 0.5 or bx0 + w > tb[2] + 0.5 or by0 < tb[1] - 0.5 or by0 + h > tb[3] + 0.5:
                         continue
                     yield corner, (bx0 - rel[0], by0 - rel[1]), (bx0, by0, bx0 + w, by0 + h)
 
+    ii_room = _integral(np.asarray(room) > 0) if room is not None else None
     quietest: tuple[int, int, FurnitureBar] | None = None
+    clear_first: FurnitureBar | None = None
     for order, bar in enumerate(bars):
         for corner, (x, y), b in places(bar):
-            if any(LayoutConstraintSolver.boxes_intersect(b, lb, pad) for lb in labels):
+            if any(LayoutConstraintSolver.boxes_intersect(b, lb, label_pad) for lb in labels):
                 continue
             if count(ii_hard, b):
                 continue
             s = count(ii_soft, b)
             got = FurnitureBar(bar, _scale_layout(bar, x, y, 1, b), corner, s)
             if s == 0:
-                return got
+                # `room`: the ground later names need (a neighbour's land, which takes its name after the bar):
+                # a clear place mostly off it is taken first, else the first clear place
+                if ii_room is None or count(ii_room, b) <= SCALE_ROOM_SHARE * (b[2] - b[0]) * (b[3] - b[1]):
+                    return got
+                clear_first = clear_first or got
+                continue
             if quietest is None or (s, order) < quietest[:2]:
                 quietest = (s, order, got)
+    if clear_first is not None:
+        return clear_first
     if quietest is not None:
         log.info("Scale bar: no place clear of the borders; the quietest (%d border px) in the %s corner.",
                  quietest[0], quietest[2].corner)
@@ -2540,7 +2562,7 @@ def leader_marker(anchor: tuple[float, float], label: str, width: int, height: i
     if land is not None:
         _count, components, stats, _centres = cv2.connectedComponentsWithStats(
             np.asarray(land, np.uint8), connectivity=8)
-        tb = map_text_box(width, height)
+        tb = get_text_box(width, height)
         limit = PART_SMALL_SHARE * (tb[2] - tb[0]) * (tb[3] - tb[1])
         small = np.flatnonzero(stats[:, cv2.CC_STAT_AREA] <= limit)
         protected = np.isin(components, small[small != 0])
@@ -3014,7 +3036,7 @@ def polar_lift(width: int, height: int) -> float:
     (as view_centre_lat puts it), on 16:9 none."""
     if width >= height:
         return 0.0
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     return max(0.0, height / 2 - (tb[1] + MAP_PIN_Y_SHARE * (tb[3] - tb[1])))
 
 
@@ -3117,7 +3139,7 @@ def view_centre_lat(site_lat: float, width: int, height: int, span: float, area:
     south of it, never past 89.5 degrees), on 16:9 and for a region's area at the centre."""
     if width >= height or area:
         return site_lat, 0.0
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     want = height / 2 - (tb[1] + MAP_PIN_Y_SHARE * (tb[3] - tb[1]))
     if want <= 0:
         return site_lat, 0.0
@@ -3878,7 +3900,7 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
         d_other = cv2.distanceTransform((~other).astype(np.uint8), cv2.DIST_L2, 5) if other.any() else None
     else:
         d_home = d_other = None
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     aim = aim or anchor
     label_air = COUNTRY_LABEL_AIR * k
     near_px = COUNTRY_NEAR_PX * k
@@ -3995,7 +4017,7 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
         # 735 px wide, 88 fewer than the ads box: FRENCH SOUTHERN AND ANTARCTIC LANDS measures 802 px at 24) steps
         # down the COUNTRY_SMALL_PX sizes the fill already takes, to their floor, before it is dropped; a name the
         # box holds keeps its size
-        tb = map_text_box(width, height)
+        tb = get_text_box(width, height)
         f_ = get_font(brand.TEXT_FONT, out_px, weight=600)
         wide = ink_box((0.0, 0.0), name, f_, "mm", f_.size * COUNTRY_TRACK)
         steps = [px for px in small if px < out_px]
@@ -4164,7 +4186,7 @@ def water_labels(width: int, height: int, from_frame: Callable[[float, float], t
     font = get_font(brand.TEXT_FONT, floored(WATER_PX * k, width, height), weight=500)
     track = font.size * WATER_TRACK
     land_a = np.asarray(land, bool)
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     if tb[2] <= tb[0] or tb[3] <= tb[1]:
         return []
     to_frame = to_frame or _affine_inverse(from_frame, width, height)
@@ -4366,7 +4388,7 @@ def neighbours_in_view(width: int, height: int, home: geo.Country | None,
     """Round 9 (review 6): (display name upper-cased, adjacent) of every nameable country with ground in the text
     box, in neighbour_rank's order (the home's neighbours first). Rasterised at a quarter of the frame."""
     import numpy as np
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     w4, h4 = max(1, width // 4), max(1, height // 4)
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
     hm = Image.new("L", (w4, h4), 0)
@@ -4458,7 +4480,7 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     import numpy as np
     k = 1.0 if height > width else min(width / 1920, height / 1080)
     px0 = map_name_px(width, height)
-    tb = map_text_box(width, height)
+    tb = get_text_box(width, height)
     x0, y0, x1, y1 = (int(v) for v in tb)
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
@@ -5361,7 +5383,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     placed = furniture_scale_bar(
         scale_bar_family(lambda m: scale_bar(site_lat, kf, narration, m, bar_range=scale_range(width, height))),
         width, height, words + [(mb[0] - m_air, mb[1] - m_air, mb[2] + m_air, mb[3] + m_air), _union([lb, mb])],
-        hard=home_line, soft=coast)
+        hard=home_line, soft=coast, room=~home_f)     # the neighbours' and the seas' names come after it
     if placed is None:
         omit_scale_bar(f"map {Path(out).name}" if out else "map",
                        "no corner of the content box, at any shorter round length, is clear of the words, the pin "
@@ -5832,10 +5854,10 @@ def get_text_box(width: int, height: int) -> tuple[int, int, int, int]:
 
 
 def map_text_box(width: int, height: int) -> tuple[int, int, int, int]:
-    """Where a map's or route's geographic names (the site, its region, neighbours, countries, waters) may sit: on
-    9:16 the Reel box's own width, not the 687 px text column. Freeze lane A cycle 3: a name set by geography is not
-    column copy; the column took the Morocco route's only room for ALGERIA (tests/test_qf24_route_neighbours), and the
-    safe box is the gate their ink keeps. 16:9 and the column copy (titles, scale bars) keep get_text_box."""
+    """Where a route's frame, stops and their names may sit: on 9:16 the Reel box's own width, not the 687 px text
+    column. Freeze lane A cycle 3: the column left far stops unnamed (tests/test_r4_graphics rr4 and rr8 9:16); the safe
+    box is the gate their ink keeps. 16:9, the locator maps' words and the column copy (titles, scale bars) keep
+    get_text_box."""
     token = _BOX_COLUMN.set(True)
     try:
         return get_text_box(width, height)
@@ -6263,11 +6285,22 @@ NAME_LEAD_VERBS = frozenset({"annexed", "captured", "conquered", "declared", "de
                             "recognized", "recognised", "rediscovered", "restored"})
 
 
-def label_hard_fault(lines: Sequence[str], source: str | None = None) -> str:
+def _cuts_of(lines: Sequence[str]) -> set[int]:
+    """The word positions a label's rows are cut at."""
+    cuts, at = set(), 0
+    for ln in lines[:-1]:
+        at += len(ln.split())
+        cuts.add(at)
+    return cuts
+
+
+def label_hard_fault(lines: Sequence[str], source: str | None = None, strict: bool = False) -> str:
     """Round 13 (coordinator directive 4): why a label's break is never set ("" where it may be): a middle row of
     one word ("LORD CURZON / RESTORES / THE GARDENS", "NAMED A / WORLD / HERITAGE SITE"), or a break inside a
     proper name of the writer's `source` ("WILLIAM THE / CONQUEROR": _held_breaks, a spelled count's soft breaks
-    aside)."""
+    aside). `strict` (freeze cycle 3): a row ending on a never-end word or cutting a quantity (label_never_cuts) too;
+    the timelines' layout searches pass it first and take the plain rule only where no layout holds it, so it never
+    turns a layout into a refusal."""
     if len(lines) >= 3 and any(len(ln.split()) == 1 for ln in lines[1:-1]):
         return "a one-word middle row"
     if len(lines) < 2:
@@ -6277,7 +6310,7 @@ def label_hard_fault(lines: Sequence[str], source: str | None = None) -> str:
     for ln in lines[:-1]:
         at += len(ln.split())
         cuts.add(at)
-    if label_never_cuts(words, cuts):     # freeze cycle 3: the heading engine's hard rule (label_never_cuts)
+    if strict and label_never_cuts(words, cuts):   # freeze cycle 3: the heading engine's hard rule (label_never_cuts)
         return "a row ending on a never-end word or inside a quantity"
     if not source:
         return ""
@@ -7713,6 +7746,10 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
             return 3, 1.0, len(lines)
         if middle and label_hard_fault(lines, wide_source.get(" ".join(lines))):
             return WIDE_HARD_LEVEL, 1.0, 1        # round 13 (directive 4): a hard fault, worst of all
+        # freeze cycle 3 (A-S2-2: "DISASSEMBLED BY / GERMAN TROOPS"): a row ending on a never-end word or a cut
+        # quantity ranks with a word-to-a-row stack, under every weak row; never a refusal of the whole timeline
+        if middle and label_never_cuts(" ".join(lines).split(), _cuts_of(lines)):
+            return 3, 1.0, len(label_never_cuts(" ".join(lines).split(), _cuts_of(lines)))
 
         # review 9: measured on the ink, as the frame shows it ("GERMAN" 168 px over "EXCAVATIONS" 282, 0.596,
         # passed on the advances)
@@ -9286,6 +9323,17 @@ def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h:
 # brand.EARTH, brand.EARTH_LINE: the ground in section: dark warm earth, its strata a step up
 
 
+# The landmark's half-width at its top, per px of its height: where its figure's tick starts (beside the top, off the
+# drawing). 0.05 fits the spires, torch and apex; freeze lane A cycle 3: the Rushmore head is round to its crown, so a
+# 0.05 tick began inside the head and its figure and note found no clear place (refused, "CARVED HEAD HEIGHT").
+CROWN_REACH = {"rushmore": 0.24}
+
+
+def crown_reach(label: str) -> float:
+    """How far right or left of the landmark's centre line its figure's tick starts, per px of its height."""
+    return CROWN_REACH.get(_landmark_kind(label), 0.05)
+
+
 def _silhouette_width(label: str) -> float:
     """A landmark silhouette's width per px of its height (as _silhouette draws it)."""
     return SILHOUETTE_WIDTH[_landmark_kind(label)]
@@ -9973,7 +10021,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             ref_w_ = ref_feet * pf * width_per_px
             rcx_ = s0 + bw + 40 + max(room_, ref_w_) / 2
             c_ref_ = heading_clear(heads, rcx_ - ref_w_ / 2, rcx_ + ref_w_ / 2, top)
-            lab_x_ = rcx_ + max(0.05 * ref_feet * pf, 6) + 34
+            lab_x_ = rcx_ + max(crown_reach(ref_label) * ref_feet * pf, 6) + 34
             c_lab_ = heading_clear(heads, lab_x_, lab_x_ + ref_txt_w, top) + cap_height(f_blk) / 2 + 2
             tall = (base_y - c_blk_) / max(1.0, (SUBJECT_LYING_ASPECT if lying else 1.0) * feet)
             wide_ = ((x1 - s0 - 60) / max(1.0, feet + ref_feet * width_per_px) if lying else
@@ -10009,19 +10057,22 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # TIP", what the figure measures) as ONE block (referent_block; lander, cycle 2): the text face (BC-3) at its
         # own size (30 px, its floor), never dropped silently
         ref_top = base_y - ref_feet * px_ft
-        reach = max(0.05 * ref_feet * px_ft, 6)
+        reach = max(crown_reach(ref_label) * ref_feet * px_ft, 6)
         tick_r, tick_l = ref_cx + reach, ref_cx - reach          # just right / left of the landmark's top
         note = reference_note(ref_label)
         LAST_REFERENT_NOTE.clear()
         taken = [pl.box for _n, pl in plates if not getattr(pl, "empty", False)]
         c_box = (x0, top, label_x1, base_y - 4)
         lm = landmark_mask((width, height), ref_label, ref_cx, base_y, ref_feet * px_ft)
+        # freeze cycle 3: the subject's own drawing is not ground for the landmark's words (a subject taller than its
+        # landmark, 107 ft beside the 60 ft head, took the note onto the gold block at 3.6:1)
+        subj = (shaft[0], base_y - blk_h, shaft[0] + blk_w, base_y)
 
         def clear_n(b: Box) -> bool:
             # freeze cycle 3 (lane A, MG-4: "42 M" over "305 FT / GROUND TO TORCH TIP" ~0 px apart): the heading's
             # lines keep SCALE_HEAD_AIR from the landmark's figure and note, the drawing's own words 6 px
             return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
-                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
+                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in [*taken, subj])
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
         fig_pl, rows_n, tick, rec_n = referent_block(ground, _short(ref_feet, unit), f_blk, 2, note,
@@ -10404,12 +10455,13 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         taken = [pl.box for _n, pl in plates]
         c_box = (X(WIDE_TITLE_SAFE[0]), Y(top_d) - S(40), lim, Y(base_y) - 4)
         lm = landmark_mask((width, height), ref_label, X(ref_cx), Y(base_y), S(ref_feet * px_ft), round(S(6)))
+        subj = ((X(shaft[0]), Y(base_y - blk_h), X(shaft[0] + blk_w), Y(base_y)) if not depth else (0, 0, 0, 0))
 
-        def clear_w(b: Box) -> bool:
+        def clear_w(b: Box) -> bool:       # cycle 3: off the subject's drawing too (clear_n)
             return (c_box[0] <= b[0] and b[2] <= c_box[2] and c_box[1] <= b[1] and b[3] <= c_box[3]
-                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in taken)
+                    and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in [*taken, subj])
                     and off_mask(lm, b))
-        reach = S(max(0.05 * ref_feet * px_ft, 6))
+        reach = S(max(crown_reach(ref_label) * ref_feet * px_ft, 6))
         fig_pl, rows_n, tick, rec_n = referent_block(final, _short(ref_feet, unit), f_blk, S(1), note or "", own,
                                                      X(ref_cx) + reach, X(ref_cx) - reach, Y(ref_top), g.k,
                                                      clear_w, S(1))
@@ -12345,7 +12397,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     scale = 2
     bw, bh = width * scale, height * scale
     top, bottom = get_text_bounds(width, height)
-    sx0, sy0, sx1, sy1 = get_text_box(width, height)
+    sx0, sy0, sx1, sy1 = map_text_box(width, height)   # cycle 3: the stops and their names are geography
     # Fit every stop to the graphics box (round 4: 62 % of its width before): ROUTE_FIT of its width and of its
     # height less the labels' room, whichever binds, so an east-west route uses the width and a north-south one
     # the height.

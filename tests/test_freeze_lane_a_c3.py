@@ -52,8 +52,9 @@ def test_probe_steps_size_before_a_hard_cut():
 def test_stop_words_are_the_systems_list():
     system = {w.upper() for w in brand_system.LINE_END_NEVER | brand_system.LINE_END_LAST_RESORT}
     assert graphics.TALL_STOP_WORDS == system
-    assert graphics.label_hard_fault(["AMBER IN", "COMPLETED ROOM"])
-    assert not graphics.label_hard_fault(["AMBER", "IN COMPLETED ROOM"])
+    assert graphics.label_hard_fault(["AMBER IN", "COMPLETED ROOM"], strict=True)
+    assert not graphics.label_hard_fault(["AMBER", "IN COMPLETED ROOM"], strict=True)
+    assert not graphics.label_hard_fault(["AMBER IN", "COMPLETED ROOM"])        # a preference, never a refusal
 
 
 @pytest.mark.parametrize("size", [(1080, 1920), (720, 1280)])
@@ -102,8 +103,10 @@ def test_furniture_bar_corner_order_never_on_a_mark(size):
     hard = np.zeros((h, w), bool)
     hard[int(tb[1] + (tb[3] - tb[1]) * 0.5):, : (tb[0] + tb[2]) // 2] = True          # the lower-left half taken
     got = graphics.furniture_scale_bar(_fam(w=w, h=h), w, h, [], hard=hard)
-    assert got is not None and got.corner != "ll"
+    assert got is not None and got.layout.box != free.layout.box       # moved off the mark, along its edge
     b, pad = got.layout.box, graphics.SCALE_MARK_PAD
+    band = (graphics.SCALE_CORNER_STEPS + 1) * graphics.SCALE_SHIFT + (b[3] - b[1])
+    assert b[3] >= tb[3] - band or b[1] <= tb[1] + band                  # on the bottom or top band, never mid-map
     assert not hard[max(0, int(b[1] - pad)):int(b[3] + pad), max(0, int(b[0] - pad)):int(b[2] + pad)].any()
     assert tb[0] - 0.5 <= b[0] and b[2] <= tb[2] + 0.5 and tb[1] - 0.5 <= b[1] and b[3] <= tb[3] + 0.5
     label = (got.layout.box[0] - 5, got.layout.box[1] - 5, got.layout.box[2] + 5, got.layout.box[3] + 5)

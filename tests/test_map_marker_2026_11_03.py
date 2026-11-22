@@ -160,7 +160,9 @@ def test_every_style_names_the_site_nearest_and_the_country_away(tmp_path, monke
     c = ((country.box[0] + country.box[2]) / 2, (country.box[1] + country.box[3]) / 2)
     k = min(size) / 1080
     assert math.dist(c, anchor) >= graphics.COUNTRY_ANCHOR_AIR * k - 1
-    assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"] if e["name"] == "country")
+    low = [(e["text"], round(e["drawn"], 2), e["box"]) for e in st["record"]["elements"]
+           if e["name"] == "country" and e["drawn"] < brand.TEXT_CONTRAST]
+    assert not low, (low, st["layout"].get("scale_bar"))
     assert st["layout"]["style"] == style
     if style == "leader":
         assert st["layout"]["leader"] is not None

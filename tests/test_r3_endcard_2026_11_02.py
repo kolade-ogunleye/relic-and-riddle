@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
-from src import brand, end_card, safe_zones
+from src import brand, brand_system, end_card, safe_zones
 
 SHARE = "Send this to the codebreaker you know, and follow for more."
 
@@ -99,10 +99,12 @@ def test_the_closing_drift_carries_through_the_bridge():
 
 
 def test_the_dim_is_light_and_lifts_with_the_crossfade():
+    # the dim lives under the share line only (lane E cycle 3): measured below the line, on its ground
     assert 0.3 <= end_card.LOOP_DIM <= 0.5
     grey = Image.new("RGB", (1080, 1920), (150, 150, 150))
-    frames, _ = _bridge(grey, grey.copy(), line=False)
-    lum = [float(np.asarray(f.convert("L"), np.float32).mean()) for f in frames]
+    frames, _ = _bridge(grey, grey.copy(), line=True)
+    lum = [float(np.asarray(f.convert("L"), np.float32)[1300:].mean()) for f in frames]
+    assert min(lum) < 150 - 5                                              # it is drawn under the line
     assert min(lum) > 150 * 0.5                                            # never a black dip
     assert abs(lum[-1] - 150) < 2                                          # back to the picture by the seam
     k = int(np.argmin(lum))
@@ -125,11 +127,29 @@ def test_the_crossfade_length_is_an_option_between_half_and_seven_tenths():
     assert _bridge(last, first, line=False, crossfade=2.0)[1]["crossfade"] == 0.7
 
 
-def test_the_purely_visual_bridge_records_no_text():
+def _undrawn_line(monkeypatch, last, first, **kw):
+    """The bridge with the share line planned (so its dim, LOOP_DIM, is drawn) but the line itself not drawn: since
+    lane E cycle 3 the dim lives under the share line only, so the purely visual bridge is no longer that ground."""
+    from src import typography
+    real = typography.plan_text
+
+    def planned(*a, **k):
+        plate = real(*a, **k)
+        plate.draw = lambda frame, *_a, **_k: frame
+        return plate
+    monkeypatch.setattr(typography, "plan_text", planned)
+    try:
+        return _bridge(last, first, line=True, **kw)[0]
+    finally:
+        monkeypatch.setattr(typography, "plan_text", real)
+
+
+def test_the_purely_visual_bridge_records_no_text(monkeypatch):
     last, first = _dark_last(), _bright_first()
-    vis, st = _bridge(last, first, line=False)
+    _vis, st = _bridge(last, first, line=False)
     assert st["text"] is None and st["lines"] == [] and st["contrast"] is None and st["line"] is False
-    assert st["follow"] is False
+    assert st["follow"] is False and st["loop_dim"] == 0.0
+    vis = _undrawn_line(monkeypatch, last, first, crossfade=0.7)
     txt, st2 = _bridge(last, first, line=True, crossfade=0.7)
     assert st2["text"] == "Send this to the codebreaker you know." and st2["contrast"] >= brand.TEXT_CONTRAST
     k = 7   # at the hold the two differ only where the line is
@@ -138,9 +158,9 @@ def test_the_purely_visual_bridge_records_no_text():
     assert rows.size and rows.min() > 500 and rows.max() < 1050
 
 
-def test_the_line_is_gone_before_the_picture_has_mostly_changed():
+def test_the_line_is_gone_before_the_picture_has_mostly_changed(monkeypatch):
     last, first = _dark_last(), _bright_first()
-    vis, _ = _bridge(last, first, line=False, crossfade=0.5)
+    vis = _undrawn_line(monkeypatch, last, first, crossfade=0.5)
     txt, _ = _bridge(last, first, line=True, crossfade=0.5)
     start = round(0.5 * end_card.FPS)
     for k in range(start + round(0.4 * 0.5 * end_card.FPS) + 1, len(vis)):  # no ghost into frame 0
@@ -172,17 +192,29 @@ def test_the_landscape_push_is_capped_and_eases_to_rest():
     assert (v >= 0).all() and v[-1] < v[0] / 20                            # slows to rest
 
 
-def test_the_16x9_kicker_labels_the_video_slot_and_measures(short_end_screen):
+def _overlap(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def test_the_16x9_kicker_leads_the_line_in_the_column_and_measures(short_end_screen):
     stats = {}
     frames = list(end_card.frames(_plate(), "Send this to a space enthusiast you know.", stats))
     assert set(stats["contrast"]) == {"brand", "share"}                    # the extras keep their own keys
     assert stats["contrast_kicker"] is not None and stats["contrast_kicker"] >= brand.TEXT_CONTRAST
     assert stats["kicker"] == end_card.KICKER and not any(c.isdigit() for c in end_card.KICKER)
-    ex = end_card.end_screen_extras()
-    vx0, vy0 = end_card.END_SCREEN_SLOTS["video"][:2]
-    assert ex["kicker"]["xy"][0] == vx0                                    # left-aligned with the slot
-    assert ex["kicker"]["xy"][1] <= vy0 - end_card.SLOT_FRAME_OFFSET - end_card.KICKER_GAP + 1
-    assert ex["kicker"]["top"] >= round(1080 * 0.05)                        # inside title-safe
+    # lane E cycle 3: in the text column (never over a YouTube slot, which may be empty), left-aligned with the
+    # line, one kicker gap above the line's cap line, below the masthead's rule
+    lay = end_card.layout(end_card.HANDOFF, 1920, 1080)
+    ex = end_card.end_screen_extras(1920, lay)
+    k = ex["kicker"]
+    assert k["xy"][0] == lay["align_x"]
+    cap_top = lay["top"] + lay["share_font"].getbbox("H", anchor="la")[1]
+    assert abs(cap_top - k["xy"][1] - brand_system.tok("kicker.gap") * k["font"].size) <= 1
+    assert k["top"] > lay["rule_y"] and k["top"] >= round(1080 * 0.05)    # under the rule, inside title-safe
+    kw = k["font"].getlength(k["text"]) + k["track"] * (len(k["text"]) - 1)
+    box = (k["xy"][0], k["top"], k["text_xy"][0] + kw, k["xy"][1])
+    for slot in end_card.END_SCREEN_SLOTS.values():
+        assert not _overlap(box, slot)
     assert "contrast_credits" not in stats and stats["slot_frames"] is False
     assert frames[-1].size == (1920, 1080)
 

@@ -115,6 +115,33 @@ def third_brand(brand):
                              "handoff": "The next find is waiting."})
 
 
+def copy_swap(payload: dict, entry: dict) -> dict:
+    """A run payload with its words replaced by a copy-set entry's (cycle 3, portability): title, thumbnail lines,
+    YouTube title, carousel and Story slides (cycled over the run's own count, so every recipe keeps its slide),
+    share line, poll, narration and emphasis words. Fields the entry does not give keep the run's own; the figures a
+    cover may carry are the entry's own and its narration says them, so the figure checks read real support."""
+    import copy as _copy
+    p = _copy.deepcopy(payload)
+    for k in ("title", "youtube_title", "share_line", "poll", "narration_script", "hook_sentence", "closing_sentence",
+              "emphasis_words", "caption"):
+        if k in entry:
+            p[k] = _copy.deepcopy(entry[k])
+    if "thumbnail" in entry:
+        p["thumbnail"] = {**(p.get("thumbnail") or {}), **entry["thumbnail"]}
+    for k in ("carousel_slides", "story_slides"):
+        src = entry.get(k) or []
+        if src and p.get(k):
+            p[k] = [{**s, **src[i % len(src)]} for i, s in enumerate(p[k])]
+    return p
+
+
+def copy_words(words: list, entry: dict) -> list:
+    """The narration's timed words with the entry's narration words in their place, cycled (each word keeps its own
+    start and duration, so the caption timing is the run's)."""
+    said = str(entry.get("narration_script") or "").split()
+    return [{**w, "word": said[i % len(said)]} for i, w in enumerate(words)] if said else words
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("tree", type=Path)
@@ -129,8 +156,13 @@ def main() -> None:
     ap.add_argument("--list-jobs", type=Path, help="write the job names this run would render (one per line, in "
                     "order, after --only / --per-kind / --jobs) to this file and render nothing (board.py --workers "
                     "shards the list)")
+    ap.add_argument("--copy-set", type=Path, help="cycle 3 (portability): a copy set (JSON list, see copy_swap) "
+                    "whose words replace the runs' own on the surfaces whose copy comes from a run (covers, carousels, "
+                    "Stories, end screen / card / bridge share lines, captions); the other surfaces draw as they are "
+                    "and the result's copy_set record lists them")
     a = ap.parse_args()
     tree, dev = a.tree.resolve(), a.dev.resolve()
+    copy_set = json.loads(a.copy_set.read_text(encoding="utf-8")) if a.copy_set else None
     only = set(filter(None, a.only.split(",")))
     jobs = set(filter(None, a.jobs.read_text(encoding="utf-8").splitlines())) if a.jobs else None
     os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8", RR_FIXTURE_REPO=str(dev))
@@ -169,8 +201,14 @@ def main() -> None:
     if a.keep:
         a.keep.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="qf35a-"))
+    try:   # cycle 3 (lane BOARD): run through board.py (run_surfaces.py), the data files every job reads are recorded
+        import board_inputs   # (board_inputs.py: the run's input union, for the board's INPUT_HASHES.json)
+        board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[work] + ([a.keep] if a.keep else []))
+    except ImportError:   # run on its own: no record, the same pixels
+        board_inputs = None
     clips: dict[str, Hasher] = {}
     listed: list[str] | None = [] if a.list_jobs else None
+    swapped: set[str] = set()   # cycle 3: the job groups whose copy the --copy-set replaced
 
     def encode(frames, out, n, width=None, height=None, **_k):
         hz = clips.setdefault(Path(out).name, Hasher())
@@ -356,34 +394,81 @@ def main() -> None:
 
     # ------------------------------------------------------------------ loop bridge and end screen
     from src import end_card
+    try:   # cycle 3 (lane E): each bridge as the composer ships it (board_motion.shipped_bridge, its gate ladder)
+        import board_motion
+    except ImportError:   # run on its own (QF-35a A/B on two trees): the bridges as drawn before, recorded so
+        board_motion = None
+
+    def bridge(name: str, last, first, share: str, follow: bool, case: dict) -> None:
+        """A loop bridge surface: through the composer's ladder with the run's own seam motion where its record
+        gives it (board_motion.run_loop_motion), recorded in "bridge_ladder"; every rung failing is a refusal
+        (the Reel ships no bridge)."""
+        if board_motion is None:
+            result.setdefault("bridge_ladder", {})[name] = {"variant": "not laddered (render_surfaces.py run "
+                                                            "without the board's board_motion)"}
+            frames_of(name, end_card.loop_bridge(last, first, share, {}, **({"line": False, "follow": True}
+                                                                             if follow else {})))
+            return
+        motion, source = board_motion.run_loop_motion(fx.path(case["run"]))
+        stats: dict = {}
+        try:
+            frames = board_motion.shipped_bridge(last, first, share, stats, follow=follow, motion=motion,
+                                                 motion_source=source)
+        except board_motion.BridgeNotShipped as e:
+            result["surfaces"][name] = {"refused": str(e)[:200], "class": "BridgeNotShipped", "code": "not_shipped"}
+            frames = None
+        if frames is not None:
+            frames_of(name, frames)
+        result.setdefault("bridge_ladder", {})[name] = {
+            "variant": stats.get("variant"), "ladder": stats.get("ladder"), "motion_source": source,
+            "seam": board_motion.seam_reading(stats)}
+
     for i, case in enumerate(fx.load("endcard")):
         def endcard(case=case, i=i):
             share = case["share_line"]
+            card_line = None
+            if copy_set:   # cycle 3: the copy set's share line, through the composer's own end_card_share
+                from src.end_card import card_text
+                from src.script_engine import end_card_share
+                entry = copy_set[i % len(copy_set)]
+                share = entry["share_line"]
+                p = fx.run_file(case["run"], "verified_script.json")
+                card_line = (end_card_share(copy_swap(json.loads(p.read_text(encoding="utf-8")), entry))[0]
+                             if p.is_file() else card_text(share))
+                swapped.add("endcard")
             last_src = case.get("last_frame", {}).get("from") or case.get("last")
             last = (Image.open(fx.frame(last_src, last=True)) if str(last_src).endswith(".mp4")
                     else Image.open(fx.path(last_src))).convert("RGB")
             if case.get("format") == "9:16" and case.get("first_frame"):
                 first = Image.open(fx.frame(case["first_frame"]["from"], 0.0)).convert("RGB")
-                frames_of(f"bridge__{i}_{case['topic']}", end_card.loop_bridge(last, first, share, {}))
-                frames_of(f"bridge_follow__{i}_{case['topic']}",
-                          end_card.loop_bridge(last, first, share, {}, line=False, follow=True))
+                bridge(f"bridge__{i}_{case['topic']}", last, first, share, False, case)
+                bridge(f"bridge_follow__{i}_{case['topic']}", last, first, share, True, case)
                 # what the composer passes the card (script_engine.end_card_share: the share half, the card says
                 # FOLLOW itself), never the raw share-and-follow line (freeze lane E cycle 1: the board drew 88
                 # characters and no follow line where a real run draws 56 and FOLLOW FOR THE NEXT RELIC)
-                frames_of(f"endcard__{i}_{case['topic']}", end_card.frames(last, card_share(fx, case), {}))
+                frames_of(f"endcard__{i}_{case['topic']}", end_card.frames(
+                    last, card_line if card_line is not None else card_share(fx, case), {}))
             else:
-                if last.width < last.height:
+                name = f"endscreen__{i}_{case['topic']}"
+                if board_motion is not None:   # cycle 3 (lane E): the run's 16:9 master's last frame where it has
+                    last, cls, why = board_motion.wide_last(fx, case)   # one, else what stands in, said
+                    result.setdefault("wide_grounds", {})[name] = {"index": i, "class": cls, "why": why}
+                elif last.width < last.height:
                     from PIL import ImageOps
                     last = ImageOps.fit(last, (1920, 1080), Image.LANCZOS)
-                frames_of(f"endscreen__{i}_{case['topic']}", end_card.frames(last, share, {}))
+                frames_of(name, end_card.frames(last, share, {}))
         job("endcard", f"endcard {i} {case['topic']}", endcard)
 
     # ------------------------------------------------------------------ covers
     from src.visual_engine import VisualEngine
-    for case in fx.load("covers"):
+    covers_cases = fx.load("covers")
+    for case in covers_cases:
         def cover(case=case):
             hero = fx.path(case["hero"]["photo"])
             payload = fx.payload(case)
+            if copy_set:   # cycle 3: the copy set's cover words on the run's own hero
+                payload = copy_swap(payload, copy_set[covers_cases.index(case) % len(copy_set)])
+                swapped.add("covers")
             d = work / f"cover_{case['topic']}"
             # cycle 0 round 8 (ruling 6; panel AD MG-3): each surface drawn and refused on its own, so a YouTube
             # refusal never takes the Reel cover and the grid tile with it: a refusal (src/refusal.LayoutError) is a
@@ -416,53 +501,98 @@ def main() -> None:
         """One recorded frame redrawn as production draws it: a Story at its deck's one title size (the recipe's,
         else story_title_px over the deck); a carousel slide with the run's lead unit and its deck window (round 8)."""
         if kind == "story":
-            im, _ = gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
-                                            r.get("poll") or {}, tight=bool(rec.get("tight")),
-                                            title_px=int(r.get("title_px") or title_px or 0) or None)
-        else:
-            im, _ = gen._render_carousel_slide(
-                r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
-                int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
-                tight=bool(rec.get("tight")), subject=r.get("subject") or "",
-                heading_frame=int(r.get("heading_frame") or 2), lead=r.get("lead"),
-                window=int(r.get("window") or 0))
-        return im
+            # cycle 3 (lane D): poll {} as generate_story_sequence passes it since QF-80 (no frame asks the poll);
+            # an older recipe's poll would turn the reveal into a question frame and step its title down
+            return gen._render_story_frame(Path(r["photo"]), r["slide"], int(r["index"]), int(r["count"]),
+                                           {}, tight=bool(rec.get("tight")),
+                                           title_px=int(r.get("title_px") or title_px or 0) or None)
+        return gen._render_carousel_slide(
+            r["archetype"], Path(r["photo"]), Path(r["photo_next"]), r["card"], int(r["index"]),
+            int(r["total"]), r.get("poll") or {}, r.get("share") or "", bool(r.get("facebook")),
+            tight=bool(rec.get("tight")), subject=r.get("subject") or "",
+            heading_frame=int(r.get("heading_frame") or 2), lead=r.get("lead"),
+            window=int(r.get("window") or 0))
 
-    for case in fx.load("social"):
-        if not case.get("exact_recipes"):
-            continue
+    def swap_recipe(r: dict, entry: dict | None) -> dict:
+        """A recorded slide recipe with the copy set's words (cycle 3): the card's heading / body, the Story's lines,
+        the poll and the share prompt; the run's lead unit is dropped (it names the run's own figure)."""
+        if not entry or not r:
+            return r
+        r = dict(r)
+        k = int(r.get("index") or 0)
+        cards, stories = entry.get("carousel_slides") or [], entry.get("story_slides") or []
+        if r.get("card") is not None and cards:
+            r["card"] = {**r["card"], **cards[k % len(cards)]}
+            r["lead"] = None
+        if r.get("slide") is not None and stories:
+            r["slide"] = {**r["slide"], **stories[k % len(stories)]}
+        if r.get("poll") and entry.get("poll"):
+            r["poll"] = entry["poll"]
+        if r.get("share") and entry.get("share_prompt"):
+            r["share"] = entry["share_prompt"]
+        swapped.add("social")
+        return r
+
+    for n_case, case in enumerate(c for c in fx.load("social") if c.get("exact_recipes")):
         run = fx.path(case["run"])
+        entry = copy_set[n_case % len(copy_set)] if copy_set else None
 
-        def social(run=run):
-            from src.multi_format import story_title_px
+        def social(run=run, entry=entry):
+            from src import multi_format as mf
             gen = MultiFormatGenerator()
+            retired_frames = tuple(getattr(mf, "RETIRED_STORY_FRAMES", ()))
             for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb"), ("stories", "story")):
                 rec_file = run / sub / "still_layout.json"
                 if not rec_file.is_file():
                     continue
                 recs = json.loads(rec_file.read_text(encoding="utf-8"))
+                # cycle 3 (lane D verification): only what production delivers today. A retired Story frame (the
+                # poll's question, QF-80) is recorded, never drawn; the Story's count is the frames it still makes
+                for frame_name in sorted(recs):
+                    if kind == "story" and frame_name in retired_frames:
+                        result.setdefault("retired", {})[f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"] = (
+                            "retired frame kind (multi_format.RETIRED_STORY_FRAMES): production no longer makes or "
+                            "posts it; not drawn")
+                live = {k: v for k, v in recs.items() if not (kind == "story" and k in retired_frames)}
+                ordered = [r for r in (swap_recipe(v.get("recipe") or {}, entry) for v in live.values()) if r]
+                ordered.sort(key=lambda r: int(r.get("index", 0)))
                 title_px = None
+                current: dict[int, str] = {}
                 if kind == "story":   # cycle 0 round 8 (panel AD E1): the Story's ONE title size, as production
                     # passes it (multi_format.py: story_title_px over the Story's slides, poll {}); a recipe that
-                    # recorded its size keeps it
-                    slides = [r["slide"] for r in sorted(((v.get("recipe") or {}) for v in recs.values()),
-                                                         key=lambda r: int(r.get("index", 0))) if r]
-                    title_px = story_title_px(slides, poll={}) if slides else None
-                for frame_name, rec in sorted(recs.items()):
-                    r = rec.get("recipe") or {}
+                    # recorded its size keeps it. Cycle 3: over the frames production still makes
+                    slides = [r["slide"] for r in ordered]
+                    title_px = mf.story_title_px(slides, poll={}) if slides else None
+                elif ordered and hasattr(MultiFormatGenerator, "sequence_archetypes"):
+                    # cycle 3: every slide through today's archetype routing (a recorded archetype can be stale:
+                    # Richat's slides 4 and 5 recorded "comparison"); a recorded drawing slide keeps its poster
+                    routed = MultiFormatGenerator.sequence_archetypes([r["card"] for r in ordered])
+                    current = {int(r["index"]): a for r, a in zip(ordered, routed)}
+                for frame_name, rec in sorted(live.items()):
+                    r = swap_recipe(rec.get("recipe") or {}, entry)
                     if not r:
                         continue
                     key = f"social__{run.name[4:]}__{kind}_{Path(frame_name).stem}"
+                    if kind == "story" and len(ordered) != int(r.get("count") or 0):
+                        r = dict(r, count=len(ordered))
+                    if kind != "story" and r.get("archetype") != "diagram":
+                        now = current.get(int(r.get("index") or 0), r.get("archetype"))
+                        if now != r.get("archetype"):
+                            result.setdefault("rerouted", {})[key] = {"recorded": r.get("archetype"), "current": now}
+                            r = dict(r, archetype=now)
                     try:   # round 8: one frame's refusal never takes the run's other frames with it
-                        im = draw_social(gen, kind, r, rec, title_px)
+                        im, lay = draw_social(gen, kind, r, rec, title_px)
                     except LayoutError as e:   # a refusal: the one record shape {"refused", "class", "code"}
                         result["surfaces"][key] = refused(e)
                         continue
                     except Exception:  # noqa: BLE001
                         result["errors"][key] = traceback.format_exc()[-1200:]
                         continue
-                    if kind == "story":
-                        result.setdefault("story_title_px", {})[key] = int(r.get("title_px") or title_px or 0) or None
+                    if kind == "story":   # cycle 3: the frame's own layout record (the size it drew at)
+                        meta = getattr(lay, "meta", None) or {}
+                        result.setdefault("story_title_px", {})[key] = {
+                            "drawn": meta.get("title_px"), "story": meta.get("story_title_px"),
+                            "passed": int(r.get("title_px") or title_px or 0) or None}
                     frames_of(key, [im])
         job("social", f"social {run.name}", social)
 
@@ -518,8 +648,13 @@ def main() -> None:
         def esc(p: Path) -> str:
             return str(p.resolve()).replace("\\", "/").replace(":", "\\:")
 
-        for case in fx.load("captions"):
+        for n_case, case in enumerate(fx.load("captions")):
             words = json.loads(Path(fx.path(case["words"])).read_text(encoding="utf-8"))
+            if copy_set:   # cycle 3: the copy set's narration on the run's own word timing
+                entry = copy_set[n_case % len(copy_set)]
+                words = copy_words(words, entry)
+                case = {**case, "emphasis_words": entry.get("emphasis_words")}
+                swapped.add("captions")
             wide = case.get("format") == "16:9"
             t = float(words[min(3, len(words) - 1)]["start"]) + 0.05
             # the port adds a libass frame for 16:9 and the badge case (reconstruction on screen from the start)
@@ -547,6 +682,14 @@ def main() -> None:
         print(len(listed), "jobs listed")
         return
     result["brand_validation"] = brand_validation   # round 8: the fit corpus's verdict on the brand (None: default)
+    if board_inputs is not None:   # cycle 3: {path: sha256} of every data file this process read (board_inputs.py)
+        result["input_files"] = board_inputs.files()
+    if copy_set is not None:   # cycle 3: what the copy set replaced, and what drew its own (test or run) words
+        result["copy_set"] = {"file": str(a.copy_set), "sha256": hashlib.sha256(a.copy_set.read_bytes()).hexdigest(),
+                              "swapped": sorted(swapped),
+                              "unswapped": "graphics (recorded run inputs: places, figures, dates), then-and-now, "
+                                           "the cards (tests' fields) and the callout (tests' labels) keep their "
+                                           "own words"}
     result["count"] = len(result["surfaces"])
     a.out.write_text(json.dumps(result, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
     print(result["count"], "surfaces,", len(result["errors"]), "errors,", round(sum(result["seconds"].values())), "s")

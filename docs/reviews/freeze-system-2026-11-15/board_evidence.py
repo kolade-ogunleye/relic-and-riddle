@@ -16,11 +16,15 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
 
 REAL, STAND_IN, FORCED = "REAL", "STAND-IN", "FORCED"
+# cycle 3 (lane E): a 16:9 end-screen case's ground as board_motion.wide_last found it: index -> (class, why); filled
+# where the ground is drawn (board_motion._end_jobs) and from render_surfaces.py's "wide_grounds" record
+WIDE_GROUNDS: dict[int, tuple[str, str]] = {}
 
 
 # ---------------------------------------------------------------------------------------------- refusals as records
@@ -56,26 +60,39 @@ def guarded(surface: str, fn, *a, default=None, **k):
 
 def captured(fn, *a, **k):
     """fn(*a, **k) in a board.py --workers process: (its value, the refusals it recorded in this process's REFUSED),
-    so the board process records them (replay) where the one-process board would have."""
+    so the board process records them (replay) where the one-process board would have; cycle 3: and the data files
+    this worker process has read so far (board_inputs.py), for the board's input record."""
     n = len(REFUSED)
     value = fn(*a, **k)
-    return value, REFUSED[n:]
+    try:
+        import board_inputs
+        read = board_inputs.files()
+    except ImportError:
+        read = {}
+    return value, REFUSED[n:], read
+
+
+WORKER_INPUTS: dict[str, str] = {}   # the union of the worker processes' reads (board_inputs.py), for board.json
 
 
 def replay(future):
     """A captured call's value; its refusals appended to REFUSED now (an exception in the worker is raised here)."""
-    value, refused = future.result()
+    value, refused, *rest = future.result()
     REFUSED.extend(refused)
+    if rest:
+        import board_inputs
+        board_inputs.merge(WORKER_INPUTS, rest[0])
     return value
 
 
-def refusal_tile(surface: str, reason: str, size=(960, 540)):
-    """A grey tile that says the surface was refused and why (its row shows the refusal, never a gap)."""
+def refusal_tile(surface: str, reason: str, size=(960, 540), word: str = "REFUSED"):
+    """A grey tile that says the surface was refused (or, `word` RAISED, failed) and why (its row shows the
+    refusal, never a gap)."""
     from PIL import Image, ImageDraw, ImageFont
     im = Image.new("RGB", size, (70, 70, 70))
     d = ImageDraw.Draw(im)
     f = ImageFont.load_default(size=26)
-    words, lines, cur = f"REFUSED  {surface}:  {reason}".split(), [], ""
+    words, lines, cur = f"{word}  {surface}:  {reason}".split(), [], ""
     for w in words:
         if cur and d.textlength(f"{cur} {w}", font=f) > size[0] - 40:
             lines.append(cur)
@@ -87,7 +104,11 @@ def refusal_tile(surface: str, reason: str, size=(960, 540)):
         d.text((20, 20 + 32 * i), ln, fill=(255, 220, 120), font=f)
     return im
 CARD_GROUNDS = {"richat": "Richat Structure", "amber": "Amber Room", "obelisk": "unfinished obelisk (Aswan)"}
-RICHAT_COPY = ("myth_richat", "chapter_act1", "chapter_act4", "hook")
+# the card grounds' topics (render_surfaces.py's cards job draws these three heroes): where a run of that topic
+# records a card field, its copy is the real pairing (run_card_fields says whether one exists)
+CARD_GROUND_TOPICS = {"richat": "richat_structure_sahara_eye", "amber": "amber_room_heist",
+                      "obelisk": "unfinished_obelisk_aswan"}
+RICHAT_COPY = ("myth_richat", "chapter_act1", "chapter_act4")
 # names whose kind is a probe by construction: each must match a STAND-IN / FORCED rule or a stated REAL rule
 PROBE_PREFIXES = ("card__", "callouts__", "captions__", "route__", "timeline_dense__", "cross_section__",
                   "cover_badge__", "thumbnail_badge__", "endscreen__")
@@ -101,6 +122,43 @@ def _endcard_labels() -> dict[int, str]:
         return {}
 
 
+def run_topic(run: str) -> str:
+    """A run folder's topic (run_<topic>_<id>[_suffix], or the same without run_)."""
+    return re.sub(r"_\d{9,}(_[a-z]+)?$", "", run[4:] if run.startswith("run_") else run)
+
+
+def run_card_fields(topic: str) -> tuple[int, int]:
+    """(runs of `topic` in the dev checkout, card fields their design-card sheets record): read, never assumed, so
+    a STAND-IN card says why no real pairing was drawn (cycle 3: real copy wherever a run has it)."""
+    key = ("card_fields", topic)
+    if key in _CACHE:
+        return _CACHE[key]
+    dev = Path(os.environ.get("RR_FIXTURE_REPO") or ".")
+    runs = fields = 0
+    for p in sorted((dev / "output").glob(f"run_{topic}_*/verified_script.json")):
+        if run_topic(p.parent.name) != topic:
+            continue
+        runs += 1
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            sp = d.get("design_card_sheet") or (d.get("fact_review") or {}).get("sheet_path")
+            cards = (json.loads(Path(sp).read_text(encoding="utf-8")).get("cards") or {}) if sp else {}
+            fields += sum(len(v) for k, v in cards.items() if k != "dropped" and isinstance(v, list))
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+    _CACHE[key] = (runs, fields)
+    return runs, fields
+
+
+_CACHE: dict = {}
+
+
+def _no_card_field(g: str) -> str:
+    runs, fields = run_card_fields(CARD_GROUND_TOPICS[g])
+    return (f"{runs} run(s) of this ground in the dev checkout, {fields} card field(s) in their sheets"
+            + ("" if fields else ": no real card copy exists for this ground"))
+
+
 def pairing(name: str) -> tuple[str, str]:
     """(class, why) for a tile name."""
     n = name.split(" | ")[0]
@@ -109,18 +167,26 @@ def pairing(name: str) -> tuple[str, str]:
         forced = " (the illustration flag forced on)" if n.startswith(("cover_badge__", "thumbnail_badge__")) else ""
         if m.group(1) == "none":
             return STAND_IN, f"cross-run copy probe{forced}: no board hero's copy passes cover_fit for this surface"
+        if run_topic(m.group(1)) == n.split("__")[1]:   # cycle 3: another run of this ground's own topic
+            return (FORCED if forced else REAL), (
+                f"the ground's own topic: run {m.group(1)}'s verified copy{forced} (the board run's own copy is "
+                "refused for this surface; this run of the same topic passes cover_fit)")
         return STAND_IN, (f"cross-run copy: run {m.group(1)}'s verified copy on this ground{forced}, a board hero's "
                           "copy that passes cover_fit for this surface, taken in board order (the run's own copy is "
-                          "refused)")
+                          "refused and no other run of this topic passes)")
     m = re.match(r"card__(\w+?)__(richat|amber|obelisk)__", n)
     if m:
         maker, g = m.groups()
         if maker == "myth_long_et":
             return STAND_IN, f"test stress copy (LONG_ET) on the {CARD_GROUNDS[g]} photo"
-        if maker in RICHAT_COPY or maker.startswith("hook"):
+        if maker.startswith("hook"):   # cycle 3: the claim is the tests' own sheet's (f_len), never a run's field
+            return STAND_IN, (f"the tests' hook claim (their own fact sheet, signed with the test key) on the "
+                              f"{CARD_GROUNDS[g]} photo; {_no_card_field(g)}")
+        if maker in RICHAT_COPY:
             if g == "richat":
                 return REAL, "the Richat card copy on the Richat photo (tests' committed card fields)"
-            return STAND_IN, f"the Richat card copy on the {CARD_GROUNDS[g]} photo (cross-run pairing)"
+            return STAND_IN, (f"the Richat card copy on the {CARD_GROUNDS[g]} photo (cross-run pairing); "
+                              f"{_no_card_field(g)}")
     if n.startswith("callouts__reference_pair"):
         return STAND_IN, "the operator's reference pair labels (tests) on the Amber Room photo; no run drew a callout"
     if n.startswith("captions__") and "__badge" in n:
@@ -140,6 +206,8 @@ def pairing(name: str) -> tuple[str, str]:
     if "antikythera" in n:
         return STAND_IN, "the Antikythera photo with the Aswan run's copy (no Antikythera run)"
     m = re.match(r"(endscreen|endcard|bridge|bridge_follow)__(\d+)_", n)
+    if m and m.group(1) == "endscreen" and int(m.group(2)) in WIDE_GROUNDS:   # cycle 3: what the ground really is
+        return WIDE_GROUNDS[int(m.group(2))]
     if m:
         lab = _endcard_labels().get(int(m.group(2)), "")
         if "stands in" in lab:
@@ -379,8 +447,79 @@ FEEDS = {
     "yt_home": {"title": "YouTube home", "w": 246, "aspect": (16, 9), "cols": 3, "gap": 16, "bg": (255, 255, 255)},
     "yt_suggested": {"title": "YouTube suggested", "w": 168, "aspect": (16, 9), "cols": 1, "gap": 8, "bg": (255, 255, 255)},
     "fb_feed": {"title": "Facebook feed", "w": 390, "aspect": None, "cols": 3, "gap": 24, "bg": (240, 242, 245)},
+    # cycle 3: a Facebook Page's Reels tab (the operator's captures: 12 tiles, ~312 x 545 px each, every one the first
+    # frame of a comparable Reel); our designed Reel cover and our Reel's first frame among them at that tile size
+    "fb_reels": {"title": "Facebook Page Reels tab", "w": 312, "aspect": (312, 545), "cols": 3, "gap": 4,
+                 "bg": (240, 242, 245)},
 }
 PEER_SLOTS = 8
+
+
+# Facebook's multi-photo post in the feed (operator evidence, evidence/peers/fb_feed/peer_01.png, a 1137 px wide
+# capture): the first 5 photos as a collage, 2 square halves on top and 3 square thirds below, a 4 px gap at 1137 px
+# (measured: top tiles x 0-566 / 570-1137, y 230-796; bottom x 0-376 / 380-756 / 760-1137, y 800-1177), "+N" over the
+# 5th when the post has more. The feed never shows the first photo alone.
+FB_COLLAGE_GAP = 4 / 1137
+FB_COLLAGE_PHOTOS = 5
+
+
+def fb_post_slides(run_dir: Path, current: dict[str, str] | None = None) -> list[str]:
+    """The Facebook copy's slide files (carousel_fb/carousel_slide_NN.jpg) the publisher posts, in its order:
+    multi_format.facebook_pick over the run's Facebook slides (at most FACEBOOK_PHOTOS: the cover, the strongest
+    middles, the closing slide), reading each slide's record with today's archetype (`current`: file name ->
+    archetype, render_surfaces.py's "rerouted"), as production records it now. [] when the run has no Facebook copy."""
+    from src import still_layout
+    from src.multi_format import facebook_pick
+    d = Path(run_dir) / "carousel_fb"
+    slides = sorted(str(p) for p in d.glob("carousel_slide_*.jpg"))
+    if not slides:
+        return []
+    real = still_layout.load
+
+    def load(still):
+        rec = real(still)
+        name = Path(still).name
+        if rec and current and name in current and (rec.get("recipe") or {}).get("archetype") != current[name]:
+            rec = {**rec, "recipe": {**(rec.get("recipe") or {}), "archetype": current[name]}}
+        return rec
+    still_layout.load = load
+    try:
+        return [Path(p).name for p in facebook_pick(slides)]
+    finally:
+        still_layout.load = real
+
+
+def fb_collage_boxes(w: int) -> list[tuple[int, int, int, int]]:
+    """The 5 photo boxes of a Facebook multi-photo post `w` px wide: two square halves, then three square thirds."""
+    g = max(1, round(w * FB_COLLAGE_GAP))
+    top = (w - g) // 2
+    bot = (w - 2 * g) // 3
+    boxes = [(0, 0, top, top), (top + g, 0, w, top)]
+    y = top + g
+    xs = [0, bot + g, 2 * (bot + g)]
+    boxes += [(x, y, (x + bot) if k < 2 else w, y + bot) for k, x in enumerate(xs)]
+    return boxes
+
+
+def fb_collage(photos: list, w: int = 1137):
+    """`photos` (a deck's Facebook slides, in order) as Facebook's feed draws a multi-photo post: the first 5 each
+    centre-cropped into its box (fb_collage_boxes), "+N" over the 5th when there are N more."""
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
+    boxes = fb_collage_boxes(w)
+    out = Image.new("RGB", (w, boxes[-1][3]), (39, 39, 39))   # the gap colour of the capture (dark mode)
+    for box, im in zip(boxes, photos[:FB_COLLAGE_PHOTOS]):
+        size = (box[2] - box[0], box[3] - box[1])
+        out.paste(ImageOps.fit(im.convert("RGB"), size, Image.LANCZOS), box[:2])
+    more = len(photos) - FB_COLLAGE_PHOTOS
+    if more > 0:
+        x0, y0, x1, y1 = boxes[-1]
+        tile = out.crop(boxes[-1]).convert("RGBA")
+        tile.alpha_composite(Image.new("RGBA", tile.size, (0, 0, 0, 90)))
+        d = ImageDraw.Draw(tile)
+        f = ImageFont.load_default(size=max(10, round((y1 - y0) * 0.2)))
+        d.text((tile.width / 2, tile.height / 2), f"+{more}", fill=(255, 255, 255), font=f, anchor="mm")
+        out.paste(tile.convert("RGB"), (x0, y0))
+    return out
 
 
 def feed_tile(im, feed: str):
@@ -397,28 +536,67 @@ def _topic(name: str) -> str:
     return re.sub(r"_\d{9,}.*$", "", name.split("__")[1]) if "__" in name else name
 
 
+PEER_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def supplied_peers(peers_dir: Path | None, feed: str) -> list[tuple[str, Any]]:
+    """The peer posts supplied for `feed` (<peers_dir>/<feed>/*.jpg|png|webp, sorted); none when that folder is
+    missing or empty (cycle 3: a partial --peers dir fills the feeds it has files for)."""
+    from PIL import Image
+    d = peers_dir / feed if peers_dir else None
+    if d is None or not d.is_dir():
+        return []
+    out = []
+    for p in sorted(d.iterdir()):
+        if p.suffix.lower() in PEER_SUFFIXES:
+            with Image.open(p) as im:
+                out.append((p.name, im.convert("RGB")))
+    return out
+
+
+def peer_note(feed: str, n_supplied: int, peers_dir: Path | None) -> str:
+    """What fills a feed's peer slots: supplied posts, STAND-INs (the channel's own other runs) or both."""
+    if n_supplied >= PEER_SLOTS:
+        return (f"PEERS: {n_supplied} supplied posts ({peers_dir / feed})" + (
+            f", {PEER_SLOTS} per block, each block the next {PEER_SLOTS} in turn" if n_supplied > PEER_SLOTS else ""))
+    why = (f"no peer posts supplied: board.py --peers <dir> with <dir>/{feed}/*.jpg" if peers_dir is None else
+           f"{peers_dir / feed} holds {n_supplied} post(s)")
+    if n_supplied:
+        return (f"PEERS: {n_supplied} supplied posts ({peers_dir / feed}); the other {PEER_SLOTS - n_supplied} "
+                f"slots STAND-IN, the channel's own other runs ({why})")
+    return f"PEER SLOTS: STAND-IN, the channel's own other runs ({why})"
+
+
 def peer_feed(feed: str, ours: list[tuple[str, Any]], pool: list[tuple[str, Any]], peers_dir: Path | None):
     """(tiles for board.sheet, note): per our tile, a mocked feed block of PEER_SLOTS + 1 tiles with ours in the
-    middle, at real size. Peers from peers_dir/<feed>/ when it holds images, else the channel's other runs (pool),
-    labelled STAND-IN."""
+    middle, at real size. The slots take the posts supplied in peers_dir/<feed>/ first, each once, and the rest the
+    channel's other runs (pool); every slot's legend says PEER or STAND-IN (cycle 3: a partial --peers dir fills
+    what it has, a feed without posts stays STAND-IN and says so)."""
     from PIL import Image, ImageDraw, ImageFont
     spec = FEEDS[feed]
-    supplied = []
-    if peers_dir and (peers_dir / feed).is_dir():
-        supplied = [(p.name, Image.open(p).convert("RGB")) for p in sorted((peers_dir / feed).iterdir())
-                    if p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")]
-    note = (f"PEERS: {len(supplied)} supplied posts ({peers_dir / feed})" if supplied else
-            "PEER SLOTS: STAND-IN, the channel's own other runs (no peer posts supplied: board.py --peers "
-            f"<dir> with <dir>/{feed}/*.jpg)")
+    every = supplied_peers(peers_dir, feed)
+    note = peer_note(feed, len(every), peers_dir)
     tiles = []
     f = ImageFont.load_default(size=14)
-    for name, im in ours:
-        peers = supplied or [(n, p) for n, p in pool if _topic(n) != _topic(name)]
-        if not peers:
-            continue
-        slots = [feed_tile(peers[k % len(peers)][1], feed) for k in range(PEER_SLOTS)]
-        names = [peers[k % len(peers)][0] for k in range(PEER_SLOTS)]
-        mid = PEER_SLOTS // 2
+    for j, (name, im) in enumerate(ours):
+        # more posts than slots: each block takes the next PEER_SLOTS in turn, so every supplied post is shown
+        start = (j * PEER_SLOTS) % len(every) if len(every) > PEER_SLOTS else 0
+        supplied = (every[start:] + every[:start])[:PEER_SLOTS]
+        mixed = 0 < len(supplied) < PEER_SLOTS   # each slot says which it is (all STAND-IN: the title says so)
+        peers = [(f"PEER {n}" if mixed else n, p) for n, p in supplied]
+        others = [(f"STAND-IN {n}" if mixed else n, p) for n, p in pool if _topic(n) != _topic(name)]
+        block_note = note
+        if len(peers) < PEER_SLOTS:
+            if not others and not peers:
+                continue
+            if others:
+                peers += [others[k % len(others)] for k in range(PEER_SLOTS - len(peers))]
+            else:   # no other run to stand in: the supplied posts once each, never repeated as if more peers
+                block_note = (f"PEERS: {len(peers)} supplied post(s) ({peers_dir / feed}), each once; no STAND-IN "
+                              "for this block (no other run of the channel has this surface)")
+        slots = [feed_tile(p, feed) for _n, p in peers]
+        names = [n for n, _p in peers]
+        mid = min(PEER_SLOTS // 2, len(peers))
         slots.insert(mid, feed_tile(im, feed))
         names.insert(mid, f"OURS {name}")
         cols = spec["cols"]
@@ -441,5 +619,8 @@ def peer_feed(feed: str, ours: list[tuple[str, Any]], pool: list[tuple[str, Any]
         out = Image.new("RGB", (W, H + legend.height), (255, 255, 255))
         out.paste(block, (0, 0))
         out.paste(legend, (0, H))
-        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1} | {note}", out))
+        what = name.split(" | ")[0]   # cycle 3: which of ours the block holds (a Reel's first frame says so first)
+        if what.startswith("REEL FIRST FRAME"):
+            what = f"{what}: {name.split(' | ')[1]}"
+        tiles.append((f"{spec['title']} at {spec['w']} px | ours: slot {mid + 1}, {what} | {block_note}", out))
     return tiles, note

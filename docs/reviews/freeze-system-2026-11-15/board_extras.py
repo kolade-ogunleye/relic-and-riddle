@@ -88,7 +88,7 @@ def youtube_standins(dev: Path, heroes, hero: Path, made: dict[str, Any], name: 
         n = len(be.REFUSED)
         yt = youtube(hero, payload, d / f"yt{STANDIN_COPY_TAG}{run}.jpg")
         out.append({"name": f"{name}{STANDIN_COPY_TAG}{run[4:]}", "image": yt["image"], "masthead": yt["masthead"],
-                    "label": f"{why}; {standin_label(run, 'youtube', k)}",
+                    "label": f"{why}; {standin_label(run, 'youtube', k, ASWAN_COVER_RUN)}",
                     "refused": (be.REFUSED[-1][2] if len(be.REFUSED) > n else "refused") if yt["image"] is None
                     else None})
         if yt["image"] is not None:
@@ -154,17 +154,44 @@ def fits(payload: dict[str, Any], surface: str) -> list[str]:
                                   youtube=yt, reel=not yt, payload=payload)
 
 
+def topic_runs(dev: Path, topic: str) -> list[tuple[str, dict[str, Any]]]:
+    """(run, verified payload) for every run of `topic` in the dev checkout, in folder order (cycle 3: the real
+    copy of a ground is first its own topic's runs)."""
+    import board_evidence as be
+    out = []
+    for p in sorted((dev / "output").glob(f"run_{topic}_*/verified_script.json")):
+        if be.run_topic(p.parent.name) == topic:
+            out.append((p.parent.name, json.loads(p.read_text(encoding="utf-8"))))
+    return out
+
+
 def standin_copies(dev: Path, heroes, surface: str, refused_run: str) -> list[tuple[str, dict[str, Any]]]:
-    """[(run, payload)]: the board heroes' copies, other than `refused_run`'s, that pass cover_fit on `surface`, in
-    board order (the first is the stand-in; the next ones are drawn only while the render still refuses one)."""
+    """[(run, payload)] that pass cover_fit on `surface`, other than `refused_run`: first the other runs of the
+    refused run's own topic (the ground's real copy, cycle 3), then the board heroes' copies in board order (a
+    cross-run STAND-IN). The first is drawn; the next ones only while the render still refuses one."""
     key = ("standin", tuple(heroes), surface, refused_run)
     if key not in _cache:
-        _cache[key] = [(run, p) for run, p in hero_copies(dev, heroes) if run != refused_run and not fits(p, surface)]
+        import board_evidence as be
+        own = topic_runs(dev, be.run_topic(refused_run))
+        seen = {refused_run}
+        found = []
+        for run, p in own + hero_copies(dev, heroes):
+            if run in seen:
+                continue
+            seen.add(run)
+            if not fits(p, surface):
+                found.append((run, p))
+        _cache[key] = found
     return _cache[key]
 
 
-def standin_label(run: str, surface: str, k: int = 0) -> str:
+def standin_label(run: str, surface: str, k: int = 0, refused_run: str = "") -> str:
+    import board_evidence as be
     what = "YouTube thumbnail" if surface == "youtube" else "Reel cover"
+    if refused_run and be.run_topic(run) == be.run_topic(refused_run):
+        return (f"copy: run {run[4:]}'s verified copy, the first other run of this topic whose copy passes cover_fit "
+                f"for the {what}" + (f" and draws ({k} before it refused by the render)" if k else "")
+                + "; beside the refused tile")
     return (f"copy: run {run[4:]}'s verified copy, the first board hero whose copy passes cover_fit for the {what}"
             + (f" and draws (the {k} before it pass cover_fit but the render refuses them)" if k else "")
             + "; beside the refused tile")

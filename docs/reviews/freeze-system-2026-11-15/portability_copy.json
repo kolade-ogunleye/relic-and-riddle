@@ -1,0 +1,68 @@
+[
+ {
+  "niche": "nature",
+  "title": "Why Does This Bird Fly Nine Days Without Landing?",
+  "youtube_title": "The Longest Flight Without Landing",
+  "thumbnail": {"eyebrow": "OPEN OCEAN", "line1": "NINE DAYS", "line2": "WITHOUT LANDING", "tagline": "ONE TINY WADER"},
+  "carousel_slides": [
+   {"heading": "NINE DAYS ALOFT", "body": "A small wading bird crosses the open Pacific without a single stop to rest or feed."},
+   {"heading": "FUEL BEFORE FLIGHT", "body": "Before it leaves, the bird nearly doubles its weight, then shrinks its gut to fly lighter."},
+   {"heading": "STEERED BY WIND", "body": "It times the departure to ride a tailwind from a passing storm system."},
+   {"heading": "YOUR TAKE?", "body": "Which part of the journey surprises you most?"}
+  ],
+  "story_slides": [
+   {"kicker": "WILD JOURNEYS", "line1": "NINE DAYS", "line2": "IN THE AIR", "body": "A wader crosses an ocean without landing once."},
+   {"kicker": "HOW IT WORKS", "line1": "FAT FIRST", "line2": "THEN FLY", "body": "It doubles its weight before the flight."}
+  ],
+  "share_line": "Send this to a friend who loves wild journeys, and follow for the next one.",
+  "share_prompt": "Send this to someone who loves wild journeys.",
+  "poll": {"question": "Could you fly nine days?", "options": ["Not a chance", "With snacks"]},
+  "narration_script": "Every autumn a small wading bird leaves the far north and flies across the open Pacific for nine days without landing. Before it goes it nearly doubles its weight, then shrinks its own gut to fly lighter. It waits for a storm to pass and rides the tailwind south.",
+  "emphasis_words": ["nine", "without", "doubles"],
+  "hook_sentence": "This bird flies for nine days without landing."
+ },
+ {
+  "niche": "science",
+  "title": "Life That Never Sees the Sun",
+  "youtube_title": "Life Around a Boiling Deep-Sea Vent",
+  "thumbnail": {"eyebrow": "DEEP OCEAN", "line1": "BOILING WATER", "line2": "STILL ALIVE", "tagline": "NO SUNLIGHT NEEDED"},
+  "carousel_slides": [
+   {"heading": "A CHIMNEY OF HEAT", "body": "On the sea floor, mineral chimneys vent water far hotter than a kettle."},
+   {"heading": "FOOD FROM CHEMISTRY", "body": "Microbes there live on chemical energy instead of sunlight."},
+   {"heading": "A WHOLE COMMUNITY", "body": "Tube worms, shrimp and crabs crowd around the warm water to feed."},
+   {"heading": "YOUR TAKE?", "body": "Would life elsewhere look like this?"}
+  ],
+  "story_slides": [
+   {"kicker": "DEEP SEA", "line1": "NO SUN", "line2": "STILL LIFE", "body": "Whole communities live on vent chemistry."},
+   {"kicker": "THE SCIENCE", "line1": "HEAT AND", "line2": "MINERALS", "body": "Microbes turn chemicals into food."}
+  ],
+  "share_line": "Share this with a friend who loves strange science, and follow for more.",
+  "share_prompt": "Share this with someone who loves strange science.",
+  "poll": {"question": "Life on other worlds?", "options": ["Under the ice", "Nowhere else"]},
+  "narration_script": "Far below the reach of sunlight, mineral chimneys on the sea floor vent water hotter than a boiling kettle. Microbes there feed on chemical energy instead of light, and tube worms, shrimp and crabs gather around them in the dark.",
+  "emphasis_words": ["sunlight", "boiling", "dark"],
+  "hook_sentence": "These animals live where sunlight never reaches."
+ },
+ {
+  "niche": "true crime",
+  "title": "The Vault That Was Opened From the Inside",
+  "youtube_title": "A Locked Vault, an Empty Floor and No Way In",
+  "thumbnail": {"eyebrow": "COLD CASE", "line1": "LOCKED FROM", "line2": "THE INSIDE", "tagline": "NO WAY IN, NO WAY OUT"},
+  "carousel_slides": [
+   {"heading": "A SEALED ROOM", "body": "The vault door was found locked, its alarm silent and its floor swept clean."},
+   {"heading": "NO FORCED ENTRY", "body": "Investigators found no broken seal, no tunnel and no tool marks on the lock."},
+   {"heading": "ONE OPEN QUESTION", "body": "Every theory leaves one detail that the evidence does not explain."},
+   {"heading": "YOUR TAKE?", "body": "Inside job, or something cleverer?"}
+  ],
+  "story_slides": [
+   {"kicker": "COLD CASE", "line1": "LOCKED", "line2": "FROM INSIDE", "body": "No broken seal, no tunnel, no tool marks."},
+   {"kicker": "THE EVIDENCE", "line1": "ONE DETAIL", "line2": "UNEXPLAINED", "body": "Every theory leaves a question open."}
+  ],
+  "share_line": "Send this to the friend who always solves the case, and follow for the next one.",
+  "share_prompt": "Send this to the friend who always solves the case.",
+  "poll": {"question": "How was it opened?", "options": ["Inside job", "A hidden way in"]},
+  "narration_script": "The vault was found locked, its alarm silent and its floor swept clean. There was no broken seal, no tunnel and not a single tool mark on the lock, and every theory since has left one detail that the evidence does not explain.",
+  "emphasis_words": ["locked", "silent", "evidence"],
+  "hook_sentence": "The vault was locked from the inside."
+ }
+]

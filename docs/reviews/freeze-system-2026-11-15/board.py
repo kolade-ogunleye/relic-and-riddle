@@ -29,6 +29,17 @@ rows 1, 2, 12 and 13 itself. Output: <out>/rowNN_<name>.png (full size) and _hal
 <out>/surfaces/*.png (every surface's last frame), <out>/surfaces.json (hashes, errors, the src hash), and
 <out>/board.json (what each row holds, the inputs and the src hash: the manifest's builder part).
 
+Cycle 3 (lane BOARD, queue/BOARD-cycle3.md): board.json "tree" stamps the code (HEAD, the drawn paths' tree ids,
+dirty paths, the full src hash, the board tools' hash) and "inputs" the union of every data file the board read
+(board_inputs.py); <out>/INPUT_HASHES.json gives freeze_manifest.py each media file's input hash. Rows 9 and 12 encode
+the end screen, end card and both loop bridges (with and without FOLLOW) on every board ground with a catalogue case
+(--end-topics narrows them; the first ground keeps the unsuffixed row-12 names, the others add __<topic>); the rise
+strip is cut from the share block measured on the rest frame. A refused YouTube thumbnail's probe takes another run
+of the ground's own topic first (REAL) before a cross-run STAND-IN. Every row draws a REFUSED / RAISED tile for each
+of its surfaces render_surfaces.py refused or failed. Row 13 is generated (board_table.py). --peers fills what a
+partial peer dir holds. --portability <jobs> draws a lane's candidate in the default palette, the second palette and
+the non-history copy set side by side (board_portability.py).
+
 Heroes (the brief's worst cases): near-white / bright = unfinished_obelisk_aswan (run 1792985912), busy / dark =
 amber_room_heist (1792790550) and wieliczka_salt_mine (1792974672), longest copy = richat_structure_sahara_eye
 (1793272675 carousel, 1792740961_long captions / end screen). Rows 3-11 tile every surface render whose name holds one
@@ -63,15 +74,62 @@ ROWS = {   # row -> (name, render_surfaces name prefixes)
 FIX = Path("docs") / "reviews" / "freeze-panel-2026-11-04" / "fixtures"
 
 
-def hero_pick(pick):
+def hero_pick(pick, stem=lambda p: p.stem):
     """Per surface kind (the name's first part), the board's hero cases when the kind has any, else every case of the
     kind (so a kind no hero has, such as then-and-now or the callout, is still on its row)."""
     kinds: dict[str, list] = {}
     for p in pick:
-        kinds.setdefault(p.stem.split("__")[0], []).append(p)
+        kinds.setdefault(stem(p).split("__")[0], []).append(p)
     out = []
     for ps in kinds.values():
-        out += [p for p in ps if any(h in p.stem for h in HEROES)] or ps
+        out += [p for p in ps if any(h in stem(p) for h in HEROES)] or ps
+    return out
+
+
+def on_row(r: int, prefixes: tuple[str, ...], stem: str) -> bool:
+    """Whether render_surfaces.py's surface `stem` belongs on row `r` (the one filter for drawn and refused ones)."""
+    if not stem.startswith(prefixes):
+        return False
+    if r == 4:
+        return stem.endswith("youtube")
+    if r == 3:
+        return stem.endswith(("reel", "grid"))
+    if r == 5:
+        return "__carousel_" in stem or "__fb_" in stem
+    if r == 6:
+        return "__story_" in stem
+    if r == 8:   # the hook's clip ends after its type has faded: its frames come from the hold (row 8's hook frames)
+        return not stem.startswith("card__hook__")
+    if r == 11:   # the callout's last frame is after the exit: its held frame is drawn by the board
+        return (not stem.startswith("captions__") or "__badge" in stem) and not stem.startswith("callouts__")
+    return True
+
+
+def undrawn_tiles(r: int, prefixes: tuple[str, ...], pngs: set[str], surfaces: dict | None) -> list[tuple[str, object]]:
+    """Cycle 3 (p3 BC row 4, TY backlog): a REFUSED tile, with its recorded reason, for every surface of this row
+    that render_surfaces.py refused (and an ERROR tile for one that raised), picked like the drawn ones (hero
+    cases first per kind), so a refusal is on its own row, not only in row 2 and the refusal table."""
+    import board_evidence as be
+    recs = (surfaces or {}).get("surfaces") or {}
+    errs = (surfaces or {}).get("errors") or {}
+    names = sorted({n for n, rec in recs.items() if isinstance(rec, dict) and "refused" in rec}
+                   | {n for n in errs if "__" in n})
+    names = [n for n in names if n not in pngs and on_row(r, prefixes, n)]
+    # chosen among every case of the row, drawn or not, so a refused hero case shows where its drawn twin would
+    keep = set(hero_pick(sorted(pngs | set(names)), stem=lambda n: n)) & set(names)
+    out = []
+    for n in names:
+        if n not in keep:
+            continue
+        if n in recs and "refused" in recs[n]:
+            rec = recs[n]
+            why = f"{rec['refused']}" + (f" [{rec.get('class')}{' ' + rec['code'] if rec.get('code') else ''}]"
+                                         if rec.get("class") else "")
+            out.append((be.label(n, "REFUSED (render_surfaces.py)"), be.refusal_tile(n, why)))
+        else:
+            last = [ln for ln in str(errs[n]).strip().splitlines() if ln.strip()]
+            out.append((be.label(n, "ERROR (render_surfaces.py)"),
+                        be.refusal_tile(n, last[-1][:300] if last else "?", word="RAISED")))
     return out
 
 
@@ -192,6 +250,16 @@ def fit_sample(text: str, font, track: float, room: float) -> str:
     return s + "..."
 
 
+SPECIMEN_FACE_WEIGHTS = {"display": None, "text": 600, "data": 600, "masthead": 700}   # row 1's weight per face
+
+
+def specimen_weights() -> dict[str, object]:
+    """The weight row 1's specimen draws per role (the kicker at 800, else its face's), for row 13's weight table."""
+    from src import brand_system
+    return {role: 800 if role == "kicker" else (SPECIMEN_FACE_WEIGHTS[brand_system.FACE[role]] or "regular")
+            for role in brand_system.FACE}
+
+
 def row1_specimen(out: Path, dev: Path) -> list[str]:
     """Every type role at its token size (true px), face, weight and tracking, per canvas: one sheet on INK and one
     over a real hero under the held plate tier."""
@@ -201,7 +269,7 @@ def row1_specimen(out: Path, dev: Path) -> list[str]:
     from src import brand, brand_system
     from src.typography import get_font, plan_text
     hero = Image.open(dev / "assets" / "unfinished_obelisk_aswan" / "01_commons.jpg").convert("RGB")
-    weights = {"display": None, "text": 600, "data": 600, "masthead": 700}
+    weights = SPECIMEN_FACE_WEIGHTS
     # each role's sample: real copy (the Richat run's cover, heading, body and poll lines), the second line set at the
     # role's line step (its lead token) so the leading is seen, not described
     sample = {"display_xl": ("THE EYE", "OF THE SAHARA"), "display_l": ("IMPACT THEORY", "DISPROVED"),
@@ -303,6 +371,7 @@ def reveal_frame(hero_path: str, size: tuple[int, int], dev: str):
 # --workers (board tooling only; every output identical to the one-process board's): the composed rows' slow,
 # independent draws run in worker processes, started before row 1 and taken up where the one-process board draws them
 PREFETCH: dict = {}   # key -> Future of board_evidence.captured(...)
+END_TOPICS: list[str] = []   # cycle 3: the grounds whose end sequences rows 9 and 12 encode (main: --end-topics)
 
 
 def prefetched(key):
@@ -321,6 +390,8 @@ def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     sys.path[0:0] = [here, str(Path(tree) / FIX), tree]
     import board_speed
     board_speed.install()
+    import board_inputs   # cycle 3: this worker's reads join the board's input record (board_evidence.captured)
+    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[tempfile.gettempdir() + os.sep + "board-"])
     if brand_name == "second":
         sys.path.insert(0, str(Path(tree) / "docs/reviews/quality-fixes-2026-11/QF-35a"))
         import render_surfaces
@@ -346,12 +417,15 @@ def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -
                 done.append(f"row 2 {g} {what}")
 
     def end(names):
-        for name in names:
-            bm.PREFETCH[(bm.END_TOPIC, name)] = pool.submit(be.captured, bm.draw_end, clips, bm.END_TOPIC, name)
-            done.append(f"end sequence {name}")
+        for topic in END_TOPICS:
+            for name in bm.end_names(topic):
+                if name in names:
+                    bm.PREFETCH[(topic, name)] = pool.submit(be.captured, bm.draw_end, clips, topic, name)
+                    done.append(f"end sequence {name} ({topic})")
     if rows & {9, 12}:
-        bm._end_jobs(bm.END_TOPIC)   # the fixture frames extracted (cached) here once, before the workers read them
-    # the order (the pool takes them first in, first out): row 2's end screens (~470 s each), the 16:9 end sequence
+        for topic in END_TOPICS:   # the fixture frames extracted (cached) here once, before the workers read them
+            bm._end_jobs(topic)
+    # the order (the pool takes them first in, first out): row 2's end screens (~470 s each), the 16:9 end sequences
     # (~800 s, the longest), row 2's end cards (~100 s), the other end sequences and the callout
     if 2 in rows:
         reveal(*REVEAL_SURFACES[0])
@@ -491,64 +565,13 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         rec[seq.clip["path"].name] = {"row": row, "what": what, "frames": seq.n, "seconds": round(seq.n / bm.FPS, 3),
                                       "drawn_encoded_decoded_s": getattr(seq, "seconds", None),
                                       "sha256": seq.clip["sha256"], "encoder": seq.clip["encoder"]}
+        st = getattr(seq, "stats", None) or {}
+        if "ladder" in st:   # cycle 3 (lane E): the composer's ladder as tried, and the renderer's own seam reading
+            rec[seq.clip["path"].name].update(variant=st.get("variant"), ladder=st["ladder"],
+                                              seam=bm.seam_reading(st), motion_source=st.get("motion_source"))
 
-    def fno(n):   # the frame number in a strip label ("... f012 t=...")
-        import re
-        return int(re.search(r"f(\d{3}) t=", n).group(1))
-    end = bm.end_sequences(clips)
-    for name, seq in end.items():
-        cls, why = be.pairing(f"{'endscreen' if name.startswith('endscreen') else 'endcard'}__{seq.index}_{seq.topic}")
-        clip_rec(seq, "9, 12", f"{name} of the catalogue's {seq.topic} case {seq.index}"
-                 + (f" ({cls}: {why})" if cls != be.REAL else ""))
-    # the 16:9 end screen: every 3rd frame, and its curves
-    es = end.get("endscreen_169")
-    if es is not None:
-        sheet(bm.strip(es, scale_h=270, label="end screen 16:9 "), out / "row12_motion_endscreen", tile_h=270, cols=6)
-        t = [i / bm.FPS for i in range(es.n)]
-        bm.plot({"frame mean": (t, es.luma), **{k: (t, v) for k, v in es.regions.items()}},
-                f"16:9 end screen ({es.topic}, case {es.index}): luma of the decoded clip per frame", "luma (0-255)",
-                (0, 255)).save(out / "row12_motion_endscreen_curves.png")
-        bm.plot({"frame-to-frame MAD": (t, es.mad)}, "16:9 end screen: frame-to-frame mean absolute difference",
-                "MAD (0-255)", (0, max(10.0, max(es.mad) * 1.1))).save(out / "row12_motion_endscreen_steps.png")
-        made += ["row12_motion_endscreen", "row12_motion_endscreen_curves", "row12_motion_endscreen_steps"]
-    # the 9:16 end card: every frame of its reveal, the share block's rise (measured) and the curves
-    ec = end.get("endcard_916")
-    if ec is not None:
-        sheet(bm.strip(ec, scale_h=576, label="end card 9:16 "), out / "row12_motion_endcard916", tile_h=576, cols=8)
-        t = [i / bm.FPS for i in range(ec.n)]
-        bm.plot({"frame mean": (t, ec.luma), **{k: (t, v) for k, v in ec.regions.items()}},
-                f"9:16 end card ({ec.topic}, case {ec.index}): luma of the decoded clip per frame", "luma (0-255)",
-                (0, 255)).save(out / "row12_motion_endcard916_curves.png")
-        made += ["row12_motion_endcard916", "row12_motion_endcard916_curves"]
-        box = ec.stats.get("box")
-        if box:
-            b = tuple(int(round(v)) for v in box)
-            crop = (max(0, b[0] - 20), max(0, b[1] - 40), min(1080, b[2] + 20), min(1920, b[3] + 40))
-            rise = bm.rise_px(ec, b, ec.n - 1)
-            tiles = [(f"{n} | offset {rise.get(fno(n), '-')} px", im)
-                     for n, im in bm.strip(ec, crop=crop, scale_h=0, label="share block ") if 9 <= fno(n) <= 40]
-            sheet(tiles, out / "row12_motion_rise", tile_h=None, cols=4)
-            ks = sorted(rise)
-            bm.plot({"share block offset (measured)": ([k / bm.FPS for k in ks], [rise[k] for k in ks])},
-                    "9:16 end card: the share block's rise, measured (row-profile correlation against the rest frame)",
-                    "px below rest", (0, 24), marks={"first word starts": 0.45}).save(out / "row12_motion_rise_curve.png")
-            made += ["row12_motion_rise", "row12_motion_rise_curve"]
-    # the loop bridge with FOLLOW, into the Reel's frame 0 (the clip's last frame)
-    br = end.get("bridge_follow_916")
-    if br is not None:
-        total = br.n - 1
-        tiles = [(f"{'Reel frame 0' if fno(n) == total else f'k{fno(n):02d}'} t={fno(n) / bm.FPS:.3f}s "
-                  f"(frame {fno(n)} of {total})", im) for n, im in bm.strip(br, scale_h=576)]
-        sheet(tiles, out / "row12_motion_bridge", tile_h=576, cols=8)
-        t = [i / bm.FPS for i in range(br.n)]
-        bm.plot({"frame mean": (t, br.luma), **{k: (t, v) for k, v in br.regions.items()}},
-                f"loop bridge with FOLLOW ({br.topic}): luma per frame, the last point is the Reel's frame 0",
-                "luma (0-255)", (0, 255)).save(out / "row12_motion_bridge_curves.png")
-        bm.plot({"FOLLOW alpha (end_card.follow_alpha)": (t[:total], [end_card.follow_alpha(i, total) for i in range(total)]),
-                 "frame-to-frame MAD / 25": (t, [m / 25 for m in br.mad])},
-                "loop bridge: FOLLOW's alpha as the renderer computes it, and the frame steps", "alpha (0-1)",
-                (0, 1)).save(out / "row12_motion_bridge_alpha.png")
-        made += ["row12_motion_bridge", "row12_motion_bridge_curves", "row12_motion_bridge_alpha"]
+    for topic in END_TOPICS or [bm.END_TOPIC]:   # cycle 3: every board ground with a catalogue case
+        made += end_motion(out, clips, topic, "" if topic == bm.END_TOPIC else f"__{topic}", clip_rec)
     # the hook: hold and fade
     hook = bm.hook_sequence(clips)
     if hook.get("seq"):
@@ -558,7 +581,7 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         clip_rec(hs, "12", f"hook card on the {hook['ground']} ground, claim {hook['claim']} ({tag})")
         tiles = [(f"{n} | {tag}" if k == 0 else n, im)
                  for k, (n, im) in enumerate(x for x in bm.strip(hs, scale_h=480, label="hook ")
-                                             if fno(x[0]) % 2 == 0 or 30 <= fno(x[0]) <= 42)]
+                                             if frame_no(x[0]) % 2 == 0 or 30 <= frame_no(x[0]) <= 42)]
         sheet(tiles, out / "row12_motion_hook", tile_h=576, cols=8)
         t = [i / bm.FPS for i in range(hs.n)]
         bm.plot({"type alpha (_hook_alpha)": (t, [dc._hook_alpha(x) for x in t]),
@@ -596,6 +619,141 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
     return made
 
 
+def frame_no(n: str) -> int:
+    """The frame number in a strip label ("... f012 t=...")."""
+    import re
+    return int(re.search(r"f(\d{3}) t=", n).group(1))
+
+
+def end_motion(out: Path, clips: Path, topic: str, suffix: str, clip_rec) -> list[str]:
+    """Row 12's end sequences of one ground (`suffix` "" for END_TOPIC keeps the pre-cycle-3 names): the 16:9 end
+    screen, the 9:16 end card and its share block's rise (measured on the share block itself, cycle 3), the loop
+    bridge with FOLLOW and the bridge without it, each with its curves, every one read from its production encode."""
+    import board_evidence as be
+    import board_motion as bm
+
+    from src import end_card
+    made = []
+    end = bm.end_sequences(clips, topic)
+    for name, seq in end.items():
+        kind = "endscreen" if name.startswith("endscreen") else "endcard"
+        cls, why = be.pairing(f"{kind}__{seq.index}_{seq.topic}")
+        clip_rec(seq, "9, 12", f"{name} of the catalogue's {seq.topic} case {seq.index}"
+                 + (f" ({cls}: {why})" if cls != be.REAL else "") + bridge_note(seq))
+    where = f" ({topic})" if suffix else ""
+    # the 16:9 end screen: every 3rd frame, and its curves
+    es = end.get("endscreen_169")
+    if es is not None:
+        sheet(bm.strip(es, scale_h=270, label=f"end screen 16:9{where} "), out / f"row12_motion_endscreen{suffix}",
+              tile_h=270, cols=6)
+        t = [i / bm.FPS for i in range(es.n)]
+        bm.plot({"frame mean": (t, es.luma), **{k: (t, v) for k, v in es.regions.items()}},
+                f"16:9 end screen ({es.topic}, case {es.index}): luma of the decoded clip per frame", "luma (0-255)",
+                (0, 255)).save(out / f"row12_motion_endscreen{suffix}_curves.png")
+        bm.plot({"frame-to-frame MAD": (t, es.mad)}, f"16:9 end screen{where}: frame-to-frame mean absolute difference",
+                "MAD (0-255)", (0, max(10.0, max(es.mad) * 1.1))).save(out / f"row12_motion_endscreen{suffix}_steps.png")
+        made += [f"row12_motion_endscreen{suffix}", f"row12_motion_endscreen{suffix}_curves",
+                 f"row12_motion_endscreen{suffix}_steps"]
+    # the 9:16 end card: every kept frame of its reveal, the share block's rise (measured) and the curves
+    ec = end.get("endcard_916")
+    if ec is not None:
+        sheet(bm.strip(ec, scale_h=576, label=f"end card 9:16{where} "), out / f"row12_motion_endcard916{suffix}",
+              tile_h=576, cols=8)
+        t = [i / bm.FPS for i in range(ec.n)]
+        bm.plot({"frame mean": (t, ec.luma), **{k: (t, v) for k, v in ec.regions.items()}},
+                f"9:16 end card ({ec.topic}, case {ec.index}): luma of the decoded clip per frame", "luma (0-255)",
+                (0, 255)).save(out / f"row12_motion_endcard916{suffix}_curves.png")
+        made += [f"row12_motion_endcard916{suffix}", f"row12_motion_endcard916{suffix}_curves"]
+        made += rise_strip(out, ec, suffix, where)
+    # the loop bridge with FOLLOW and without it, into the Reel's frame 0 (the clip's last frame)
+    for name, what, sname in (("bridge_follow_916", "with FOLLOW", "row12_motion_bridge"),
+                              ("bridge_916", "without FOLLOW", "row12_motion_bridge_nofollow")):
+        br = end.get(name)
+        if br is None:
+            continue
+        sname += suffix
+        total = br.n - 1
+        tiles = [(f"{'Reel frame 0' if frame_no(n) == total else f'k{frame_no(n):02d}'} t={frame_no(n) / bm.FPS:.3f}s "
+                  f"(frame {frame_no(n)} of {total})", im) for n, im in bm.strip(br, scale_h=576)]
+        # cycle 3 (lane E): every bridge tile says which rung of the composer's ladder shipped and the renderer's
+        # own seam reading (never a decoded clip's)
+        tiles = [(f"{n} | bridge {what}{where}" if k else f"{n} | bridge {what}{where}{bridge_note(br)}", im)
+                 for k, (n, im) in enumerate(tiles)]
+        sheet(tiles, out / sname, tile_h=576, cols=8)
+        t = [i / bm.FPS for i in range(br.n)]
+        bm.plot({"frame mean": (t, br.luma), **{k: (t, v) for k, v in br.regions.items()}},
+                f"loop bridge {what} ({br.topic}): luma per frame, the last point is the Reel's frame 0",
+                "luma (0-255)", (0, 255)).save(out / f"{sname}_curves.png")
+        made += [sname, f"{sname}_curves"]
+        if name == "bridge_follow_916":
+            bm.plot({"FOLLOW alpha (end_card.follow_alpha)": (t[:total], [end_card.follow_alpha(i, total)
+                                                                          for i in range(total)]),
+                     "frame-to-frame MAD / 25 (decoded, motion only)": (t, [m / 25 for m in br.mad])},
+                    f"loop bridge{where}: FOLLOW's alpha as the renderer computes it, and the frame steps "
+                    f"(seam: renderer {bm.seam_reading(br.stats)['mad_last']})",
+                    "alpha (0-1)", (0, 1)).save(out / f"{sname}_alpha.png")
+            made.append(f"{sname}_alpha")
+        else:
+            bm.plot({"frame-to-frame MAD (decoded, motion only)": (t, br.mad)},
+                    f"loop bridge {what}{where}: frame-to-frame mean absolute difference (seam: renderer "
+                    f"{bm.seam_reading(br.stats)['mad_last']})", "MAD (0-255)", (0, max(10.0, max(br.mad) * 1.1))
+                    ).save(out / f"{sname}_steps.png")
+            made.append(f"{sname}_steps")
+    return made
+
+
+def bridge_note(seq) -> str:
+    """A loop bridge's shipped rung of the composer's ladder (board_motion.shipped_bridge) and its seam as the
+    renderer measures it (board_motion.seam_reading); "" for any other sequence."""
+    import board_motion as bm
+    st = getattr(seq, "stats", {}) or {}
+    if "ladder" not in st:
+        return ""
+    seam = bm.seam_reading(st)
+    failed = [f"{t['variant']} ({'; '.join(t['problems'])})" for t in st["ladder"] if not t["ok"]]
+    return (f" | shipped variant: {st.get('variant')} (composer's ladder"
+            + (f"; refused first: {', '.join(failed)}" if failed else "") + ")"
+            + f" | seam {seam['mad_last']} of under {seam['gate_max']}, measured on {seam['measure']}"
+            + f" | seam motion: {st.get('motion_source', '-')}")
+
+
+RISE_TILES = 16   # the rise strip's most tiles (every kept frame of the rise when fewer)
+
+
+def rise_strip(out: Path, ec, suffix: str, where: str) -> list[str]:
+    """The 9:16 end card's share block rising into place, cropped from the share block itself as measured on the
+    rest frame (board_motion.share_block_box; cycle 3: the layout box is the FOLLOW line's when the card has one, so
+    the old crop was blank on a card whose FOLLOW comes late), with the offset measured per kept frame from the
+    first frame that shows type to the frame it settles (+3), and the curve of every kept frame."""
+    import board_motion as bm
+    rest = ec.n - 1
+    box, how = bm.share_block_box(ec, rest)
+    if box is None:
+        import board_evidence as be
+        be.REFUSED.append((f"row 12 rise strip{where}", "not drawn (evidence)", how))
+        return []
+    crop = (max(0, box[0] - 20), max(0, box[1] - 40), min(ec.size[0], box[2] + 20), min(ec.size[1], box[3] + 40))
+    rise = bm.rise_ink_px(ec, box, rest)
+    ks = sorted(k for k in rise if k < rest)
+    if ks:
+        settle = next((k for k in ks if all(rise[j] == 0 for j in ks if j >= k)), ks[-1])
+        window = [k for k in sorted(ec.kept) if ks[0] - 3 <= k <= settle + 3]
+    else:
+        window = [k for k in sorted(ec.kept) if 9 <= k <= 40]
+    step = max(1, -(-len(window) // RISE_TILES))
+    window = set(window[::step])
+    tiles = [(f"{n} | offset {rise.get(frame_no(n), '-')} px", im)
+             for n, im in bm.strip(ec, crop=crop, scale_h=0, label=f"share block{where} ") if frame_no(n) in window]
+    if tiles:
+        tiles[0] = (f"{tiles[0][0]} | crop {list(crop)}: {how}", tiles[0][1])
+    sheet(tiles, out / f"row12_motion_rise{suffix}", tile_h=None, cols=4)
+    bm.plot({"share block offset (measured)": ([k / bm.FPS for k in ks], [rise[k] for k in ks])},
+            f"9:16 end card{where}: the share block's rise, measured (its type pixels matched to the rest frame's, every kept frame)",
+            "px below rest", (0, 24), marks={"type first measured": ks[0] / bm.FPS} if ks else None
+            ).save(out / f"row12_motion_rise{suffix}_curve.png")
+    return [f"row12_motion_rise{suffix}", f"row12_motion_rise{suffix}_curve"]
+
+
 def uses(module: str, engine: str) -> str:
     """Whether src/<module>.py imports src/<engine>.py (round 8, TY-A-13: the table read "group B" from a stale
     hand-written note; it now states only what the tree shows)."""
@@ -605,54 +763,50 @@ def uses(module: str, engine: str) -> str:
 
 
 def row13_table(out: Path, work: Path) -> list[str]:
-    """The element-by-element table across surfaces, from the tokens and the modules as they are on this tree."""
+    """The element-by-element tables across surfaces, generated (cycle 3: never written by hand, so never stale):
+    what this board's renderers recorded as drawn (board_table.drawn), what each surface's code reaches
+    (board_table.code_rows), the weights the system holds and who reads them (board_table.weight_rows), and the
+    per-canvas token table (element_rows); the motion table adds each end sequence's delivered length."""
     from PIL import Image, ImageDraw, ImageFont
 
-    from src import brand, brand_system, end_card
-    def t(name):   # a token as the tree holds it now (a renamed one shows as gone, never a stale copy)
-        v = sys_value(name)
-        return f"<{name}: not in this tree>" if v is None else v
-    # SYS-E-2 (lane E cycle 3): the end screen's masthead and gold rule as the renderer lays them out (end_card.layout
-    # on the wide canvas with the hand-off line), never a separate call with another room
+    import board_motion as bm
+    import board_table as bt
+    ends = bm.all_end()
+    parts = [
+        ("Drawn on this board: each renderer's own masthead record per surface across its grounds (row 2 records, "
+         "and the end sequences' stats of rows 9 / 12)", draw_table(bt.drawn(out, ends), (420, 190, 190, 230, 240, 230, 520))),
+        ("From the code: each surface's entry point and what it reaches (an AST call graph over src/*.py; colours and "
+         "tokens named in the surface's own module)", draw_table(bt.code_rows(), (560, 380, 330, 420, 760))),
+        ("Weights: every <role>.weight value, the src modules that read it, and what row 1's specimen draws",
+         draw_table(bt.weight_rows(specimen_weights()), (300, 120, 220, 560, 300))),
+        ("Per element and canvas, from src/brand_system.py as this tree holds it (TYPE / TYPE_FALLBACK / TYPE_FLOOR / "
+         "FACE / SPACING, gates, runtime tokens and SPEC):", draw_table(element_rows(), (250, 520, 520, 520, 590))),
+    ]
+    # SYS-E-2 (lane E cycle 3, panel 3 BC 15): the gold rule under the wordmark, read from end_card.layout (the
+    # renderer's own layout on each canvas, with the line it carries there), never a separate call with another room
+    from src import brand, end_card
     wide = end_card.layout(brand.HANDOFF_LINE, 1920, 1080)
     tall = end_card.layout(brand.FOLLOW_LINE, 1080, 1920)
-    rule_wide, rule_tall = wide["rule"][1] - wide["rule"][0], tall["rule"][1] - tall["rule"][0]
-    rows = [
-        ("element", "carousel", "YouTube", "end screen 16:9", "loop bridge / covers / hook"),
-        ("masthead", (f"{brand.MASTHEAD_FONT} 700 {brand_system.type_px('masthead', 'carousel'):.1f}px "
-                      f"tr {t('masthead.track')}em, {t('masthead.colour_dark')}/{t('masthead.colour_light')}"),
-         f"same, {brand_system.type_px('masthead', 'wide'):.0f}px",
-         f"same, {wide['masthead']['size']:.0f}px (layout; wide token {brand_system.type_px('masthead', 'wide'):.0f})",
-         f"absent (cap at 124 px < {t('masthead.grid_cap')} px)"),
-        ("gold rule under the wordmark", "-", "-",
-         f"GOLD, {rule_wide} px, draws out {end_card.RULE_AT:g}-{end_card.RULE_AT + end_card.RULE_IN:g} s",
-         f"9:16 end card: GOLD, {rule_tall} px, same timing"),
-        ("masthead ground", (f"scrim peak <= {t('scrim.masthead_peak')}, halo <= {t('halo.masthead_max')}, "
-                             f"gate {t('contrast.masthead_gate')} target {t('contrast.masthead_target')}"),
-         "same", "same (dimmed card)", "-"),
-        ("kicker", f"{brand.TEXT_FONT} {t('kicker.weight')} tr {t('kicker.track')}em {t('kicker.colour')} + lead rule",
-         "see row 4 (the kickerless variant is a ruling)", f"same, {brand_system.type_px('kicker', 'wide'):.0f}px (WATCH NEXT)",
-         "see rows 3 and 8"),
-        ("line ends", f"never {len(brand_system.LINE_END_NEVER)} words, last resort {len(brand_system.LINE_END_LAST_RESORT)}",
-         uses("youtube_thumbnail", "heading"), "-",
-         f"covers: {uses('visual_engine', 'heading')}; cards: {uses('design_cards', 'heading')}"),
-        ("shade", f"{t('plate.shade')}", "INK", "INK", "see rows 3, 8 and 11"),
-        ("fail closed", "under the 5.5 gate on any letter: not drawn, recorded", "same", "same", "-"),
-        ("eases", ", ".join(brand_system.EASES), "-", "see row13_motion_tokens", "see row13_motion_tokens"),
-    ]
-    top = draw_table(rows, (260, 760, 380, 480, 520))
-    elements = draw_table(element_rows(), (250, 520, 520, 520, 590))
-    im = Image.new("RGB", (max(top.width, elements.width), top.height + 40 + elements.height), (255, 255, 255))
-    im.paste(top, (0, 0))
-    ImageDraw.Draw(im).text((10, top.height + 8), "Per element and canvas, from src/brand_system.py as this tree holds it "
-                            "(TYPE / TYPE_FALLBACK / TYPE_FLOOR / FACE / SPACING, gates, runtime tokens and SPEC):",
-                            fill=(0, 0, 0), font=ImageFont.load_default(size=22))
-    im.paste(elements, (0, top.height + 40))
+    parts.append(("The gold rule under the wordmark, from end_card.layout on each canvas (the renderer's own layout)",
+                  draw_table([("canvas", "rule", "draws out"),
+                              ("end screen 16:9 (hand-off line)", f"GOLD, {wide['rule'][1] - wide['rule'][0]} px",
+                               f"{end_card.RULE_AT:g}-{end_card.RULE_AT + end_card.RULE_IN:g} s"),
+                              ("end card 9:16 (follow line)", f"GOLD, {tall['rule'][1] - tall['rule'][0]} px",
+                               "same timing")], (420, 300, 300))))
+    f = ImageFont.load_default(size=22)
+    W = max(t.width for _c, t in parts)
+    H = sum(40 + t.height for _c, t in parts)
+    im = Image.new("RGB", (W, H), (255, 255, 255))
+    y = 0
+    for caption, t in parts:
+        ImageDraw.Draw(im).text((10, y + 8), caption, fill=(0, 0, 0), font=f)
+        im.paste(t, (0, y + 40))
+        y += 40 + t.height
     im.save(out / "row13_elements.png")
-    # round 8 (MO-1): the motion tokens (durations, eases, overshoot) as this tree holds and draws them
-    import board_motion as bm
+    # round 8 (MO-1): the motion tokens (durations, eases, overshoot) as this tree holds and draws them; cycle 3
+    # (MO r1): each end sequence's delivered length beside the constant that names it
     asses = {f"{c['topic']} {c['format']}": c["ass"] for c in caption_cases(work)}
-    mrows = bm.motion_rows(asses)
+    mrows = bm.motion_rows(asses) + bt.delivered_motion(ends)
     draw_table(mrows, (420, 560, 300, 760)).save(out / "row13_motion_tokens.png")
     (out / "row13_motion_tokens.json").write_text(json.dumps([dict(zip(mrows[0], r)) for r in mrows[1:]], indent=1,
                                                              default=str), encoding="utf-8", newline="\n")
@@ -829,20 +983,61 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     reels = load(lambda n: n.startswith("cover__") and n.endswith("__reel"))
     youtube = load(lambda n: n.startswith("cover__") and n.endswith("__youtube"))
     car1 = load(lambda n: n.startswith("social__") and n.endswith("__carousel_carousel_slide_01"))
-    fb1 = load(lambda n: n.startswith("social__") and n.endswith("__fb_carousel_slide_01"))
     extra_c = bx._cache.get("covers") or []
     deck = (bx._cache.get("deck") or [])[:1]
     extra_reels = [(c["name"] + "__reel", c["reel"]) for c in extra_c if c.get("reel") is not None]
     extra_yt = [(c["name"] + "__youtube", c["youtube"]) for c in extra_c if c.get("youtube") is not None]
     extra_car = [(i["name"], i["image"]) for i in deck]
-    plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels, reels + car1),
-            "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car, car1 + reels),
+    # cycle 3 (operator's peer research): the big history Pages post Reels with no designed cover, so their feed tile
+    # is the video's first frame; our Reel's first frame (the hook card at frame 0) sits beside the designed cover
+    try:   # bx.hook_frames records its own refusals; anything else is the feeds' error, the covers still shown
+        hooks = bx.hook_frames()
+    except Exception as e:  # noqa: BLE001
+        manifest["errors"]["peer feeds: reel first frames"] = f"{type(e).__name__}: {e}"[:1500]
+        hooks = []
+    first = [(i["name"], i["image"]) for i in hooks if i.get("image") is not None and i["name"].endswith("__f00")]
+    first_label = {n: f"REEL FIRST FRAME as the tile (no designed cover) | {be.label(n)}" for n, _ in first}
+    # cycle 3 (operator evidence, peers/fb_feed/peer_01.png): our Facebook carousel goes out as a multi-photo post, and
+    # the feed shows it as the collage of its first 5 photos (board_evidence.fb_collage), never slide 1 alone
+    # cycle 3 (lane D): the post holds publisher's set and order (multi_format.facebook_pick over the run's Facebook
+    # copy, with today's archetypes), never simply the deck's first five
+    decks: dict[str, list] = {}
+    for n in sorted(x for x in surf if x.startswith("social__") and "__fb_carousel_slide_" in x):
+        decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
+    sj_ = out / "surfaces.json"
+    rerouted = (json.loads(sj_.read_text(encoding="utf-8")).get("rerouted") or {}) if sj_.is_file() else {}
+    collages, posted = [], {}
+    for deck, names in decks.items():
+        tag = deck[len("social__"):]
+        current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
+                   if k.startswith(f"{deck}__fb_carousel_slide_")}
+        try:
+            picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
+        except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
+            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
+            picked = []
+        order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
+        order = [n for n in order if n in surf]
+        how = (f"publisher's set: facebook_pick posts {len(order)} of {len(names)} Facebook slides "
+               f"({', '.join(n.rsplit('_', 1)[-1] for n in order)})" if order else
+               f"NOT publisher's set (facebook_pick unavailable): the first {min(len(names), 5)} of {len(names)}")
+        order = order or names[:5]
+        collages.append((f"{deck}__fb_collage", be.fb_collage([Image.open(surf[n]).convert("RGB") for n in order])))
+        posted[f"{deck}__fb_collage"] = how
+    manifest.setdefault("fb_posts", {}).update(posted)
+    first_label.update({n: f"FB MULTI-PHOTO COLLAGE as the feed shows it, {posted[n]} | {be.label(n)}"
+                        for n, _ in collages})
+    plan = {"ig_grid": ([x for x in reels + car1 if hero(x[0])] + extra_reels + first, reels + car1),
+            "ig_feed": ([x for x in car1 if hero(x[0])] + extra_car + first, car1 + reels),
             "yt_home": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
             "yt_suggested": ([x for x in youtube if hero(x[0])] + extra_yt, youtube),
-            "fb_feed": ([x for x in fb1 if hero(x[0])], fb1)}
+            "fb_feed": (([x for x in collages if hero(x[0])] or collages) + first, collages),
+            # cycle 3: the Page's Reels tab, whose tiles are each Reel's first frame: our designed Reel cover and our
+            # Reel's first frame, each among the peers (--peers <dir>/fb_reels/*.png)
+            "fb_reels": ([x for x in reels if hero(x[0])] + extra_reels + first, reels)}
     made = []
     for feed, (ours, pool) in plan.items():
-        ours = [(be.label(n), im) for n, im in ours]
+        ours = [(first_label.get(n) or be.label(n), im) for n, im in ours]
         tiles, note = be.peer_feed(feed, ours, pool, peers)
         if not tiles:
             continue
@@ -864,7 +1059,7 @@ def refusal_rows(out: Path, manifest: dict) -> list[tuple[str, str, str]]:
         for k, rec in json.loads(p.read_text(encoding="utf-8")).items():
             if rec.get("shown") is False:
                 rows.append((f"row 2 {k}", "element not drawn (masthead)", str(rec.get("reason", ""))[:300]))
-    for name, seq in (bm._cache.get("end") or {}).items():
+    for _topic, name, seq in bm.all_end():
         st = getattr(seq, "stats", {}) or {}
         if (st.get("masthead") or {}).get("shown") is False:
             rows.append((f"{name} ({seq.topic})", "element not drawn (masthead)", str(st["masthead"].get("reason"))[:300]))
@@ -889,8 +1084,10 @@ def bx_captions() -> list[dict]:
 JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts": 126, "social": 101, "scale": 91,
                "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
                "cover": 8}
-SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px")    # merged by union (a job's own records)
+SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged by union (a job's own records)
+                   "retired", "rerouted", "bridge_ladder", "wide_grounds")   # cycle 3: retired frames not drawn, slides re-routed
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
+SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 
 
 def shard_jobs(names: list[str], prior: dict[str, float], n: int) -> list[list[str]]:
@@ -917,6 +1114,9 @@ def merge_shards(parts: list[dict]) -> dict:
                 if dup:
                     raise RuntimeError(f"surfaces shards: {k} {sorted(dup)[:5]} in two shards")
                 merged[k].update(v)
+            elif k in SHARD_UNION_KEYS:   # cycle 3: each shard's reads; one file read with two contents is an error
+                import board_inputs
+                board_inputs.merge(merged.setdefault(k, {}), v)
             elif k in SHARD_SAME_KEYS:
                 if k in merged and merged[k] != v:
                     raise RuntimeError(f"surfaces shards: {k} differs between shards ({merged[k]!r} / {v!r})")
@@ -1004,8 +1204,15 @@ def main() -> None:
     ap.add_argument("--surface-jobs", type=Path, help="render only these render_surfaces.py jobs (one name per line, "
                     "as surfaces.json `seconds` keys): a small board for a check")
     ap.add_argument("--peers", type=Path, help="peer posts for the feed sheets: <dir>/<feed>/*.jpg, feed one of "
-                    "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed (none: the slots are the channel's other runs, "
-                    "labelled STAND-IN)")
+                    "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed, fb_reels (none: the slots are the channel's other runs, "
+                    "labelled STAND-IN; a feed folder that is missing or holds fewer than 8 posts is filled with "
+                    "labelled STAND-INs)")
+    ap.add_argument("--end-topics", default="", help="rows 9 / 12: only these board grounds' end sequences "
+                    "(comma-separated; default every board ground with a catalogue end-card case)")
+    ap.add_argument("--portability", type=Path, help="a lane's freeze candidate: a file of render_surfaces.py job "
+                    "names (as --surface-jobs). Renders them in the default palette, the second palette and the "
+                    "default palette on the non-history stress copy set (board_portability.py), side by side, into "
+                    "<out>/portability; nothing else is drawn")
     a = ap.parse_args()
     tree, dev, out = a.tree.resolve(), a.dev.resolve(), a.out.resolve()
     here = Path(__file__).resolve().parent
@@ -1018,11 +1225,23 @@ def main() -> None:
     sys.path.insert(0, str(here))
     import board_speed
     board_speed.install()   # exact: the end card's ground built once per frame inside its line gate (board_speed.py)
+    if a.portability:   # cycle 3: the side-by-side portability board of one lane's candidate, nothing else
+        import board_portability
+        board_portability.main(here, tree, dev, out, a.portability.resolve(), a.workers)
+        return
+    import board_inputs   # cycle 3: the code stamp and every data file the board reads (MANIFEST provenance)
+    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[out])
+    stamp = board_inputs.tree_stamp(tree, here)
     src_hash = hashlib.sha256()
     for f in sorted((tree / "src").glob("*.py")):
         src_hash.update(f.name.encode() + f.read_bytes().replace(bytes([13, 10]), bytes([10])))
-    manifest = {"src_sha256": src_hash.hexdigest()[:16], "brand": a.brand, "rows": {}, "heroes": HEROES, "seconds": {}}
+    manifest = {"src_sha256": src_hash.hexdigest()[:16], "brand": a.brand, "rows": {}, "heroes": HEROES, "seconds": {},
+                "tree": stamp}
     t_all = time.perf_counter()
+    import board_motion as bm
+    END_TOPICS[:] = [t for t in bm.end_topics(HEROES)
+                     if not a.end_topics or t in {x.strip() for x in a.end_topics.split(",")}]
+    manifest["end_topics"] = list(END_TOPICS)
 
     def took(what: str, t0: float) -> None:
         manifest["seconds"][what] = round(time.perf_counter() - t0, 1)
@@ -1080,29 +1299,33 @@ def main() -> None:
         manifest["rows"]["2"] = row2_masthead(out, dev, work)
         took("row 2", t0)
     from PIL import Image
+    sj = out / "surfaces.json"
+    surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    for rec in ((surfaces_rec or {}).get("wide_grounds") or {}).values():   # cycle 3: each 16:9 ground's pairing
+        be.WIDE_GROUNDS[int(rec["index"])] = (rec["class"], rec["why"])
+    for k in ("retired", "rerouted", "bridge_ladder", "wide_grounds"):   # cycle 3: production today, not as recorded
+        if (surfaces_rec or {}).get(k):
+            manifest[k] = surfaces_rec[k]
     for r, (name, prefixes) in sorted(ROWS.items()):
         if r not in rows:
             continue
         t0 = time.perf_counter()
         n_refused = len(be.REFUSED)
         pngs = sorted((out / "surfaces").glob("*.png"))
-        pick = [p for p in pngs if p.stem.startswith(prefixes)]
-        if r == 4:
-            pick = [p for p in pick if p.stem.endswith("youtube")]
-        elif r == 3:
-            pick = [p for p in pick if p.stem.endswith(("reel", "grid"))]
-        elif r == 5:
-            pick = [p for p in pick if "__carousel_" in p.stem or "__fb_" in p.stem]
-        elif r == 6:
-            pick = [p for p in pick if "__story_" in p.stem]
-        elif r == 8:   # the hook's clip ends after its type has faded: its frames come from the hold (below)
-            pick = [p for p in pick if not p.stem.startswith("card__hook__")]
-        elif r == 11:
-            pick = [p for p in pick if (not p.stem.startswith("captions__") or "__badge" in p.stem)
-                    and not p.stem.startswith("callouts__")]   # its last frame is after the exit: held frame below
+        retired = set((surfaces_rec or {}).get("retired") or {})   # cycle 3: a retired frame's old file is not shown
+        pick = [p for p in pngs if on_row(r, prefixes, p.stem) and p.stem not in retired]
         heroes = hero_pick(pick)
         # round 8 (AD E3, CD-20): every tile labelled through board_evidence.label, its pairing class first
-        tiles = [(be.label(p.stem), Image.open(p).convert("RGB")) for p in heroes]
+        ladder = (surfaces_rec or {}).get("bridge_ladder") or {}
+
+        def shipped(stem: str) -> str:   # cycle 3 (lane E): a bridge surface says which rung of the ladder shipped
+            rec = ladder.get(stem)
+            if not rec:
+                return ""
+            seam = rec.get("seam") or {}
+            return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
+                    f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
+        tiles = [(be.label(p.stem, shipped(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
         def add(item: dict, tiles=tiles) -> None:
@@ -1168,8 +1391,12 @@ def main() -> None:
             for n, im in tiles:
                 o, box = bx.story_overlay(im)
                 px = sizes.get(n.split(" | ")[0])
-                over.append((f"{n} | title_px {px} (multi_format.story_title_px over the Story) | Story safe box "
-                             f"{box} (safe_zones.safe_box('story'))", o))
+                if isinstance(px, dict):   # cycle 3: the frame's own layout record (what it drew at)
+                    size = (f"title_px {px.get('drawn')} (this frame's layout record; the Story's one size "
+                            f"{px.get('story')})")
+                else:                      # an older surfaces.json: the size the harness passed
+                    size = f"title_px {px} (multi_format.story_title_px over the Story, as the harness passed it)"
+                over.append((f"{n} | {size} | Story safe box {box} (safe_zones.safe_box('story'))", o))
             sheets["row06_story_safe_box"] = (over, 960, 4)
         if r in (7, 11):
             items = extra("caption encodes", lambda: bx.caption_frames(tree, work, clips), [])
@@ -1198,17 +1425,23 @@ def main() -> None:
                     manifest["labels"][item["name"]] = "REFUSED: " + item["refused"]
                     continue
                 add(item)
-        if r == 9:   # round 8 (TY-A-13, PL): FOLLOW where it is held, and the end card at rest, from the row-12 clips
-            end = extra("end sequences", lambda: bm.end_sequences(clips), {}) or {}
-            br, ec = end.get("bridge_follow_916"), end.get("endcard_916")
-            if br is not None:
-                held = [i for i in sorted(br.kept) if i < br.n - 1 and br.stats.get("follow")]
-                for i in held[len(held) // 2: len(held) // 2 + 1]:
-                    add({"name": f"bridge_follow__{br.index}_{br.topic}__f{i:02d}", "image": br.kept[i],
-                         "label": f"FOLLOW held: frame {i} of {br.n - 1} (t={i / bm.FPS:.3f}s), production encode"})
-            if ec is not None:
-                add({"name": f"endcard__{ec.index}_{ec.topic}__rest", "image": ec.kept[ec.n - 1],
-                     "label": f"at rest: frame {ec.n - 1} (t={(ec.n - 1) / bm.FPS:.3f}s), production encode"})
+        if r == 9:   # round 8 (TY-A-13, PL): FOLLOW where it is held, and the end card at rest, from the row-12 clips;
+            # cycle 3: on every board ground with a catalogue case (END_TOPICS), and the end screen at rest
+            for topic in END_TOPICS or [bm.END_TOPIC]:
+                end = extra(f"end sequences ({topic})", lambda topic=topic: bm.end_sequences(clips, topic), {}) or {}
+                br, ec = end.get("bridge_follow_916"), end.get("endcard_916")
+                if br is not None:
+                    held = [i for i in sorted(br.kept) if i < br.n - 1 and br.stats.get("follow")]
+                    for i in held[len(held) // 2: len(held) // 2 + 1]:
+                        add({"name": f"bridge_follow__{br.index}_{br.topic}__f{i:02d}", "image": br.kept[i],
+                             "label": f"FOLLOW held: frame {i} of {br.n - 1} (t={i / bm.FPS:.3f}s), production encode"})
+                if ec is not None:
+                    add({"name": f"endcard__{ec.index}_{ec.topic}__rest", "image": ec.kept[ec.n - 1],
+                         "label": f"at rest: frame {ec.n - 1} (t={(ec.n - 1) / bm.FPS:.3f}s), production encode"})
+                es = end.get("endscreen_169")
+                if es is not None:
+                    add({"name": f"endscreen__{es.index}_{es.topic}__rest", "image": es.kept[es.n - 1],
+                         "label": f"at rest: frame {es.n - 1} (t={(es.n - 1) / bm.FPS:.3f}s), production encode"})
         if r == 11:
             for item in extra("callout held frame", lambda: prefetched("callout held") if "callout held" in PREFETCH
                               else bx.callout_held(work), []):
@@ -1219,6 +1452,8 @@ def main() -> None:
             if surface.startswith(("youtube ", "reel cover + grid ")):
                 continue   # the covers' refusals are shown on their own rows (3 and 4) by add()
             tiles.append((f"{surface} | {what}", be.refusal_tile(surface, why)))
+        # cycle 3: the surfaces render_surfaces.py refused (or that raised) on this row, each as its own tile
+        tiles += undrawn_tiles(r, prefixes, {p.stem for p in pngs}, surfaces_rec)
         sheet(tiles, out / f"row{r:02d}_{name}", tile_h=960)
         manifest["rows"][str(r)] = [n.split(" | ")[0] for n, _ in tiles]
         for sname, (stiles, th, cols) in sheets.items():
@@ -1251,6 +1486,21 @@ def main() -> None:
         bm.PREFETCH.clear()
     shutil.rmtree(work, ignore_errors=True)
     took("board total (this process)", t_all)
+    # cycle 3 (AD r1 AD-EV-manifest): the inputs' union (render_surfaces.py's shards, this process, the workers) and
+    # INPUT_HASHES.json, which freeze_manifest.py reads into each image's input_hash
+    inputs: dict[str, str] = {}
+    sj = out / "surfaces.json"
+    if sj.is_file():
+        board_inputs.merge(inputs, json.loads(sj.read_text(encoding="utf-8")).get("input_files") or {})
+    board_inputs.merge(inputs, board_inputs.files())
+    board_inputs.merge(inputs, be.WORKER_INPUTS)
+    manifest["inputs"] = {"count": len(inputs), "sha256": board_inputs.union_sha256(inputs), "files": inputs,
+                          "note": "every data file read under the dev checkout (and fixtures.frame's cache) by "
+                                  "render_surfaces.py, this process and its workers; code is the tree stamp's"}
+    hashes = board_inputs.input_hashes(out, stamp, a.brand, inputs)
+    (out / "INPUT_HASHES.json").write_text(json.dumps(hashes, indent=1, sort_keys=True), encoding="utf-8",
+                                           newline="\n")
+    manifest["input_hashes"] = {"file": "INPUT_HASHES.json", "count": len(hashes)}
     (out / "board.json").write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8", newline="\n")
     print("board:", out, manifest["src_sha256"])
 

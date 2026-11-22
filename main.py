@@ -144,6 +144,11 @@ def documentary_cover(title: str, max_line: int = 22, payload: Dict[str, Any] | 
     max_line characters, the rest of the title whole on the second), with an eyebrow and tagline that make no
     factual claim. QF-23: never cut; it was cut mid-word with an ellipsis at max_line characters. A title the
     cover cannot set whole is refused there (cover_design's strict fit, typography.TextFitError)."""
+    # lane B cycle 3 follow-up (production sample: 2 of 34 documentary titles refused for an emoji, "no bundled face
+    # draws"): a pictograph in the title is decoration, never a cover word; the cover sets the title's words
+    import unicodedata
+    title = "".join(ch for ch in str(title or "") if unicodedata.category(ch) not in ("So", "Cs", "Co")
+                    and not 0xFE00 <= ord(ch) <= 0xFE0F and ch != "\u200d")
     words, line1 = title.upper().split(), ""
     while words and (not line1 or len(f"{line1} {words[0]}") <= max_line):
         line1 = f"{line1} {words.pop(0)}".strip()
@@ -180,6 +185,30 @@ def documentary_cover(title: str, max_line: int = 22, payload: Dict[str, Any] | 
         if not cover_fit.fit_problems(cand, youtube=False):
             return cand
     return split
+
+
+def signed_youtube_headline(lines: Any, cover: Dict[str, str], payload: Dict[str, Any] | None = None,
+                            hero: Any = None, sheet: Dict[str, Any] | None = None) -> tuple[Dict[str, str], List[str]]:
+    """Lane B cycle 3 follow-up: the deep dive's youtube_headline (one or two short lines) as the cover copy's
+    youtube_line1 / youtube_line2 when it passes the same gates as the cover's lines: the truth and figure rules
+    (trace_check.youtube_headline_problems) and the thumbnail's own render at every column a hero can leave
+    (src/cover_fit.py). Returns (the cover copy, with the lines when they pass), problems): a failing headline is left
+    out (the thumbnail falls back to the title's split) and its problems go to the draft retry."""
+    from src import cover_fit, trace_check
+    from src.visual_engine import youtube_cover_copy
+    got = [" ".join(str(t or "").split()) for t in (lines or []) if str(t or "").strip()]
+    if not got:
+        return cover, []
+    if len(got) > 2:
+        return cover, [f"{cover_fit.COVER_FIT_PROBLEM}YouTube headline: {len(got)} lines; write at most 2"]
+    cand = dict(cover, youtube_line1=got[0].upper(), youtube_line2=(got[1].upper() if len(got) > 1 else ""))
+    ctx = dict(payload or {}, thumbnail=cand)
+    problems = trace_check.youtube_headline_problems(ctx, sheet or {})
+    if not problems:
+        problems = [p.replace(cover_fit.COVER_FIT_PROBLEM, cover_fit.COVER_FIT_PROBLEM + "YouTube headline: ", 1)
+                    for p in cover_fit.fit_problems(youtube_cover_copy(ctx), str(ctx.get("youtube_title") or ""),
+                                                    reel=False, payload=ctx, hero=hero)]
+    return (cover, problems) if problems else (cand, [])
 
 
 def warn_missing_geo_files() -> List[str]:
@@ -468,6 +497,13 @@ class PipelineCoordinator:
                 for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
                     if p_pay.get(k) and not payload.get(k):
                         payload[k] = p_pay[k]
+                # lane B cycle 3: the parent Reel's signed hook lines, read only by the YouTube thumbnail's ranked
+                # headline chain (visual_engine.youtube_headline_chain); its figures are still held to this run's text
+                if not payload.get("parent_copy"):
+                    payload["parent_copy"] = {
+                        "thumbnail": {k: (p_pay.get("thumbnail") or {}).get(k) for k in ("eyebrow", "tagline")},
+                        "carousel_slides": list(p_pay.get("carousel_slides") or [])[:1],
+                        "story_slides": list(p_pay.get("story_slides") or [])[:1]}
         curated_path = CURATED_SCRIPTS_DIR / f"{tid}.json"
         if curated_path.exists():
             try:
@@ -955,8 +991,18 @@ class PipelineCoordinator:
                                    "narration_script": " ".join(a.narration_text for a in deep_dive_pkg.acts)}
                         self._inherit_graphics_data(tid, parent_run_id, fit_ctx)
                         fit_ctx["thumbnail"] = documentary_cover(deep_dive_pkg.title, payload=fit_ctx, hero=hero_img)
-                        fit = cover_fit.fit_problems(youtube_cover_copy(fit_ctx), fit_ctx["youtube_title"],
-                                                     payload=fit_ctx, hero=hero_img)
+                        # lane B cycle 3 follow-up: the signed short YouTube headline, gated as the cover's lines; it
+                        # sets the thumbnail first, so a title that only the thumbnail refuses is no longer sent back
+                        fit_ctx["thumbnail"], yt_problems = signed_youtube_headline(
+                            getattr(deep_dive_pkg, "youtube_headline", None), fit_ctx["thumbnail"], fit_ctx, hero_img,
+                            getattr(self.script_engine, "_sheet", lambda _t: None)(topic))
+                        # lane B cycle 3: the Reel cover on the title's lines, the YouTube thumbnail on its ranked
+                        # headline chain (any signed line that sets), so only a chain that fails whole costs a retry
+                        fit = (cover_fit.fit_problems(youtube_cover_copy(fit_ctx), fit_ctx["youtube_title"],
+                                                      youtube=False, payload=fit_ctx, hero=hero_img)
+                               + cover_fit.youtube_chain_problems(fit_ctx, hero_img))
+                        if yt_problems and fit:
+                            fit += yt_problems
                     if fit and draft < 3:
                         log.warning("Deep-dive draft %d: the title does not set on its covers (%s)", draft, fit)
                         feedback = ("The title is the cover's headline and does not set on the YouTube thumbnail or "
@@ -985,6 +1031,12 @@ class PipelineCoordinator:
                        "youtube_title": getattr(deep_dive_pkg, "youtube_title", "") or "", "narration_script": raw_narration}
             self._inherit_graphics_data(tid, parent_run_id, fit_ctx)
             thumbnail_copy = documentary_cover(deep_dive_pkg.title, payload=fit_ctx, hero=hero_img)
+            thumbnail_copy, yt_problems = signed_youtube_headline(
+                getattr(deep_dive_pkg, "youtube_headline", None), thumbnail_copy, fit_ctx, hero_img,
+                getattr(self.script_engine, "_sheet", lambda _t: None)(topic))
+            if yt_problems:
+                log.warning("Deep dive: the YouTube headline is left out (the title's lines set the thumbnail): %s",
+                            "; ".join(yt_problems))
 
             payload = {
                 "topic_id": tid,

@@ -225,12 +225,14 @@ def test_the_richat_story_anchor_one_line_a_field_at_the_story_size(tmp_path):
 
 def test_the_reel_cover_lockup_takes_a_fixed_ratio_and_the_repaired_seam():
     from src import cover_design
-    got, rec = cover_design._lockup(_D, {"line1": "Carved from", "line2": "solid salt"}, 900, 108)
-    assert rec["line1"] == "CARVED" and rec["line2"] == "FROM SOLID SALT"
+    # lane B cycle 3: CARVED / FROM SOLID SALT stacks a one-word row at balance 0.44 (< heading.balance_min) and is set
+    # as one heading where that sets (tests/test_lane_b_cycle3.py); the repaired seam is read on a balanced pair
+    got, rec = cover_design._lockup(_D, {"line1": "Ancient bronze of the", "line2": "deep sea"}, 900, 108)
+    assert rec["line1"] == "ANCIENT BRONZE" and rec["line2"] == "OF THE DEEP SEA"
     f1, _ = got["line1"]
     f2, runs2 = got["line2"]
     assert f2.size == round(f1.size * brand_system.tok("lockup.line_ratio"))
-    assert runs2 == [[("FROM", heading.LEAD), ("SOLID SALT", heading.ACCENT)]]
+    assert runs2 == [[("OF THE", heading.LEAD), ("DEEP SEA", heading.ACCENT)]]
     with brand.use(brand.DEFAULT_BRAND.derive("ratio", system={"lockup.line_ratio": 1.3})):
         got, _ = cover_design._lockup(_D, {"line1": "Old", "line2": "salt"}, 900, 100)
         assert got["line2"][0].size == 130

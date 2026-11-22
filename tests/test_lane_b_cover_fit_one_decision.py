@@ -4,9 +4,9 @@ at the full column only, and passed copy the real thumbnail refuses).
 
 Invariants, not pinned measurements:
 - one input builder: the render (generate_youtube_thumbnail) and the check read visual_engine.youtube_render_inputs;
-- the check never passes what the render refuses: copy the check passes without a hero sets at every type column a
-  hero can leave (youtube_thumbnail.type_column, COLUMN_MIN to the full column), the figure's qualifier, hedge and
-  badge included; with the hero, the render on that hero sets it;
+- the check never passes what the render refuses: copy the check passes without a hero sets at the standard type
+  column (lane B cycle 3 ruling; a narrower column is met at render by the headline chain), the figure's qualifier,
+  hedge and badge included; with the hero, the render on that hero sets it;
 - the authored YouTube form is gone: no drawn row but the last ends on a never-end word (CARVED FROM /).
 """
 from __future__ import annotations
@@ -19,8 +19,6 @@ from src import youtube_thumbnail as yt
 from src.refusal import LayoutError
 
 FULL = yt.TEXT_RIGHT - yt.LEFT
-# widths the render can set the type in (type_column's range), a spread plus both ends
-WIDTHS = sorted({yt.COLUMN_MIN, yt.COLUMN_MIN + 1, 664, 700, 736, 772, 808, 844, 880, FULL - 1, FULL})
 
 # synthetic copies of the classes that decide by width: a two-field headline near the column, a figure with a
 # qualifier whose kicker may or may not fit (the branch flips by width), a hedge line, a one-field headline
@@ -45,15 +43,15 @@ def _render_at(copy, width, payload=None):
 
 
 @pytest.mark.parametrize("copy", COPIES, ids=[c["line1"] for c in COPIES])
-def test_copy_the_check_passes_sets_at_every_column_a_hero_can_leave(copy):
+def test_copy_the_check_passes_sets_at_the_standard_column(copy):
+    """Lane B cycle 3 (lander ruling): the copy stage holds the design's standard text column; a hero that narrows it
+    is met at render by the headline chain (tests/test_lane_b_cycle3.py)."""
     cover_fit.clear()
     problems = cover_fit.fit_problems(copy, reel=False)
     if problems:
-        # refused somewhere in the range: the column the check names is one the render refuses too
-        assert _refused_at_reported(copy, problems), problems
+        assert _refuses(copy, FULL), problems
         return
-    for w in WIDTHS:
-        _render_at(copy, w)   # raises LayoutError if the check passed what the render refuses
+    _render_at(copy, FULL)   # raises LayoutError if the check passed what the render refuses
 
 
 def _refuses(copy, w):
@@ -101,7 +99,7 @@ def test_the_render_and_the_check_build_their_inputs_in_one_place(monkeypatch, t
     monkeypatch.setattr(visual_engine, "youtube_render_inputs", spy)
     hero = tmp_path / "hero.jpg"
     Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
-    payload = {"thumbnail": COPIES[4], "title": "T", "narration_script": "x."}
+    payload = {"thumbnail": COPIES[4], "title": "The Sahara Eye", "narration_script": "x."}
     visual_engine.VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     assert calls == [hero]
     cover_fit.clear()
@@ -110,18 +108,14 @@ def test_the_render_and_the_check_build_their_inputs_in_one_place(monkeypatch, t
     assert hero in calls[1:]
 
 
-def test_a_copy_only_a_narrowed_column_refuses_is_caught_without_the_hero_and_judged_on_it_with_one():
-    """The production sample's class (counts in the hand-back): a headline that sets in the full column but not in the
-    column a hero's reviewed feature leaves. Without the hero the check sets it at every such column, so it is sent
-    to the copy edit; with a hero that leaves the full column the render's own call decides."""
-    copy = None
-    for c in COPIES:
-        if not _refuses(c, FULL) and _refuses(c, yt.COLUMN_MIN):
-            copy = c
-            break
+def test_a_copy_only_a_narrowed_column_refuses_passes_the_copy_stage():
+    """Lane B cycle 3 (lander ruling): a headline that sets in the standard column but not in a column a hero could
+    narrow it to passes the copy stage (the thumbnail controls its column); at render, the chain meets the narrower
+    column."""
+    copy = next((c for c in COPIES if not _refuses(c, FULL) and _refuses(c, yt.COLUMN_MIN)), None)
     assert copy is not None   # the set holds a member of the class (else this test proves nothing)
     cover_fit.clear()
-    assert cover_fit.fit_problems(copy, reel=False)
+    assert cover_fit.fit_problems(copy, reel=False) == []
 
 
 def test_no_youtube_row_but_the_last_ends_on_a_never_end_word():

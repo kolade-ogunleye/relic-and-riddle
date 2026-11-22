@@ -48,6 +48,8 @@ def test_text_stays_left_and_clear_of_the_timestamp_corner() -> None:
 def test_the_documentary_thumbnail_uses_it(tmp_path) -> None:
     hero = tmp_path / "hero.jpg"
     _photo().save(hero)
-    out = VisualEngine().generate_youtube_thumbnail(hero, {"title": "T", "thumbnail": {
-        "line1": "280 FEET DOWN", "line2": "A HIDDEN CITY"}}, tmp_path / "yt.jpg")
+    # lane B cycle 3: a headline's figure is held to the run's evidence (the narration) and names its subject
+    out = VisualEngine().generate_youtube_thumbnail(hero, {"title": "The Hidden City", "narration_script":
+        "The city lies 280 feet down.", "thumbnail": {"line1": "280 FEET DOWN", "line2": "A HIDDEN CITY"}},
+        tmp_path / "yt.jpg")
     assert Image.open(out).size == (1920, 1080)

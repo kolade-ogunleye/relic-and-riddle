@@ -294,6 +294,10 @@ class DeepDivePackage(BaseModel):
     acts: List[DocumentaryAct]               # Exactly 5 acts
     closing_debate_question: str             # High-engagement MSI closing question
     sources: List[Source]
+    # Lane B cycle 3 follow-up: the 16:9 thumbnail's own short headline (one or two lines, line 2 the payoff), held to
+    # the fact sheet like the title; its length bound comes from the thumbnail's measure (youtube_thumbnail.
+    # headline_bound). The thumbnail sets it first and falls back to the title's split (main.documentary_cover).
+    youtube_headline: Optional[List[str]] = None
 
     @property
     def total_words(self) -> int:

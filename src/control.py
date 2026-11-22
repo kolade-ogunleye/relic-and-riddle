@@ -2703,7 +2703,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         im = Image.open(r_dir / "thumbnail_cover.jpg")
                         w, h = im.size
                         top = max(0, min(h - w, (h // 2) - (w // 2)))
-                        im.crop((0, top, w, top + w)).save(r_dir / "thumbnail_profile_grid.jpg", quality=95)
+                        # lane B cycle 3 (QF-101): the grid tile is a 4:4:4 cover JPEG like every cover
+                        from .visual_engine import save_cover_jpeg
+                        save_cover_jpeg(im.crop((0, top, w, top + w)), r_dir / "thumbnail_profile_grid.jpg", "grid")
                     except Exception:
                         pass
                     style_name = "Forensic Blueprint" if var_letter == "a" else "Discovery Intrigue" if var_letter == "b" else "Cinematic Minimal"

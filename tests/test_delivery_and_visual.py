@@ -34,6 +34,7 @@ def test_youtube_thumbnail_generation(tmp_path):
     Image.new("RGB", (1920, 1080), (80, 70, 60)).save(hero)
     payload = {
         "title": "Derinkuyu Underground City",
+        "narration_script": "Derinkuyu reached 280 ft underground.",   # lane B cycle 3: the figure's evidence
         "thumbnail": {
             "eyebrow": "DOCUMENTARY INVESTIGATION",
             "line1": "DERINKUYU",

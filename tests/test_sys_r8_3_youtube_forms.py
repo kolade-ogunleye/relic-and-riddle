@@ -176,7 +176,7 @@ def test_the_deep_dive_fit_check_reads_the_copy_the_thumbnail_render_sets(monkey
     from src import visual_engine
     payload = {"thumbnail": {"eyebrow": "DOCUMENTARY", "line1": "A 40 KM RING", "line2": "IN THE DESERT",
                              "tagline": "EXPLORE THE EVIDENCE"},
-               "title": "T", "narration_script": "The ring is about 25 miles across."}
+               "title": "The Desert Ring", "narration_script": "The ring is 25 miles across."}
     seen = {}
 
     def fake_render(*a, copy, **k):

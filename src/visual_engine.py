@@ -54,6 +54,39 @@ def grid_crop(cover: Image.Image) -> Image.Image:
     return cover.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH))
 
 
+# Lane B cycle 3 (QF-101 closed as "no keep_rgb", lander decision under the operator's delegation, 2026-11-19): every
+# cover JPEG (Reel cover, profile grid tile, YouTube thumbnail) is a standard YCbCr JPEG with NO chroma subsampling
+# (4:4:4, Pillow subsampling=0), at the highest quality on COVER_QUALITIES that keeps the file within its platform's
+# limit. 4:2:0 halved the chroma of the gold type and the dimmed hero (decisions/QF-13.md); an RGB-transform JPEG is
+# not used. YouTube's custom thumbnail limit is 2 MiB (decisions/QF-13.md). The Reel cover and grid tile go to
+# Instagram and Facebook; the smaller verified limit is Instagram's (read 2026-11-19), "File size: 8MB maximum" for a
+# Reels cover photo and "8 MB maximum" for an image post, https://developers.facebook.com/docs/instagram-platform/
+# instagram-graph-api/reference/ig-user/media ; Facebook: "Files can not exceed 10MB" (https://developers.facebook.com/
+# docs/graph-api/reference/page/photos/) and "Maximum thumbnail file size 10MB" for a reel cover
+# (https://developers.facebook.com/docs/graph-api/reference/video/thumbnails). "MB" is read as 8,000,000 bytes (the
+# stricter reading).
+COVER_SUBSAMPLING = 0                    # 4:4:4
+COVER_QUALITIES = tuple(range(100, 49, -5))   # highest first; never under 50
+COVER_LIMITS = {"youtube": 2 * 1024 * 1024, "reel": 8_000_000, "grid": 8_000_000}
+
+
+def save_cover_jpeg(im: Image.Image, path: Path, surface: str) -> Dict[str, Any]:
+    """`im` written to `path` as a 4:4:4 YCbCr JPEG at the highest COVER_QUALITIES step whose file is within
+    COVER_LIMITS[surface]; returns the record {"quality", "subsampling": "4:4:4", "bytes", "limit"} (the cover's
+    metadata keeps it). A cover no step fits raises ValueError (never a subsampled or oversized file)."""
+    import io
+    rgb = im.convert("RGB")
+    limit = COVER_LIMITS[surface]
+    for q in COVER_QUALITIES:
+        buf = io.BytesIO()
+        rgb.save(buf, "JPEG", quality=q, subsampling=COVER_SUBSAMPLING)
+        if buf.tell() <= limit:
+            Path(path).write_bytes(buf.getvalue())
+            return {"quality": q, "subsampling": "4:4:4", "bytes": buf.tell(), "limit": limit}
+    raise ValueError(f"the {surface} cover does not fit {limit} bytes as a 4:4:4 JPEG at quality "
+                     f"{COVER_QUALITIES[-1]}")
+
+
 def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     """Draws a cover again with the tighter fit, from its kept recipe, in place (still_vision: the look
     reported its text cut off or overlapping); the profile-grid copy is cut again from the main cover."""
@@ -81,15 +114,15 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     # Written aside, then swapped in: the video judge may be reading this cover while the audit redraws it
     # (review, 2026-10-28)
     tmp = path.with_name(path.stem + ".redraw" + path.suffix)
-    out.save(tmp, quality=95)
+    encoding = save_cover_jpeg(out, tmp, "reel")
     import os
     os.replace(tmp, path)
     from .cover_design import delivered_contrast
     delivered_contrast(lay, path)
     if path.name == "thumbnail_cover.jpg":
-        grid_crop(out).save(path.with_name("thumbnail_profile_grid.jpg"), quality=95)
+        save_cover_jpeg(grid_crop(out), path.with_name("thumbnail_profile_grid.jpg"), "grid")
     prior = still_layout.load(path) or {}
-    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed,
+    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed, "encoding": encoding,
                                         "composition": lay.meta.get("composition"),
                                         "grid_proof": lay.meta.get("grid_proof")},
                              int(prior.get("attempts", 1)) + 1)
@@ -309,12 +342,13 @@ class VisualEngine:
             if enforce:
                 out, lay, attempts, chosen, grid = self._grid_enforced(im, copy, chosen, out, lay, attempts)
             out = out.convert("RGB")
-            out.save(path, quality=95)
+            encoding = save_cover_jpeg(out, path, "reel")
             from .cover_design import delivered_contrast
             delivered_contrast(lay, path)
             from . import still_layout
             still_layout.save(path, lay, {"renderer": "visual_engine.redraw_cover", "hero": str(hero_image_path),
                                           "copy": copy, "style": chosen, "text_cy": self._text_cy,
+                                          "encoding": encoding,
                                           "focus": self._hero_focus_reviewed,
                                           "composition": lay.meta.get("composition"),
                                           "figure": self._figure, "illustration": self._illustration,
@@ -344,7 +378,7 @@ class VisualEngine:
                     continue
             else:
                 raise
-        grid_crop(final_916).save(out_1x1_path, quality=95)
+        save_cover_jpeg(grid_crop(final_916), out_1x1_path, "grid")
         log.info("Covers generated (%s): %s, %s", chosen, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
 
@@ -475,12 +509,52 @@ class VisualEngine:
         photograph full-bleed, the masthead, one figure or a two-tone Anton headline on a left ink gradient,
         YouTube's timestamp corner clear. (Cycle 0 round 7: the legacy depth-layered thumbnail, no caller, retired.)"""
         from . import youtube_thumbnail
-        inputs = youtube_render_inputs(script_payload, hero_image_path)
-        meta: dict[str, Any] = {}
         script_payload.pop("thumbnail_note", None)   # this render's note only (QF-23)
-        im, drawn_plates = youtube_thumbnail.render(meta=meta, **inputs)
+        from .refusal import LayoutError
+        # Lane B cycle 3: the ranked headline chain (youtube_headline_chain), each candidate rendered on the hero
+        # until one sets; refused only when the whole chain fails (every reason recorded)
+        tried: list = []
+        im = drawn_plates = None
+        meta: dict[str, Any] = {}
+        for cand in youtube_headline_chain(script_payload):
+            if cand["copy"] is None:
+                tried.append({"source": cand["source"], "skipped": cand["skipped"]})
+                continue
+            meta = {}
+            try:
+                im, drawn_plates = youtube_thumbnail.render(
+                    meta=meta, **youtube_render_inputs(script_payload, hero_image_path, copy=cand["copy"]))
+            except LayoutError as e:
+                tried.append({"source": cand["source"], "refused": str(e)})
+                im = None
+                continue
+            if not youtube_thumbnail.drew_headline(drawn_plates):   # the word budget left the line out whole
+                tried.append({"source": cand["source"], "refused": "no headline drawn (longer than the word budget)"})
+                im = None
+                continue
+            faults = drawn_faults(drawn_plates, script_payload)
+            if faults:   # the drawn headline (a badge figure included) held to the evidence again
+                tried.append({"source": cand["source"], "refused": "truth (drawn): " + "; ".join(faults)})
+                im = None
+                continue
+            why = specificity_fault(drawn_text(drawn_plates), script_payload)
+            if why:   # the render's own fallback (QF-23 headline_from) may draw another line: held to the gate too
+                tried.append({"source": cand["source"], "refused": why + " (as drawn)"})
+                im = None
+                continue
+            meta["headline_source"] = cand["source"]
+            # the record says what was DRAWN and the source it came from (the figure branch may draw the copy's badge
+            # figure over another of its lines, lander review: pair 1)
+            meta["headline_chain"] = tried + [{"source": cand["source"], "candidate": cand["text"],
+                                               "drawn": drawn_text(drawn_plates),
+                                               **({"drawn_from": meta["headline_from"]} if meta.get("headline_from")
+                                                  else {})}]
+            break
+        if im is None:
+            raise LayoutError("the YouTube thumbnail's headline chain is refused at every source: "
+                              + "; ".join(f"{t['source']}: {t.get('skipped') or t.get('refused')}" for t in tried))
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        im.save(output_path, quality=95)
+        encoding = save_cover_jpeg(im, output_path, "youtube")
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
         with Image.open(output_path) as saved:
             qa = youtube_thumbnail.downscale_check(saved.convert("RGB"), meta)
@@ -490,14 +564,21 @@ class VisualEngine:
                                          "figure_withheld", "figure_declined", "tension_from", "text_over_focus",
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
-                                         "headline_fragment")},
+                                         "headline_fragment", "headline_pair_kept", "headline_source",
+                                         "headline_chain")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
+             "encoding": encoding,
              "elements": [{"name": n, "text": getattr(pl, "text", ""), "box": [int(v) for v in pl.box]}
                           for n, pl in (drawn_plates or []) if not getattr(pl, "empty", False)]},
             indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
         # QF-23 (option 1): a headline the four-word budget holds only cut is never drawn cut; the review card says
         # what the thumbnail drew instead
         note = youtube_thumbnail.headline_note(meta)
+        # lane B cycle 3: the review card names the chain source the headline was drawn from, at approval
+        last = meta["headline_chain"][-1]
+        source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}"
+                  + (f" (its {last['drawn_from']} line)" if last.get("drawn_from") else "") + f": {last['drawn']}")
+        note = f"{source}\n{note}" if note else source
         if note:
             script_payload["thumbnail_note"] = note
             log.warning("YouTube thumbnail: %s", note)
@@ -620,7 +701,241 @@ def youtube_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
     """The cover copy the YouTube thumbnail sets (generate_youtube_thumbnail), each figure in the narration's unit:
     the one copy its pre-render fit check reads too (src/cover_fit.py; main's deep-dive draft retry), so the check
     and the render never see different words (SYS-R8-3)."""
-    return _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
+    copy = documentary_cover_copy(script_payload)
+    signed = youtube_headline(script_payload)
+    if signed:   # lane B cycle 3: the run's signed 16:9 headline first (the render walks the rest of the chain)
+        copy = dict(copy, line1=signed[0], line2=signed[1])
+    copy = {k: ("" if k in ("eyebrow", "tagline") and str(v or "").upper() in CODE_LABELS else v)
+            for k, v in copy.items()}   # lane B cycle 3: a code label is not signed copy (as in the chain)
+    return _in_spoken_units(copy, script_payload)
+
+
+def youtube_headline(script_payload: Dict[str, Any]) -> tuple[str, str] | None:
+    """The run's signed short YouTube headline (thumbnail.youtube_line1 / youtube_line2, from the deep dive's
+    youtube_headline, held by trace_check.youtube_headline_problems), in capitals, or None."""
+    th = script_payload.get("thumbnail") or {}
+    l1, l2 = (" ".join(str(th.get(k) or "").split()).upper() for k in ("youtube_line1", "youtube_line2"))
+    return (l1, l2) if (l1 or l2) else None
+
+
+# Lane B cycle 3 (lander ruling under the operator's delegation, 2026-11-19): the YouTube headline is a RANKED CHAIN
+# of the run's signed lines, from lines written as hooks to lines written for other jobs, never a free pick. Interior
+# slide and Story body lines are never candidates. Each must pass the truth / figure gates, read as a headline and
+# complement the video title, then set in the render (the heading gates); the next is tried otherwise, and the
+# thumbnail is refused only when the whole chain fails. The source drawn is recorded (qa.json, the review card).
+YOUTUBE_HEADLINE_CHAIN = ("youtube_headline", "thumbnail", "carousel_cover", "tagline", "story_hook", "eyebrow")
+# (lander, 2026-11-19 review: the eyebrow is a category line more often than a hook, so it is tried last)
+TITLE_OVERLAP_MAX = 0.5   # a candidate whose content words are more than half the video title's words repeats it
+
+
+# The labels the code itself writes on a documentary cover (main.documentary_cover, documentary_cover_copy's
+# defaults): claim-free and never signed copy, so never a headline candidate; a documentary reads its parent Reel's
+# signed lines for those sources instead (payload["parent_copy"], main._inherit_graphics_data).
+CODE_LABELS = frozenset({"DOCUMENTARY", "DOCUMENTARY INVESTIGATION", "EXPLORE THE EVIDENCE", "WHAT THE EVIDENCE SHOWS",
+                         "THE EVIDENCE"})
+
+
+def _chain_lines(script_payload: Dict[str, Any], source: str) -> tuple[str, str]:
+    """(line 1, line 2) of one chain source, as signed, in capitals ("", "" when the run has none). A documentary's
+    carousel / Story / tagline / eyebrow sources are its parent Reel's (parent_copy) where it has none of its own."""
+    def clean(t):
+        return " ".join(str(t or "").split()).upper()
+    parent = script_payload.get("parent_copy") or {}
+    th = dict(script_payload.get("thumbnail") or {})
+    for k in ("tagline", "eyebrow"):
+        if clean(th.get(k)) in CODE_LABELS or not clean(th.get(k)):
+            th[k] = (parent.get("thumbnail") or {}).get(k) or ""
+    if not script_payload.get("carousel_slides") and parent.get("carousel_slides"):
+        script_payload = dict(script_payload, carousel_slides=parent["carousel_slides"])
+    if not script_payload.get("story_slides") and parent.get("story_slides"):
+        script_payload = dict(script_payload, story_slides=parent["story_slides"])
+    if source == "youtube_headline":
+        return youtube_headline(script_payload) or ("", "")
+    if source == "thumbnail":
+        base = documentary_cover_copy(script_payload)
+        return base["line1"], base["line2"]
+    if source == "carousel_cover":
+        slides = [s for s in (script_payload.get("carousel_slides") or []) if isinstance(s, dict)]
+        return (clean(slides[0].get("heading")), "") if slides else ("", "")
+    if source in ("tagline", "eyebrow"):
+        return clean(th.get(source)), ""
+    if source == "story_hook":
+        slides = [s for s in (script_payload.get("story_slides") or []) if isinstance(s, dict)]
+        return (clean(slides[0].get("line1")), clean(slides[0].get("line2"))) if slides else ("", "")
+    raise ValueError(source)
+
+
+# The run's EVIDENCE for a headline's figures (lane B cycle 3, lander review: "7,000 RESTING SOULS" passed against
+# the title's own unhedged "7,000-Body" while the narration and the stat card say "approximately 7,000"): the
+# narration, the stat cards and the verified graphics data and fact sheet, never the candidate's own field or other
+# derived copy (titles, captions, cover, carousel, Story, comments).
+EVIDENCE_KEYS = ("narration_script", "acts", "stat_cards", "fact_sheet", "scale_fact", "cross_section", "timeline",
+                 "route", "location")
+
+
+def evidence_texts(script_payload: Dict[str, Any]) -> List[str]:
+    """The texts a headline's figures are held to (EVIDENCE_KEYS, read by figure_gate.signed_texts)."""
+    from . import figure_gate
+    return figure_gate.signed_texts({k: script_payload[k] for k in EVIDENCE_KEYS if k in script_payload})
+
+
+def evidence_faults(text: str, script_payload: Dict[str, Any]) -> List[str]:
+    """figure_gate.figure_faults of `text` against the run's evidence (evidence_texts): [] when every figure in it is
+    an evidence figure, whole, its hedge kept."""
+    from . import figure_gate, figures
+    return figure_gate.figure_faults(text, figures.signed_figures(evidence_texts(script_payload)))
+
+
+def headline_generic_vocabulary() -> frozenset:
+    """The active brand's generic vocabulary (data/headline_generic_vocabulary.json, per brand name; a brand with no
+    entry has none): words that say the niche, never the subject ("ANCIENT", "MARVELS", "MYSTERY")."""
+    import json
+    from . import brand
+    path = Path(__file__).resolve().parents[1] / "data" / "headline_generic_vocabulary.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return frozenset()
+    words = (data.get("brands") or {}).get(brand.active().name) or []
+    return frozenset(str(w).upper() for w in words)
+
+
+def _stem(word: str) -> str:
+    w = word.upper().replace("’", "'")
+    w = w[:-2] if w.endswith("'S") else w
+    return w[:-1] if len(w) > 4 and w.endswith("S") and not w.endswith("SS") else w
+
+
+def place_words(script_payload: Dict[str, Any]) -> set:
+    """The run's place words (stemmed): its location's city, region and country. A place alone is not the subject
+    (lander review: "ANCIENT ASWAN", "ANCIENT MALTA" are category labels)."""
+    from .youtube_thumbnail import _content
+    loc = script_payload.get("location") or {}
+    if not isinstance(loc, dict):
+        return set()
+    return {_stem(w) for w in _content(" ".join(str(loc.get(k) or "") for k in ("city", "region", "country")))}
+
+
+def subject_words(script_payload: Dict[str, Any]) -> set:
+    """This run's subject nouns and entities (stemmed content words): its topic name, its title, the scale fact's
+    subject and the site's own name (location.name), less its place words (place_words: a city, region or country
+    alone is not the subject) and the brand's generic vocabulary."""
+    from .youtube_thumbnail import _content
+    loc = script_payload.get("location") or {}
+    fact = script_payload.get("scale_fact") or {}
+    parts = [str(script_payload.get("topic_id") or "").replace("_", " "), str(script_payload.get("title") or ""),
+             str(loc.get("name") or "") if isinstance(loc, dict) else "",
+             str(fact.get("subject") or "") if isinstance(fact, dict) else ""]
+    generic = headline_generic_vocabulary()
+    places = place_words(script_payload)
+    own = {_stem(w) for w in _content(" ".join(parts)) if w not in generic and not w.isdigit()}
+    return (own | evidence_nouns(tuple(evidence_texts(script_payload)))) - places - {_stem(w) for w in generic}
+
+
+def evidence_nouns(texts: tuple) -> set:
+    """The head nouns the run's signed evidence repeats (lane B cycle 3, lander: "FORGOTTEN GEARS" names the thing
+    itself): a noun (the committed offline tagger, narrative_payoff.nouns) found in at least two separate evidence
+    texts (evidence_texts: the narration, each stat card, the graphics data, each fact), stemmed. Generic and
+    portable: nothing names a niche; places and the generic vocabulary are taken out by the caller."""
+    return set(_evidence_nouns(texts))
+
+
+_EVIDENCE_NOUNS: Dict[tuple, frozenset] = {}
+
+
+def _evidence_nouns(texts: tuple) -> frozenset:
+    if texts in _EVIDENCE_NOUNS:
+        return _EVIDENCE_NOUNS[texts]
+    from collections import Counter
+
+    from .narrative_payoff import nouns
+    seen: Counter = Counter()
+    for t in dict.fromkeys(str(x).strip() for x in texts if str(x).strip()):
+        seen.update({_stem(n.upper()) for n in nouns(t) if n.isalpha() and len(n) > 2})
+    out = frozenset(w for w, k in seen.items() if k >= 2)
+    if len(_EVIDENCE_NOUNS) > 256:
+        _EVIDENCE_NOUNS.clear()
+    _EVIDENCE_NOUNS[texts] = out
+    return out
+
+
+def specificity_fault(text: str, script_payload: Dict[str, Any]) -> str:
+    """"" when the candidate is specific to this run: it carries a figure or a subject word (subject_words) and is not
+    made only of the brand's generic vocabulary; else the reason (lander review: "ANCIENT MARVELS" is a category
+    label, not a hook)."""
+    from . import figures
+    from .youtube_thumbnail import _content
+    words = _content(text)
+    generic = headline_generic_vocabulary()
+    if words and all(w in generic for w in words):
+        return "not specific: only the brand's generic vocabulary"
+    if figures.parse(text) or any(_stem(w) in subject_words(script_payload) for w in words):
+        return ""
+    return "not specific: no figure and no word of this run's subject"
+
+
+def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The ranked chain (YOUTUBE_HEADLINE_CHAIN) as [{"source", "text", "copy" (the render's cover copy, in spoken
+    units) or None, "skipped" (the text gate that rejected it) or ""}]. Text gates, before any render: the source
+    exists; it reads as a headline (youtube_thumbnail._alone on the whole: a whole phrase, no fragment, no line ending
+    on a function word or a lead mark); it complements the video title (at most TITLE_OVERLAP_MAX of its content words
+    are the title's); every figure in it is an evidence figure, its hedge and both span ends kept (evidence_faults:
+    never its own field or other derived copy); it is specific to this run (specificity_fault). The render then holds
+    the heading gates and the drawn text is held to the evidence again (drawn_faults)."""
+    from .youtube_thumbnail import _alone, _content
+    base = documentary_cover_copy(script_payload)
+    title = str(script_payload.get("youtube_title") or "")
+    out = []
+    for source in YOUTUBE_HEADLINE_CHAIN:
+        l1, l2 = _chain_lines(script_payload, source)
+        text = " ".join(t for t in (l1, l2) if t)
+        rec = {"source": source, "copy": None, "skipped": "", "text": text}
+        out.append(rec)
+        if not text or text in CODE_LABELS:
+            rec["skipped"] = "none in this run" if not text else "a label the code writes, not signed copy"
+            continue
+        if _alone(text) != text.rstrip():
+            rec["skipped"] = "not a headline (a fragment, or a line ending on a function word)"
+            continue
+        words = _content(text)
+        if title and words and len(words & _content(title)) / len(words) > TITLE_OVERLAP_MAX:
+            rec["skipped"] = "repeats the video title"
+            continue
+        faults = evidence_faults(text, script_payload)   # every source, the base pair too: evidence only
+        if faults:
+            rec["skipped"] = "truth: " + "; ".join(faults)
+            continue
+        why = specificity_fault(text, script_payload)
+        if why:
+            rec["skipped"] = why
+            continue
+        copy = dict(base, line1=l1, line2=l2)
+        if source != "thumbnail":
+            # the other sources are the headline alone: the eyebrow and tagline are candidates of their own, so the
+            # render's own fallback to them (QF-23 headline_from) never draws one past the chain's gates
+            copy["eyebrow"] = copy["tagline"] = ""
+        for k in ("tagline", "eyebrow"):
+            if copy.get(k, "").upper() in CODE_LABELS:
+                copy[k] = ""    # a code label is never a kicker fill either (it is not signed copy)
+        rec["copy"] = _in_spoken_units(copy, script_payload)
+    return out
+
+
+def drawn_text(plates) -> str:
+    """The headline as drawn: the figure row (qualifier, figure, unit) and the title rows, in drawing order."""
+    return " ".join(pl.text for n, pl in plates if not pl.empty and n in (
+        "figure_qualifier", "figure", "figure_unit", "title_1", "title_2", "title", "qualifier"))
+
+
+def drawn_faults(plates, script_payload: Dict[str, Any]) -> List[str]:
+    """The drawn headline held to the evidence (evidence_faults): the figure row as one statement, each title row on
+    its own (a figure the render took from the badge is judged as drawn, not as the copy wrote it)."""
+    fig = " ".join(pl.text for n, pl in plates if not pl.empty and n in ("figure_qualifier", "figure", "figure_unit"))
+    rows = [pl.text for n, pl in plates if not pl.empty and n in ("title_1", "title_2", "title")]
+    out = evidence_faults(fig, script_payload) if fig else []
+    for r in rows:
+        out += evidence_faults(r, script_payload)
+    return out
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

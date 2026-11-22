@@ -1,7 +1,7 @@
 """Freeze lane B, cycle 2 (panel 2 leads): invariants on synthetic copy, flat grounds.
 
-- PL: the YouTube masthead never competes with the hook: its drawn group is at most MARK_RATIO_MAX of the hook's first
-  row (a step of the masthead's own fit ladder, never under its floor, never refused for this).
+- PL: the YouTube masthead never competes with the hook: since lane B cycle 3 one size (mast_px), chosen on the worst
+  real hook (a step of the masthead's own fit ladder, never under its floor, never refused for this).
 - TY: the title under a figure clears the figure row's lowest ink (a Q tail, a descender) by one heading line gap.
 - BC/TY: every drawn Reel cover / grid title row but the last obeys the heading engine's never-end rule.
 - The deep dive's thumbnail is required at release and a title the thumbnail refuses goes to the draft retry.
@@ -35,19 +35,19 @@ def _render(copy):
 
 @pytest.mark.parametrize("copy", COPIES, ids=[c["line1"] for c in COPIES])
 def test_the_masthead_never_competes_with_the_hook(copy):
+    """Lane B cycle 3 (lander ruling): the per-hook fit is replaced by ONE YouTube masthead size (yt.mast_px), chosen
+    so masthead.hook_ratio_max holds on the worst real hook (yt.WORST_HOOK_ROW) at or above the ladder's floor."""
     _, plates, meta = _render(copy)
     rec = meta["masthead"]
-    assert rec["shown"]                                      # stepped down, never refused for this
+    assert rec["shown"]                                      # never refused for this
     ladder = masthead.fit_ladder(yt.BRAND_PX)
     size = rec["size_px"]
-    assert any(abs(size - s) < 1e-6 for s in ladder)         # a declared step of its own fit ladder
-    row = yt.hook_row(plates)
+    assert abs(size - yt.mast_px()) < 1e-6 and any(abs(size - s) < 1e-6 for s in ladder)
     width = masthead.group_width(size, yt.LEFT)
-    assert width <= yt.MARK_RATIO_MAX * row + 1.0 or abs(size - ladder[-1]) < 1e-6, (width, row, size)
-    # the largest step that holds it: one step up would not
+    assert width <= yt.MARK_RATIO_MAX * yt.WORST_HOOK_ROW + 1.0 or abs(size - ladder[-1]) < 1e-6
     bigger = [s for s in ladder if s > size + 1e-6]
-    if bigger:
-        assert masthead.group_width(min(bigger), yt.LEFT) > yt.MARK_RATIO_MAX * row
+    if bigger:   # the largest step that holds it on the worst real hook
+        assert masthead.group_width(min(bigger), yt.LEFT) > yt.MARK_RATIO_MAX * yt.WORST_HOOK_ROW
 
 
 def _mask(plate):

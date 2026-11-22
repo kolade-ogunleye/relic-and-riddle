@@ -151,7 +151,7 @@ def test_no_lane_b_surface_shows_a_burned_in_caption_band(tmp_path):
     hero = tmp_path / "banded.jpg"
     _banded_hero(hero)
     payload = {"thumbnail": {"eyebrow": "DESERT ANOMALY", "line1": "SAHARA EYE", "line2": "",
-                             "tagline": "CARVED BY NATURE"}, "title": "T", "narration_script": "x."}
+                             "tagline": "CARVED BY NATURE"}, "title": "The Sahara Eye", "narration_script": "x."}
     reel, grid = VisualEngine().generate_thumbnails(hero, payload, tmp_path / "c", variants=False, style="badge")
     yt_path = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     for p in (reel, grid, yt_path):

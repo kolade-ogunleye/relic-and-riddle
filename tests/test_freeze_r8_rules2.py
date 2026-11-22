@@ -222,7 +222,10 @@ def test_every_real_youtube_headline_sets_a_legal_form_at_or_above_its_floor_or_
             if seam is not None:
                 assert heading.lockup_valid(lines, widths, seam, fields=True), lines
             else:
-                assert heading.lockup_valid(lines, widths, heading.ideal_seam(tuple(" ".join(lines).split()))), lines
+                # lane B cycle 3 (lander, operator ruling 4): the article + modifier row over its head noun stands
+                from src.cover_design import head_noun_shape
+                assert (heading.lockup_valid(lines, widths, heading.ideal_seam(tuple(" ".join(lines).split())))
+                        or head_noun_shape(lines)), lines
 
 
 # ------------------------------------------------------------------------------------------------ F4: one never-end set

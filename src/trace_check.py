@@ -657,4 +657,37 @@ def headline_gate(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
         problems += [p.replace("in the title", "in the YouTube title", 1) for p in headline_problems(
             SimpleNamespace(title=payload["youtube_title"], caption="", thumbnail=SimpleNamespace(
                 **{k: "" for k in COVER_FIELDS})), sheet) if p.startswith("Headline figure in the title")]
-    return problems + cover_copy_problems(payload, sheet)
+    return problems + cover_copy_problems(payload, sheet) + youtube_headline_problems(payload, sheet)
+
+
+YOUTUBE_HEADLINE_FIELDS = ("youtube_line1", "youtube_line2")
+
+
+def youtube_headline_problems(payload: dict[str, Any], sheet: dict[str, Any] | None) -> list[str]:
+    """Lane B cycle 3 follow-up: the 16:9 thumbnail's own signed headline (thumbnail.youtube_line1 / youtube_line2,
+    from the deep dive's youtube_headline) held to the same gates as the cover's lines: the headline figure rule
+    (script_engine.headline_problems), the cover's words-and-measures rules (cover_copy_problems) and the drawn ==
+    signed figure rule against the run's other signed text (figures.truth_faults: a hedge and both ends of a span
+    kept). [] when the payload carries none."""
+    from types import SimpleNamespace
+
+    from . import figure_gate, figures
+    th = payload.get("thumbnail") or {}
+    if not isinstance(th, dict):
+        th = th.model_dump() if hasattr(th, "model_dump") else {}
+    lines = {k: str(th.get(k) or "") for k in YOUTUBE_HEADLINE_FIELDS}
+    if not any(lines.values()):
+        return []
+    as_cover = {"eyebrow": "", "line1": lines["youtube_line1"], "line2": lines["youtube_line2"], "tagline": ""}
+    out = []
+    if (sheet or {}).get("facts"):
+        from .script_engine import headline_problems
+        out += [p.replace("thumbnail", "YouTube headline", 1) for p in headline_problems(
+            SimpleNamespace(title="", caption="", thumbnail=SimpleNamespace(**as_cover)), sheet)]
+        out += [p.replace(COVER_PROBLEM, COVER_PROBLEM + "YouTube headline: ", 1)
+                for p in cover_copy_problems(dict(payload, thumbnail=as_cover), sheet)]
+    others = dict(payload, thumbnail={k: v for k, v in th.items() if k not in YOUTUBE_HEADLINE_FIELDS})
+    signed = figures.signed_figures(figure_gate.signed_texts(others))
+    for k, text in lines.items():
+        out += [f"{COVER_PROBLEM}YouTube headline {k}: {f}" for f in figure_gate.figure_faults(text, signed)]
+    return out

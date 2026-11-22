@@ -14,8 +14,9 @@ functions the renderers call.
   full column only, so it passed copy the real thumbnail refuses (production sample, default brand: 3 of 34). The
   check and the render are now one decision: the same function on the same inputs, at every column the render can
   set the type in. With the hero (`hero`): on the hero itself (its reviewed feature's column), and at the full
-  column (a prepared copy of the hero, colour-balanced or de-identified, carries no reviewed focus). Without it: at
-  every column a hero can leave (_probe_flat, youtube_thumbnail.type_column: COLUMN_MIN to the full column).
+  column (a prepared copy of the hero, colour-balanced or de-identified, carries no reviewed focus). Without it:
+  lane B cycle 3 (lander ruling): at the design's standard text column only; a hero that narrows it is met at render
+  by the headline chain (youtube_chain_problems / visual_engine.youtube_headline_chain).
 - Reel cover: cover_design._lockup, the lockup every cover style sets, at the badge style's measure and size; a
   lockup that only its off-ladder last resort sets is under the profile grid's floor, which the cover's grid proof
   refuses in every style (visual_engine._grid_enforced).
@@ -38,72 +39,8 @@ def _copy_key(copy: dict[str, Any]) -> tuple:
 _YT_CACHE: dict = {}
 
 
-def _signature(value) -> Any:
-    """A width gate's result reduced to what decides the layout (fonts by face and size)."""
-    if isinstance(value, (list, tuple)):
-        return tuple(_signature(v) for v in value)
-    if isinstance(value, dict):
-        return tuple(sorted((k, _signature(v)) for k, v in value.items()))
-    if hasattr(value, "getname") and hasattr(value, "size"):
-        return (getattr(value, "path", None) or value.getname(), value.size)
-    return value
-
-
-def _changes(fn, bound, widths) -> set:
-    """The widths (ascending range `widths`) at which the gate's result differs from the next narrower width: the
-    left end of every interval where the render's choice is constant. A refusal is a result too."""
-    from .refusal import LayoutError
-    out, prev = set(), object()
-    for w in widths:
-        args = bound.arguments | {"width": float(w)}
-        try:
-            sig = _signature(fn(**args))
-        except LayoutError:
-            sig = "refused"
-        if sig != prev:
-            out.add(w)
-        prev = sig
-    return out
-
-
-def _probe_flat(render, inputs) -> str:
-    """The copy set by the render on a flat ground at every width a hero can leave its type column (COLUMN_MIN up to
-    the full column, youtube_thumbnail.type_column): the reason of the first refusal, else "". Within an interval where
-    no width gate (youtube_thumbnail._WIDTH_GATES: the qualifier, kicker and figure forms) changes its choice, every
-    remaining fit is monotonic in the width, so the copy is set at each interval's narrowest width (exact, not a
-    sample); the gates are found from the render's own calls and re-scanned until no new one appears."""
-    from . import youtube_thumbnail as yt
-    from .refusal import LayoutError
-    full = yt.TEXT_RIGHT - yt.LEFT
-    widths = range(yt.COLUMN_MIN, full + 1)
-    todo, done, seen = {yt.COLUMN_MIN, full}, set(), set()
-    calls: list = []
-
-    def hook(gated, fn, bound):
-        calls.append((fn, bound))
-    while todo - done:
-        w = min(todo - done)
-        done.add(w)
-        calls.clear()
-        yt._WIDTH_GATES.append(hook)
-        try:
-            render(meta={}, column=float(w), **inputs)
-            why = ""
-        except LayoutError as e:
-            why = getattr(e, "reason", None) or str(e)
-        finally:
-            yt._WIDTH_GATES.remove(hook)
-        if why:
-            return why
-        for fn, bound in calls:
-            key = (fn.__name__, tuple((k, repr(v)) for k, v in bound.arguments.items() if k not in ("width", "measure")))
-            if key not in seen:
-                seen.add(key)
-                todo |= _changes(fn, bound, widths)
-    return ""
-
-
-def _youtube(copy: dict[str, Any], youtube_title: str, payload: dict[str, Any] | None, hero) -> str:
+def _youtube(copy: dict[str, Any], youtube_title: str, payload: dict[str, Any] | None, hero,
+             need_headline: bool = False) -> str:
     import json
     from pathlib import Path
 
@@ -123,25 +60,70 @@ def _youtube(copy: dict[str, Any], youtube_title: str, payload: dict[str, Any] |
         except OSError:
             hero_key = str(hero)
     key = json.dumps([_copy_key(inputs["copy"]), inputs["youtube_title"], inputs["figure"], inputs["reveal"],
-                      hero_key], sort_keys=True, default=str)
+                      hero_key, need_headline], sort_keys=True, default=str)
     if key in _YT_CACHE:
         return _YT_CACHE[key]
     flat = dict(inputs, source=Image.new("RGB", (1920, 1080), (96, 92, 88)))
     why = ""
     if hero is not None:
         try:   # the hero itself: the column its reviewed feature leaves, the render's very call
-            youtube_thumbnail.render(meta={}, **youtube_render_inputs(ctx, Path(hero), copy=copy))
+            why = _headline_why(youtube_thumbnail.render(meta={}, **youtube_render_inputs(ctx, Path(hero), copy=copy)),
+                                need_headline, ctx)
         except LayoutError as e:
             why = getattr(e, "reason", None) or str(e)
         if not why:   # the hero's prepared copy (balanced, de-identified) carries no reviewed focus: the full column
             try:
-                youtube_thumbnail.render(meta={}, **flat)
+                why = _headline_why(youtube_thumbnail.render(meta={}, **flat), need_headline, ctx)
             except LayoutError as e:
                 why = getattr(e, "reason", None) or str(e)
     else:
-        why = _probe_flat(youtube_thumbnail.render, flat)
+        # lane B cycle 3 (lander ruling, 2026-11-19): the copy stage holds the design's standard text column (the
+        # thumbnail controls it; the hero is placed to leave it, youtube_thumbnail._photo), not the narrowest column a
+        # hero could force; a hero that narrows it at render is met by the headline chain (youtube_headline_chain)
+        try:
+            why = _headline_why(youtube_thumbnail.render(
+                meta={}, column=float(youtube_thumbnail.TEXT_RIGHT - youtube_thumbnail.LEFT), **flat), need_headline,
+                ctx)
+        except LayoutError as e:
+            why = getattr(e, "reason", None) or str(e)
     _YT_CACHE[key] = why
     return why
+
+
+def _headline_why(rendered, need: bool, payload: dict[str, Any] | None = None) -> str:
+    """"" unless `need` (a chain candidate) and the render drew no headline (no title row and no figure: the word
+    budget left it out whole), or the drawn headline breaks the evidence (visual_engine.drawn_faults) (lane B c3)."""
+    from . import youtube_thumbnail
+    from .visual_engine import drawn_faults
+    if need and not youtube_thumbnail.drew_headline(rendered[1]):
+        return "no headline drawn (the line is longer than the thumbnail's word budget)"
+    if not need:
+        return ""
+    from .visual_engine import drawn_text, specificity_fault
+    faults = drawn_faults(rendered[1], payload or {})
+    if faults:
+        return "truth (drawn): " + "; ".join(faults)
+    why = specificity_fault(drawn_text(rendered[1]), payload or {})
+    return (why + " (as drawn)") if why else ""
+
+
+def youtube_chain_problems(payload: dict[str, Any], hero=None) -> list[str]:
+    """Lane B cycle 3: the YouTube thumbnail's copy-stage check over its ranked headline chain
+    (visual_engine.youtube_headline_chain): [] when any candidate sets (the render's own rule, at the standard column
+    or on the hero); else one problem naming every source's reason, for the copy edit."""
+    from .visual_engine import youtube_headline_chain
+    reasons = []
+    for cand in youtube_headline_chain(dict(payload or {})):
+        if cand["copy"] is None:
+            reasons.append(f"{cand['source']}: {cand['skipped']}")
+            continue
+        why = _youtube(cand["copy"], str((payload or {}).get("youtube_title") or ""), payload, hero,
+                       need_headline=True)
+        if not why:
+            return []
+        reasons.append(f"{cand['source']}: {why}")
+    return [f"{COVER_FIT_PROBLEM}YouTube thumbnail: no line of the headline chain sets ({'; '.join(reasons)}). "
+            "Write a youtube_headline that sets at the size floor (fewer or shorter words, each line a whole phrase)."]
 
 
 @lru_cache(maxsize=64)

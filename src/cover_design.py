@@ -419,12 +419,36 @@ def _stack_valid(measure, out, seam):
             and all(end_ok(r.split()[-1]) for r in rows[:-1] if r.split()))
 
 
+def head_noun_shape(rows):
+    """Operator ruling 4's shape (lander, 2026-11-19: THE SECRET / WEAPON, THE 6-TON / ROOM, THE BURIED / CITY): a
+    three-word heading in two rows, an article and modifier row over its head noun alone. The first row opens on an
+    article and ends on a word a line may end on; no figure is split from its unit; the last is one content word
+    (never a function or never-end word). Such a row stands whatever its
+    balance; the never-end and truth rules are unchanged."""
+    from .brand_system import LINE_END_LAST_RESORT, LINE_END_NEVER
+    from .heading import bare, end_ok, is_function
+    from .figures import parse
+    rows = [r for r in rows if r.strip()]
+    if len(rows) != 2 or len(rows[0].split()) != 2 or len(rows[1].split()) != 1:
+        return False
+    if bare(rows[0].split()[0]).upper() not in _ARTICLES:   # an article opens the modifier row (THE SECRET / ...)
+        return False
+    text = f"{rows[0]} {rows[1]}"
+    if any(f.start < len(rows[0]) < f.end for f in parse(text)):   # never a figure split from its unit
+        return False
+    last = bare(rows[1].split()[0])
+    return (end_ok(rows[0].split()[-1]) and last.isalpha() and not is_function(rows[1].split()[0])
+            and last not in LINE_END_NEVER and last not in LINE_END_LAST_RESORT)
+
+
 def unbalanced_lone(rows, widths):
     """The stacked rows' balance (narrowest / widest drawn width) when a one-word row stands among two or more rows
     under heading.balance_min (ruling R8-4: the no-lone-row rule holds but for the balanced phrase exception), else
     None. Lane B cycle 3: one reading for the cover and the YouTube lockup."""
     rows = [r for r in rows if r.strip()]
     if len(rows) < 2 or not any(len(r.split()) == 1 for r in rows) or not widths or max(widths) <= 0:
+        return None
+    if head_noun_shape(rows):   # ruling 4's shape stands whatever its balance (lander, 2026-11-19)
         return None
     bal = min(widths) / max(widths)
     from .brand_system import SPEC

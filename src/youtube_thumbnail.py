@@ -381,7 +381,8 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
     column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
-    from .heading import GOLD_ROLES, end_ok, field_runs, lockup_fields, lockup_valid, set_field, set_heading
+    from .cover_design import head_noun_shape
+    from .heading import GOLD_ROLES, Form, end_ok, field_runs, lockup_fields, lockup_valid, set_field, set_heading
     from .typography import LayoutError
     ratio = tok("lockup.line_ratio")
 
@@ -405,6 +406,14 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
                 # one field: the engine's lockup, its payoff run from `at` (the copy's own field seam, when the two
                 # fields are set as one heading), else from the engine's ideal seam
                 form = set_heading(text, width_at, width, (sz,), max_lines=n, seam=at, lockup=True)
+                words = text.split()
+                one_two = [" ".join(words[:2]), words[2]] if len(words) == 3 else []
+                if (form is None and n >= 2 and one_two and head_noun_shape(one_two)
+                        and all(width_at(t, sz) <= width for t in one_two)):
+                    # lane B cycle 3 (lander: operator ruling 4's shape, THE BURIED / CITY): the modifier row over its
+                    # head noun, the noun the gold payoff, at any balance (the engine's phrase exception asks 0.55)
+                    form = Form(tuple(words), (2,), sz, tier, 2, True, {"phrase_exception": words[2],
+                                                                        "head_noun_shape": True})
                 line_runs = form.runs() if form else None
                 seam = form.seam if form else None
             else:
@@ -423,7 +432,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
         # cycle 0 round 8 (R2): the stacked lockup, every field together, obeys the heading rules (heading.lockup_valid):
         # no one-word middle row (THE 1,200-TON / BEDROCK / MONSTER), the phrase exception on the last row only
         if not lockup_valid([t for t, _ in drawn_rows], [width_at(t, sz) for t, sz in drawn_rows], seam,
-                            fields=bool(f1 and f2)):
+                            fields=bool(f1 and f2)) and not head_noun_shape([t for t, _ in drawn_rows]):
             return None
         # lane B cycle 1: the field boundary is a line end like any other (lockup_valid exempts it from the never-end
         # check): no row but the last ends on a never-end word, in any form
@@ -586,9 +595,18 @@ def _title_form(measure, title: str, width: float, room: float):
 
     def width_at(t, sz):
         return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
+    from .cover_design import head_noun_shape
+    from .heading import Form
+    words = title.split()
     for n in (1, 2):
         for tier, sz in enumerate(sizes):
             form = set_heading(title, width_at, width, (sz,), max_lines=n)
+            one_two = [" ".join(words[:2]), words[2]] if len(words) == 3 else []
+            if (form is None and n == 2 and one_two and head_noun_shape(one_two)
+                    and all(width_at(t, sz) <= width for t in one_two)):
+                # lane B cycle 3 (lander: operator ruling 4's shape under the figure too, THE UNFINISHED / OBELISK)
+                form = Form(tuple(words), (2,), sz, tier, None, False, {"phrase_exception": words[2],
+                                                                        "head_noun_shape": True})
             if form is None:
                 continue
             f = get_font(brand.DISPLAY_FONT, sz)

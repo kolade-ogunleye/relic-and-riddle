@@ -806,19 +806,30 @@ def _stem(word: str) -> str:
     return w[:-1] if len(w) > 4 and w.endswith("S") and not w.endswith("SS") else w
 
 
+def place_words(script_payload: Dict[str, Any]) -> set:
+    """The run's place words (stemmed): its location's city, region and country. A place alone is not the subject
+    (lander review: "ANCIENT ASWAN", "ANCIENT MALTA" are category labels)."""
+    from .youtube_thumbnail import _content
+    loc = script_payload.get("location") or {}
+    if not isinstance(loc, dict):
+        return set()
+    return {_stem(w) for w in _content(" ".join(str(loc.get(k) or "") for k in ("city", "region", "country")))}
+
+
 def subject_words(script_payload: Dict[str, Any]) -> set:
-    """This run's subject words (stemmed content words): its topic name, its title and its signed entities (the
-    location, the scale fact's subject, the photo labels), less the brand's generic vocabulary."""
+    """This run's subject nouns and entities (stemmed content words): its topic name, its title, the scale fact's
+    subject and the site's own name (location.name), less its place words (place_words: a city, region or country
+    alone is not the subject) and the brand's generic vocabulary."""
     from .youtube_thumbnail import _content
     loc = script_payload.get("location") or {}
     fact = script_payload.get("scale_fact") or {}
     parts = [str(script_payload.get("topic_id") or "").replace("_", " "), str(script_payload.get("title") or ""),
-             " ".join(str(v) for v in (loc.values() if isinstance(loc, dict) else [loc]) if isinstance(v, str)),
+             str(loc.get("name") or "") if isinstance(loc, dict) else "",
              str(fact.get("subject") or "") if isinstance(fact, dict) else ""]
-    labels = script_payload.get("photo_labels") or []
-    parts += [str(x.get("label") or x.get("name") or "") if isinstance(x, dict) else str(x) for x in labels]
     generic = headline_generic_vocabulary()
-    return {_stem(w) for w in _content(" ".join(parts)) if w not in generic and not w.isdigit()}
+    places = place_words(script_payload)
+    return {_stem(w) for w in _content(" ".join(parts))
+            if w not in generic and not w.isdigit()} - places
 
 
 def specificity_fault(text: str, script_payload: Dict[str, Any]) -> str:

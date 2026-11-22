@@ -339,3 +339,34 @@ def test_the_thumbnail_is_refused_only_when_the_whole_chain_fails(tmp_path):
     with pytest.raises(LayoutError) as e:
         VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     assert "every source" in str(e.value) and "eyebrow" in str(e.value)
+
+
+def test_a_place_alone_is_not_specific():
+    """Lander review: "ANCIENT MALTA" / "ANCIENT ASWAN" are category labels; a city, region or country alone is not
+    the subject, the thing itself is."""
+    from src.visual_engine import specificity_fault
+    p = {"topic_id": "harbour_wreck_gears", "title": "The Gears of the Harbour Wreck",
+         "location": {"name": "Harbour Museum", "city": "Portville", "country": "Islandia"}}
+    assert specificity_fault("ANCIENT PORTVILLE", p).startswith("not specific")
+    assert specificity_fault("ISLANDIA", p).startswith("not specific")
+    assert specificity_fault("THE SUNKEN GEARS", p) == ""
+
+
+@pytest.mark.parametrize("text", ["THE BURIED CITY", "THE UNREAD CODEX", "THE SECRET WEAPON"])
+def test_ruling_4s_shape_sets_on_the_thumbnail(text):
+    """Operator ruling 4 (lander, 2026-11-19): a modifier row over its head noun alone stands at any balance on the
+    thumbnail lockup (the engine's phrase exception asks 0.55); the deferral of unbalanced lone rows never overrides it."""
+    from PIL import ImageDraw as _D
+    from src.cover_design import head_noun_shape, unbalanced_lone
+    m = _D.Draw(Image.new("RGB", (8, 8)))
+    rows, *_, rec = yt._lockup(m, text, "", 904, kickerless=True)
+    w = text.split()
+    assert rec["drawn_rows"] in ([text], [" ".join(w[:2]), w[2]])
+    assert head_noun_shape([" ".join(w[:2]), w[2]]) and unbalanced_lone([" ".join(w[:2]), w[2]], [600, 200]) is None
+
+
+def test_the_never_end_rule_is_unchanged_by_ruling_4s_shape():
+    from src.cover_design import head_noun_shape
+    assert not head_noun_shape(["CARVED FROM", "SALT"])       # a row never ends on a never-end word
+    assert not head_noun_shape(["THE BURIED", "OF"])          # the last row is a content word
+    assert not head_noun_shape(["WHY ROMAN", "CONCRETE", "HEALS"])

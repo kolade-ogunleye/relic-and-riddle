@@ -45,3 +45,19 @@ Every remaining refusal is recorded with each source's reason:
 - Voynich 1793365215, both paths: no specific candidate sets, and the documentary title's "600 YEAR" is not evidence.
 
 Scripts (in the lane builder's scratchpad): chain_measure.py and make_pairs.py.
+
+## Round 2 (lander review of 6835d39f)
+
+- A place alone (a city, region or country) is no longer the subject: "ANCIENT MALTA" and "ANCIENT ASWAN" are refused.
+- Operator ruling 4's shape stands on the thumbnail at any balance: an article and modifier row over its head noun
+  alone (THE BURIED / CITY, THE UNREAD / CODEX). This holds in the headline lockup and in the title under a figure,
+  and the lone-row deferral never overrides it. The never-end and truth rules are unchanged.
+
+| path | dev refused before / after | production refused before / after |
+|---|---|---|
+| Reel copy | 15 / 3 | 18 / 2 |
+| documentary | 9 / 4 | 6 / 3 |
+
+`youtube_chain_before_after_r2.jpg` and `r2_pair*.jpg` show six pairs: Hal Saflieni (documentary), Aswan 1792985912,
+Roman concrete (Reel and documentary) and Voynich (documentary and Reel). Derinkuyu is in the production sample only,
+which is used for counts only and never for images. Its result: "THE BURIED CITY", from the carousel cover.

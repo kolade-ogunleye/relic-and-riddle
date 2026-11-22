@@ -580,6 +580,7 @@ SCALE_LABEL_AIR = 12                 # px from the line to the top label's basel
 #                                      (freeze cycle 3: 8 put the bar's own light line inside its figures' measured
 #                                      10 px ring, "80 MI" planned 3.89:1 at a full halo; 12 keeps the line out of it)
 SCALE_LABEL_HALO = 0.75             # freeze cycle 3: 0.6 left a corner bar's "80 MI" at 4.44:1 as drawn over relief
+SCALE_LABEL_HALO_PX = 21            # the figures' halo spread (px): part of the bar's footprint on the map's marks
 SCALE_ORIGIN_TALL = (89.0, 1030.0)   # the zero tick's x and the line's y, 9:16
 SCALE_ORIGIN_WIDE = (140.0, 790.0)   # 16:9 (y above title-safe's foot, 820: the labels stay inside it)
 SCALE_SHIFT = 40.0                   # px a bar moves right (or left, mirrored) until it is clear
@@ -813,8 +814,8 @@ def _scale_bar_plates(rest: Image.Image, bar: ScaleBar, x: float, y: float, px: 
     raised while the ratio is short of the target)."""
     font = data_font(px if px is not None else SCALE_LABEL_PX, SCALE_LABEL_WEIGHT)
     track = font.size * SCALE_LABEL_TRACK
-    return [(name, plan_text(rest, xy, text, font, brand.SCALE_LINE, "ls", track=track, halo_px=21,
-                             min_halo=SCALE_LABEL_HALO))
+    return [(name, plan_text(rest, xy, text, font, brand.SCALE_LINE, "ls", track=track,
+                             halo_px=SCALE_LABEL_HALO_PX, min_halo=SCALE_LABEL_HALO))
             for name, text, xy in scale_bar_label_specs(bar, x, y, font, direction)]
 
 
@@ -1003,11 +1004,11 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
 # Home: the lower-left corner of the map's content box (the 9:16 text column, 16:9 title-safe; above the caption
 # band), then the other corners in the fixed order SCALE_CORNERS, each moved along its edge (from the corner inward,
 # SCALE_SHIFT a step) and at most SCALE_CORNER_STEPS steps off it: the bar stays on the content box's bottom or top
-# band, never mid-map. A place is CLEAR when its box, padded SCALE_MARK_PAD, meets no label (every word,
-# the pin, the stop dots' boxes) and no hard mark pixel (the route's path with its casing, the stop dots, the home
-# outline) and no soft pixel (coasts and other borders, "where possible"). Where no place of the bar is clear, the
-# shorter round bars (SCALE_SHORTER) are tried the same way; then the place with the fewest soft pixels that meets no
-# label and no hard mark (the quietest); else no bar, recorded (refusal.omit: the map is drawn without its scale).
+# band, never mid-map. The bar is placed after every name. A place is CLEAR when the bar keeps SCALE_LABEL_PAD from
+# every name and the pin, and its line, ticks and figures (with their halo) keep SCALE_MARK_PAD from every mark: the
+# route's path with its casing, the stops' dots, the coasts, the home's outline and every land border (all hard: lander
+# ruling, the 9:16 Amber route's bar crossed Russia's outline and border). Where no place is clear, the shorter round
+# dual-unit bars (SCALE_SHORTER) are tried the same way; else no bar, recorded (refusal.omit).
 SCALE_CORNERS = ("ll", "lr", "ul", "ur")
 SCALE_CORNERS_WIDE = ("ll", "ul", "ur", "lr")   # 16:9: the lower-right is YouTube's timestamp side (review 5), last
 SCALE_CORNER_STEPS = 4
@@ -1015,9 +1016,6 @@ SCALE_MARK_PAD = 12          # px (1080 / 1920 reference) the bar's box keeps fr
 SCALE_LABEL_PAD = 36         # and from every word: its figures' halo (21 px) and a word's measured ring (10 px) never
 #                              meet (12 px put the bar's halo in TURKEY's ring: 4.45:1 drawn)
 SCALE_SHORTER = (0.7, 0.5, 0.35)   # shares of the first bar's length the shorter round bars are capped at
-SCALE_ROOM_SHARE = 0.25      # the most of a clear place's box on the ground later names need (a neighbour's land, a
-#                              sea) before another clear place is preferred (the 9:16 Amber map's bar took Belarus's
-#                              room for BELARUS, then the Baltic's for BALTIC SEA)
 
 
 @dataclass(frozen=True)
@@ -1031,9 +1029,12 @@ class FurnitureBar:
 
 def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, labels: Sequence[Box],
                         hard: BoolArray | None = None, soft: BoolArray | None = None,
-                        box: Box | None = None, room: BoolArray | None = None) -> FurnitureBar | None:
+                        box: Box | None = None) -> FurnitureBar | None:
     """The bar's place by the furniture rule above, of `bars` (the first the preferred length, then shorter ones),
-    or None (no place meets no label and no hard mark: the caller records the omission). O(bars x corners x steps^2)
+    or None (the caller records the omission). Lander ruling (cycle 3): every mark is HARD: `hard` (the route's
+    path, the stops' dots, coasts, the home's outline) and `soft` (the land borders) alike; the bar's line and ticks
+    keep SCALE_MARK_PAD from each, its figures that plus their halo (SCALE_LABEL_HALO_PX: the 9:16 Amber route's
+    halo smeared Russia's outline), and the whole bar SCALE_LABEL_PAD from every name. O(bars x corners x steps^2)
     box tests on summed-area tables."""
     import cv2
     import numpy as np
@@ -1046,23 +1047,33 @@ def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, label
     tb = (tb[0], tb[1], tb[2], tb[3] - SCALE_MARK_PAD * k)
     pad = SCALE_MARK_PAD * k
     label_pad = SCALE_LABEL_PAD * k
+    halo = SCALE_LABEL_HALO_PX * k
     step = SCALE_SHIFT * k
+    marks = None
+    for m_ in (hard, soft):
+        if m_ is not None:
+            marks = (np.asarray(m_) > 0) if marks is None else (marks | (np.asarray(m_) > 0))
+    ii_hard = None
+    if marks is not None:
+        r = max(1, int(round(pad)))
+        grown = cv2.dilate(marks.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))
+        ii_hard = _integral(grown > 0)
 
-    def table(mask: BoolArray | None, grow: float):
-        if mask is None:
-            return None
-        m = (np.asarray(mask) > 0).astype(np.uint8)
-        r = max(1, int(round(grow)))
-        m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1))) > 0
-        return _integral(m)
-    ii_hard, ii_soft = table(hard, pad), table(soft, pad / 2)
-
-    def count(ii, b: Box) -> int:
-        if ii is None:
+    def count(b: Box) -> int:
+        if ii_hard is None:
             return 0
         x0, y0 = max(0, int(b[0])), max(0, int(b[1]))
         x1, y1 = min(width, math.ceil(b[2])), min(height, math.ceil(b[3]))
-        return 0 if x1 <= x0 or y1 <= y0 else int(_box_sum(ii, (x0, y0, x1, y1)))
+        return 0 if x1 <= x0 or y1 <= y0 else int(_box_sum(ii_hard, (x0, y0, x1, y1)))
+
+    def parts(bar: ScaleBar) -> list[Box]:
+        """The bar's footprint at the origin: its line and ticks (cased), and each figure's ink grown by its halo."""
+        out = [(-3.0, -SCALE_TICK - 2.0, bar.length + 3.0, SCALE_TICK + 2.0)]
+        for _n, text, xy in scale_bar_label_specs(bar, 0.0, 0.0, font):
+            bb = ink_box(xy, text, font, "ls", font.size * SCALE_LABEL_TRACK)
+            if bb:
+                out.append((bb[0] - halo, bb[1] - halo, bb[2] + halo, bb[3] + halo))
+        return out
 
     def places(bar: ScaleBar):
         rel = scale_bar_box(bar, 0.0, 0.0, font)
@@ -1077,45 +1088,29 @@ def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, label
                         continue
                     yield corner, (bx0 - rel[0], by0 - rel[1]), (bx0, by0, bx0 + w, by0 + h)
 
-    ii_room = _integral(np.asarray(room) > 0) if room is not None else None
-    quietest: tuple[int, int, FurnitureBar] | None = None
-    clear_first: FurnitureBar | None = None
-    for order, bar in enumerate(bars):
+    for bar in bars:
+        foot = parts(bar)
         for corner, (x, y), b in places(bar):
             if any(LayoutConstraintSolver.boxes_intersect(b, lb, label_pad) for lb in labels):
                 continue
-            if count(ii_hard, b):
+            if any(count((p[0] + x, p[1] + y, p[2] + x, p[3] + y)) for p in foot):
                 continue
-            s = count(ii_soft, b)
-            got = FurnitureBar(bar, _scale_layout(bar, x, y, 1, b), corner, s)
-            if s == 0:
-                # `room`: the ground later names need (a neighbour's land, which takes its name after the bar):
-                # a clear place mostly off it is taken first, else the first clear place
-                if ii_room is None or count(ii_room, b) <= SCALE_ROOM_SHARE * (b[2] - b[0]) * (b[3] - b[1]):
-                    return got
-                clear_first = clear_first or got
-                continue
-            if quietest is None or (s, order) < quietest[:2]:
-                quietest = (s, order, got)
-    if clear_first is not None:
-        return clear_first
-    if quietest is not None:
-        log.info("Scale bar: no place clear of the borders; the quietest (%d border px) in the %s corner.",
-                 quietest[0], quietest[2].corner)
-        return quietest[2]
+            return FurnitureBar(bar, _scale_layout(bar, x, y, 1, b), corner, 0)
     return None
 
 
 def scale_bar_family(make: Callable[[float | None], ScaleBar]) -> list[ScaleBar]:
-    """The bar at its preferred length, then shorter round bars (SCALE_SHORTER of it), then each in one unit:
-    `make(max_px)` builds a bar no longer than max_px (None: the preferred)."""
+    """The bar at its preferred length, then shorter round bars (SCALE_SHORTER of it), DUAL-UNIT only (lander
+    ruling, cycle 3: every bar shipped carries both units, each tick at its true length; "50 KM" alone was refused):
+    `make(max_px)` builds a bar no longer than max_px (None: the preferred). A length with no second unit that reads
+    apart from it is left out; none left: [] (no bar, recorded by the caller)."""
     first = make(None)
     out = [first]
     for share in SCALE_SHORTER:
         b = make(first.length * share)
         if all(b.length < o.length - 0.5 for o in out):
             out.append(b)
-    return out + [b.one_unit() for b in out if b.secondary is not None]
+    return [b for b in out if b.secondary is not None]
 
 
 def scale_bar_record(fb: FurnitureBar | None) -> dict[str, Any]:
@@ -13020,7 +13015,16 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                    + [w_.box for w_ in keep_wl] + [nb.box for nb in r_near] + [pl.box for _n, pl in r_cplates]
                    + [(b_[0] / scale, b_[1] / scale, b_[2] / scale, b_[3] / scale) for _nm, b_ in named_bx]
                    + ([gbox] if gbox else []))
-    placed = furniture_scale_bar(fam, width, height, route_names, hard=(np.asarray(hard_m) > 0) | route_coast)
+    # the home's outline and every land border are marks too (lander ruling: the 9:16 Amber route's bar crossed
+    # Russia's outline and its land border; the route passed only its path, dots and coasts)
+    route_marks = (np.asarray(hard_m) > 0) | route_coast
+    if home is not None:
+        import cv2
+        route_marks |= land_borders(ids_b[0], width, height)
+        if home_b is not None:
+            hb_u8 = home_b.astype(np.uint8)
+            route_marks |= (hb_u8 - cv2.erode(hb_u8, np.ones((3, 3), np.uint8))) > 0
+    placed = furniture_scale_bar(fam, width, height, route_names, hard=route_marks)
     blay = furniture_layout(placed) if placed is not None else None
     bar = blay["bar"] if blay else None
     bar_x, bar_y = (blay["x"], blay["y"]) if blay else (0.0, 0.0)

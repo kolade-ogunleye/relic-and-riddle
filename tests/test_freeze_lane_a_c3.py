@@ -147,6 +147,61 @@ def test_a_routes_bar_never_meets_its_stops_or_names(tmp_path, monkeypatch, size
         assert not graphics.LayoutConstraintSolver.boxes_intersect(tuple(b), tuple(c["box"]), 0), (b, c)
 
 
+@pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)])
+def test_the_amber_routes_bar_clears_the_home_outline_and_every_border(tmp_path, monkeypatch, size):
+    """Lander ruling (fd532f34 rejected): on the real Amber route (the board's stops, Catherine Palace to Kholat
+    Syakhl), the bar's line, ticks and figures with their halo keep SCALE_MARK_PAD from the home's outline and every
+    land border, as from the path, the dots and the coasts. Before the fix the route passed only its path, dots and
+    coasts: no border reached the bar's test, and the 9:16 bar crossed Russia's outline and its land border."""
+    import numpy as np
+    from tests.test_r4_graphics_2026_11_02 import _render_fast
+    from tests.test_qf24_route_neighbours import needs_data
+    if needs_data.args and needs_data.args[0]:
+        pytest.skip("Natural Earth data not fetched")
+    cap: dict = {"borders": []}
+    real_borders, real_place = graphics.land_borders, graphics.furniture_scale_bar
+
+    def spy_borders(id_map, width, height):
+        got = real_borders(id_map, width, height)
+        cap["borders"].append(np.asarray(got, bool))
+        return got
+
+    def spy_place(bars, width, height, labels, hard=None, soft=None, box=None):
+        cap["hard"] = None if hard is None else np.asarray(hard, bool)
+        cap["got"] = real_place(bars, width, height, labels, hard, soft, box)
+        return cap["got"]
+    monkeypatch.setattr(graphics, "land_borders", spy_borders)
+    monkeypatch.setattr(graphics, "furniture_scale_bar", spy_place)
+    stops = [{"place": "Catherine Palace", "country": "Russia", "label": "Catherine Palace"},
+             {"place": "Kholat Syakhl", "country": "Russia", "label": "Kholat Syakhl"}]
+    _render_fast(monkeypatch, lambda: graphics.render_route(stops, tmp_path / "r.mp4", width=size[0],
+                                                            height=size[1]))
+    assert cap["borders"], "the route's bar was tested without the land borders"
+    borders = np.logical_or.reduce(cap["borders"])
+    assert cap["hard"] is not None and not (borders & ~cap["hard"]).any()        # every border is a hard mark
+    fb = cap["got"]
+    if fb is None:
+        return                                                                    # declined: recorded on the ledger
+    w, h = size
+    font = graphics.scale_label_font(w, h)
+    pad, halo = graphics.SCALE_MARK_PAD, graphics.SCALE_LABEL_HALO_PX
+    x, y, bar = fb.layout.x, fb.layout.y, fb.bar
+    foot = [(x - 3 - pad, y - graphics.SCALE_TICK - 2 - pad, x + bar.length + 3 + pad, y + graphics.SCALE_TICK + 2 + pad)]
+    for _n, text, xy in graphics.scale_bar_label_specs(bar, x, y, font):
+        b = graphics.ink_box(xy, text, font, "ls", font.size * graphics.SCALE_LABEL_TRACK)
+        foot.append((b[0] - halo - pad, b[1] - halo - pad, b[2] + halo + pad, b[3] + halo + pad))
+    for b in foot:
+        x0, y0, x1, y1 = (max(0, int(v)) for v in b)
+        assert not cap["hard"][y0:y1, x0:x1].any(), (size, b)
+
+
+def test_every_shipped_bar_carries_both_units():
+    """Lander ruling: a shorter round bar keeps both units ("50 KM" alone was refused); none: no bar, recorded."""
+    for lat, ppd in ((45.0, 60.0), (60.0, 15.0), (10.0, 300.0), (55.0, 4.0)):
+        fam = _fam(lat, ppd)
+        assert all(b.secondary is not None for b in fam)
+
+
 def test_omitted_scale_bar_is_recorded_on_the_ledger():
     from src.refusal import Declined, collecting
     with collecting() as rows:

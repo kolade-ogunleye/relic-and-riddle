@@ -135,9 +135,9 @@ def test_the_greece_route_bar_keeps_off_crete_and_the_legs(tmp_path, monkeypatch
     cap: dict = {}
     real_place, real_with = graphics.furniture_scale_bar, graphics._with_bar
 
-    def spy_place(bars, width, height, labels, hard=None, soft=None, box=None, room=None):
+    def spy_place(bars, width, height, labels, hard=None, soft=None, box=None):
         cap["hard"], cap["soft"] = hard, soft
-        got = real_place(bars, width, height, labels, hard, soft, box, room)
+        got = real_place(bars, width, height, labels, hard, soft, box)
         cap["got"] = got
         return got
 

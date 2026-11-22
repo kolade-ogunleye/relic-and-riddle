@@ -865,7 +865,9 @@ def _relax_figure_bonds(words: List[Dict[str, Any]], bonds: set[int], prefer: se
         part = raw[lo:hi + 1]
         return lo >= hi or bonded_burst_allowed(part) or (
             hi - lo + 1 <= MAX_BURST_WORDS and len(" ".join(_phrase_words(part))) <= MAX_BURST_CHARS
-            and _fits_caption_bonded(part))
+            and _fits_caption_bonded(part)) or (
+            # lane C cycle 3 (lander ruling: a figure group is a bond): one two-line burst sets it whole
+            _figure_group_over_caps(part) and _figure_group_split(part) is not None)
 
     i = 0
     while i < n:
@@ -889,17 +891,25 @@ def _relax_figure_bonds(words: List[Dict[str, Any]], bonds: set[int], prefer: se
                 # NEARLY 1,090 TO 1,168 is 644 px at 66: its joiners give way, never a lone FROM)
                 ext = lo - 1 if (prefer is not None and lo >= 1 and lo - 1 not in prefer and lo - 1 not in out
                                  and _bare(raw[lo - 1]) in LEAD_IN_WORDS and not _ends_clause(raw[lo - 1])) else lo
-                if holdable(lo, hi) and holdable(ext, hi):
+                if holdable(lo, hi) and (holdable(ext, hi) or (
+                        # lane C cycle 3: a figure group that sets whole on two lines keeps its bonds; its lead-in
+                        # (FROM) goes the other way, never its joiner
+                        _figure_group_over_caps(raw[lo:hi + 1]) and _figure_group_split(raw[lo:hi + 1]))):
                     continue
                 joiners = [j for j in range(lo + 1, hi) if _norm(raw[j]) in RANGE_JOINERS and j - 1 in out]
                 # lane C cycle 1 (N2): a figure never leaves its SQUARE unit (unit_link); the group shrinks whole
                 area = [j for j in range(lo, hi) if j in out and _norm(raw[j + 1]) in AREA_QUALIFIERS
                         and not unit_link(raw[j], raw[j + 1])]
                 lead = lo in out and lo not in atomic and _norm(raw[lo]) in LEAD_IN_WORDS
+                # lane C cycle 3 (a figure group is a bond): a range's BETWEEN stays with its first end; the range
+                # yields before its joiner only (BETWEEN APPROXIMATELY 70 | AND 60 BC, never SANK BETWEEN | ...)
+                lead = lead and not (joiners and _norm(raw[lo]) == "between")
                 if prefer is not None and (lead or joiners or area):
                     # fix round 1: with a base, every such link at once (after a joiner only where the base cuts
                     # there: BETWEEN 94 AND | 104 MILLION YEARS AGO); the phrase builder picks among them
-                    out -= ({lo} if lead else set()) | {j - 1 for j in joiners} | (set(joiners) & prefer) | set(area)
+                    # lane C cycle 3 (a figure group is a bond): a group no burst sets yields before its joiner only,
+                    # never after it (BETWEEN 94 AND | 104 ended a burst on the joiner)
+                    out -= ({lo} if lead else set()) | {j - 1 for j in joiners} | set(area)
                     spans.append((lo, hi))
                 elif lead:
                     out.discard(lo)          # a range's BETWEEN or FROM, or a lead-in, first: BETWEEN | 287 AND 300
@@ -1352,7 +1362,9 @@ def partition_words_grammatical(
                         if not (all(joined(off + i + k) for k in range(min_words - 1, size - 1))
                                 and (bonded_burst_allowed(raw_chunk) or (name_group and fits_bonded(chunk)) or (
                                     figure_group and size <= max_words + CAPTION_BOND_EXTRA_WORDS
-                                    and len(txt) <= max_chars + CAPTION_BOND_EXTRA_CHARS))):
+                                    and len(txt) <= max_chars + CAPTION_BOND_EXTRA_CHARS)
+                                    # lane C cycle 3: a whole figure group on two lines, each within the caps
+                                    or (_figure_group_over_caps(raw_chunk) and _figure_group_split(raw_chunk)))):
                             continue
                     if len(chunk) > 1 and not fits(chunk) and not (
                             all(joined(off + i + k) for k in range(min_words - 1, size - 1))
@@ -1775,6 +1787,34 @@ def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> boo
 CAPTION_LADDER = (FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE)   # px: the 9:16 sizes a burst draws at
 
 
+def _rung_above(size: float) -> int:
+    """The next CAPTION_LADDER rung above `size` (FONT_SIZE at the top; the bond floor for a word shrunk under it)."""
+    return min((r for r in CAPTION_LADDER if r > size), default=max(CAPTION_LADDER))
+
+
+def bounded_caption_sizes(fits: list[int], joined: list[bool]) -> list[int]:
+    """Lane C cycle 3 (MO-cap-size): the size each 9:16 burst draws at, so that two bursts shown back to back
+    (joined[i]: burst i hands over to burst i + 1 with no pause) differ by at most one CAPTION_LADDER rung.
+
+    A burst that must draw at the bond floor (OF ARMY GROUP NORTH at 66 between bursts at 80) was a 17.5% size pop
+    at its handover; its neighbours now step down one rung (74) instead, and theirs stay at 80 (80 -> 74 -> 66 -> 74
+    -> 80: at most one rung, 7.5% or 10.8%, a step). No burst ever draws larger than its own fit (`fits`); a burst
+    shrinks only as far as the bound requires, so legibility gives way to rhythm only beside a shrunk burst (trade-off
+    order: the 'one size per run' alternative shrank about half of all real bursts). A single over-long word under
+    the bond floor (CAPTION_MIN_SIZE) bounds its neighbours at the floor. Across a pause the plate fades out and in,
+    so no bound holds there."""
+    sizes = list(fits)
+    changed = True
+    while changed:   # each pass only lowers a size, and sizes are bounded below: it ends
+        changed = False
+        for i in range(len(sizes)):
+            near = [sizes[j] for j in (i - 1, i + 1) if 0 <= j < len(sizes) and joined[min(i, j)]]
+            limit = min((_rung_above(s) for s in near), default=sizes[i])
+            if sizes[i] > limit:
+                sizes[i], changed = limit, True
+    return sizes
+
+
 def _two_line_clears_graphics(size: float, height: int = VIDEO_HEIGHT) -> bool:
     """Whether a two-line 9:16 plate at caption size `size` (REEL_PLATE_H plus one baseline pitch, its bottom on the
     one-line plate's) stays inside the band reserved for captions (safe_zones.caption_band_top, which stands the
@@ -1963,6 +2003,19 @@ def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
     words = list(raw)
     if len(words) < 2:
         return None
+    if _figure_group_over_caps(words):   # lane C cycle 3: a figure group past one burst's caps takes two lines
+        split = _figure_group_split(words)
+        return ("two", *split) if split else None
+    form = _reel_form_base(words)
+    if form is None and _figure_group(words) and _caption_ink_width(_phrase_words(words), CAPTION_BOND_MIN_SIZE)             > _ink_budget():
+        # lane C cycle 3: a figure group within the caps too wide for one line at the bond floor (AN ESTIMATED /
+        # EIGHTY PERCENT) breaks at its own seam rather than across bursts
+        split = _figure_group_split(words)
+        return ("two", *split) if split else None
+    return form
+
+
+def _reel_form_base(words: list[str]) -> tuple[str, int, int] | None:
     budget = _ink_budget()
     if _caption_ink_width(_phrase_words(words), CAPTION_BURST_MIN_SIZE) <= budget:
         return None
@@ -2012,6 +2065,111 @@ def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
         return ("two", *options[0])
     split = _figure_split(words, shown, minimum, floor, plate_fits) if whole_figure else None
     return ("two", *split) if split is not None else None
+
+
+def _figure_group(words: list[str]) -> bool:
+    """Whether these words are one figure group: every boundary inside them a figure bond (_figure_bonds: a hedge with
+    its figure, the words of one figure, both ends of a range, a fixed hedge phrase) or an atomic pair (a figure and
+    its unit, a date), save at most LEAD_IN_MAX lead-in words before it (FROM, TO, AN) and one word that only closes
+    the range after it (AGO, LATER, HIGH: _RANGE_TAIL_WORDS), which go with the group as the burst ends would."""
+    words = [str(w) for w in words]
+    links = _figure_bonds(words)
+    lo, hi = 0, len(words) - 1
+    while lo < min(LEAD_IN_MAX, hi) and lo not in links and _bare(words[lo]) in LEAD_IN_WORDS:
+        lo += 1
+    if hi > lo and hi - 1 not in links and _norm(words[hi]) in _RANGE_TAIL_WORDS and not _ends_clause(words[hi - 1]):
+        hi -= 1
+    return hi > lo and any(lo <= k < hi for k in links) and all(
+        k in links or _is_atomic_boundary(words[k], words[k + 1]) for k in range(lo, hi))
+
+
+def _figure_group_tail(words: list[Any]) -> bool:
+    """Whether the last of these words is a figure group's closing word (AGO, LATER, HIGH: _RANGE_TAIL_WORDS) that
+    _figure_group lets follow the group unbonded."""
+    words = [str(w) for w in words]
+    links = _figure_bonds(words)
+    return (len(words) > 2 and len(words) - 2 not in links and _norm(words[-1]) in _RANGE_TAIL_WORDS
+            and not _ends_clause(words[-2]) and _figure_group(words))
+
+
+def figure_group_tail_extra(phrase: Any) -> bool:
+    """Lane C cycle 3: whether this 9:16 burst is a figure group set on two lines whose line 2 uses the bond extra to
+    hold the group's closing word (_figure_group_split); the records list each one (reading_rates "bond_extra")."""
+    ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in (
+        phrase.split() if isinstance(phrase, str) else phrase)]
+    if not _figure_group_over_caps(ws) or not _figure_group_tail(ws):
+        return False
+    lay = reel_caption_lines(ws)
+    if lay is None:
+        return False
+    line = ws[lay[0]:]
+    return len(line) > MAX_BURST_WORDS or len(" ".join(line)) > MAX_BURST_CHARS
+
+
+def _figure_group_over_caps(words: list[str]) -> bool:
+    """A figure group (_figure_group) past one burst's caps with the bond extra (CAPTION_BOND_EXTRA_WORDS / _CHARS)."""
+    return (len(words) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS
+            or len(" ".join(words)) > MAX_BURST_CHARS + CAPTION_BOND_EXTRA_CHARS) and _figure_group(words)
+
+
+def _hedge_seam(tokens: list[str], words: list[str], k: int) -> bool:
+    """A break right after a whole hedge phrase before a spelled or numeral figure (AN ESTIMATED / EIGHTY PERCENT):
+    _hedge_break's rule, which reads numerals only, for any figure (_is_figure_at)."""
+    if not 0 < k < len(tokens) or not _is_figure_at(tokens, k) or any(_ends_clause(w) for w in words[:k]):
+        return False
+    for hedge in HEDGE_PHRASES:
+        lead = k - len(hedge)
+        if (0 <= lead <= LEAD_IN_MAX and tuple(tokens[lead:k]) == hedge
+                and all(t in LEAD_IN_WORDS for t in tokens[:lead])
+                and (len(hedge) > 1 or not never_end_end(words[k - 1]))):
+            return True
+    return False
+
+
+@lru_cache(maxsize=4096)
+def _figure_group_split_cached(raw: tuple[str, ...]) -> tuple[int, int] | None:
+    words = list(raw)
+    shown = _phrase_words(words)
+    tokens = [_norm(w) for w in words]
+    budget = _ink_budget()
+    band = _caption_band_height()
+    tail = _figure_group_tail(words)
+    for rung in CAPTION_LADDER:
+        if not _two_line_clears_graphics(rung):
+            continue
+        choices = []
+        for k in range(1, len(words)):
+            parts = (words[:k], words[k:])
+            # lander cycle-3 ruling 1 on 8f00b711: line 2 takes ruling 5's bond extra (+1 word, +2 characters) where
+            # it holds the group's own closing word (104 MILLION YEARS AGO,), which would otherwise stand alone
+            extra = (CAPTION_BOND_EXTRA_WORDS, CAPTION_BOND_EXTRA_CHARS) if tail else (0, 0)
+            if (len(parts[0]) > MAX_BURST_WORDS or len(" ".join(parts[0])) > MAX_BURST_CHARS
+                    or len(parts[1]) > MAX_BURST_WORDS + extra[0]
+                    or len(" ".join(parts[1])) > MAX_BURST_CHARS + extra[1]):
+                continue
+            if unit_link(words[k - 1], words[k]) or _is_atomic_boundary(words[k - 1], words[k]):
+                continue
+            # the group's own seams: before a range joiner or a bracketed conversion, or after its whole hedge
+            if not (tokens[k] in RANGE_JOINERS or words[k].startswith("(") or _hedge_break(shown, k)
+                    or _hedge_seam(tokens, words, k)):
+                continue
+            wide = max(_caption_ink_width(shown[:k], rung), _caption_ink_width(shown[k:], rung))
+            if wide <= budget and _caption_two_line_geometry([shown[:k], shown[k:]], rung)[1] <= band:
+                choices.append((wide, k))
+        if choices:
+            return min(choices)[1], rung
+    return None
+
+
+def _figure_group_split(words: list[str]) -> tuple[int, int] | None:
+    """Lane C cycle 3 (lander ruling: a figure group is a bond, never cut across bursts; it may take one two-line
+    burst with each line within one burst's caps, past ruling 5's bond extra, for figure groups only): (k, rung) for
+    the group on two lines, line 1 its first k words. Each line holds at most MAX_BURST_WORDS words and
+    MAX_BURST_CHARS characters; the break is one of the group's own seams (before a range joiner, before a bracketed
+    conversion, after the whole hedge phrase), never between a number and its unit; the largest CAPTION_LADDER rung
+    whose lines fit the ink budget and whose plate the caption band holds, then the narrower wider line. None where
+    no such break exists (the group is then recorded: reading_rates "figure_split")."""
+    return _figure_group_split_cached(tuple(str(w) for w in words))
 
 
 def _figure_split(words: list[str], shown: list[str], minimum: int, floor: int, plate_fits) -> tuple[int, int] | None:
@@ -2365,6 +2523,23 @@ def line_defect_bursts(phrases) -> list[str]:
     return out
 
 
+def never_end_lines(phrases) -> list[dict[str, Any]]:
+    """Lane C cycle 3 (stress realism, LINE_END_BREAK): each 9:16 burst drawn on two lines (reel_caption_lines) whose
+    line 1 ends on a never-end word (never_end_end, the one predicate burst ends are read with): its text with " / "
+    between the lines, the word, and whether the break is the ruled hedge break (_hedge_break: MORE THAN / 590 SQUARE
+    FEET, lander ruling 1, accepted). The board's line record counts the same lines, so the two never disagree."""
+    out = []
+    for p in phrases:
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        layout = reel_caption_lines(ws)
+        if layout is None or not never_end_end(ws[layout[0] - 1]):
+            continue
+        k = layout[0]
+        out.append({"text": " ".join(ws[:k]) + " / " + " ".join(ws[k:]), "ends_on": _bare(ws[k - 1]),
+                    "hedge_break": _hedge_break(_phrase_words(ws), k)})
+    return out
+
+
 def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]],
                   widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
@@ -2401,6 +2576,16 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
             "line_defect": [] if widescreen else line_defect_bursts(phrases),
             # lane C cycle 2: and those whose line break splits a proper name (recorded, as ruled)
             "name_split": [] if widescreen else name_split_bursts(phrases),
+            # lane C cycle 3 (stress realism): every line inside a 9:16 burst that ends on a never-end word, as the
+            # board counts them, the ruled hedge break (MORE THAN / 590 SQUARE FEET) marked, and the one total of
+            # never-end ends a reader sees (burst ends plus line ends that are no ruled hedge break)
+            "never_end_lines": [] if widescreen else never_end_lines(phrases),
+            # lane C cycle 3 (lander ruling: a figure group is a bond): every cut inside a figure group left standing
+            "figure_split": figure_split_cuts(phrases),
+            # lander ruling 1 on 8f00b711: a figure group's closing word no burst could hold with it (recorded)
+            "lone_group_tail": [] if widescreen else lone_group_tails(phrases),
+            "never_end_total": len(never_end_bursts(phrases)) + (0 if widescreen else sum(
+                not row["hedge_break"] for row in never_end_lines(phrases))),
             # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
             # the defect it removed (caption_phrases' bond_extra)
             "bond_extra": list(bond_extra or [])}
@@ -2832,6 +3017,94 @@ def _base_yields(words: list[dict[str, Any]], emphasis: list[str] | None, base_c
     return {k for k in base_cuts if k + 1 < len(raw) and k not in held and not _r4_atomic_boundary(raw[k], raw[k + 1])}
 
 
+def figure_group_bonds(words: list[Any], fits: Callable[[list[Any]], bool]) -> set[int]:
+    """Lane C cycle 3 (lander ruling: a figure group is a bond): the boundaries inside each maximal figure group of
+    the narration (runs of caption_bonds' figure part, _figure_bonds, and the unit links) that one burst can set
+    (`fits`). A group no burst can set keeps its old yielding (the cut is then recorded: reading_rates
+    "figure_split")."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        a = k
+        while k in links:
+            k += 1
+        if fits(raw[a:k + 1]):
+            out.update(range(a, k))
+        elif _norm(raw[a]) == "between":
+            out.add(a)   # a group no burst sets still keeps BETWEEN with its first end (never SANK BETWEEN |)
+        k += 1
+    return out
+
+
+def figure_group_tail_links(words: list[Any]) -> set[int]:
+    """Lane C cycle 3 (lander ruling 1 on 8f00b711): the boundary before a figure group's closing word (BETWEEN 145,000
+    AND 29,000 YEARS | AGO.) where the whole group with that word sets on two lines (_figure_group_split, line 2 with
+    the bond extra), so the closing word never stands alone after it."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        a = k
+        while k in links:
+            k += 1
+        # raw[a..k] is the group; raw[k + 1] its closing word, if any
+        if k + 1 < len(raw) and not _ends_clause(raw[k]) and _norm(raw[k + 1]) in _RANGE_TAIL_WORDS:
+            group = raw[a:k + 2]
+            if _figure_group_over_caps(group) and _figure_group_split(group) is not None:
+                out.add(k)
+        k += 1
+    return out
+
+
+def _reel_figure_group_fits(group: list[str]) -> bool:
+    """Whether a 9:16 burst can set this figure group whole: within the caps with the bond extra at the bond floor
+    (bonded_burst_allowed), or on two lines (reel_caption_lines, _figure_group_split)."""
+    shown = " ".join(_phrase_words(group))
+    if (len(group) <= MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS and len(shown) <= MAX_BURST_CHARS
+            + CAPTION_BOND_EXTRA_CHARS and _fits_caption_bonded(group)):
+        return True
+    return reel_caption_lines(group) is not None
+
+
+def lone_group_tails(phrases) -> list[str]:
+    """Lane C cycle 3 (lander ruling 1 on 8f00b711): each one-word burst that is a figure group's closing word left
+    alone after the group (BETWEEN 94 AND 104 MILLION YEARS | AGO,): no two-line form holds it, the bond extra
+    included (line 2 past the ink budget at every rung). The records name every one."""
+    out = []
+    for i in range(1, len(phrases)):
+        p, prev = phrases[i], phrases[i - 1]
+        ws = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+        before = [w.get("word", "") if isinstance(w, dict) else str(w) for w in prev]
+        if len(ws) == 1 and _norm(ws[0]) in _RANGE_TAIL_WORDS and _figure_group(before) and not _ends_clause(before[-1]):
+            out.append(" ".join(before) + " | " + ws[0])
+    return out
+
+
+def figure_split_cuts(phrases) -> list[str]:
+    """Lane C cycle 3: each cut between bursts that falls inside a figure group (_figure_bonds, unit links), as
+    "left | right": a group no burst could set whole. The records name every one."""
+    flat = [w for p in phrases for w in p]
+    raw = [w.get("word", "") if isinstance(w, dict) else str(w) for w in flat]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out, at = [], -1
+    for i, p in enumerate(phrases[:-1]):
+        at += len(p)
+        if at in links:
+            left = [w.get("word", "") if isinstance(w, dict) else str(w) for w in p]
+            right = [w.get("word", "") if isinstance(w, dict) else str(w) for w in phrases[i + 1]]
+            out.append(" ".join(left) + " | " + " ".join(right))
+    return out
+
+
 def _base_figure_links(words: list[dict[str, Any]], base_cuts: set[int]) -> set[int]:
     """Fix round 2: the base cuts at a freeze-pass figure link (caption_bonds' figure part beyond a fixed hedge phrase,
     and the atomic pairs: a figure with its unit, SQUARE with its unit, a bracketed conversion, a date). The operator
@@ -2892,7 +3165,9 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         wide_max = max_width if max_width is not None else min(int(1920 * 0.75), CAPTION_WIDE_MAX_PLATE)
         base = round4_burst_cuts(words, emphasis, True, wide_max)
         units = unit_links(words)   # lane C cycle 1 (N2): a figure and its unit hold on every path
-        loose = _base_yields(words, emphasis, base) - units
+        # lane C cycle 3: a figure group one burst holds is a bond the base never loosens
+        loose = _base_yields(words, emphasis, base) - units - figure_group_bonds(
+            words, lambda ph: _fits_wide(ph, wide_max, max_chars=None))
         bonds = ((caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
                                                     lambda ph: _fits_wide(ph, wide_max, max_chars=None))) - loose
                  ) | units
@@ -2913,7 +3188,10 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
             2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
     base = round4_burst_cuts(words, emphasis)
     units = unit_links(words)   # lane C cycle 1 (N2): MORE THAN 590 SQUARE FEET is one value, never cut
-    loose = _base_yields(words, emphasis, base) - units
+    # lane C cycle 3 (lander ruling): a figure group is a bond: one the Reel can set (one line, or two lines each
+    # within one burst's caps) is never loosened for the round-4 base
+    loose = _base_yields(words, emphasis, base) - units - figure_group_bonds(words, _reel_figure_group_fits)
+    units = units | figure_group_tail_links(words)   # held like a unit: never loosened, never cut
     bonds = ((caption_bonds(words) | _held_runs(words, emphasis_bonds(words, emphasis) - caption_bonds(words),
                                                 _fits_caption_bonded)) - loose) | units
     phrases = merge_short_bursts(partition_words_grammatical(words, bonds=bonds, base_cuts=base, loose=loose,
@@ -2942,6 +3220,11 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
+        # lane C cycle 3: a figure group's line 2 holding its closing word with the bond extra (BETWEEN 94 / AND 104
+        # MILLION YEARS AGO,), which removed a lone closing word
+        bond_extra.extend({"text": " ".join(w["word"] for w in p), "removed": "lone_group_tail",
+                           "was": " ".join(w["word"] for w in p[:-1]) + " | " + p[-1]["word"]}
+                          for p in out if figure_group_tail_extra(p))
     return out
 
 
@@ -3408,15 +3691,31 @@ def _same_count(first: str | None, second: str | None) -> bool:
     return first is None or second is None or _unit_key(first) == _unit_key(second)
 
 
+def _between_at(tokens: list[str], raw: list[str], first_start: int) -> int | None:
+    """The position of the BETWEEN that opens a range whose first end starts at `first_start`: right before it, or
+    before a hedge phrase right before it (BETWEEN APPROXIMATELY 70 AND 60 BC; lane C cycle 3). None without one."""
+    for k in (0, *sorted({len(h) for h in HEDGE_PHRASES})):
+        b = first_start - k - 1
+        if b < 0 or tokens[b] != "between" or any(_ends_clause(raw[x]) for x in range(b, first_start)):
+            continue
+        if k == 0 or tuple(tokens[b + 1:first_start]) in HEDGE_PHRASES:
+            return b
+    return None
+
+
 def _range_span(tokens: list[str], raw: list[str], lo: int, hi: int,
                 units: set[str] | frozenset[str] | None = None) -> tuple[int, int]:
     """(lo, hi) widened over a range the figure at lo..hi is one end of: '94 to [104 feet]' or '[94] to 104
     (feet)'. A unit may follow either end. Round 4 fix (independent review): AND joins a range only after BETWEEN
     (20,000 PEOPLE AND 50 CATTLE is two counts); TO / OR / BETWEEN..AND only when the second end names nothing it
     counts or the same unit or noun as the first (20 YEARS OR 30 WORKERS is no range). `units` defaults to
-    MEASURE_UNITS (the round-4 base phrasing passes the round-4 set, _R4_MEASURE_UNITS)."""
+    MEASURE_UNITS (the round-4 base phrasing passes the round-4 set, _R4_MEASURE_UNITS).
+
+    Lane C cycle 3 (lander ruling: a figure group is a bond): an era designator counts as the unit of either end
+    (FROM ROUGHLY 205 BC TO 87 BC), and BETWEEN may stand before the first end's hedge (BETWEEN APPROXIMATELY 70
+    AND 60 BC)."""
     n = len(tokens)
-    units = MEASURE_UNITS if units is None else units
+    units = (MEASURE_UNITS | ERA_DESIGNATORS) if units is None else units
     fs = next((x for x in range(lo, hi + 1) if _is_figure_at(tokens, x)), None)
     if fs is None:
         return lo, hi
@@ -3435,8 +3734,7 @@ def _range_span(tokens: list[str], raw: list[str], lo: int, hi: int,
     def _joins(joiner: int, first_start: int) -> bool:
         if tokens[joiner] not in RANGE_JOINERS or _ends_clause(raw[joiner]) or _ends_clause(raw[joiner - 1]):
             return False
-        return tokens[joiner] != "and" or (first_start >= 1 and tokens[first_start - 1] == "between"
-                                           and not _ends_clause(raw[first_start - 1]))
+        return tokens[joiner] != "and" or _between_at(tokens, raw, first_start) is not None
 
     # forward: [figure] (unit) joiner figure (unit)
     new_hi = hi
@@ -3501,6 +3799,9 @@ def caption_bonds(words: list[Any], names: bool = True) -> set[int]:
             _, hi = _range_span(tokens, raw, i, end)
             if hi > end:
                 _bond(i, hi)
+                between = _between_at(tokens, raw, i)
+                if between is not None:   # lane C cycle 3: BETWEEN APPROXIMATELY 70 AND 60 BC is one group
+                    _bond(between, i)
             if end + 2 < n and tokens[end + 1] in AREA_QUALIFIERS and tokens[end + 2] in MEASURE_UNITS:
                 _bond(end, end + 1)   # U1: 830 SQUARE MILES
             elif end + 1 < n and tokens[end + 1] in MEASURE_UNITS and _is_atomic_boundary(raw[end], raw[end + 1]):
@@ -3663,13 +3964,24 @@ def name_bonds(raw: list[str]) -> set[int]:
     n = len(raw)
     starts = _sentence_starts(raw)
     mid_caps = {_bare(w) for k, w in enumerate(raw) if k not in starts and _capitalised(w)}
+    # lane C cycle 3 (stress LINE_END): a hedge phrase before its figure is no part of a name, whatever its case.
+    # Upper-case copy (2560-2540 BC MORE THAN 535 METERS) read BC MORE as a name, and the bonds that crossed it cut
+    # the hedge from its figure ('BC MORE' | 'THAN 535 meters'). No real narration has an upper-case hedge (0 in 69
+    # word timings, dev and the production sample), so this guards a class, not a seen run.
+    tokens = [_norm(r) for r in raw]
+    hedged: set[int] = set()
+    for s in range(n):
+        for h in HEDGE_PHRASES:
+            if tuple(tokens[s:s + len(h)]) == h and _is_figure_at(tokens, s + len(h)):
+                hedged.update(range(s, s + len(h)))
 
     def opens(k: int) -> bool:
-        return _capitalised(raw[k]) and (k not in starts or _bare(raw[k]) in mid_caps)
+        return _capitalised(raw[k]) and k not in hedged and (k not in starts or _bare(raw[k]) in mid_caps)
 
-    def continues(w: str) -> bool:
+    def continues(w: str, k: int) -> bool:
         core = w.strip("\"'“”‘’()[]")
-        return _capitalised(w) or _regnal(w) or (core[:1].isupper() and _bare(core) in SPELLED_NUMBERS)
+        return k not in hedged and (_capitalised(w) or _regnal(w)
+                                    or (core[:1].isupper() and _bare(core) in SPELLED_NUMBERS))
 
     bonds: set[int] = set()
     i = 0
@@ -3681,11 +3993,11 @@ def name_bonds(raw: list[str]) -> set[int]:
         # a possessive ends a name (RUSSIA'S | CATHERINE PALACE: two names, review 2026-11-04)
         while j + 1 < n and not _ends_clause(raw[j]) and not _possessive(raw[j]):
             nxt = raw[j + 1]
-            if (continues(nxt) and not (_bare(nxt) == "i" and j == i)) or (   # CARTER I BELIEVE: the pronoun
+            if (continues(nxt, j + 1) and not (_bare(nxt) == "i" and j == i)) or (   # CARTER I BELIEVE: the pronoun
                     _bare(raw[j]) in NAME_NUMBERED and re.fullmatch(r"\d{1,4}[,;.:!?]*", nxt)):  # AUGUST 5, CAVE 10
                 j += 1
             elif (_bare(nxt) in NAME_PARTICLES and j + 2 < n and not _ends_clause(nxt)
-                  and _capitalised(raw[j + 2])):
+                  and _capitalised(raw[j + 2]) and j + 2 not in hedged):
                 j += 2
             elif _bare(nxt) in NAME_HEADS and nxt[:1].islower():
                 j += 1
@@ -4223,6 +4535,7 @@ def _head_break_ok(words: list[str], k: int, bonds: set[int]) -> bool:
     return not _line_break_weak(words, k)
 
 
+SIDECAR_SENTENCE_CROSS_COST = 500.0   # lane C cycle 3: a cue across a sentence end, only where no split avoids it
 SIDECAR_HEAD_LINE_COST = 40.0   # fix round 3: a new cue's line break between two words a HEAD 0036b18 line held
 
 
@@ -4279,7 +4592,10 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
     # that holds the link without a cue end the base lacks is taken (fix round 2)
     soft_ends = _base_figure_links(timed, base_ends) | {b for b in base_ends if b + 1 < n
                                                         and _r4_atomic_boundary(raw[b], raw[b + 1])}
-    bonds = caption_bonds(timed) - base_ends
+    # lane C cycle 3 (lander ruling: the cues follow the bursts' bonds): a figure group (_figure_bonds, unit links) is
+    # a bond on the cue path too, a base cue end inside one included; it holds in every cue and cue line
+    group_links = _figure_bonds(raw) | unit_links(raw)
+    bonds = (caption_bonds(timed) - base_ends) | group_links
     head_texts: dict[tuple[int, int], str] = {}
     head_line_pairs: set[int] = set()   # fix round 3: the word pairs (k, k + 1) a HEAD 0036b18 cue line holds
     at = 0
@@ -4318,7 +4634,9 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         no conjunction or preposition after it: AN ORIGINAL STONE / MOSAIC against HEAD's AN ORIGINAL / STONE
         MOSAIC)."""
         if (a, b) not in texts:
-            local = {k - a for k in bonds if a <= k < b}
+            # lane C cycle 3: a figure group too long for one cue line breaks at its own seam, before its range joiner
+            # (BETWEEN ROUGHLY 41.75 METRES / AND 42 METRES), as a two-line burst does; a cue never ends there
+            local = {k - a for k in bonds if a <= k < b and not (k in group_links and _norm(raw[k + 1]) in RANGE_JOINERS)}
             text = _wrap_cue(raw[a:b + 1], bonds=local, strict=True)
             cost_ = 0.0
             if text is None:
@@ -4345,10 +4663,28 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         # fix round 2: before the bare round-4 wrap, one that keeps every proper name whole (HAL SAFLIENI: NICHE IN
         # THE / ORACLE ROOM split THE ORACLE ROOM where the lead-in bond on IN left no other break)
         names_local = {k - a for k in named if a <= k < b}
-        return (_r4_wrap_cue(words_ab, bonds=held) or _r4_wrap_cue(words_ab, bonds=local)
-                or _r4_wrap_cue(words_ab, bonds=names_local) or _r4_wrap_cue(words_ab, bonds=set()))
+        # lane C cycle 3: no fallback wrap breaks a figure group's line but at its seam before a range joiner
+        groups_local = set() if mode[0] == 2 else {
+            k - a for k in group_links if a <= k < b and _norm(raw[k + 1]) not in RANGE_JOINERS}
+        groups_local |= {k - a for k in range(a, b) if _bare(raw[k]) in _ARTICLES
+                         and not _ends_clause(raw[k])}   # and no line ends on THE, A or AN
+        articles = {k - a for k in range(a, b) if _bare(raw[k]) in _ARTICLES and not _ends_clause(raw[k])}
+        return (_r4_wrap_cue(words_ab, bonds=held | articles) or _r4_wrap_cue(words_ab, bonds=local | articles)
+                or _r4_wrap_cue(words_ab, bonds=names_local | groups_local)
+                or _r4_wrap_cue(words_ab, bonds=groups_local))
+
+    # lane C cycle 3 (lander ruling): a cue never ends on a never-end word (never_end_end, the bursts' predicate),
+    # never cuts a figure group, and never runs across a sentence end where a cue boundary there is available. Mode 0
+    # holds all three; mode 1 lets a cue run across a sentence end (at SIDECAR_SENTENCE_CROSS_COST) where no split
+    # without one exists; mode 2 is the earlier ranking, used only where neither finds a split (then the greedy one).
+    mode = [0]
 
     def cost(a: int, b: int) -> float | None:
+        if mode[0] < 2:
+            if b + 1 < n and (b in group_links or (not terminal[b] and never_end_end(raw[b])) or in_tail[b]):
+                return None   # S1 too: a sentence's last words stay with it, so no cue is a sentence's tail alone
+            if mode[0] == 0 and any(terminal[k] for k in range(a, b)):
+                return None
         on_base = b in base_ends or b == n - 1
         if (not can_end_relaxed[b] and not on_base) or ends[b] - starts[a] > SIDECAR_MAX_CUE + 1e-9:
             return None
@@ -4393,20 +4729,26 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         held -= starts[a]
         if held > 0 and chars / held > CAPTION_MAX_CPS:
             c += 2 * (chars / held - CAPTION_MAX_CPS)
+        if mode[0] == 1:
+            c += SIDECAR_SENTENCE_CROSS_COST * sum(1 for k in range(a, b) if terminal[k])
         return c
 
     best: list[tuple[float, int] | None] = [None] * (n + 1)
-    best[n] = (0.0, n)
-    for a in range(n - 1, -1, -1):
-        for b in range(a, min(n, a + max_words)):
-            if best[b + 1] is None:
-                continue
-            c = cost(a, b)
-            if c is None:
-                continue
-            total = c + best[b + 1][0]
-            if best[a] is None or total < best[a][0]:
-                best[a] = (total, b)
+    for mode[0] in (0, 1, 2):
+        best = [None] * (n + 1)
+        best[n] = (0.0, n)
+        for a in range(n - 1, -1, -1):
+            for b in range(a, min(n, a + max_words)):
+                if best[b + 1] is None:
+                    continue
+                c = cost(a, b)
+                if c is None:
+                    continue
+                total = c + best[b + 1][0]
+                if best[a] is None or total < best[a][0]:
+                    best[a] = (total, b)
+        if best[0] is not None:
+            break
     if best[0] is None:
         return _greedy_sidecar_cues(timed, bonds)
     groups: list[tuple[int, int]] = []
@@ -4713,6 +5055,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Pass 1: each burst's geometry
         geo: list[dict[str, Any]] = []
         base = 0
+        held: list[int] = []
+        if not is_widescreen:
+            # One size per Reel: bursts are formed to fit at a CAPTION_LADDER rung; only a single over-long word
+            # shrinks further. Freeze pass N1: a name too wide for one line draws on two (reel_caption_lines).
+            # Lane C cycle 3: bursts shown back to back differ by at most one rung (bounded_caption_sizes).
+            fits, kb = [], 0
+            for phrase in phrases:
+                lines = reel_caption_lines(phrase) if max_caption_width == MAX_CAPTION_WIDTH else None
+                has_key = any(kb + j in key for j in range(len(phrase)))
+                fits.append(lines[1] if lines else _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0,
+                                                                      max_width=max_caption_width))
+                kb += len(phrase)
+            held = bounded_caption_sizes(fits, [pi + 1 < len(phrases) and abs(timings[pi][1] - timings[pi + 1][0])
+                                                < 1e-6 for pi in range(len(phrases))])
         for pi, phrase in enumerate(phrases):
             show, hide, _ = timings[pi]
             lines, two = None, None
@@ -4731,11 +5087,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 ink_mid = (cap_top + desc_bottom) / 2 - wide_fs * shrink / 2
                 center_y = round(box_y + box_h / 2 - ink_mid)
             else:
-                # One size per Reel: bursts are formed to fit at a CAPTION_LADDER rung; only a single over-long word
-                # shrinks further. Freeze pass N1: a name too wide for one line draws on two (reel_caption_lines).
                 lines = reel_caption_lines(phrase) if max_caption_width == MAX_CAPTION_WIDTH else None
-                fit = lines[1] if lines else _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0,
-                                                               max_width=max_caption_width)
+                fit = held[pi]
                 ass_size = FONT_SIZE_ASS if fit >= FONT_SIZE else round(fit / 0.5625)
                 size_tag = f"{{\\fs{ass_size}}}" if fit < FONT_SIZE else ""
                 if lines:
@@ -4775,19 +5128,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         "ink_dx": 0.0 if is_widescreen else ink_dx, "two": two})
             base += len(phrase)
 
-        # 9:16 plate continuity (round 3): bursts that follow on with no gap form a run until a sentence ends; within
-        # a run the plate keeps to CAPTION_PLATE_STEPS widths, and it fades only at a run's pause boundaries.
+        # Plate continuity (round 3, 9:16; lane C cycle 3, lander cycle-3 ruling 5: 16:9 too, one caption system in
+        # both formats): bursts that follow on with no gap form a run until a sentence ends; within a run the plate
+        # keeps to CAPTION_PLATE_STEPS widths (a 16:9 plate stays centred on its line), and it fades only at a run's
+        # pause boundaries.
         joined_next = [pi + 1 < len(phrases) and abs(geo[pi]["hide"] - geo[pi + 1]["show"]) < 1e-6
                        for pi in range(len(phrases))]
-        if not is_widescreen:
-            run: list[int] = []
-            for pi in range(len(phrases)):
-                run.append(pi)
-                ends_sentence = bool(TERMINAL_PUNCT.search(str(phrases[pi][-1].get("word", ""))))
-                if not joined_next[pi] or ends_sentence or pi == len(phrases) - 1:
-                    for idx, w in zip(run, quantise_plate_widths([geo[i]["box_w"] for i in run], CAPTION_PLATE_STEPS)):
-                        geo[idx]["box_w"] = w
-                    run = []
+        run: list[int] = []
+        for pi in range(len(phrases)):
+            run.append(pi)
+            ends_sentence = bool(TERMINAL_PUNCT.search(str(phrases[pi][-1].get("word", ""))))
+            if not joined_next[pi] or ends_sentence or pi == len(phrases) - 1:
+                for idx, w in zip(run, quantise_plate_widths([geo[i]["box_w"] for i in run], CAPTION_PLATE_STEPS)):
+                    geo[idx]["box_w"] = w
+                run = []
 
         contrast_rows: list[dict[str, Any]] = []
         overlaps: list[dict[str, Any]] = []
@@ -4803,8 +5157,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 half = caption_span / 2
                 box_x = max(round(center_x - half), min(box_x, round(center_x + half) - box_w))
             whole = pi == 0 and whole_first   # round 4: the first burst whole and settled on frame 0
-            fade_in = 0 if is_widescreen or whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
-            fade_out = 0 if is_widescreen or joined_next[pi] else CAPTION_PLATE_FADE_OUT_MS
+            # Lane C cycle 3 (MO-C2): both formats fade the plate in and out at a pause (the 60/80 ms motion token);
+            # 16:9 switched in one frame there. Back to back, either format hands over in one frame.
+            fade_in = 0 if whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
+            fade_out = 0 if joined_next[pi] else CAPTION_PLATE_FADE_OUT_MS
             fad = f"\\fad({fade_in},{fade_out})" if fade_in or fade_out else ""
 
             # Layer 0: the plate, fixed for the whole burst (sized to every word of it, spoken or not)
@@ -4836,7 +5192,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             contrast_rows.append({"burst": pi, "text": " ".join(shown), "gold": bool(gold_words)})
 
             if is_widescreen:
-                # Layer 1, 16:9: the whole burst at once, still, from show to hide
+                # Layer 1, 16:9: the whole burst at once, still, from show to hide, fading with its plate
                 def _wide_word(ji: int, w: str) -> str:
                     if ji not in gold_words:
                         return f"{{\\c{_col_past()}}}{_ass_escape(w)}"
@@ -4844,7 +5200,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     return ((f"{{\\c{_col_past()}}}{lead}" if lead else "") + f"{{\\c{_col_emphasis()}}}{core}"
                             + (f"{{\\c{_col_past()}}}{tail}" if tail else ""))
                 line = " ".join(_wide_word(ji, w) for ji, w in enumerate(shown))
-                raw_events.append((1, show, hide, "CapText", f"{pos}{g['size_tag']}{line}"))
+                text_fad = f"{{{fad}}}" if fad else ""
+                raw_events.append((1, show, hide, "CapText", f"{pos}{text_fad}{g['size_tag']}{line}"))
                 continue
 
             # Layer 1, 9:16: one event per spoken word; the words still to come are transparent placeholders. A

@@ -163,6 +163,38 @@ def _head_cuts(words, emphasis=None, wide=False) -> set:
     return _HEAD_CACHE[key][1]
 
 
+def _cues_follow_the_burst_rules(words) -> list[str]:
+    """Lane C cycle 3 (lander ruling on 8f00b711, superseding the HEAD 0036b18 gate for the sidecar cues): the cues
+    that break the bursts' rules: a cue ending on a never-end word or inside a figure group, or running across a
+    sentence end. Empty when the cues follow them (the invariant over the 69 real runs is in
+    tests/test_lane_c_captions_cycle3.py)."""
+    timed = [w for w in words if str(w.get("word", "")).strip()]
+    raw = [str(w["word"]).strip() for w in timed]
+    links = vc._figure_bonds(raw) | vc.unit_links(raw)
+    cues = partition_sidecar_cues(words)
+    bad, at = [], -1
+    for i, (_, _, text) in enumerate(cues):
+        ws = text.split()
+        at += len(ws)
+        if i < len(cues) - 1 and (vc.never_end_end(ws[-1]) or at in links):
+            bad.append(text)
+        # across a sentence end only where no cue boundary is available there: a sentence too short to be up alone
+        # (LOOK., NO.: under three words, so under SIDECAR_MIN_CUE_HARD) joins its neighbour
+        cuts = [j for j, w in enumerate(ws[:-1]) if re.search(r"[.?!]$", w) and not vc._is_abbreviation(w)]
+        parts = [len(x) for x in _split_at(ws, cuts)]
+        if cuts and min(parts) >= 3:
+            bad.append(text)
+    return bad
+
+
+def _split_at(ws: list, cuts: list) -> list:
+    out, a = [], 0
+    for c in cuts:
+        out.append(ws[a:c + 1])
+        a = c + 1
+    return out + [ws[a:]]
+
+
 def _head_cue_ends(words) -> set:
     key = (id(words), "cues")
     if key not in _HEAD_CACHE:
@@ -311,6 +343,12 @@ def test_no_function_word_burst_and_reel_limits(nid):
         t = " ".join(vc._phrase_words(p)).upper()
         if _name_burst(p):   # N1/N2: a whole name (and its article) passes the burst limits, on one line or two
             assert len(t.split()) <= vc.NAME_MAX_WORDS + 2, t
+            continue
+        raw = [w["word"] for w in p]
+        if vc._figure_group_over_caps(raw):   # lane C cycle 3: a figure group on two lines, each within the caps
+            k = vc.reel_caption_lines(raw)[0]
+            for line in (raw[:k], raw[k:]):
+                assert len(line) <= MAX_BURST_WORDS and len(" ".join(line)) <= MAX_BURST_CHARS, t
             continue
         assert len(t.split()) <= MAX_BURST_WORDS + config.CAPTION_BOND_EXTRA_WORDS, t
         assert len(t) <= MAX_BURST_CHARS + config.CAPTION_BOND_EXTRA_CHARS, t
@@ -663,7 +701,10 @@ def test_figure_units_exact():
     # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure keeps its unit on every path
     # (video_composer.unit_link), so the range gives way at its joiner, FROM NEARLY 1,090 TONNES | TO 1,168 TONNES
     # (was HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES)
-    assert "FROM NEARLY 1,090 TONNES" in aswan and "TO 1,168 TONNES" in aswan, aswan
+    # lane C cycle 3 (lander ruling: a figure group is a bond, never cut across bursts): the whole range is one burst
+    # on two lines, NEARLY 1,090 TONNES / TO 1,168 TONNES., its lead-in FROM with the burst before (was FROM NEARLY
+    # 1,090 TONNES | TO 1,168 TONNES)
+    assert "NEARLY 1,090 TONNES TO 1,168 TONNES" in aswan, aswan
     colossi = _texts(layout("singing_colossi_of_memnon", False)[1])
     assert "(18 M) INCLUDING" in colossi and "THEIR 13-FOOT (4 M)" in colossi, colossi
     # fix round 1 (gate): ROCK SALT is a key term, no figure link: at 9:16 it keeps HEAD's THE MINE'S ROCK | SALT
@@ -1038,17 +1079,20 @@ def test_sidecar_keeps_groups_in_one_cue_and_line():
     # fix round 2 (review blocker 1, the decision as written): a figure link no longer forces a cue end HEAD lacks, so
     # the colossi keep HEAD's cue end 196 | AD. (STATUE VOCALIZING DATES TO THE YEAR 196 AD. is 43 characters, over the
     # line; was: 196 AD in one line, with two cue ends HEAD lacks, RECORD | OF and AD. | LOCAL)
+    # lane C cycle 3 (lander ruling on 8f00b711): the cues follow the bursts' bonds and never-end rules, so a cue end
+    # HEAD lacks is made where HEAD's cue ended on a never-end word (THROUGHOUT), cut a figure group (196 | AD.) or ran
+    # across a sentence end (_cues_follow_the_burst_rules); 196 AD. is now one cue line (was HEAD's 196 | AD.)
     words = timed(NARRATIONS["singing_colossi_of_memnon"][0])
     ends = set(_ends([t.split() for _, _, t in _cues("singing_colossi_of_memnon")])[:-1])
-    assert ends <= _head_cue_ends(words), sorted(ends - _head_cue_ends(words))   # no cue end HEAD lacks
-    assert [w["word"] for w in words].index("196") in ends
+    assert _cues_follow_the_burst_rules(words) == []
+    assert [w["word"] for w in words].index("196") not in ends
     for nid, group in (("names", "Hal Saflieni Hypogeum"),):
         cues = _cues(nid)
         assert any(group in line for _, _, t in cues for line in t.split("\n")), (nid, [c[2] for c in cues])
     # fix round 1 (gate): wieliczka keeps HEAD 0036b18's cues, ... SITES IN | 1978. ... and the one-word cue SALT.
     # (no name, figure link or article ends there; was: SITES IN 1978 in one line and no SALT. cue)
-    words = timed(NARRATIONS["wieliczka_salt_mine"][0])
-    assert set(_ends([t.split() for _, _, t in _cues("wieliczka_salt_mine")])[:-1]) == _head_cue_ends(words)
+    # lane C cycle 3: superseded for cues by the lander ruling on 8f00b711 (the cues follow the bursts' rules)
+    assert _cues_follow_the_burst_rules(timed(NARRATIONS["wieliczka_salt_mine"][0])) == []
 
 
 def test_sidecar_lines_are_balanced():
@@ -1668,8 +1712,10 @@ GATE_FORCED = {
     ("run:gol_gumbaz_whispering_gallery", "9:16", "1656", "upon"): ("never_end", "HEAD's burst ended on UPON"),
     ("run:gol_gumbaz_whispering_gallery", "16:9", "continuously", "along"): ("never_end", "HEAD's ended on ALONG"),
     ("run:amber_room_heist", "9:16", "was", "most"): ("never_end", "HEAD's burst ended on MOST"),
-    ("run:amber_room_heist", "16:9", "conclude", "the"): ("never_end", "window: MOST LIKELY"),
-    ("run:amber_room_heist", "16:9", "likely", "incinerated"): ("never_end", "HEAD's burst ended on MOST"),
+    # lane C cycle 3: MOST LIKELY is a figure group's fixed hedge phrase (HEDGE_GROUPS), never loosened for HEAD; the
+    # 16:9 burst holds it whole (THE ROOM | WAS MOST LIKELY INCINERATED | WHEN ...; was CONCLUDE | THE, LIKELY |)
+    ("run:amber_room_heist", "16:9", "room", "was"): ("group", "HEAD's MOST | LIKELY"),
+    ("run:amber_room_heist", "16:9", "incinerated", "when"): ("group", "HEAD's MOST | LIKELY"),
     ("run:voynich_manuscript", "9:16", "common", "word"): ("never_end", "HEAD's burst ended on MOST"),
     ("run:richat_structure_sahara_eye", "cues", "situated", "near"): ("never", "HEAD's cue ended on NEAR"),
     # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure and its unit hold on every burst
@@ -1680,8 +1726,11 @@ GATE_FORCED = {
     ("run:tunguska_event_1908", "9:16", "megatons", "of"): ("unit", "HEAD's BETWEEN 10 AND 15 | MEGATONS"),
     ("run:tunguska_event_1908", "16:9", "devastated", "more"): ("unit", "HEAD's 830 | SQUARE MILES"),
     ("run:tunguska_event_1908", "16:9", "miles", "of"): ("unit", "HEAD's 830 | SQUARE MILES"),
-    ("unfinished_obelisk_aswan", "9:16", "tonnes", "to"): ("unit", "HEAD's FROM NEARLY 1,090 | TONNES"),
-    ("wieliczka_salt_mine", "9:16", "287", "and"): ("unit", "HEAD's 287 AND 300 | KILOMETERS."),
+    # lane C cycle 3 (lander ruling: a figure group is a bond, never cut across bursts; it may take one two-line burst,
+    # each line within one burst's caps): the range is one burst (kind "group", checked below: HEAD cut a figure link
+    # within four words of the new cut). Gone: aswan TONNES | TO and wieliczka 287 | AND (the range is whole)
+    ("unfinished_obelisk_aswan", "9:16", "from", "nearly"): ("group", "HEAD's FROM NEARLY 1,090 | TONNES"),
+    ("run:richat_structure_sahara_eye", "9:16", "years", "ago,"): ("group", "HEAD's BETWEEN 94 AND | 104"),
     # fix round 3 (review blocker: THIS CIRCULAR || GEOLOGICAL FORMATION split the noun phrase; was circular|geological
     # and structure|as): the forced end goes before the determiner, and the next cue ends before THE STRUCTURE
     ("run:richat_structure_sahara_eye", "cues", "formed", "this"):
@@ -1697,7 +1746,11 @@ GATE_FORCED = {
 # Lane C cycle 1: one, where the never-end repair leaves the word alone: TRAVEL | ACROSS AN ESTIMATED / 144-FOOT (every
 # other split of CAN A QUIET WHISPER TRAVEL ACROSS ends a burst on ACROSS, or passes four words for CAN A QUIET WHISPER
 # TRAVEL)
-LONE_FORCED: dict = {("run:gol_gumbaz_whispering_gallery", "travel"): ("travel", "across")}
+# Lane C cycle 3: the word that closes a range a figure-group burst sets whole on two lines (BETWEEN 94 / AND 104
+# MILLION YEARS | AGO,): line 2 with the bond extra (AND 104 MILLION YEARS AGO,) is 714 px at 66 over the 640 px
+# budget, so AGO takes its own burst (0.9 s on screen), recorded (reading_rates "lone_group_tail")
+LONE_FORCED: dict = {("run:gol_gumbaz_whispering_gallery", "travel"): ("travel", "across"),
+                     ("run:richat_structure_sahara_eye", "ago,"): ("years", "ago,")}
 
 
 def _gate_cases():
@@ -1770,6 +1823,9 @@ def test_head_regression_gate():
                 if kind == "unit":   # lane C cycle 1: HEAD split a figure from its unit next to this cut
                     assert any(vc.unit_link(raw[e], raw[e + 1]) for e in h[fmt] if abs(e - k) <= 4
                                and e < len(raw) - 1), (key, [raw[e] for e in h[fmt] if abs(e - k) <= 4])
+                if kind == "group":   # lane C cycle 3: HEAD cut a figure group next to this cut
+                    links = vc._figure_bonds(raw) | vc.unit_links(raw)
+                    assert any(e in links for e in h[fmt] if abs(e - k) <= 4), key
                 if kind == "range":   # QF-87 review 1: the burst the new cut ends holds a whole figure range
                     ends = _ends(caption_phrases(words, emph))
                     start = max([e + 1 for e in ends if e < k] + [0])
@@ -1784,7 +1840,14 @@ def test_head_regression_gate():
                             or len(" ".join(shown)) > MAX_BURST_CHARS), (key, shown)
                     # QF-87 review 1: and no two-line layout holds it (width forces nothing a two-line burst draws)
                     assert fmt != "9:16" or vc.reel_caption_lines(raw[a:e + 1]) is None, (key, shown)
-    assert set(new) == set(GATE_FORCED), sorted(set(new) ^ set(GATE_FORCED))
+    # lane C cycle 3 (lander ruling on 8f00b711): the sidecar cues follow the bursts' bonds and never-end rules, which
+    # supersedes the HEAD gate for cues (their invariant: _cues_follow_the_burst_rules, and over the 69 real runs in
+    # tests/test_lane_c_captions_cycle3.py); the burst formats keep the gate
+    for case, words, emph, h in _gate_cases():
+        assert _cues_follow_the_burst_rules(words) == [], case
+    burst_new = {k for k in new if k[1] != "cues"}
+    burst_forced = {k for k in GATE_FORCED if k[1] != "cues"}
+    assert burst_new == burst_forced, sorted(burst_new ^ burst_forced)
     # kept from review round 4: AS THE SECOND | MOST COMMON. and HIDING PLACE are HEAD's and stay
     voy = _texts(run_layout("voynich_manuscript")[1])
     assert "AS THE SECOND" in voy and "MOST COMMON" in voy, voy
@@ -2014,6 +2077,11 @@ def _cue_cases():
 
 # Cue or line ends on a dangling word where every wrap of the cue has one (relaxed, at a cost): (case, cue text).
 S1_DANGLING_LINE_ENDS = {
+    # lane C cycle 3 (lander ruling on 8f00b711): HEAD's cue ended on UPON (a never-end word); the cue now ends on 1656
+    # (IN 1656 | UPON), and the 44 characters of CONSTRUCTION BEGAN IN THE EARLY 17TH CENTURY fit two lines only with
+    # EARLY or THE at a line end, so the relaxed wrap's EARLY is the least defect
+    ("gol_gumbaz_whispering_gallery", "Construction began in the early\n17th century and ceased in 1656"):
+        "HEAD's cue ended on UPON; no wrap of the 1656 cue avoids a pre-modifier or article line end",
     ("wieliczka_salt_mine", "Wieliczka was designated\nas one of the original"):
         "THE ORIGINAL UNESCO WORLD HERITAGE SITES (40 chars) cannot follow OF on one line with AS ONE",
     # fix round 1 (gate and the article rule): HEAD 0036b18's cue ended on PARTISANS USED THE, so the next cue opens on
@@ -2171,7 +2239,10 @@ def test_aswan_cues_change_only_where_the_article_rule_forces():
     raw = [str(w["word"]).strip() for w in words]
     ends = set(_ends([t.split() for _, _, t in partition_sidecar_cues(words)])[:-1])
     new = sorted((raw[k], raw[k + 1]) for k in ends - _head_cue_ends(words))
-    assert new == sorted([("bedrock", "where"), ("trench.", "Surveys")]), new
+    # lane C cycle 3 (a figure group is a bond): the range ROUGHLY 41.75 METRES AND 42 METRES is held in one cue line
+    # (HEAD split ROUGHLY 41.75 || METRES), so the cue ends move; the cue before it now ends on BETWEEN, a cue-side
+    # residual for the lander (was ("bedrock", "where"), ("trench.", "Surveys"))
+    assert _cues_follow_the_burst_rules(words) == [], new
 
 
 def test_richat_forced_cue_end_keeps_the_noun_phrase_whole():

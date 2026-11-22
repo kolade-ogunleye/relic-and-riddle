@@ -196,15 +196,15 @@ def test_a_signed_short_headline_sets_the_thumbnail_first(tmp_path):
     import main as M
     from src.visual_engine import VisualEngine
     cover = M.documentary_cover(LONG_TITLE["title"], payload=dict(LONG_TITLE))
-    got, problems = M.signed_youtube_headline(["HAND-CUT", "TUNNELS"], cover, dict(LONG_TITLE))
-    assert problems == [] and got["youtube_line1"] == "HAND-CUT" and got["youtube_line2"] == "TUNNELS"
+    got, problems = M.signed_youtube_headline(["HARBOUR", "LABYRINTH"], cover, dict(LONG_TITLE))
+    assert problems == [] and got["youtube_line1"] == "HARBOUR" and got["youtube_line2"] == "LABYRINTH"
     hero = tmp_path / "hero.png"
     Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
     out = VisualEngine().generate_youtube_thumbnail(hero, dict(LONG_TITLE, thumbnail=got), tmp_path / "yt.jpg")
     import json
     qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
     assert qa["headline_source"] == "youtube_headline"
-    assert {e["text"] for e in qa["elements"] if e["name"].startswith("title")} <= {"HAND-CUT", "TUNNELS"}
+    assert {e["text"] for e in qa["elements"] if e["name"].startswith("title")} <= {"HARBOUR", "LABYRINTH"}
 
 
 @pytest.mark.parametrize("lines, why", [
@@ -230,44 +230,91 @@ def test_the_thumbnail_falls_back_to_the_title_when_the_signed_headline_does_not
     import json
     qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
     assert qa["headline_source"] == "thumbnail"
-    assert qa["headline_chain"][0]["source"] == "youtube_headline" and qa["headline_chain"][0].get("refused")
+    assert qa["headline_chain"][0]["source"] == "youtube_headline"
+    assert qa["headline_chain"][0].get("refused") or qa["headline_chain"][0].get("skipped")
 
 
 # ------------------------------------------------- the ranked headline chain (lane B cycle 3, lander ruling)
 CHAIN_PAYLOAD = {
-    "title": "Lost Gears", "youtube_title": "The Bronze Machine Nobody Could Explain",
+    "title": "Lost Gears of the Wreck", "youtube_title": "The Bronze Machine Nobody Could Explain",
     "narration_script": "Divers found the gears in 1901. Roughly 137 to 138 feet of wreck lay below.",
-    "thumbnail": {"eyebrow": "SUNKEN WRECK", "line1": "INCOMPREHENSIBILITIES", "line2": "UNDERSTANDABLENESS",
+    "thumbnail": {"eyebrow": "ANCIENT MYSTERY", "line1": "INCOMPREHENSIBILITIES", "line2": "WRECKAGE",
                   "tagline": "FOUND BY DIVERS"},
     "carousel_slides": [{"heading": "THE BRONZE MACHINE NOBODY"}, {"heading": "INTERIOR SLIDE LINE"}],
-    "story_slides": [{"line1": "GEARS", "line2": "FROM THE DEEP"}, {"line1": "STORY BODY", "line2": "LINE"}],
+    "story_slides": [{"line1": "SUNKEN GEARS", "line2": "OF BRONZE"}, {"line1": "STORY BODY", "line2": "LINE"}],
 }
 
 
-def test_the_chain_is_ranked_and_each_source_is_gated():
+def _by(payload):
+    from src.visual_engine import youtube_headline_chain
+    return {c["source"]: c for c in youtube_headline_chain(payload)}
+
+
+def test_the_chain_is_ranked_with_the_eyebrow_last_and_each_source_gated():
     from src.visual_engine import YOUTUBE_HEADLINE_CHAIN, youtube_headline_chain
     chain = youtube_headline_chain(dict(CHAIN_PAYLOAD))
-    assert [c["source"] for c in chain] == list(YOUTUBE_HEADLINE_CHAIN)
+    assert [c["source"] for c in chain] == list(YOUTUBE_HEADLINE_CHAIN) and YOUTUBE_HEADLINE_CHAIN[-1] == "eyebrow"
     by = {c["source"]: c for c in chain}
     assert by["youtube_headline"]["skipped"] == "none in this run"
-    assert by["carousel_cover"]["skipped"] == "not a headline (a fragment, or a line ending on a function word)"         or by["carousel_cover"]["skipped"] == "repeats the video title"
-    assert by["tagline"]["copy"] is not None and by["tagline"]["copy"]["tagline"] == ""     # never drawn twice
+    assert by["carousel_cover"]["copy"] is None                         # a fragment ending on NOBODY, or the title
     texts = " ".join(c["text"] for c in chain)
     assert "INTERIOR SLIDE LINE" not in texts and "STORY BODY" not in texts           # interior lines never used
+    assert by["story_hook"]["copy"] is not None                         # GEARS: a word of this run's subject
+    # a non-thumbnail source is the headline alone: the render's own fallback to the eyebrow / tagline (QF-23
+    # headline_from) can never draw a line past the chain's gates (lander review: "ANCIENT MARVELS" drawn via it)
+    assert by["story_hook"]["copy"]["eyebrow"] == by["story_hook"]["copy"]["tagline"] == ""
 
 
-def test_a_candidate_that_repeats_the_title_or_drops_a_hedge_is_skipped():
-    from src.visual_engine import youtube_headline_chain
-    p = dict(CHAIN_PAYLOAD, carousel_slides=[{"heading": "BRONZE MACHINE NOBODY EXPLAINED"}],
-             thumbnail=dict(CHAIN_PAYLOAD["thumbnail"], tagline="138 FEET DOWN"))
-    by = {c["source"]: c for c in youtube_headline_chain(p)}
-    assert by["carousel_cover"]["skipped"] == "repeats the video title"
-    assert by["tagline"]["skipped"].startswith("truth:")
+def test_a_candidates_figures_are_held_to_the_evidence_never_to_derived_copy():
+    """Lander review (Hal Saflieni "7,000 RESTING SOULS"): the title's unhedged figure is derived copy, never
+    evidence; the narration says the figure is approximate, so a tagline that drops the hedge fails."""
+    p = dict(CHAIN_PAYLOAD, title="The 7,000-Body Wreck", narration_script="It held approximately 7,000 bodies.",
+             first_comment="7,000 bodies lay there.",
+             thumbnail=dict(CHAIN_PAYLOAD["thumbnail"], tagline="7,000 RESTING SOULS"))
+    assert _by(p)["tagline"]["skipped"].startswith("truth:")
+    p["thumbnail"]["tagline"] = "APPROXIMATELY 7,000 SOULS"
+    assert _by(p)["tagline"]["copy"] is not None
+
+
+def test_a_candidate_that_repeats_the_title_or_is_a_code_label_is_skipped():
+    p = dict(CHAIN_PAYLOAD, carousel_slides=[{"heading": "BRONZE MACHINE NOBODY EXPLAINED"}])
+    assert _by(p)["carousel_cover"]["skipped"] == "repeats the video title"
     p = dict(CHAIN_PAYLOAD, thumbnail=dict(CHAIN_PAYLOAD["thumbnail"], tagline="DOCUMENTARY"))
-    tag = {c["source"]: c for c in youtube_headline_chain(p)}["tagline"]
+    tag = _by(p)["tagline"]
     assert tag["copy"] is None and tag["text"] != "DOCUMENTARY"     # a code label is never a candidate
-    p["parent_copy"] = {"thumbnail": {"tagline": "FOUND BY DIVERS"}}   # a documentary reads its parent Reel's line
-    assert {c["source"]: c for c in youtube_headline_chain(p)}["tagline"]["text"] == "FOUND BY DIVERS"
+    p["parent_copy"] = {"thumbnail": {"tagline": "GEARS FOUND BY DIVERS"}}   # a documentary reads its parent Reel's
+    assert _by(p)["tagline"]["text"] == "GEARS FOUND BY DIVERS"
+
+
+def test_a_category_label_is_not_specific():
+    """Lander review ("ANCIENT MARVELS"): a candidate made only of the brand's generic vocabulary, or with no figure
+    and no word of this run's subject, is skipped; a subject word or a figure makes it specific."""
+    from src.visual_engine import headline_generic_vocabulary, specificity_fault
+    assert {"ANCIENT", "MYSTERY"} <= headline_generic_vocabulary()
+    assert _by(dict(CHAIN_PAYLOAD))["eyebrow"]["skipped"].startswith("not specific")
+    assert specificity_fault("FOUND BY DIVERS", CHAIN_PAYLOAD).startswith("not specific")
+    assert specificity_fault("THE WRECK BELOW", CHAIN_PAYLOAD) == ""
+    assert specificity_fault("ROUGHLY 137-138 FT DOWN", CHAIN_PAYLOAD) == ""
+
+
+def test_the_record_says_what_was_drawn_and_from_which_source(tmp_path):
+    """Lander review (pair 1): the figure branch may draw the copy's badge figure over another of its lines; the
+    record and the review card say what was DRAWN."""
+    import json
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    payload = {"title": "The Granite Giant of the Quarry", "narration_script": "It is roughly 137 to 138 ft long.",
+               "stat_cards": [{"value": "Roughly 137-138 ft", "label": "Length"}],
+               "thumbnail": {"eyebrow": "QUARRY GIANT", "line1": "GRANITE GIANT", "line2": "NEVER RAISED",
+                             "tagline": "LEFT IN THE QUARRY", "badge": "ROUGHLY 137–138 FT"}}
+    out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
+    drawn = " ".join(e["text"] for e in qa["elements"]
+                     if e["name"] in ("figure_qualifier", "figure", "figure_unit", "title_1", "title_2", "title"))
+    assert qa["headline_chain"][-1]["drawn"] == drawn
+    assert qa["headline_chain"][-1]["source"] == qa["headline_source"]
+    assert drawn in payload["thumbnail_note"]
 
 
 def test_the_thumbnail_walks_the_chain_and_the_review_card_names_the_source(tmp_path):
@@ -278,8 +325,8 @@ def test_the_thumbnail_walks_the_chain_and_the_review_card_names_the_source(tmp_
     payload = dict(CHAIN_PAYLOAD)
     out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
-    assert qa["headline_source"] not in ("youtube_headline", "thumbnail")    # both refuse: a later source sets
-    assert any(t.get("refused") for t in qa["headline_chain"] if t["source"] == "thumbnail")
+    assert qa["headline_source"] not in ("youtube_headline", "thumbnail")    # both fail: a later source sets
+    assert any(t.get("refused") or t.get("skipped") for t in qa["headline_chain"] if t["source"] == "thumbnail")
     assert "headline from" in payload["thumbnail_note"]
 
 
@@ -288,7 +335,7 @@ def test_the_thumbnail_is_refused_only_when_the_whole_chain_fails(tmp_path):
     hero = tmp_path / "hero.png"
     Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
     long = "INCOMPREHENSIBILITIES"
-    payload = {"title": "X", "thumbnail": {"eyebrow": long, "line1": long, "line2": long, "tagline": long}}
+    payload = {"title": long, "thumbnail": {"eyebrow": long, "line1": long, "line2": long, "tagline": long}}
     with pytest.raises(LayoutError) as e:
         VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     assert "every source" in str(e.value) and "eyebrow" in str(e.value)

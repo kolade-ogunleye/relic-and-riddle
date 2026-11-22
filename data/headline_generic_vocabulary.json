@@ -1,0 +1,6 @@
+{
+ "about": "Per brand (brand.active().name): the niche's generic vocabulary, words that say the category, never the subject. A YouTube headline candidate made only of these words, or with no figure and no word of its run's subject, is not specific (visual_engine.specificity_fault). Lane B cycle 3, lander review 2026-11-19.",
+ "brands": {
+  "Relic & Riddle": ["ANCIENT", "ANTIQUITY", "MARVEL", "MARVELS", "MYSTERY", "MYSTERIES", "MYSTERIOUS", "SECRET", "SECRETS", "HISTORY", "HISTORIC", "HISTORICAL", "LEGEND", "LEGENDS", "LEGENDARY", "ENIGMA", "RIDDLE", "RIDDLES", "RELIC", "RELICS", "WONDER", "WONDERS", "LOST", "FORGOTTEN", "UNSOLVED", "UNEXPLAINED", "EVIDENCE", "TRUTH", "STORY", "DOCUMENTARY", "INCREDIBLE", "AMAZING", "ICONIC", "EPIC"]
+ }
+}

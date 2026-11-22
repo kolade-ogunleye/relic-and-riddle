@@ -99,7 +99,7 @@ def test_the_render_and_the_check_build_their_inputs_in_one_place(monkeypatch, t
     monkeypatch.setattr(visual_engine, "youtube_render_inputs", spy)
     hero = tmp_path / "hero.jpg"
     Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)
-    payload = {"thumbnail": COPIES[4], "title": "T", "narration_script": "x."}
+    payload = {"thumbnail": COPIES[4], "title": "The Sahara Eye", "narration_script": "x."}
     visual_engine.VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
     assert calls == [hero]
     cover_fit.clear()

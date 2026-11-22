@@ -68,12 +68,12 @@ def _youtube(copy: dict[str, Any], youtube_title: str, payload: dict[str, Any] |
     if hero is not None:
         try:   # the hero itself: the column its reviewed feature leaves, the render's very call
             why = _headline_why(youtube_thumbnail.render(meta={}, **youtube_render_inputs(ctx, Path(hero), copy=copy)),
-                                need_headline)
+                                need_headline, ctx)
         except LayoutError as e:
             why = getattr(e, "reason", None) or str(e)
         if not why:   # the hero's prepared copy (balanced, de-identified) carries no reviewed focus: the full column
             try:
-                why = _headline_why(youtube_thumbnail.render(meta={}, **flat), need_headline)
+                why = _headline_why(youtube_thumbnail.render(meta={}, **flat), need_headline, ctx)
             except LayoutError as e:
                 why = getattr(e, "reason", None) or str(e)
     else:
@@ -82,20 +82,29 @@ def _youtube(copy: dict[str, Any], youtube_title: str, payload: dict[str, Any] |
         # hero could force; a hero that narrows it at render is met by the headline chain (youtube_headline_chain)
         try:
             why = _headline_why(youtube_thumbnail.render(
-                meta={}, column=float(youtube_thumbnail.TEXT_RIGHT - youtube_thumbnail.LEFT), **flat), need_headline)
+                meta={}, column=float(youtube_thumbnail.TEXT_RIGHT - youtube_thumbnail.LEFT), **flat), need_headline,
+                ctx)
         except LayoutError as e:
             why = getattr(e, "reason", None) or str(e)
     _YT_CACHE[key] = why
     return why
 
 
-def _headline_why(rendered, need: bool) -> str:
-    """"" unless `need` and the render drew no headline (no title row and no figure): a chain candidate the word
-    budget left out whole is not a thumbnail headline (lane B cycle 3)."""
+def _headline_why(rendered, need: bool, payload: dict[str, Any] | None = None) -> str:
+    """"" unless `need` (a chain candidate) and the render drew no headline (no title row and no figure: the word
+    budget left it out whole), or the drawn headline breaks the evidence (visual_engine.drawn_faults) (lane B c3)."""
     from . import youtube_thumbnail
+    from .visual_engine import drawn_faults
     if need and not youtube_thumbnail.drew_headline(rendered[1]):
         return "no headline drawn (the line is longer than the thumbnail's word budget)"
-    return ""
+    if not need:
+        return ""
+    from .visual_engine import drawn_text, specificity_fault
+    faults = drawn_faults(rendered[1], payload or {})
+    if faults:
+        return "truth (drawn): " + "; ".join(faults)
+    why = specificity_fault(drawn_text(rendered[1]), payload or {})
+    return (why + " (as drawn)") if why else ""
 
 
 def youtube_chain_problems(payload: dict[str, Any], hero=None) -> list[str]:

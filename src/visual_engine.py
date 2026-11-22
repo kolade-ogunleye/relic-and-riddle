@@ -532,10 +532,23 @@ class VisualEngine:
                 tried.append({"source": cand["source"], "refused": "no headline drawn (longer than the word budget)"})
                 im = None
                 continue
+            faults = drawn_faults(drawn_plates, script_payload)
+            if faults:   # the drawn headline (a badge figure included) held to the evidence again
+                tried.append({"source": cand["source"], "refused": "truth (drawn): " + "; ".join(faults)})
+                im = None
+                continue
+            why = specificity_fault(drawn_text(drawn_plates), script_payload)
+            if why:   # the render's own fallback (QF-23 headline_from) may draw another line: held to the gate too
+                tried.append({"source": cand["source"], "refused": why + " (as drawn)"})
+                im = None
+                continue
             meta["headline_source"] = cand["source"]
-            drawn = " ".join(pl.text for n, pl in drawn_plates if not pl.empty and n in (
-                "figure_qualifier", "figure", "figure_unit", "title_1", "title_2", "title", "kicker", "qualifier"))
-            meta["headline_chain"] = tried + [{"source": cand["source"], "drawn": drawn}]
+            # the record says what was DRAWN and the source it came from (the figure branch may draw the copy's badge
+            # figure over another of its lines, lander review: pair 1)
+            meta["headline_chain"] = tried + [{"source": cand["source"], "candidate": cand["text"],
+                                               "drawn": drawn_text(drawn_plates),
+                                               **({"drawn_from": meta["headline_from"]} if meta.get("headline_from")
+                                                  else {})}]
             break
         if im is None:
             raise LayoutError("the YouTube thumbnail's headline chain is refused at every source: "
@@ -562,8 +575,9 @@ class VisualEngine:
         # what the thumbnail drew instead
         note = youtube_thumbnail.headline_note(meta)
         # lane B cycle 3: the review card names the chain source the headline was drawn from, at approval
-        source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}: "
-                  f"{meta['headline_chain'][-1]['drawn']}")
+        last = meta["headline_chain"][-1]
+        source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}"
+                  + (f" (its {last['drawn_from']} line)" if last.get("drawn_from") else "") + f": {last['drawn']}")
         note = f"{source}\n{note}" if note else source
         if note:
             script_payload["thumbnail_note"] = note
@@ -709,7 +723,8 @@ def youtube_headline(script_payload: Dict[str, Any]) -> tuple[str, str] | None:
 # slide and Story body lines are never candidates. Each must pass the truth / figure gates, read as a headline and
 # complement the video title, then set in the render (the heading gates); the next is tried otherwise, and the
 # thumbnail is refused only when the whole chain fails. The source drawn is recorded (qa.json, the review card).
-YOUTUBE_HEADLINE_CHAIN = ("youtube_headline", "thumbnail", "carousel_cover", "tagline", "eyebrow", "story_hook")
+YOUTUBE_HEADLINE_CHAIN = ("youtube_headline", "thumbnail", "carousel_cover", "tagline", "story_hook", "eyebrow")
+# (lander, 2026-11-19 review: the eyebrow is a category line more often than a hook, so it is tried last)
 TITLE_OVERLAP_MAX = 0.5   # a candidate whose content words are more than half the video title's words repeats it
 
 
@@ -750,17 +765,75 @@ def _chain_lines(script_payload: Dict[str, Any], source: str) -> tuple[str, str]
     raise ValueError(source)
 
 
-def _chain_others(script_payload: Dict[str, Any], source: str) -> Dict[str, Any]:
-    """The run's signed text without the candidate's own field (its figures are checked against the rest)."""
-    th = dict(script_payload.get("thumbnail") or {})
-    drop = {"youtube_headline": ("youtube_line1", "youtube_line2"), "tagline": ("tagline",),
-            "eyebrow": ("eyebrow",)}.get(source, ())
-    out = dict(script_payload, thumbnail={k: v for k, v in th.items() if k not in drop})
-    if source == "carousel_cover":
-        out["carousel_slides"] = list(script_payload.get("carousel_slides") or [])[1:]
-    if source == "story_hook":
-        out["story_slides"] = list(script_payload.get("story_slides") or [])[1:]
-    return out
+# The run's EVIDENCE for a headline's figures (lane B cycle 3, lander review: "7,000 RESTING SOULS" passed against
+# the title's own unhedged "7,000-Body" while the narration and the stat card say "approximately 7,000"): the
+# narration, the stat cards and the verified graphics data and fact sheet, never the candidate's own field or other
+# derived copy (titles, captions, cover, carousel, Story, comments).
+EVIDENCE_KEYS = ("narration_script", "acts", "stat_cards", "fact_sheet", "scale_fact", "cross_section", "timeline",
+                 "route", "location")
+
+
+def evidence_texts(script_payload: Dict[str, Any]) -> List[str]:
+    """The texts a headline's figures are held to (EVIDENCE_KEYS, read by figure_gate.signed_texts)."""
+    from . import figure_gate
+    return figure_gate.signed_texts({k: script_payload[k] for k in EVIDENCE_KEYS if k in script_payload})
+
+
+def evidence_faults(text: str, script_payload: Dict[str, Any]) -> List[str]:
+    """figure_gate.figure_faults of `text` against the run's evidence (evidence_texts): [] when every figure in it is
+    an evidence figure, whole, its hedge kept."""
+    from . import figure_gate, figures
+    return figure_gate.figure_faults(text, figures.signed_figures(evidence_texts(script_payload)))
+
+
+def headline_generic_vocabulary() -> frozenset:
+    """The active brand's generic vocabulary (data/headline_generic_vocabulary.json, per brand name; a brand with no
+    entry has none): words that say the niche, never the subject ("ANCIENT", "MARVELS", "MYSTERY")."""
+    import json
+    from . import brand
+    path = Path(__file__).resolve().parents[1] / "data" / "headline_generic_vocabulary.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return frozenset()
+    words = (data.get("brands") or {}).get(brand.active().name) or []
+    return frozenset(str(w).upper() for w in words)
+
+
+def _stem(word: str) -> str:
+    w = word.upper().replace("’", "'")
+    w = w[:-2] if w.endswith("'S") else w
+    return w[:-1] if len(w) > 4 and w.endswith("S") and not w.endswith("SS") else w
+
+
+def subject_words(script_payload: Dict[str, Any]) -> set:
+    """This run's subject words (stemmed content words): its topic name, its title and its signed entities (the
+    location, the scale fact's subject, the photo labels), less the brand's generic vocabulary."""
+    from .youtube_thumbnail import _content
+    loc = script_payload.get("location") or {}
+    fact = script_payload.get("scale_fact") or {}
+    parts = [str(script_payload.get("topic_id") or "").replace("_", " "), str(script_payload.get("title") or ""),
+             " ".join(str(v) for v in (loc.values() if isinstance(loc, dict) else [loc]) if isinstance(v, str)),
+             str(fact.get("subject") or "") if isinstance(fact, dict) else ""]
+    labels = script_payload.get("photo_labels") or []
+    parts += [str(x.get("label") or x.get("name") or "") if isinstance(x, dict) else str(x) for x in labels]
+    generic = headline_generic_vocabulary()
+    return {_stem(w) for w in _content(" ".join(parts)) if w not in generic and not w.isdigit()}
+
+
+def specificity_fault(text: str, script_payload: Dict[str, Any]) -> str:
+    """"" when the candidate is specific to this run: it carries a figure or a subject word (subject_words) and is not
+    made only of the brand's generic vocabulary; else the reason (lander review: "ANCIENT MARVELS" is a category
+    label, not a hook)."""
+    from . import figures
+    from .youtube_thumbnail import _content
+    words = _content(text)
+    generic = headline_generic_vocabulary()
+    if words and all(w in generic for w in words):
+        return "not specific: only the brand's generic vocabulary"
+    if figures.parse(text) or any(_stem(w) in subject_words(script_payload) for w in words):
+        return ""
+    return "not specific: no figure and no word of this run's subject"
 
 
 def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -768,9 +841,9 @@ def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any
     units) or None, "skipped" (the text gate that rejected it) or ""}]. Text gates, before any render: the source
     exists; it reads as a headline (youtube_thumbnail._alone on the whole: a whole phrase, no fragment, no line ending
     on a function word or a lead mark); it complements the video title (at most TITLE_OVERLAP_MAX of its content words
-    are the title's); every figure in it is a signed figure of the run's OTHER text, its hedge and both span ends kept
-    (figure_gate.figure_faults). The render then holds the heading gates."""
-    from . import figure_gate, figures
+    are the title's); every figure in it is an evidence figure, its hedge and both span ends kept (evidence_faults:
+    never its own field or other derived copy); it is specific to this run (specificity_fault). The render then holds
+    the heading gates and the drawn text is held to the evidence again (drawn_faults)."""
     from .youtube_thumbnail import _alone, _content
     base = documentary_cover_copy(script_payload)
     title = str(script_payload.get("youtube_title") or "")
@@ -790,19 +863,40 @@ def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any
         if title and words and len(words & _content(title)) / len(words) > TITLE_OVERLAP_MAX:
             rec["skipped"] = "repeats the video title"
             continue
-        if source != "thumbnail":   # the base pair is the copy every other gate already reads
-            signed = figures.signed_figures(figure_gate.signed_texts(_chain_others(script_payload, source)))
-            faults = figure_gate.figure_faults(text, signed)
-            if faults:
-                rec["skipped"] = "truth: " + "; ".join(faults)
-                continue
+        faults = evidence_faults(text, script_payload)   # every source, the base pair too: evidence only
+        if faults:
+            rec["skipped"] = "truth: " + "; ".join(faults)
+            continue
+        why = specificity_fault(text, script_payload)
+        if why:
+            rec["skipped"] = why
+            continue
         copy = dict(base, line1=l1, line2=l2)
-        if source in ("tagline", "eyebrow"):
-            copy[source] = ""   # drawn as the headline, never twice
+        if source != "thumbnail":
+            # the other sources are the headline alone: the eyebrow and tagline are candidates of their own, so the
+            # render's own fallback to them (QF-23 headline_from) never draws one past the chain's gates
+            copy["eyebrow"] = copy["tagline"] = ""
         for k in ("tagline", "eyebrow"):
             if copy.get(k, "").upper() in CODE_LABELS:
                 copy[k] = ""    # a code label is never a kicker fill either (it is not signed copy)
         rec["copy"] = _in_spoken_units(copy, script_payload)
+    return out
+
+
+def drawn_text(plates) -> str:
+    """The headline as drawn: the figure row (qualifier, figure, unit) and the title rows, in drawing order."""
+    return " ".join(pl.text for n, pl in plates if not pl.empty and n in (
+        "figure_qualifier", "figure", "figure_unit", "title_1", "title_2", "title", "qualifier"))
+
+
+def drawn_faults(plates, script_payload: Dict[str, Any]) -> List[str]:
+    """The drawn headline held to the evidence (evidence_faults): the figure row as one statement, each title row on
+    its own (a figure the render took from the badge is judged as drawn, not as the copy wrote it)."""
+    fig = " ".join(pl.text for n, pl in plates if not pl.empty and n in ("figure_qualifier", "figure", "figure_unit"))
+    rows = [pl.text for n, pl in plates if not pl.empty and n in ("title_1", "title_2", "title")]
+    out = evidence_faults(fig, script_payload) if fig else []
+    for r in rows:
+        out += evidence_faults(r, script_payload)
     return out
 
 

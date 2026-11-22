@@ -431,8 +431,10 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             return None
         # cycle 0 round 8 (R2): the stacked lockup, every field together, obeys the heading rules (heading.lockup_valid):
         # no one-word middle row (THE 1,200-TON / BEDROCK / MONSTER), the phrase exception on the last row only
+        # (a one-word first row under the balance minimum is not refused here: the staging below holds it, SYS-B-6)
         if not lockup_valid([t for t, _ in drawn_rows], [width_at(t, sz) for t, sz in drawn_rows], seam,
-                            fields=bool(f1 and f2)) and not head_noun_shape([t for t, _ in drawn_rows]):
+                            fields=bool(f1 and f2), first_lone_ok=True) and not head_noun_shape(
+                                [t for t, _ in drawn_rows]):
             return None
         # lane B cycle 1: the field boundary is a line end like any other (lockup_valid exempts it from the never-end
         # check): no row but the last ends on a never-end word, in any form
@@ -491,18 +493,30 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
             got[3]["form_diverges"] = {"ruled": list(forms[0][1:3]), "drawn": [got[3]["line1"], got[3]["line2"]],
                                        "form": name, "rows": list(got[3]["drawn_rows"]), "reason": why}
         return got
+    from .brand_system import SPEC
     from .cover_design import unbalanced_lone
-    deferred = None
+    from .heading import first_row_lone
+    deferred, held_first = None, False
     for name, f1, f2, tries, at, why in forms:
         for s1, tier, n in tries:
             got = attempt(f1, f2, s1, tier, n, at)
             if not got:
                 continue
             rows_ = got[3]["drawn_rows"]
+            ws = [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]
+            if held_first:
+                # SYS-B-6 (freeze SYS batch 3, the heading engine's rule): a held one-word first row gives way only to
+                # a form AT the balance minimum at its own size; never a shrink only to move a word, never a trade for
+                # another form under the minimum
+                if (got[3]["sizes"] == deferred[0][3]["sizes"] and unbalanced_lone(rows_, ws) is None
+                        and (len(rows_) < 2 or min(ws) / max(ws) >= SPEC["heading.balance_min"])):
+                    return done(got, name, why)
+                continue
             # lane B cycle 3 (B-S2-2): one reading with the Reel cover (cover_design.unbalanced_lone): a stacked
             # one-word row under the balance minimum waits for every other form (the heading engine's staging)
-            if unbalanced_lone(rows_, [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]) is not None:
-                deferred = deferred or (got, name, why)
+            if unbalanced_lone(rows_, ws) is not None:
+                if deferred is None:
+                    deferred, held_first = (got, name, why), first_row_lone(rows_, ws)
                 continue
             return done(got, name, why)
     if deferred is not None:
@@ -545,7 +559,7 @@ def refusal_rule(text: str, width_of, width: float, size: float, room=None, max_
     import itertools
 
     from . import brand_system
-    from .heading import bare, end_ok, valid
+    from .heading import bare, end_ok, first_row_lone, valid
     words = text.split()
     fitting, narrowest = [], None
     for n in range(1, min(max_rows, len(words)) + 1):
@@ -571,6 +585,8 @@ def refusal_rule(text: str, width_of, width: float, size: float, room=None, max_
             why = "the no-lone-row rule (a one-word middle row)"
         elif room is not None and (len(rows) - 1) * int(room[1] * line_pitch()) + room[1] > room[0]:
             why = f"the band's height ({round(room[0])} px for {len(rows)} rows)"
+        elif first_row_lone(rows, [width_of(r) for r in rows]):
+            why = "the no-lone-row rule (a one-word first row under the balance minimum)"   # SYS-B-6
         elif not valid(rows, widths=[width_of(r) for r in rows]):
             why = ("the no-lone-row rule (a one-word last row the phrase exception does not hold)"
                    if len(rows) > 1 and len(rows[-1].split()) < 2 else "the bonded-unit rule (a unit split by the break)")
@@ -857,8 +873,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     signed = dict(copy)   # the copy as signed (the truth guard reads it; `copy` loses a withheld figure below)
     # Lane B cycle 3 (S1: "138 FT" drawn for the signed "Roughly 137-138 ft"; stress FIGURE_GATE x10): the hero is the
     # copy's statement of the figure WHOLE (cover_design.stated_figure: its hedge, both ends of its span), never one
-    # number lifted out of it. A hedge the parser cannot read ("EST. >13,000 LBS") is one the figure line cannot draw
-    # as signed: the figure is declined (recorded) and the headline path draws the copy's lines as written.
+    # number lifted out of it. A hedge the parser cannot read is one the figure line cannot draw as signed: the figure
+    # is declined (recorded) and the headline path draws the copy's lines as written. (SYS-B-4: a comparator is read
+    # as its hedge, so "EST. >13,000 LBS" is drawn whole, ESTIMATED MORE THAN 13,000 LB.)
     stated, unread = stated_figure(copy, found) if (found and found[1]) else (None, "")
     if unread:
         meta["figure_declined"] = (f"truth (drawn figure == signed figure): the copy's hedge {unread!r} before "

@@ -524,7 +524,7 @@ def field_runs(text: str, cuts: Sequence[int], gold: bool) -> list[list[tuple[st
 
 
 def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, seam: int | None = None,
-                 fields: bool = False) -> bool:
+                 fields: bool = False, first_lone_ok: bool = False) -> bool:
     """A whole lockup's drawn rows, every field stacked, obey the engine's hard rules (valid): a field set valid on its
     own can still leave a one-word MIDDLE row once stacked under another field (cycle 0 round 8 R2: the YouTube
     two-line tier set THE 1,200-TON / BEDROCK / MONSTER, the field BEDROCK MONSTER broken alone). `widths`: each
@@ -532,7 +532,8 @@ def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, se
     two-field lockup's line 2), whose last row the phrase exception may keep alone (ruling 4). `fields`: `seam` is a
     boundary between two authored fields, so the row ending there is the copy's own line end (each field's own
     breaks are the engine's and set_field already held them to the rules): free of the bonded-unit reading, never of
-    the never-end rule (SYS-B-1)."""
+    the never-end rule (SYS-B-1). `first_lone_ok`: as valid's, for a caller that stages a one-word first row
+    under the balance minimum itself (SYS-B-6: held while another form may replace it, else standing, recorded)."""
     rows = [t for t in lines if t.strip()]
     if len(rows) < 2:
         return True
@@ -541,7 +542,7 @@ def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, se
         k += len(ln.split())
         if fields and seam is not None and k == seam:
             free.append(i)
-    return valid(rows, widths=widths, seam=seam, free_ends=free)
+    return valid(rows, widths=widths, seam=seam, free_ends=free, first_lone_ok=first_lone_ok)
 
 
 def check_drawn(lines: Sequence[str]) -> bool:

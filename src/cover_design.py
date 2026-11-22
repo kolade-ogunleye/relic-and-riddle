@@ -328,7 +328,8 @@ def _lockup(measure, copy, width, size, single_gold=True):
     # cycle 0 round 8 (operator ruling 7): lockup.line_ratio is a MINIMUM: line 2 (the payoff) grows past s1 x ratio,
     # up to the grid floor's size, until its cap clears the profile grid's floor at the 124 px tile (GRID_HOOK
     # title_2), where it still sets; recorded (line2_grown). The ratio's one value is never fitted per cover.
-    from .brand_system import px_for_cap
+    from .brand_system import SPEC, px_for_cap
+    from .heading import first_row_lone
     grid_px = px_for_cap(brand.DISPLAY_FONT, GRID_HOOK["title_2"] / GRID_SCALE[0])
 
     def width_at(t, sz):
@@ -362,6 +363,10 @@ def _lockup(measure, copy, width, size, single_gold=True):
             out[key] = (get_font(brand.DISPLAY_FONT, sz), runs)
         if ok and l1 and l2 and not _stack_valid(measure, out, len(l1.split())):
             ok = False   # lane B cycle 1 (SYS-R8-2 open question 5): the stacked rows obey the heading rules too
+        if ok and deferred is not None and deferred[1].get("first_row_lone"):
+            # SYS-B-6 (freeze SYS batch 3): a held one-word first row gives way only to a form at the balance minimum
+            # at its own size, never to a smaller size only to move a word
+            ok = deferred[1]["sizes"] == [s1, s2] and _stack_balanced(measure, out)
         if ok:
             got = out, {"tier": tier, "sizes": [s1, s2], "ratio": ratio, "line1": l1, "line2": l2,
                         **({"line2_grown": grown} if grown else {})}
@@ -372,13 +377,24 @@ def _lockup(measure, copy, width, size, single_gold=True):
             # engine's balance minimum waits, as the heading engine's own staging has it (SYS-D-5: an unbalanced
             # break after both tiers' balanced forms and one-line forms)
             got[1]["balance_below_min"] = round(bal, 3)
-            deferred = deferred or got
+            if deferred is None:
+                rows, widths = _stack_rows(measure, out)
+                if first_row_lone(rows, widths):
+                    got[1]["first_row_lone"] = rows[0]
+                deferred = got
     if deferred is not None:
         # the copy's words set as ONE heading (as on YouTube, SYS-R8-3: the same words, the payoff gold from the copy's
         # field seam), on the same two tiers at the grid floor: a one-line form or a balanced break wins over the
-        # unbalanced stack; else the stack stands, recorded (balance_below_min)
-        one = one_heading(measure, l1, l2, width, sorted({max(round(size * s), grid_px)
-                                                         for s in (1.0, LOCKUP_FALLBACK)}, reverse=True))
+        # unbalanced stack; else the stack stands, recorded (balance_below_min). SYS-B-6: a held one-word first row
+        # gives way only at its own size, to a form at the balance minimum.
+        lone_first = bool(deferred[1].get("first_row_lone"))
+        one = one_heading(measure, l1, l2, width, [deferred[1]["sizes"][0]] if lone_first else sorted(
+            {max(round(size * s), grid_px) for s in (1.0, LOCKUP_FALLBACK)}, reverse=True))
+        if one is not None and lone_first:
+            lines_ = list(one[0].lines)
+            ws_ = [measure.textlength(t, font=one[1]) for t in lines_]
+            if len(lines_) > 1 and min(ws_) / max(ws_) < SPEC["heading.balance_min"]:
+                one = None
         if one is not None:
             form, font = one
             return {"line1": (font, form.runs())}, {
@@ -415,7 +431,8 @@ def _stack_valid(measure, out, seam):
                 text = " ".join(t for t, _ in line_runs)
                 rows.append(text)
                 widths.append(measure.textlength(text, font=font))
-    return (lockup_valid(rows, widths, seam, fields=True)
+    # a one-word first row under the balance minimum is not refused here: _lockup holds it (SYS-B-6, lone_balance)
+    return (lockup_valid(rows, widths, seam, fields=True, first_lone_ok=True)
             and all(end_ok(r.split()[-1]) for r in rows[:-1] if r.split()))
 
 
@@ -455,8 +472,8 @@ def unbalanced_lone(rows, widths):
     return bal if bal < SPEC["heading.balance_min"] else None
 
 
-def lone_balance(measure, out):
-    """unbalanced_lone for a cover lockup's drawn rows (_lockup's {"line1"/"line2": (font, runs)})."""
+def _stack_rows(measure, out):
+    """A cover lockup's drawn rows and their drawn widths (_lockup's {"line1"/"line2": (font, runs)})."""
     rows, widths = [], []
     for key in ("line1", "line2"):
         if key in out:
@@ -465,7 +482,19 @@ def lone_balance(measure, out):
                 text = " ".join(t for t, _ in line_runs)
                 rows.append(text)
                 widths.append(measure.textlength(text, font=font))
-    return unbalanced_lone(rows, widths)
+    return rows, widths
+
+
+def _stack_balanced(measure, out):
+    """The drawn rows balance at heading.balance_min or better (one row: balanced)."""
+    from .brand_system import SPEC
+    _rows, widths = _stack_rows(measure, out)
+    return len(widths) < 2 or (max(widths) > 0 and min(widths) / max(widths) >= SPEC["heading.balance_min"])
+
+
+def lone_balance(measure, out):
+    """unbalanced_lone for a cover lockup's drawn rows (_lockup's {"line1"/"line2": (font, runs)})."""
+    return unbalanced_lone(*_stack_rows(measure, out))
 
 
 def one_heading(measure, l1, l2, width, sizes, max_lines=2):

@@ -63,11 +63,14 @@ def test_the_youtube_figure_is_a_signed_statement_whole(copy):
             figures.parse(t) for t in signed)
 
 
-def test_a_hedge_the_figure_line_cannot_draw_declines_the_figure():
+def test_a_comparator_hedge_is_drawn_with_its_figure_never_dropped():
+    # integration 3: lane B declined "EST. >13,000 LBS" because the parser could not read ">"; SYS-B-4 reads a
+    # comparator as its hedge, so the figure line now draws the statement whole, or nothing
     copy = {"eyebrow": "X", "line1": "LOST ROOM", "line2": "", "tagline": "WHERE", "badge": "EST. >13,000 LBS"}
     _, plates, meta = _yt(copy)
-    assert "13,000" not in _figure_text(plates)
-    assert "truth" in meta["figure_declined"] and "EST. >" in meta["figure_declined"]
+    drawn = _figure_text(plates)
+    assert "MORE THAN 13,000" in drawn and "figure_declined" not in meta, (drawn, meta.get("figure_declined"))
+    assert figures.truth_faults(drawn, cover_design.signed_copy_texts(copy)) == [], drawn
 
 
 def test_a_badge_figure_never_leaves_one_headline_line_alone():

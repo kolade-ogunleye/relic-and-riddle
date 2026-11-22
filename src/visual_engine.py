@@ -828,8 +828,35 @@ def subject_words(script_payload: Dict[str, Any]) -> set:
              str(fact.get("subject") or "") if isinstance(fact, dict) else ""]
     generic = headline_generic_vocabulary()
     places = place_words(script_payload)
-    return {_stem(w) for w in _content(" ".join(parts))
-            if w not in generic and not w.isdigit()} - places
+    own = {_stem(w) for w in _content(" ".join(parts)) if w not in generic and not w.isdigit()}
+    return (own | evidence_nouns(tuple(evidence_texts(script_payload)))) - places - {_stem(w) for w in generic}
+
+
+def evidence_nouns(texts: tuple) -> set:
+    """The head nouns the run's signed evidence repeats (lane B cycle 3, lander: "FORGOTTEN GEARS" names the thing
+    itself): a noun (the committed offline tagger, narrative_payoff.nouns) found in at least two separate evidence
+    texts (evidence_texts: the narration, each stat card, the graphics data, each fact), stemmed. Generic and
+    portable: nothing names a niche; places and the generic vocabulary are taken out by the caller."""
+    return set(_evidence_nouns(texts))
+
+
+_EVIDENCE_NOUNS: Dict[tuple, frozenset] = {}
+
+
+def _evidence_nouns(texts: tuple) -> frozenset:
+    if texts in _EVIDENCE_NOUNS:
+        return _EVIDENCE_NOUNS[texts]
+    from collections import Counter
+
+    from .narrative_payoff import nouns
+    seen: Counter = Counter()
+    for t in dict.fromkeys(str(x).strip() for x in texts if str(x).strip()):
+        seen.update({_stem(n.upper()) for n in nouns(t) if n.isalpha() and len(n) > 2})
+    out = frozenset(w for w, k in seen.items() if k >= 2)
+    if len(_EVIDENCE_NOUNS) > 256:
+        _EVIDENCE_NOUNS.clear()
+    _EVIDENCE_NOUNS[texts] = out
+    return out
 
 
 def specificity_fault(text: str, script_payload: Dict[str, Any]) -> str:

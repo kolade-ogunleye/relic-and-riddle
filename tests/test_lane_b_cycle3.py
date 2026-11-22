@@ -370,3 +370,16 @@ def test_the_never_end_rule_is_unchanged_by_ruling_4s_shape():
     assert not head_noun_shape(["CARVED FROM", "SALT"])       # a row never ends on a never-end word
     assert not head_noun_shape(["THE BURIED", "OF"])          # the last row is a content word
     assert not head_noun_shape(["WHY ROMAN", "CONCRETE", "HEALS"])
+
+
+def test_a_noun_the_evidence_repeats_is_the_subject():
+    """Lander (2026-11-22): "FORGOTTEN GEARS" names the thing itself: a noun found in at least two separate evidence
+    texts (narration, stat cards, graphics data, facts) is a subject word; once is not; a place never is."""
+    from src.visual_engine import specificity_fault
+    p = {"topic_id": "harbour_wreck", "title": "The Harbour Wreck",
+         "location": {"name": "Harbour Museum", "city": "Portville", "country": "Islandia"},
+         "narration_script": "Divers raised bronze gears from the wreck near Portville. A lantern lay beside them.",
+         "stat_cards": [{"value": "30", "label": "Gears counted"}]}
+    assert specificity_fault("FORGOTTEN GEARS", p) == ""
+    assert specificity_fault("THE OLD LANTERN", p).startswith("not specific")          # one evidence text only
+    assert specificity_fault("ANCIENT PORTVILLE", p).startswith("not specific")

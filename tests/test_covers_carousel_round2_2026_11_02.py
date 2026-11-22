@@ -246,9 +246,8 @@ def _poster(path: Path, box=(120, 400, 900, 1000)) -> Path:
 def test_a_run_with_an_explanatory_graphic_gets_one_diagram_slide_in_both_copies(photos, tmp_path) -> None:
     run = tmp_path / "run"
     # lane D cycle 1: a drawing compact enough that the slide lays it at >= 4/3 (its 9:16 label floor reaches the
-    # carousel's); a larger one is withheld (tests/test_freeze_lane_d_c1.py). Lane D cycle 3: the Facebook copy's
-    # masthead sits in the collage's centre square, so its drawing room is shorter and the poster is a little smaller
-    poster = _poster(run / "graphics" / "graphic_section.jpg", (390, 800, 690, 1060))
+    # carousel's); a larger one is withheld (tests/test_freeze_lane_d_c1.py)
+    poster = _poster(run / "graphics" / "graphic_section.jpg", (340, 760, 740, 1100))
     _poster(run / "graphics" / "graphic_numbers.jpg")              # a photo-backed card: never a diagram slide
     # cycle 0 round 8: a stored poster is embedded only when stamped as drawn under the active brand by this code
     # (multi_format.current_poster); an unstamped one is redrawn from the signed field, else no diagram slide

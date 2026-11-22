@@ -153,14 +153,18 @@ def _fb_slide(tmp_path, archetype, total, card, photo=None):
                                                           total, {}, "", True, subject="THE GIANT STONE")[1]
 
 
-def test_the_facebook_masthead_sits_inside_the_collage_square(tmp_path):
+def test_the_facebook_collage_is_branded_on_its_cover_only(tmp_path):
     from src.multi_format import collage_crop
     crop = collage_crop((1440, 1800), 1.0)
-    for archetype, card in (("cover", CARDS[0]), ("immersive", CARDS[1]), ("editorial_split", CARDS[2])):
+    cover = _fb_slide(tmp_path, "cover", 7, CARDS[0])
+    box = next(e["box"] for e in cover.elements if e["name"] == "header_brand")
+    assert box[1] >= crop[1] and box[3] <= crop[3] and not cover.problems()      # inside the square, whole
+    for archetype, card in (("immersive", CARDS[1]), ("editorial_split", CARDS[2])):
         lay = _fb_slide(tmp_path, archetype, 7, card)
-        box = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
-        assert box[1] >= crop[1] and box[3] <= crop[3], (archetype, box)
-        assert not lay.problems(), (archetype, lay.problems())
+        assert not any(e["name"] == "header_brand" for e in lay.elements) and lay.meta["masthead"]["fb_interior"]
+        ig = MultiFormatGenerator()._render_carousel_slide(archetype, _photos(tmp_path)[1], _photos(tmp_path)[1],
+                                                           card, 1, 7, {}, "", False, subject="S")[1]
+        assert any(e["name"] == "header_brand" for e in ig.elements)              # Instagram unchanged
 
 
 def test_the_facebook_cover_of_a_five_photo_post_takes_the_full_column(tmp_path):
@@ -206,32 +210,68 @@ def test_the_lower_facebook_masthead_keeps_the_strength_of_its_ground(tmp_path):
     a = np.clip(np.array((170, 160, 150), np.float32) + rng.normal(0, 60, (1200, 1600, 1)), 0, 255).astype(np.uint8)
     photo = tmp_path / "mid.jpg"
     Image.fromarray(a).save(photo)
-    card = {"heading": "CARVED FROM BEDROCK", "body": "Workers carved it."}
+    card = {"heading": "THE CARVED BEDROCK", "body": "Workers carved it."}
     g = MultiFormatGenerator()
-    ig = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", False, subject="S")[1]
-    fb = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", True, subject="S")[1]
+    ig = g._render_carousel_slide("cover", photo, photo, card, 0, 7, {}, "", False, subject="S")[1]
+    fb = g._render_carousel_slide("cover", photo, photo, card, 0, 7, {}, "", True, subject="S")[1]
     assert ig.meta["masthead"]["shown"] and "reach_matched" not in ig.meta["masthead"]
     m = fb.meta["masthead"]
     from src.brand_system import tok
     assert m["shown"] and m["reach_matched"] and m["contrast"] >= tok("contrast.masthead_gate") and not fb.problems()
 
 
-def test_a_map_label_in_the_squares_masthead_room_keeps_the_instagram_position(tmp_path):
-    """A wide locator map cannot move; where its own label lies in the Facebook masthead's room (inside the collage
-    square), the slide takes Instagram's masthead position, recorded, and the masthead never covers the label."""
-    from PIL import ImageDraw
-    poster = tmp_path / "graphics" / "graphic_map.jpg"
-    poster.parent.mkdir(parents=True)
-    im = Image.new("RGB", (2400, 1800), (40, 60, 80))
-    ImageDraw.Draw(im).rectangle((700, 240, 1000, 280), fill=(250, 250, 250))   # a label's bone ink
-    im.save(poster)
-    card = {"heading": "ORBITAL LANDMARK", "body": "Visible from space in the desert."}
+# --------------------------------------------------------------------------------- 6. cover over the collage's tile 2
+def _rec_slide(folder: Path, i: int, arch: str, px: float | None):
+    p = folder / f"carousel_slide_{i + 1:02d}.jpg"
+    Image.new("RGB", (1440, 1800), (30 + 25 * i, 40, 40)).save(p)
+    lay = still_layout.Layout("carousel", (1440, 1800), (0, 0, 1440, 1800))
+    if px:
+        lay.add("heading", (100, 1000, 1200, 1200))
+        lay.elements[-1]["px"] = px
+    still_layout.save(p, lay, {"archetype": arch, "photo": str(p), "photo_next": str(p),
+                               "card": {"heading": f"H{i}", "body": "A body."}})
+    return str(p)
+
+
+def test_a_headline_second_tile_steps_down_until_the_cover_reads_over_it(tmp_path):
+    from src.multi_format import COLLAGE_COVER_OVER_TILE, collage_tile_step
+    archs = ["cover", "immersive", "editorial_split", "immersive", "immersive", "immersive", "debate"]
+    for tile, want in ((184.0, 112.0), (165.33, 112.0), (149.33, None)):
+        folder = tmp_path / f"t{int(tile)}"
+        folder.mkdir()
+        slides = [_rec_slide(folder, i, a, 200.0 if i == 0 else tile) for i, a in enumerate(archs)]
+        got = collage_tile_step(slides)
+        if want is None:
+            assert got is None                                       # 200 / 149.3 = 1.34: already holds
+        else:
+            assert got is not None and got[1] == want and 200.0 >= COLLAGE_COVER_OVER_TILE * want * 1440 / 1080 - 1e-6
+    folder = tmp_path / "fig"
+    folder.mkdir()
+    slides = [_rec_slide(folder, i, a, 200.0 if i == 0 else 184.0)
+              for i, a in enumerate(["cover", "immersive", "colossal_stat", "immersive", "immersive", "immersive",
+                                     "debate"])]
+    assert collage_tile_step(slides) is None                          # a figure on tile 2: a different device
+
+
+def test_the_facebook_deck_draws_its_second_tile_under_the_cover(tmp_path):
+    from src.multi_format import COLLAGE_COVER_OVER_TILE, facebook_pick
+    cards = [{"heading": "THE GIANT STONE", "body": "A giant stone lies in the quarry."},
+             {"heading": "CARVED IN PLACE", "body": "Workers cut it from the bedrock."},
+             {"heading": "ANCIENT WORK MARKS", "body": "Crews burned and wedged the rock."},
+             {"heading": "SOFT RED OCHRE", "body": "Guide lines were painted in red."},
+             {"heading": "CRACKED", "body": "A crack ended the work."},
+             {"heading": "LEFT BEHIND", "body": "The stone was abandoned in place."},
+             {"heading": "YOUR TAKE", "body": "Would you have finished it?"}]
+    run = tmp_path / "run"
+    payload = {"carousel_slides": cards, "title": "The giant stone"}
     g = MultiFormatGenerator()
-    fb = g._render_carousel_slide("diagram", poster, poster, card, 1, 7, {}, "", True, subject="S")[1]
-    assert fb.meta.get("masthead_position", "").startswith("instagram")
-    box = next((e["box"] for e in fb.elements if e["name"] == "header_brand"), None)
-    labels = [l["box"] for l in fb.meta["diagram"]["labels"]]
-    assert labels and (box is None or all(box[3] <= b[1] or box[1] >= b[3] or box[2] <= b[0] or box[0] >= b[2]
-                                          for b in labels))
-    ig = g._render_carousel_slide("diagram", poster, poster, card, 1, 7, {}, "", False, subject="S")[1]
-    assert "masthead_position" not in ig.meta
+    ig = g.generate_carousel_sequence(_photos(tmp_path) * 2, payload, run)
+    fb = g.generate_carousel_sequence(_photos(tmp_path) * 2, payload, run, facebook=True)
+    posted = facebook_pick([str(x) for x in fb])
+    recs = {p: still_layout.load(Path(p)) for p in posted[:2]}
+    px = {p: next(e["px"] for e in r["elements"] if e["name"] == "heading") for p, r in recs.items()}
+    assert px[posted[0]] >= COLLAGE_COVER_OVER_TILE * px[posted[1]] - 1e-6 and not recs[posted[1]]["problems"]
+    assert recs[posted[1]]["recipe"]["heading_px"]
+    j = [str(x) for x in fb].index(posted[1])
+    ig_px = next(e["px"] for e in still_layout.load(ig[j])["elements"] if e["name"] == "heading")
+    assert ig_px > px[posted[1]]                                      # Instagram's copy keeps the deck's tier

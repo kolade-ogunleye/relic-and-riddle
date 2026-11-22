@@ -159,9 +159,8 @@ def test_a_drawing_shrunk_under_the_label_floor_is_not_held(tmp_path):
     big = _poster(tmp_path / "graphic_scale.jpg", (1080, 1920), (100, 300, 980, 1700))
     ok, rec = gen.diagram_legible(big, ((False, 2), (True, 2)))
     assert not ok and rec["label_px_at_least"] < rec["slide_floor_px"] == pytest.approx(label_floor_px(1440, 1800))
-    # a drawing whose box the slide lays at >= 4/3 keeps the 9:16 floor's 27 px at >= 36 (lane D cycle 3: on both
-    # copies' rooms, the Facebook one shorter under the masthead in the collage square)
-    small = _poster(tmp_path / "graphic_section.jpg", (1080, 1920), (330, 760, 730, 1040))
+    # a drawing whose box the slide lays at >= 4/3 keeps the 9:16 floor's 27 px at >= 36
+    small = _poster(tmp_path / "graphic_section.jpg", (1080, 1920), (300, 700, 760, 1060))
     ok, rec = gen.diagram_legible(small, ((False, 2), (True, 2)))
     assert ok and rec["label_px_at_least"] >= rec["slide_floor_px"]
     # a 16:9 drawing guarantees no floor of its own: never held

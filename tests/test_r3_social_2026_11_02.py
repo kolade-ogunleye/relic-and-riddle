@@ -192,7 +192,8 @@ def test_kickers_and_the_masthead_are_planned_with_a_margin(photos) -> None:
     from src.brand_system import tok
     assert multi_format.KICKER_TARGET == tok("contrast.kicker") == 5.5
     assert tok("contrast.masthead_gate") == 5.5 and tok("contrast.masthead_target") == 6.5
-    _, lay = M()._render_carousel_slide("immersive", photos[1], photos[0], CARD, 1, 7, {}, "", True, subject="S")
+    # lane D cycle 3: the Facebook copy draws its masthead on the cover only, so the interior is judged on Instagram's
+    _, lay = M()._render_carousel_slide("immersive", photos[1], photos[0], CARD, 1, 7, {}, "", False, subject="S")
     assert lay.plates["kicker"][0].contrast >= 5.4 and lay.plates["header_brand"][0].contrast >= 5.5
 
 
@@ -451,10 +452,7 @@ def test_a_two_line_diagram_heading_keeps_round_twos_frame_and_its_drawing(tmp_p
     assert len(lay.plates["heading"]) == 2
     frame = M()._content_frame(PX, facebook, 2)
     assert lay.meta["baselines"]["heading_last"] == frame["heading_last"]   # round 7 (F3): the band's line
-    # lane D cycle 3 (lander ruling 4): the Facebook masthead sits in the collage's centre square, FB_HEADER_Y -
-    # HEADER_Y design px lower, and the Facebook drawing's room starts that much lower too
-    shift = round((M.FB_HEADER_Y - M.HEADER_Y) * 4 / 3) if facebook else 0
-    assert _art_h(lay) >= (602 if facebook else 619) - shift
+    assert _art_h(lay) >= (602 if facebook else 619)
     assert _art_h(lay) == _art_h(_diagram(tmp_path, "Not built", facebook, 2))   # one frame, one drawing size
     # a two-line heading on a one-line deck frame (measured otherwise) never overruns: it takes the two-line frame
     over = _diagram(tmp_path, TWO_LINE, facebook, 1)

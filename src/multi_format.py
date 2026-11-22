@@ -1514,20 +1514,20 @@ class MultiFormatGenerator:
     # drops out whole rather than half cut. IG_COUNTER is checked on every slide (still_layout `protected`), so
     # nothing we draw ever lands under the counter.
     HEADER_Y = 70
-    # Lane D cycle 3 (lander ruling 4, peer evidence evidence/peers/fb_feed/peer_01.png): Facebook shows the posted
-    # photos as a collage of centre squares (FACEBOOK_COLLAGE), so the Facebook copy's masthead sits inside the
-    # slide's centre square, FB_HEADER_INSET under its top (FB_SQUARE_TOP: (1350 - 1080) / 2 design px), on every
-    # Facebook slide: the collage keeps the brand (at HEADER_Y the square crop cut it from every tile).
+    # Lane D cycle 3 (lander rulings, peer evidence evidence/peers/fb_feed/peer_01.png): Facebook shows the posted
+    # photos as a collage of centre squares (FACEBOOK_COLLAGE), and peers brand the collage once. The Facebook cover's
+    # masthead sits inside its centre square, FB_HEADER_INSET under its top (FB_SQUARE_TOP: (1350 - 1080) / 2 design
+    # px); the Facebook copy's interior slides draw no masthead (five on one collage were brand noise). Instagram's
+    # copy is unchanged.
     FB_SQUARE_TOP = 135
     FB_HEADER_INSET = 40
     FB_HEADER_Y = FB_SQUARE_TOP + FB_HEADER_INSET
     BAND_GAP = 16
 
-    def _header_y(self, facebook: bool | None = None) -> int:
-        """The masthead's top, design px: HEADER_Y on Instagram, FB_HEADER_Y on the Facebook copy (the slide being
-        drawn, _render_state, when `facebook` is None)."""
-        fb = bool(getattr(_render_state, "facebook", False)) if facebook is None else bool(facebook)
-        return self.FB_HEADER_Y if fb and not getattr(_render_state, "ig_header", False) else self.HEADER_Y
+    def _header_y(self, facebook: bool, archetype: str) -> int:
+        """The masthead's top, design px: FB_HEADER_Y on the Facebook cover (the one slide whose masthead the
+        collage shows: lane D cycle 3, lander ruling 1 of the second review), else HEADER_Y."""
+        return self.FB_HEADER_Y if facebook and archetype == "cover" else self.HEADER_Y
 
     @staticmethod
     def _fb_cover_inset() -> bool:
@@ -1819,8 +1819,17 @@ class MultiFormatGenerator:
         elif content:
             spec = self.CONTENT_HEADING   # both copies (lane D cycle 2, SYS-D-4)
             tier = self._deck_tier()   # SYS-D-5: the deck's one tier (the fallback only deck-wide)
-            form = set_heading(heading, measure, design_w, spec[tier:], extra_lines=3,
-                               last_resort_floor=round(spec[1] * 0.9), final_floor=round(spec[1] * 0.6))
+            tile = getattr(_render_state, "tile_px", None)
+            if tile:
+                # lane D cycle 3: the Facebook collage's second top tile, at its ladder step (generate_carousel_sequence)
+                form = set_heading(heading, measure, design_w, (tile,), extra_lines=3,
+                                   last_resort_floor=round(tile * 0.9), final_floor=round(spec[1] * 0.6))
+                if form is not None:
+                    form.record["collage_tile_px"] = tile
+                    tier = 0
+            if not tile or form is None:
+                form = set_heading(heading, measure, design_w, spec[tier:], extra_lines=3,
+                                   last_resort_floor=round(spec[1] * 0.9), final_floor=round(spec[1] * 0.6))
             if form is not None and tier:
                 form.tier = None if form.tier is None else form.tier + tier
                 form.record["deck_tier"] = tier
@@ -2024,6 +2033,10 @@ class MultiFormatGenerator:
                 # only a real rise moves it (an accent, 2 px or more): a capital's 1 px antialiasing overshoot keeps
                 # the deck's shared kicker line (_content_frame), so a deck keeps its two kicker positions
                 kb = (min(cap_top, ink_top) if ink_top < cap_top - 1 else cap_top) - kicker_gap(kick["font"].size)
+                if getattr(_render_state, "tile_px", None):
+                    # lane D cycle 3: the collage's second tile, its heading a step down, keeps the deck's kicker
+                    # line (two kicker positions per deck); the step opens the air under the kicker instead
+                    kb = min(kb, frame["kicker"])
                 out = [dict(r, y=kb) if r["name"] == "kicker" else r for r in out]
             fixed.update(kicker=kb, heading=first, heading_last=max(r["y"] for r in heads) + shift,
                          heading_frame=frame["heading_lines"], heading_lines=n_heads)
@@ -2243,7 +2256,7 @@ class MultiFormatGenerator:
         kicker, under the masthead) and the scale `k` its drawn box (`box` of a poster of `size`) is laid at."""
         px = self._px(cw)
         kb = self._content_baselines(px, facebook, lines)[0]
-        top, bottom = px(self._header_y(facebook)) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
+        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
         w, h = max(1, box[2] - box[0]), max(1, box[3] - box[1])
         return top, bottom, min((cw - 2 * px(self.MARGIN - 24)) / w, max(1, bottom - top) / h)
 
@@ -2252,9 +2265,8 @@ class MultiFormatGenerator:
         copies since they share one frame): what a drawing for the slide is drawn at (lane D cycle 2)."""
         cw = cw or self.CAROUSEL_SIZE[0]
         px = self._px(cw)
-        # lane D cycle 3: the room both copies hold (the Facebook masthead sits lower, in the collage's square)
-        rooms = [self._diagram_fit((1, 1), (0, 0, 1, 1), cw, fb, 2) for fb in (False, True)]
-        return cw - 2 * px(self.MARGIN - 24), min(b - t for t, b, _k in rooms)
+        top, bottom, _k = self._diagram_fit((1, 1), (0, 0, 1, 1), cw, False, 2)
+        return cw - 2 * px(self.MARGIN - 24), bottom - top
 
     def diagram_legible(self, poster: Path, facebook_lines: tuple[tuple[bool, int], ...]) -> tuple[bool, dict]:
         """Lane D cycle 1 (r8 AD R3): whether a drawing laid on the diagram slide keeps every label at the carousel's
@@ -2369,10 +2381,6 @@ class MultiFormatGenerator:
             tops, record = list(range(base_top, lift_max + 1, max(1, px(8)))) or [base_top], poster
             if tops[-1] != lift_max:
                 tops.append(lift_max)
-            # lane D cycle 3: the Facebook masthead sits lower (in the collage's centre square), so a place label
-            # the map cannot rise away from may instead sit lower: after every rise, the map lowered as far
-            # (the place under the masthead and over the foot, the same cut rule)
-            tops += list(range(base_top - max(1, px(8)), max(0, base_top - px(MAP_LIFT_MAX)) - 1, -max(1, px(8))))
         bands = map_label_bands(record, full, k, px)
         pin_y = full.height / 2
         primary, secondary = [], []
@@ -2381,7 +2389,7 @@ class MultiFormatGenerator:
         primary_bottom = max([pin_y + px(MAP_PIN)] + [b[3] for b in primary])
         primary_top = min([pin_y - px(MAP_PIN)] + [b[1] for b in primary])
         foot_low = stack_top - px(MAP_CLEAR)          # the foot's full ink starts here at the latest
-        head_room = px(self._header_y()) + px(80)      # the place label stays under the masthead, as a drawing does
+        head_room = px(self.HEADER_Y) + px(80)         # the place label stays under the masthead, as a drawing does
 
         def cut(top, fade):
             """(top, fade, y1) when this cut shows the place whole and no label half under the foot, else None."""
@@ -2441,7 +2449,7 @@ class MultiFormatGenerator:
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
                                lead: str | None = None, window: int = 0, heading_tier: int = 0,
-                               _ig_header: bool = False):
+                               heading_px: float | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -2465,7 +2473,9 @@ class MultiFormatGenerator:
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
         _render_state.heading_tier = 1 if int(heading_tier or 0) > 0 else 0
         _render_state.lead = lead
-        _render_state.ig_header = bool(_ig_header)
+        # lane D cycle 3 (lander ruling 2 of the second review): the Facebook collage's second top tile, a headline
+        # slide, sets its heading at this ladder step (design px) so the cover reads over it; None: the deck's tier
+        _render_state.tile_px = float(heading_px) if heading_px else None
         cw, chh = self.CAROUSEL_SIZE
         # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
         # this deck show the same photograph; the masthead's box (top-left, HEADER_Y) is kept off foreign objects
@@ -2475,12 +2485,11 @@ class MultiFormatGenerator:
         # lane D cycle 3: the deck's posted collage decides the Facebook cover's inset (_fb_cover_inset)
         _render_state.fb_hero_tile = bool(facebook) and total <= 4
         _mx = _px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else _px(80)
-        _base = _px(self._header_y(facebook)) + cap_height(_mh.font_for(_size))
+        _base = _px(self._header_y(facebook, archetype)) + cap_height(_mh.font_for(_size))
         _render_state.window_k = max(0, int(window or 0))
-        _render_state.masthead_box = (_mx - _px(16), _px(self._header_y(facebook)) - _px(16),
+        _render_state.masthead_box = (_mx - _px(16), _px(self._header_y(facebook, archetype)) - _px(16),
                                       _mx + _mh.group_width(_size) + _px(16), _base + _px(16))
         _render_state.window_rec = []
-        masthead_room = _render_state.masthead_box
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
         lay.plates = {}
@@ -2516,11 +2525,18 @@ class MultiFormatGenerator:
         # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
         # diamond fell outside the tile's crop at x 107).
         x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else px(80)
-        base = px(self._header_y(facebook)) + cap_height(brand_font)
+        base = px(self._header_y(facebook, archetype)) + cap_height(brand_font)
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
-        im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
-                                             max_width=cw - px(280) - x0)
-        if not mrec["shown"] and facebook:
+        if facebook and archetype != "cover":
+            # lane D cycle 3 (lander ruling 1 of the second review): the Facebook collage is branded once, on its
+            # cover tile; an interior Facebook slide draws no masthead (recorded, not a gate failure)
+            im, plate, box = im.convert("RGB"), None, None
+            mrec = {"shown": False, "reason": "Facebook interior slide: the collage carries the brand on its cover "
+                                              "tile only (lane D cycle 3)", "fb_interior": True}
+        else:
+            im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
+                                                 max_width=cw - px(280) - x0)
+        if not mrec["shown"] and facebook and archetype == "cover":
             # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y it
             # is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only then,
             # the reach that gives the name the strength it has at Instagram's position (the same share of the
@@ -2539,19 +2555,6 @@ class MultiFormatGenerator:
             lay.meta["masthead"] = {k: v for k, v in mrec.items() if k != "box"}
         if strip and not facebook:
             im = swipe_strip(im, lay, strip)
-        dg = lay.meta.get("diagram") if isinstance(getattr(lay, "meta", None), dict) else None
-        if facebook and not _ig_header and dg and dg.get("kind") == MAP_KIND:
-            # lane D cycle 3: a locator map whose labels the Facebook masthead (in the collage's square) would cover,
-            # where no cut of the map clears it (a wide poster cannot move), takes Instagram's masthead position on
-            # this slide, recorded; the collage then cuts its brand, never a label under it
-            mx0, my0, mx1, my1 = masthead_room
-            if any(b[0] < mx1 and b[2] > mx0 and b[1] < my1 and b[3] > my0
-                   for b in (l["box"] for l in dg.get("labels") or [])):
-                im, lay = self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
-                                                      facebook, tight, subject, heading_frame, strip, lead, window,
-                                                      heading_tier, _ig_header=True)
-                lay.meta["masthead_position"] = "instagram: a map label lies in the collage square's masthead room"
-                _render_state.ig_header = False
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: list[Path], script_payload: dict[str, Any], output_dir: Path,
@@ -2624,6 +2627,7 @@ class MultiFormatGenerator:
         # here and the Aswan deck lost "ANCIENT WORK MARKS" and its body).
 
         # SYS-D-5: the deck's one content-heading tier, over both copies (one size per deck, one form per heading)
+        _render_state.tile_px = None
         tier = self._deck_heading_tier(cards, archetypes)
 
         def copy_layout(fb: bool) -> tuple[int, dict[int, dict[str, Any]], list[int]]:
@@ -2712,6 +2716,39 @@ class MultiFormatGenerator:
         slides = [drawn_paths[i] for i in range(total)]
 
         if facebook:
+            # lane D cycle 3 (lander ruling 2 of the second review): in the 5-photo collage the cover and the second
+            # photo are the two equal top tiles; a headline second tile steps its heading down the ladder until the
+            # cover's heading is COLLAGE_COVER_OVER_TILE x it (the first such step), on this copy only
+            step = collage_tile_step([str(x) for x in slides])
+            if step is not None:
+                j, size = step
+                card, archetype = cards[j], archetypes[j]
+                photo = diagram[1] if archetype == "diagram" else photos[j]
+                photo_next = photos[(j + 1) % len(photos)]
+                with kicker_set(deck_step, survey=deck_step is None):
+                    im, lay, attempts = still_layout.drawn(
+                        lambda tight: self._render_carousel_slide(
+                            archetype, photo, photo_next, card, j, total, poll, share, True, tight=tight,
+                            subject=subject, heading_frame=frame, lead=lead, window=showing[j], heading_tier=tier,
+                            heading_px=size))
+                _render_state.tile_px = None   # never left set for the next deck's measuring
+                if not lay.problems():
+                    path = drawn_paths[j]
+                    if isinstance(getattr(lay, "meta", None), dict):
+                        lay.meta["kicker_set"] = {"step": list(deck_step) if deck_step else None, "slides": total}
+                    self._save_slide(im, path)
+                    _delivered_contrast(lay, path)
+                    still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide",
+                                                  "archetype": archetype, "photo": str(photo),
+                                                  "photo_next": str(photo_next), "card": card, "index": j,
+                                                  "total": total, "poll": poll, "share": share, "facebook": True,
+                                                  "subject": subject, "heading_frame": frame, "heading_tier": tier,
+                                                  "lead": lead, "window": showing[j], "heading_px": size,
+                                                  **({"kicker_step": list(deck_step)} if deck_step else {})},
+                                      attempts)
+                else:
+                    log.warning("Facebook collage: tile 2 (slide %d) at %s px drew with problems %s; kept at the "
+                                "deck's tier.", j + 1, size, lay.problems())
             write_collage_report(slides, out_dir)
         log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
         return slides
@@ -3513,6 +3550,37 @@ def facebook_pick(slides: list[str], limit: int = FACEBOOK_PHOTOS) -> list[str]:
     return _figure_second([first] + [slide for _, slide in sorted(picked)] + [last])
 
 
+COLLAGE_COVER_OVER_TILE = 1.25   # lander ruling (lane D cycle 3): cover heading over the collage's second top tile's
+
+
+def collage_tile_step(slides: list[str]) -> tuple[int, float] | None:
+    """(slide index, design px) for the Facebook collage's second top tile when it is a headline slide whose heading
+    the cover's does not reach COLLAGE_COVER_OVER_TILE x: the first display-ladder step under the tile's size that
+    the cover's heading reaches that share over. None when the post is not a 5-photo collage, tile 2 is a figure
+    slide (a different device; ruling 3), it carries no heading, it already holds the ratio, or no step does. The
+    cover is never stepped up. Read from the slides' layout records (the copy as drawn)."""
+    from . import still_layout
+    posted = facebook_pick(slides)
+    if len(posted) != FACEBOOK_COLLAGE_MAX:
+        return None
+    recs = [still_layout.load(Path(x)) or {} for x in (posted[0], posted[1])]
+    if slide_strength(recs[1]) == STRENGTH_FIGURE:
+        return None
+
+    def heading_px(rec):
+        return next((float(e["px"]) for e in rec.get("elements") or [] if e.get("name") == "heading" and e.get("px")),
+                    None)
+    cover, tile = heading_px(recs[0]), heading_px(recs[1])
+    if not cover or not tile or cover >= COLLAGE_COVER_OVER_TILE * tile - 1e-6:
+        return None
+    w = (recs[1].get("size") or MultiFormatGenerator.CAROUSEL_SIZE)[0]
+    steps = [s for s in brand_system.display_steps("carousel") if s < tile - 1e-6
+             and cover >= COLLAGE_COVER_OVER_TILE * s - 1e-6]
+    if not steps:
+        return None
+    return slides.index(posted[1]), round(max(steps) * 1080 / w, 2)
+
+
 def _figure_second(posted: list[str]) -> list[str]:
     """Lane D cycle 3 (lander ruling 4): in the 5-photo collage the cover and the second photo are the two equal top
     tiles, so the second is not a headline slide when the post has a figure slide (slide_strength STRENGTH_FIGURE:
@@ -3795,7 +3863,9 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                              heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
                                              heading_tier=int(recipe.get("heading_tier") or 0),
                                              strip=_redraw_strip(recipe.get("strip"), path),
-                                             window=int(recipe.get("window") or 0))
+                                             window=int(recipe.get("window") or 0),
+                                             heading_px=recipe.get("heading_px"))
+        _render_state.tile_px = None
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}

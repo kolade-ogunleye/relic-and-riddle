@@ -175,10 +175,11 @@ def test_no_slide_chrome_on_either_copy(gen, tmp_path, monkeypatch):
     for facebook in (False, True):
         slides = gen.generate_carousel_sequence(photos, PAYLOAD, tmp_path, facebook=facebook)
         records = json.loads((slides[0].parent / still_layout.SIDECAR).read_text(encoding="utf-8"))
-        for slide in slides:
+        for k, slide in enumerate(slides):
             names = {e["name"] for e in records[slide.name]["elements"]}
             assert not names & {"header_dossier", "swipe_cues", "swipe"}, (facebook, slide.name, names)
-            assert "header_brand" in names
+            # lane D cycle 3: the Facebook collage is branded once, on its cover
+            assert ("header_brand" in names) == (not facebook or k == 0), (facebook, slide.name)
     assert not any("SWIPE" in t or "ARCHIVAL RECORD" in t or " OF 0" in t or "// 0" in t or " DATA" in t for t in drawn)
     assert not any(ch in t for t in drawn for ch in "→←↑↓"), [t for t in drawn if any(ch in t for ch in "→←↑↓")]
     assert not dots                                                            # no progress dots
@@ -222,11 +223,13 @@ def test_nothing_lies_under_instagrams_counter_and_every_check_passes(gen, tmp_p
                 assert lay.to_dict()["protected"] == [{"name": "instagram_counter", "box": list(counter)}]
                 for e in lay.elements:
                     assert not still_layout.intersects(tuple(e["box"]), counter), (archetype, e)
-                brand = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
+                brand = next((e["box"] for e in lay.elements if e["name"] == "header_brand"), None)
                 top = (chh - cw) // 2
-                if facebook:   # lane D cycle 3 (ruling 4): inside the Facebook collage's centre square, whole
+                if facebook and archetype != "cover":   # lane D cycle 3: the collage is branded on its cover only
+                    assert brand is None and lay.meta["masthead"]["fb_interior"]
+                elif facebook:   # the Facebook cover: inside the collage's centre square, whole
                     assert brand[0] < cw // 2 and top <= brand[1] and brand[3] <= top + cw
-                else:          # top-left; out whole in a square crop (Instagram's profile grid)
+                else:            # top-left; out whole in a square crop (Instagram's profile grid)
                     assert brand[0] < cw // 2 and brand[3] <= top
 
 

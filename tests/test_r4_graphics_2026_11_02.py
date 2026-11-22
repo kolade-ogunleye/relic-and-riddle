@@ -1124,7 +1124,12 @@ def test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_na
                                                                  height=1080))
     figures = [p for n, p in st["plates"] if n.startswith("scale")]
     names = [p for n, p in st["plates"] if n.startswith("stop")]
-    assert figures and max(p.box[2] for p in figures) < 1920 / 2, (case, [p.box for p in figures])
+    # freeze lane A cycle 3 (the furniture ruling): the bar is placed after the names, lower-left first, then the
+    # upper corners, the lower-right (the timestamp's side) last; inside title-safe it never meets the timestamp
+    # (these routes' names and globe leave only the lower-right clear)
+    bx = graphics._union([p.box for p in figures]) if figures else None
+    assert figures and not graphics.LayoutConstraintSolver.boxes_intersect(bx, (1620, 950, 1920, 1080)), (case, bx)
+    assert bx[3] <= graphics.WIDE_TITLE_SAFE[3], (case, bx)
     assert min(p.font.size for p in names) >= graphics.SCALE_FIGURE_PX + 4      # the names clearly dominate
     # review 9 (deliberate): 34 px still, and only a stop otherwise left unnamed steps down, to 28 px at the least
     assert graphics.ROUTE_NAME_PX == graphics.ROUTE_NAME_STEPS[0] == 34 and graphics.ROUTE_NAME_MIN_PX == 28

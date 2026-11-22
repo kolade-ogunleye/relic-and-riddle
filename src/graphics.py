@@ -1009,6 +1009,7 @@ def _scale_layout(bar: ScaleBar, x: float, y: float, direction: int, box: Box) -
 # shorter round bars (SCALE_SHORTER) are tried the same way; then the place with the fewest soft pixels that meets no
 # label and no hard mark (the quietest); else no bar, recorded (refusal.omit: the map is drawn without its scale).
 SCALE_CORNERS = ("ll", "lr", "ul", "ur")
+SCALE_CORNERS_WIDE = ("ll", "ul", "ur", "lr")   # 16:9: the lower-right is YouTube's timestamp side (review 5), last
 SCALE_CORNER_STEPS = 4
 SCALE_MARK_PAD = 12          # px (1080 / 1920 reference) the bar's box keeps from every mark
 SCALE_LABEL_PAD = 36         # and from every word: its figures' halo (21 px) and a word's measured ring (10 px) never
@@ -1067,7 +1068,7 @@ def furniture_scale_bar(bars: Sequence[ScaleBar], width: int, height: int, label
         rel = scale_bar_box(bar, 0.0, 0.0, font)
         w, h = rel[2] - rel[0], rel[3] - rel[1]
         across = max(0, int((tb[2] - tb[0] - w) // step))   # the whole edge, from the corner inward
-        for corner in SCALE_CORNERS:
+        for corner in (SCALE_CORNERS if tall else SCALE_CORNERS_WIDE):
             for j in range(SCALE_CORNER_STEPS + 1):           # along the bottom / top edge first, then up / down it
                 for i in range(across + 1):
                     bx0 = tb[0] + i * step if corner[1] == "l" else tb[2] - w - i * step

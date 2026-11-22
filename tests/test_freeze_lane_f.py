@@ -182,3 +182,222 @@ def test_lane_f_chapter_total_one_column_per_video():
     divider and the title stand at one x."""
     rights = {(_chapter(F.WIDE, n, 5).meta["anchors"]["divider_x"]) for n in range(1, 6)}
     assert len(rights) == 1
+
+
+# ------------------------------------------------------------------------------------------------ cycle 3
+def test_lane_f_myth_copy_refusal_names_rule_format_and_card():
+    """Lane F cycle 3 (every panel-4 lens: the 9:16 card's reason named only the 16:9 card): a field one format cannot
+    set is refused on every format, and each card's reason names the rule, the format that could not set the copy,
+    and the card it refuses."""
+    reasons = {}
+    for size in (F.TALL, F.WIDE):
+        with pytest.raises(dc.CardRefused) as e:
+            F.plan_myth(F.LONG_ET, size)
+        reasons[size] = e.value.reason
+        assert e.value.code == "unsupported_field"
+        assert dc.MYTH_COPY_RULE in e.value.reason
+        assert f"this {'16:9' if size == F.WIDE else '9:16'} myth card is refused" in e.value.reason
+        assert "the 16:9 myth card cannot set it" in e.value.reason
+    assert reasons[F.TALL] != reasons[F.WIDE]
+
+
+def _title_lines(plan):
+    return [e for e in plan.elements if e.name.startswith("title_")]
+
+
+@pytest.mark.parametrize("title", F.RICHAT_ACTS)
+def test_lane_f_wide_chapter_title_spans_the_numeral_or_has_no_clean_three_lines(title):
+    """Lane F cycle 3 (16:9 title block 46-63 px above the numeral foot; "A DESERT / LANDMARK" parted a phrase where
+    the copy breaks itself at its colon): a 16:9 title either ends on the numeral's baseline or is the two-line,
+    top-aligned form because no clean three-line break spans the numeral; a three-line title is heading-valid, ends
+    on no stop word, parts fewer phrases than the two lines would, and stands no taller than the numeral column."""
+    n = F.RICHAT_ACTS.index(title) + 1
+    plan = F.chapter_plan(F.WIDE, n, F.ACTS, title)
+    lines = [e.text for e in _title_lines(plan)]
+    a = plan.meta["anchors"]
+    num = {e.name: e for e in plan.elements}["numeral"]
+    from src.heading import valid
+    if len(lines) == 3:
+        assert valid(lines) and not dc._stop_end(lines)
+        assert a["title_baselines"][-1] == a["Bn"]
+        assert min(e.box[1] for e in _title_lines(plan)) >= num.box[1] - dc.CHAPTER_TALL_SLACK
+    if len(lines) == 2 and a["title_baselines"][-1] != a["Bn"]:
+        col = dc._numeral_tall(F.ACTS)
+        P = _title_lines(plan)[0].px
+        assert dc._chapter_wide_three(title.upper(), (P, lines), col, 1766 - a["title_x"], dc._Geo(*F.WIDE)) == (P, lines)
+
+
+def test_lane_f_wide_chapter_breaks_where_the_tall_card_does():
+    """The act 1 title the copy breaks at its colon takes one form on both formats (p3 TY: form mismatch)."""
+    forms = [[e.text for e in _title_lines(F.chapter_plan(s, 1, F.ACTS, F.RICHAT_ACTS[0]))] for s in (F.TALL, F.WIDE)]
+    assert forms[0] == forms[1] == ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]
+
+
+@pytest.mark.parametrize("size", [F.TALL, (720, 1280)])
+@pytest.mark.parametrize("title", ["The Ancient Quarry Canal", "Jars of Quartz", "Granite Quarry",
+                                   "Cutting the Quarry Canal"])
+def test_lane_f_tall_chapter_descender_stays_above_the_foot(size, title):
+    """Stress OUT_OF_SAFE (12 of 12 on real heroes): a descender on the last title line (the tail of a Q) stays inside
+    the 9:16 graphics box at every render size."""
+    from src.safe_zones import graphics_box
+    plan = F.chapter_plan(size, 2, 5, title)
+    assert max(e.box[3] for e in _title_lines(plan)) <= graphics_box(*size)[3]
+
+
+@pytest.mark.parametrize("lines,split", [
+    (["MORE", "THAN 129 FT"], True), (["MORE THAN", "129 FT"], True), (["AT", "LEAST 2,000 YEARS"], True),
+    (["ABOUT", "40 KM"], True), (["MORE THAN 129 FT", "ANCIENT"], False), (["ABOUT 40 KM", "ACROSS"], False),
+    (["THE RING", "IS 40 KM"], False)])
+def test_lane_f_a_hedge_stays_on_its_figures_line(lines, split):
+    """Stress FIGURE_GATE (hook "MORE / THAN 129 FT", reachable with lowercase "more than"): no break runs through a
+    hedge phrase or between it and its figure."""
+    assert dc._qualifier_split(lines) is split
+
+
+@pytest.mark.parametrize("claim", ["More than 129 ft", "More than 603 kg", "At least 2,000 years old",
+                                   "About 40 km across"])
+def test_lane_f_hook_draws_the_hedge_with_its_figure_or_refuses(claim, photos):
+    """A hedged hook claim is drawn with the hedge on its figure's line, or refused (recorded), never drawn with a
+    line that carries the figure without its hedge."""
+    sheet = {"topic": "t", "facts": [F.T.fact("s_hook", claim)]}
+    spec = F.T.hook(photos["dark"], sheet=sheet, claim=claim, fact_ids=("s_hook",))
+    try:
+        plan = dc.plan_hook_frame(spec, sheet)
+    except dc.CardRefused as e:
+        assert e.code in ("no_fit", "stop_word_end", "") and e.reason
+        return
+    lines = F.claim_lines(plan)
+    assert not dc._qualifier_split(lines), lines
+    hedge = dc._hedged_run(claim.upper())
+    if hedge:
+        assert any(hedge in ln for ln in lines), (hedge, lines)
+
+
+def test_lane_f_hook_one_alignment_on_every_ground(photos):
+    """Panel 4 BC r1 / CD r2 (the amber hook flush left on a wash, the obelisk hook centred on a plate): one rule.
+    On every ground the claim stands flush left on one column edge, in the same position where the subject allows;
+    only the ground (wash or plate) changes."""
+    lefts, tops = set(), set()
+    modes = set()
+    for g in ("sky", "dark", "warm"):
+        plan = F.hook_plan(photos[g])
+        lefts |= {e.box[0] for e in plan.elements if e.name.startswith("title_")
+                  and plan.drawn_text.get(e.name, "")[:1] not in "0123456789"}
+        if plan.meta["anchors"]["position"] == "normal":
+            tops.add(plan.meta["anchors"]["block_top"])
+        modes.add(plan.meta["scrim"]["mode"])
+        assert plan.meta["anchors"]["position"] in ("normal", "top")
+    assert len(tops) <= 1, tops
+    assert max(lefts) - min(lefts) <= 12, lefts      # one edge, less the glyphs' own side bearings
+
+
+def test_lane_f_callout_low_contrast_is_the_refusal_type():
+    """Stress (realistic callout_916-R1-0000): LowContrast was a bare ValueError, so the surface failed instead of
+    being refused; it is the one refusal type now, with a reason and a code."""
+    from src.callouts import LowContrast
+    from src.refusal import LayoutError, record
+    e = LowContrast("the 9:16 photo callout is refused under the non-text contrast gate")
+    assert isinstance(e, LayoutError) and isinstance(e, ValueError)
+    assert record(e, "callout")["code"] == "low_contrast" and "refused" in record(e, "callout")["reason"]
+
+
+@pytest.mark.parametrize("ox,dx", [(1151, 3.5), (1150, 3.5), (871, -2.5), (40, 0.49), (41, 0.51)])
+def test_lane_f_callout_text_registers_with_its_measure(ox, dx):
+    """Stress LOW_CONTRAST (real Richat labels, planned 16.60, delivered 3.74-4.10): the label text is drawn on
+    whole pixels at exactly the place its record measures the plate (_placed at a.ox + round(dx)), never a
+    bilinear sub-pixel shift, and never one pixel off where round(ox + dx) and ox + round(dx) part (an odd ox)."""
+    from types import SimpleNamespace
+    from src import callouts
+    a = SimpleNamespace(ox=ox, oy=ox + 7)
+    tx, ty = callouts._text_at(a, dx, dx)
+    assert isinstance(tx, int) and isinstance(ty, int)
+    q = SimpleNamespace(empty=False, origin=(0, 0), box=(0, 0, 1, 1), xy=(0, 0))
+    placed = callouts._placed(q, a.ox + round(dx), a.oy + round(dx))
+    assert (tx, ty) == placed.origin
+
+
+# ------------------------------------------------------------------------------------------------ cycle 3, rulings
+@pytest.mark.parametrize("ground", ["sky", "dark", "warm"])
+def test_lane_f_hook_wash_keeps_the_subject(ground, photos):
+    """Lander ruling (the hook's frame 0 is a feed tile; subject visibility outranks ornament): a wash keeps at least
+    HOOK_ABOVE_KEPT of the photo's brightness above the claim with the contrast gate met; where no wash does, the
+    plate, its reason recorded."""
+    plan = F.hook_plan(photos[ground], "Quartzite ridges form the ring", "f_geo")
+    sc = plan.meta["scrim"]
+    assert sc["above_kept"] >= dc.HOOK_ABOVE_KEPT or sc["mode"] == "plate", sc
+    if sc["mode"] == "wash":
+        assert sc["halo"] is not None and sc["above_kept"] >= dc.HOOK_ABOVE_KEPT
+    else:
+        assert "plate_reason" not in sc or "70%" in sc["plate_reason"]
+    assert all(p.contrast is None or p.contrast >= 4.5 for _, p in plan.meta["_contrast"])
+
+
+def test_lane_f_above_kept_reads_the_dimming():
+    from PIL import Image
+    base = Image.new("RGBA", (40, 100), (200, 200, 200, 255))
+    none = Image.new("RGBA", (40, 100), (0, 0, 0, 0))
+    half = Image.new("RGBA", (40, 100), brand.INK + (128,))
+    assert dc._above_kept(base, none, 50) == 1.0
+    assert 0.4 < dc._above_kept(base, half, 50) < 0.7
+
+
+def _covers():
+    import tests.test_r3_covers_2026_11_02 as R
+    return R
+
+
+HEADLINE_BLOCK = ("eyebrow", "title_1", "title_2", "qualifier", "figure", "figure_unit", "figure_qualifier",
+                  "tagline", "kicker", "title")
+
+
+def _box_union(boxes):
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+
+def _overlaps(a, b) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+@pytest.mark.parametrize("style", ["badge", "depth_sandwich", "minimal", "lower_third"])
+@pytest.mark.parametrize("illustration", [True, False])
+def test_lane_f_cover_disclosure_is_a_small_corner_label_only_on_illustrations(illustration, style):
+    """Lander ruling (with the operator, lane F cycle 3): the AI disclosure is a label, never part of the type
+    hierarchy. On the Reel cover (and so its grid tile) its cap is never larger than the deck tier's, it never
+    stands inside the headline block, and it is drawn when and only when the hero is an AI illustration (the feed's
+    AI disclosure is the platform's own label, which the publisher always sets)."""
+    from src import cover_design as cd
+    from src.typography import get_font
+    R = _covers()
+    _, lay = R._cover(R.GUMBAZ, style, illustration=illustration)
+    plates = lay.meta.get("plates", {})
+    if not illustration:
+        assert "provenance" not in lay.meta and "provenance" not in plates
+        return
+    ps = [p for p in plates["provenance"] if not p.empty]
+    assert ps
+    deck_cap = cd.cap_h_of(get_font(brand.TEXT_FONT, cd.TAGLINE_PX))
+    assert all(cd.cap_h_of(p.font) <= deck_cap for p in ps)
+    block = [p.box for n, pl in plates.items() if n in HEADLINE_BLOCK for p in pl if not p.empty]
+    assert block and not _overlaps(tuple(lay.meta["provenance"]["plate"]), _box_union(block))
+    assert "provenance" in cd.GRID_TEXTURE and "provenance" not in cd.GRID_HOOK
+
+
+@pytest.mark.parametrize("illustration", [True, False])
+def test_lane_f_thumbnail_disclosure_is_a_small_corner_label_only_on_illustrations(illustration):
+    """The same rule on the YouTube thumbnail: a corner label no larger than its smallest headline-block line,
+    outside the headline block, and only over an AI illustration."""
+    from src import youtube_thumbnail as yt
+    from src.typography import cap_height
+    R = _covers()
+    meta = {}
+    _, plates = yt.render(R._photo(), R.RICHAT, meta=meta, illustration=illustration)
+    names = [n for n, _ in plates]
+    if not illustration:
+        assert "provenance" not in names
+        return
+    badge = next(p for n, p in plates if n == "provenance")
+    block = [p for n, p in plates if n not in ("provenance", "brand") and not getattr(p, "empty", False)]
+    assert block
+    assert cap_height(badge.font) <= min(cap_height(p.font) for p in block)
+    assert not _overlaps(badge.box, _box_union([p.box for p in block]))
+    assert "provenance" in yt._TEXTURE

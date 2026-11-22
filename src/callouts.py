@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 from . import brand, safe_zones
 from .brand_system import GATES, colour_of, ease_in, ease_out_back, ease_out_expo
 from .camera_motion import sample as camera_sample
+from .refusal import LayoutError
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import (
     CLIP_SECONDS,
@@ -2319,6 +2320,14 @@ def _blit(im: Image.Image, colour: tuple, mask: Image.Image, x: float, y: float,
     im.paste(tuple(colour[:3]), (ix, iy, ix + m.width, iy + m.height), m)
 
 
+def _text_at(a: Any, dx: float, dy: float, ox: float = 0.0, oy: float = 0.0) -> tuple[int, int]:
+    """Lane F cycle 3: the whole-pixel position a label's text is drawn at, the art's origin plus the push's shift
+    rounded as the record places the measured plate (_placed: a.ox + round(dx)), plus the text's rise rounded on
+    its own: drawn and measured pixels register exactly (a one-pixel slip put the glyphs' own edge into their
+    1..GLYPH_SURROUND px surround and read 1.0:1; a bilinear half-pixel shift greyed the cores, 3.7-4.1:1)."""
+    return a.ox + round(dx) + round(ox), a.oy + round(dy) + round(oy)
+
+
 def _placed(q: Any, dx: int, dy: int) -> Any:
     """A text plate planned in a label's local frame, moved onto the delivered frame (for measuring)."""
     c = copy.copy(q)
@@ -2330,8 +2339,14 @@ def _placed(q: Any, dx: int, dy: int) -> Any:
     return c
 
 
-class LowContrast(ValueError):
-    """Fewer than two labels reach NONTEXT_MIN non-text contrast after every _GUARD step: no graphic."""
+class LowContrast(LayoutError):
+    """Fewer than two labels reach NONTEXT_MIN non-text contrast after every _GUARD step: no graphic. Lane F cycle 3
+    (stress: the 9:16 callout raised this as a bare ValueError, so the surface failed instead of being refused): the
+    one refusal type (src/refusal.py), still a ValueError, so every caller records it as the callout's refusal."""
+
+    def __init__(self, reason: str, code: str = "low_contrast"):
+        super().__init__(reason)
+        self.reason, self.code = reason, code
 
 
 def drawn_labels(clip: Path) -> list[str] | None:
@@ -2463,7 +2478,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
                 drew[k] = {"plate_a": PLATE_ALPHA / 255 * st["plate_a"] if st["plate"] > 0 else 0.0,
                            "text_a": st["text_a"] if not skip_text else 0.0, "plate": st["plate"],
                            "lead": st["lead"], "g": st["g"], "shift": (dx, dy),
-                           "text_at": (a.ox + dx + nx * st["text_off"], a.oy + dy + ny * st["text_off"])}
+                           "text_at": _text_at(a, dx, dy, nx * st["text_off"], ny * st["text_off"])}
             if st["plate"] > 0:
                 _, fill, hair = a.plate(st["plate"])
                 _blit(im, brand.INK, fill, a.ox + dx, a.oy + dy, PLATE_ALPHA / 255 * st["plate_a"])
@@ -2473,7 +2488,11 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             if st["text_a"] > 0 and not skip_text:
                 nx, ny = NORMAL[labels[k]["attach"]]
                 off = st["text_off"]
-                _blit(im, brand.BONE, a.text(), a.ox + dx + nx * off, a.oy + dy + ny * off, st["text_a"])
+                # lane F cycle 3 (stress LOW_CONTRAST, real Richat labels: planned 16.60, delivered 3.74-4.10): the
+                # text is set on whole pixels, exactly where its record measures it (_text_at, _placed), never
+                # resampled by a bilinear sub-pixel shift, which greyed the glyph cores; the plate keeps its smooth ride
+                tx, ty = _text_at(a, dx, dy, nx * off, ny * off)
+                _blit(im, brand.BONE, a.text(), tx, ty, st["text_a"])
         for k, st, dx, dy in live:   # the loupe insets
             lab = labels[k]
             if lab["loupe"] and view is not None and st["loupe_a"] > 0:
@@ -2560,7 +2579,10 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
         log.info("Callouts: %s under %.1f:1 non-text contrast after every guard step; not drawn.",
                  ", ".join(f"'{lb}' ({v:.2f}:1)" for lb, v in why.items()), NONTEXT_MIN)
         if len(keep) < 2:
-            raise LowContrast(f"fewer than two labels reach {NONTEXT_MIN}:1 non-text contrast: {why}")
+            fmt = "9:16" if height > width else "16:9"
+            raise LowContrast(f"the {fmt} photo callout is refused under the non-text contrast gate "
+                              f"({NONTEXT_MIN}:1, WCAG 1.4.11): fewer than two labels reach it after every guard "
+                              f"step: " + ", ".join(f"'{lb}' {v:.2f}:1" for lb, v in why.items()))
         clip = render(photo, [points[k] for k in keep], out, width=width, height=height,
                       reveal=[cues[k] for k in keep], record=record)
         side = Path(str(clip) + ".contrast.json")
@@ -3127,7 +3149,10 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
             with using(grade_bias):
                 clip = render(photo, points, out, width=width, height=height, reveal=reveal)
         except LowContrast as e:
+            # lane F cycle 3: a refusal, recorded for the review card as the graphics' refusals are (layout_holds)
             log.info("Callouts: %s; no graphic.", e)
+            payload.setdefault("layout_holds", []).append({"deck": "graphics/graphic_labels", "error": e.reason,
+                                                           "moved": []})
             return None
         drawn = drawn_labels(clip)   # render leaves out a label under the non-text contrast floor
         if drawn is not None and drawn != [p[0] for p in points]:

@@ -5244,7 +5244,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The AI-reconstruction disclosure (layer 2 plate, layer 3 text) while a reconstruction is on screen
         if reconstruction_intervals:
             label = RECON_BADGE_LABEL
-            # Bone IBM Plex Mono on an INK plate, top-left: the 5% title-safe corner on 16:9; on 9:16 inside the Reel
+            # Bone IBM Plex Mono on an INK plate, top-left: title-safe's corner on 16:9; on 9:16 inside the Reel
             # box below the Reel's top bar, 19 px in from its left edge and 12 px under its top (x 132, y 300 on the
             # organic box; x 84 on the ads box until QF-24). The 9:16 badge was 22px, centred and unplated until the
             # caption review of 2026-11-02 (operator approved moving it).
@@ -5253,7 +5253,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, 600)
             tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=600), label) + 1.5 * len(label)
             if is_widescreen:
-                x0, y0 = round(0.05 * width), round(0.05 * height)
+                # lane F cycle 3 (panel 4 PL r1): the 5 % corner (y 54) sat under the YouTube player's title and
+                # controls band; the badge stands at 16:9 title-safe's top-left corner (graphics.WIDE_TITLE_SAFE,
+                # x 153, y 129), where every other 16:9 text starts
+                from .graphics import WIDE_TITLE_SAFE
+                x0, y0 = round(WIDE_TITLE_SAFE[0] * width / 1920), round(WIDE_TITLE_SAFE[1] * height / 1080)
             else:
                 reel_x0, reel_y0, _, _ = _REEL_UI.box(width, height)
                 x0, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)

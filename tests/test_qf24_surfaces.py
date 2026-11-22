@@ -101,18 +101,19 @@ def test_the_cards_start_at_the_box_edge_and_the_reviewed_long_myth_fits(signed)
     assert max(e.box[3] for e in plan.elements) <= GRAPHICS_FOOT
 
 
-def test_the_hook_plate_centres_on_the_box_axis_with_its_masthead_inside(signed, tmp_path):
+def test_the_hook_plate_holds_the_claim_flush_left_inside_the_box(signed, tmp_path):
+    """Lane F cycle 3 (one alignment rule; operator ruling 2 of 2026-11-16 removed the masthead the claim was centred
+    under): on the bright plate the claim stands flush left on the column edge, every element inside the box."""
     from tests import test_design_cards_2026_11_03 as T
     plan = fc.hook_plan(T._photo(tmp_path / "sky.jpg", "sky"), eyebrow="The Richat ring")
-    assert plan.meta["anchors"]["position"] == "plate"
+    assert plan.meta["scrim"]["mode"] == "plate" and plan.meta["anchors"]["position"] == "normal"
     e = {x.name: x for x in plan.elements}
     # QF-87 (lander ruling 2026-11-13: masthead >= 9 px at the 124 px tile or absent, the hook frame too): no masthead
-    # at 5.2 px; the claim's lines centre on the box axis inside the box (was: the masthead centred on it)
     assert "brand" not in e and "brand_mark" not in e
     for x in plan.elements:
         assert REEL_RECT[0] <= x.box[0] and x.box[2] <= REEL_RECT[2], (x.name, x.box)
     titles = [x.box for n, x in e.items() if n.startswith("title_")]
-    assert titles and all(abs((b[0] + b[2]) / 2 - 480) <= 3 for b in titles), titles
+    assert titles and all(abs(b[0] - dc.TALL_LEFT) <= 2 for b in titles), titles
 
 
 def test_the_stress_myth_longest916_is_a_declared_refusal(signed):

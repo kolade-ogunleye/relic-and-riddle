@@ -369,10 +369,12 @@ def test_widescreen_reconstruction_badge_is_bone_plex_mono_on_an_ink_plate(tmp_p
     (_, _, badge), = _events(ass, "ReconBadge")
     assert _plain(badge) == "AI ILLUSTRATION · NOT A PHOTO"   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
     x, y = map(int, re.search(r"\\an7\\pos\((\d+),(\d+)\)", badge).groups())
-    assert x >= 96 and y >= 54
     (_, _, plate), = _events(ass, "ReconPlate")
     px, py = map(int, re.search(r"\\pos\((\d+),(\d+)\)", plate).groups())
-    assert (px, py) == (96, 54) and px < x
+    # lane F cycle 3: inside 16:9 title-safe (graphics.WIDE_TITLE_SAFE), so clear of the YouTube player's top band
+    # (the 5 % corner, y 54, sat under its title and controls)
+    from src.graphics import WIDE_TITLE_SAFE
+    assert px >= WIDE_TITLE_SAFE[0] and py >= WIDE_TITLE_SAFE[1] and px < x and py <= y
 
 
 def test_portrait_reconstruction_badge_gets_a_plate_and_keeps_its_wording(tmp_path):

@@ -275,3 +275,22 @@ def test_the_facebook_deck_draws_its_second_tile_under_the_cover(tmp_path):
     j = [str(x) for x in fb].index(posted[1])
     ig_px = next(e["px"] for e in still_layout.load(ig[j])["elements"] if e["name"] == "heading")
     assert ig_px > px[posted[1]]                                      # Instagram's copy keeps the deck's tier
+
+
+def test_the_stepped_tile_keeps_its_kicker_at_the_system_gap(tmp_path):
+    """Lander ruling: on the collage-stepped Facebook tile the kicker follows its heading at the system kicker gap
+    (proximity over the deck's kicker line), recorded as an exemption; the same slide unstepped keeps the deck line."""
+    from src.multi_format import kicker_gap
+    photo = _photos(tmp_path)[1]
+    card = {"heading": "CARVED FROM BEDROCK", "body": "Workers carved it into bedrock."}
+    g = MultiFormatGenerator()
+    plain = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", True, subject="S")[1]
+    stepped = g._render_carousel_slide("immersive", photo, photo, card, 1, 7, {}, "", True, subject="S",
+                                       heading_px=112.0)[1]
+    assert "kicker_line_exempt" in stepped.meta and "kicker_line_exempt" not in plain.meta
+    for lay in (plain, stepped):
+        k = lay.plates["kicker"][0]
+        top = min(p.box[1] for p in lay.plates["heading"])
+        assert not lay.problems()
+        if lay is stepped:   # the kicker's baseline sits the system gap above the heading's cap
+            assert abs((top - k.xy[1]) - kicker_gap(k.font.size)) <= 3, (top, k.xy, kicker_gap(k.font.size))

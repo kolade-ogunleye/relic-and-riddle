@@ -379,7 +379,9 @@ def test_a_deck_takes_one_frame_and_every_content_kicker_stays_on_one_line(photo
         content = _content(_deck(photos, tmp_path, headings, facebook, name))
         assert len(content) >= 3
         assert {r["recipe"]["heading_frame"] for r in content} == {frame}
-        feet = {_kicker_foot(r) for r in content}
+        # lane D cycle 3: the collage-stepped Facebook tile is exempt (recorded with its reason)
+        assert all(facebook and r["recipe"].get("heading_px") for r in content if r["recipe"].get("kicker_line_exempt"))
+        feet = {_kicker_foot(r) for r in content if not r["recipe"].get("kicker_line_exempt")}
         # round 7 (F3): the kicker stands on one line per heading line count: at most two positions per deck
         assert len({round(f / 3) for f in feet}) <= 2, (name, feet)
         assert all(not r["problems"] for r in content)

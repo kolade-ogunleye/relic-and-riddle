@@ -2026,17 +2026,21 @@ class MultiFormatGenerator:
             first = min(r["y"] for r in heads) + shift
             kb = None
             if kick:   # the kicker from the deck size's cap (SYS-D-5), so a last-resort heading does not move it
-                spec = (self._deck_size(),)   # both copies (lane D cycle 2, SYS-D-4): the deck's one size
+                # both copies (lane D cycle 2, SYS-D-4): the deck's one size; the collage-stepped Facebook tile its own
+                # step (lane D cycle 3: its kicker follows its heading)
+                spec = (getattr(_render_state, "tile_px", None) or self._deck_size(),)
                 # the gap is to the heading's highest ink: an accented capital ("ÇATALHÖYÜK") rises above the cap line
                 ink_top = min(ink(r, shift, 1) for r in heads if r["y"] + shift == first)
                 cap_top = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0])))
                 # only a real rise moves it (an accent, 2 px or more): a capital's 1 px antialiasing overshoot keeps
                 # the deck's shared kicker line (_content_frame), so a deck keeps its two kicker positions
                 kb = (min(cap_top, ink_top) if ink_top < cap_top - 1 else cap_top) - kicker_gap(kick["font"].size)
-                if getattr(_render_state, "tile_px", None):
-                    # lane D cycle 3: the collage's second tile, its heading a step down, keeps the deck's kicker
-                    # line (two kicker positions per deck); the step opens the air under the kicker instead
-                    kb = min(kb, frame["kicker"])
+                if getattr(_render_state, "tile_px", None) and lay is not None:
+                    # lane D cycle 3 (lander ruling): the collage-stepped Facebook tile's kicker follows its heading at
+                    # the system kicker gap; proximity outranks the deck's two kicker positions on this one slide
+                    lay.meta["kicker_line_exempt"] = ("collage_tile_step: the Facebook collage's second tile sets its "
+                                                      "heading a ladder step down; its kicker keeps the system gap "
+                                                      "to it (proximity over the deck's kicker line)")
                 out = [dict(r, y=kb) if r["name"] == "kicker" else r for r in out]
             fixed.update(kicker=kb, heading=first, heading_last=max(r["y"] for r in heads) + shift,
                          heading_frame=frame["heading_lines"], heading_lines=n_heads)
@@ -2744,6 +2748,7 @@ class MultiFormatGenerator:
                                                   "total": total, "poll": poll, "share": share, "facebook": True,
                                                   "subject": subject, "heading_frame": frame, "heading_tier": tier,
                                                   "lead": lead, "window": showing[j], "heading_px": size,
+                                                  "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"kicker_step": list(deck_step)} if deck_step else {})},
                                       attempts)
                 else:

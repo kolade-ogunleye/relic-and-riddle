@@ -264,6 +264,9 @@ def test_a_long_draft_with_a_payoff_fault_is_edited_not_rewritten(monkeypatch, c
     monkeypatch.setattr(writer, "_with_graphics", lambda core, notes, retrieved, feedback: core)
     monkeypatch.setattr(writer, "_finalize", lambda pkg, topic, **k: {"narration_script": pkg.narration_script})
     monkeypatch.setattr(engine, "validate_structure", lambda pkg: [])
+    # QF-150: the 90 filler words leave the closing's captions no break ("THAT IS WHERE |"), which would add its own
+    # caption edit; this test counts the length and payoff edits only (tests/test_qf150_caption_break_lint.py)
+    monkeypatch.setattr(engine, "caption_break_problems", lambda narration, emphasis=None: [])
     hook = curated_payload["hook_sentence"]
     bad, good = "Builders later added ventilation shafts.", "Builders later extended the tunnel."
 

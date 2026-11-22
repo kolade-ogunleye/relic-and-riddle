@@ -2912,6 +2912,12 @@ class PipelineCoordinator:
         payload["fact_rounds"] = revision + 1 + (1 if revised else 0)
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
         payload["hook_plan"] = {"asked": hook_form, "written": written, "revised": revised, "why": hook_why}
+        # QF-150: the caption plan's kept never-end breaks on the narration as it now stands (a trimmed or library
+        # script included), with the outcome of the script stage's one caption edit, if one was asked
+        from src.script_engine import caption_break_record
+        payload["caption_lint"] = {**caption_break_record(payload.get("narration_script") or "",
+                                                          payload.get("emphasis_words")),
+                                   "edit": (payload.get("caption_lint") or {}).get("edit")}
         payload["engagement_plan"] = {
             "asked": list(asks) if asks else None, "why": asks_why,
             "written": [engagement_learning.classify_share(payload.get("share_line", "")),

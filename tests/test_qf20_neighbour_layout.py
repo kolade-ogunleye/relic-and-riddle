@@ -55,7 +55,8 @@ with tempfile.TemporaryDirectory(prefix="neighbour-layout-") as temporary:
     result = benchmark.render_one(("map", 0, site, tuple(size)))
     layout_path = benchmark.OUTPUT / f"site-001-{size[0]}x{size[1]}.mp4.layout.json"
     layout = json.loads(layout_path.read_text(encoding="utf-8")) if layout_path.is_file() else {}
-    print(json.dumps({"result": result, "neighbours": layout.get("neighbours", [])}))
+    print(json.dumps({"result": result, "neighbours": layout.get("neighbours", []), "water": layout.get("water", []),
+                      "country": (layout.get("country") or {}).get("text")}))
 '''
     completed = subprocess.run([sys.executable, "-c", program, str(root), json.dumps([site, size])], cwd=root,
                                capture_output=True, text=True, encoding="utf-8", timeout=1200, check=False)
@@ -63,11 +64,14 @@ with tempfile.TemporaryDirectory(prefix="neighbour-layout-") as temporary:
     rendered = json.loads(completed.stdout)
     assert rendered["result"]["faults"] == [], rendered
     assert not rendered["result"]["home_drop"], rendered
-    if tuple(size) == (1920, 1080) and site["label"] == "Goree Island":
-        # freeze lane A cycle 3 (lander ruling, map framing, deliberate): the site stands in the middle third of the
-        # content box. GAMBIA's 16:9 name was found only by panning Goree to x 0.26 of title-safe (offset -384 px);
-        # inside the middle third no span or pan holds it, so it is left out and recorded on the ledger
+    if site["label"] == "Goree Island":
+        # freeze lane A cycle 3 (lander rulings, deliberate): the site stands in the middle third (GAMBIA's 16:9 name
+        # was found only with Goree at x 0.26 of title-safe), and the 9:16 neighbour floor stays 27 px (GAMBIA's strip
+        # holds it at no allowed zoom). Where no strip holds it, it is left out and recorded on the ledger; the frame
+        # still names SENEGAL and at least one other context name (a sea or a neighbour)
         assert expected in rendered["neighbours"] or             f"the neighbour's name {expected}" in rendered["result"].get("omissions", []), rendered
+        assert rendered["country"] == "SENEGAL", rendered
+        assert rendered["neighbours"] or rendered["water"], rendered
         return
     assert expected in rendered["neighbours"], rendered
     # freeze lane A cycle 3 (lander ruling, the scale bar is furniture): the bar is placed after every name and never

@@ -3785,6 +3785,7 @@ class CountryName:
     inside: bool
     ink: float
     halo: float
+    rows: tuple[tuple[str, tuple[float, float]], ...] = ()   # a name set on two rows: each row and its centre
 
 
 @dataclass(frozen=True)
@@ -3795,6 +3796,14 @@ class CountrySpot:
     box: Box
     px: int
     inside: bool
+    rows: tuple[tuple[str, tuple[float, float]], ...] = ()
+
+
+def country_row_offsets(rows: Sequence[str], font: FreeTypeFont) -> list[float]:
+    """The centre offsets of a home name's rows (lander ruling, cycle 3: a home name wider than the Reel box is set on
+    two balanced rows), a site label's step apart (cap x 1.22), the block centred on 0."""
+    step = round(cap_height(font) * 1.22)
+    return [(j - (len(rows) - 1) / 2) * step for j in range(len(rows))]
 
 
 COUNTRY_SMALL_PX = (24, 22, 20)   # inside the fill at these before any outside place (round 9, R5; logged)
@@ -4070,7 +4079,8 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
                           width: int, height: int, aim: tuple[float, float] | None = None,
                           land: BoolArray | None = None, label: Box | None = None,
                           ids: tuple["npt.NDArray[np.uint16]", int] | None = None,
-                          px: int | None = None) -> tuple[tuple[float, float], Box] | None:
+                          px: int | None = None, rows: Sequence[str] | None = None
+                          ) -> tuple[tuple[float, float], Box] | None:
     """The name set outside its fill (A.4 fallback). Round 15 (coordinator directive 2, LEADER OR DROP): only over
     open water: its box, grown COUNTRY_OUT_AIR, on no land of any size (the home's or any other: the tiers that let
     it sit on a neighbour's land, as RUSSIA did on Lithuania, are gone), within COUNTRY_NEAR_PX of the home's ground
@@ -4086,7 +4096,11 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
     k = 1.0 if tall else min(width / 1920, height / 1080)
     font = get_font(brand.TEXT_FONT, floored(COUNTRY_OUT_PX * k, width, height) if px is None else px, weight=600)
     track = font.size * COUNTRY_TRACK
-    rel = ink_box((0.0, 0.0), name, font, "mm", track)
+    if rows:      # two rows (lander ruling): the block's ink box, the rows a site label's step apart
+        boxes = [ink_box((0.0, dy), r, font, "mm", track) for r, dy in zip(rows, country_row_offsets(rows, font))]
+        rel = _union([b for b in boxes if b]) if all(boxes) else None
+    else:
+        rel = ink_box((0.0, 0.0), name, font, "mm", track)
     if rel is None:
         return None
     air = max(1, round(COUNTRY_OUT_AIR * k))
@@ -4235,6 +4249,21 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
                 return CountrySpot(out[0], out[1], px, False)
     if out is not None:
         return CountrySpot(out[0], out[1], out_px, False)
+    if tall and len(name.split()) > 1:
+        # lander ruling (cycle 3, Port-aux-Francais: FRENCH SOUTHERN AND ANTARCTIC LANDS is wider than the Reel box at
+        # the floor): two balanced rows at the floor, the same tracking and the site labels' break rules; else none
+        px2 = floored(COUNTRY_SMALL_PX[-1] * k, width, height)
+        f2 = get_font(brand.TEXT_FONT, px2, weight=600)
+        tb2 = map_text_box(width, height)
+        two = route_name_lines(name, f2, tb2[2] - tb2[0] - 2 * COUNTRY_OUT_AIR * k, 2, track=f2.size * COUNTRY_TRACK)
+        if two is not None and len(two) == 2:
+            out = country_outside_place(name, home, anchor, list(keep_out) + list(obstacles), width, height,
+                                        pole[:2] if pole else None, land, label, ids, px=px2, rows=two)
+            if out is not None:
+                (cx, cy), b2 = out
+                log.info("Map: the country's name set outside its fill on two rows at %d px.", px2)
+                return CountrySpot(out[0], b2, px2, False,
+                                   tuple((r, (cx, cy + dy)) for r, dy in zip(two, country_row_offsets(two, f2))))
     log.warning("Map: no place for the country's name %r inside or outside its fill.", name)
     return None
 
@@ -4269,7 +4298,17 @@ def country_name(rest: Image.Image, name: str, spot: CountrySpot, rings: list[li
         if spot2 is None:
             return None
         spot = spot2
-    return CountryName(text, spot.xy, spot.px, brand.COUNTRY_OUT_FILL, spot.box, False, 0.0, 0.9)
+    return CountryName(text, spot.xy, spot.px, brand.COUNTRY_OUT_FILL, spot.box, False, 0.0, 0.9, spot.rows)
+
+
+def country_plates(rest: Image.Image, cn: CountryName) -> list[tuple[str, TextPlate]]:
+    """The home name's plates: one, or (lander ruling, cycle 3) one a row for a name set on two rows."""
+    if not cn.rows:
+        return [("country", country_plate(rest, cn))]
+    font = get_font(brand.TEXT_FONT, cn.px, weight=600)
+    return [("country" if j == 0 else f"country{j}",
+             plan_text(rest, xy, r, font, cn.fill, "mm", track=font.size * COUNTRY_TRACK, halo_px=21, min_halo=cn.halo))
+            for j, (r, xy) in enumerate(cn.rows)]
 
 
 def country_plate(rest: Image.Image, cn: CountryName) -> TextPlate:
@@ -5620,9 +5659,14 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             home_drop = "fits neither its own fill nor open water beside it" + (f" (last: {last_fault})"
                                                                                  if last_fault else "")
             log.warning("Map: name check: the home's name %r %s in any form; not named.", c_text, home_drop)
+            # lander ruling (cycle 3): a home name no place holds, on one row or two, is recorded on the ledger; the
+            # home-unnamed rule decides whether the map stands
+            from .refusal import omit
+            omit(f"map {Path(out).name}" if out else "map", f"the home's name {c_text}",
+                 "a locator names its home (QF-20)", home_drop)
         if spot is not None:
             words.append(spot.box)
-            cname = CountryName(c_text, spot.xy, spot.px, brand.INK, spot.box, spot.inside, 0.0, 0.0)
+            cname = CountryName(c_text, spot.xy, spot.px, brand.INK, spot.box, spot.inside, 0.0, 0.0, spot.rows)
     import cv2
     # round 8 (review 4): the land borders are obstacles to the bar too (Narva's bar sat on Russia's): `borders` below
     # and the marker keeps the bar off by MARKER_SCALE_AIR more than the words do (Narva's bar sat 40 px under the
@@ -5938,7 +5982,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         under = max(pl.box[3] for _, pl in label_plates)
         label_plates.append(("approx", plan_text(rest, (width // 2, under + 16 * k + cap_height(f_ap)), "APPROX. LOCATION",
                                                  f_ap, brand.STONE_LT, "ms", track=4, halo_px=21, min_halo=0.8)))
-    c_plates = [("country", country_plate(rest, cname))] if cname is not None else []
+    c_plates = country_plates(rest, cname) if cname is not None else []
     bar_plates = (_scale_bar_plates(_with_bar(rest, bar, sbl.x, sbl.y), bar, sbl.x, sbl.y,
                                     px=scale_label_font(width, height).size) if bar else [])   # F16: the 9:16 floor
     # the context globe: centred on the site's longitude, turning into it (cached per tenth of a degree)
@@ -6079,7 +6123,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             "label_box": list(lay.label_box),
             "scale_bar": scale_bar_record(placed),
             "position": lay.position, "leader": [list(p) for p in lay.leader] if lay.leader else None,
-            "country": None if cname is None else {"text": cname.text, "box": list(cname.box), "inside": cname.inside,
+            "country": None if cname is None else {"text": cname.text, "box": list(cname.box), "inside": cname.inside, "rows": [r_ for r_, _xy in cname.rows],
                                                    "ink": cname.ink,
                                                    "leader": [list(p_) for p_ in c_leader] if c_leader else None},
             "site_leader": [list(p_) for p_ in site_leader] if site_leader else None,
@@ -13301,7 +13345,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                                    height, ids_r)
         if r_cname is None:
             log.info("Route: no place names %s on the map.", r_text)
-    r_cplates = [("country", country_plate(rest, r_cname))] if r_cname is not None else []
+    r_cplates = country_plates(rest, r_cname) if r_cname is not None else []
     n_named = sum(1 for nm in named if home is None or nm != home["display"])
     want_r = max(0, 2 - n_named)
     if home is not None:     # round 13 (directive 3): an adjacent neighbour still unnamed takes a slot up to the most

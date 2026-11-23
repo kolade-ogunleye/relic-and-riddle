@@ -109,19 +109,26 @@ def test_the_tall_pin_stands_in_the_box_not_at_its_foot() -> None:
 
 # ---------------------------------------------------------------------------------------------- neighbours
 @needs_geo
-def test_slovakia_finds_its_room_east_of_pannonhalmas_name() -> None:
-    w, h, span = 1080, 1920, 8.0
-    lat, lon = 47.5537, 17.7557
-    home = geo.find_country("Hungary")
-    centre, lift = graphics.view_centre_lat(lat, w, h, span)
-    coslat = max(0.2, math.cos(math.radians(centre)))
-    kf = w / span
-
-    def to_frame(lo: float, la: float) -> tuple[float, float]:
-        return w / 2 + (lo - lon) * kf * coslat, h / 2 - (la - centre) * kf
-    lay = graphics.pin_layout((w / 2, h / 2 - lift), "Pannonhalma Archabbey", w, h)
-    got = graphics.close_neighbours(w, h, home, to_frame, [lay.label_box, lay.marker_box], {"AUSTRIA"}, 1)
-    assert [n.name for n in got] == ["Slovakia"]
+def test_pannonhalmas_label_holds_and_slovakia_is_named_or_recorded(tmp_path, monkeypatch) -> None:
+    # lander ruling (cycle 3, deliberate; was test_slovakia_finds_its_room_east_of_pannonhalmas_name): the site's label
+    # is the map's primary mark and never yields. SLOVAKIA tries its other rooms (its whole ground on either side of the
+    # site, then the name frame's pans inside the middle third); where none holds it at the 27 px floor it is left out
+    # and recorded on the ledger, the frame still naming at least one neighbour or sea. The floor is not lowered.
+    import json
+    from tests.test_r4_graphics_2026_11_02 import _render
+    place = {"lat": 47.5537, "lon": 17.7557, "country": "Hungary", "label": "Pannonhalma Archabbey"}
+    st = _render(monkeypatch, lambda: graphics.render_map(place, tmp_path / "m.mp4", width=1080, height=1920),
+                 fps=1)
+    lay = json.loads((tmp_path / "m.mp4.layout.json").read_text(encoding="utf-8"))
+    omitted = {str(r.get("omitted")) for r in st["omitted"]}
+    assert "SLOVAKIA" in lay["neighbours"] or "the neighbour's name SLOVAKIA" in omitted, (lay["neighbours"], omitted)
+    # the label unchanged: the site's whole name, in the rows its own layout sets, at its own step
+    rows = [p.text for n, p in st["plates"] if n == "place"]
+    lines, font = graphics.marker_label_lines(place["label"], 1080, 1920)
+    assert rows == lines and " ".join(rows) == place["label"].upper()
+    assert all(p.font.size == font.size for n, p in st["plates"] if n == "place")
+    assert lay["neighbours"] or lay["water"]                 # at least one context name drawn
+    assert all(p.font.size >= graphics.label_floor(1080, 1920) for n, p in st["plates"] if n.startswith("neighbour"))
 
 
 def test_the_scale_bar_keeps_the_names_further_off() -> None:

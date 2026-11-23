@@ -527,7 +527,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "cover_design:_render": "B",
     "cover_design:_tagline_lines": "B",
     "cover_design:one_heading": "B",              # lane B cycle 3: the two fields set as one heading
-    "cover_design:one_heading.width_at": "B",
     "design_cards:_Card.font": "F",
     "design_cards:_cap": "F",
     "design_cards:_chapter_compose": "F",

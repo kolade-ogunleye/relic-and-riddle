@@ -388,7 +388,7 @@ def _lockup(measure, copy, width, size, single_gold=True):
         # unbalanced stack; else the stack stands, recorded (balance_below_min). SYS-B-6: a held one-word first row
         # gives way only at its own size, to a form at the balance minimum.
         lone_first = bool(deferred[1].get("first_row_lone"))
-        one = one_heading(measure, l1, l2, width, [deferred[1]["sizes"][0]] if lone_first else sorted(
+        one = one_heading(width_at, l1, l2, width, [deferred[1]["sizes"][0]] if lone_first else sorted(
             {max(round(size * s), grid_px) for s in (1.0, LOCKUP_FALLBACK)}, reverse=True))
         if one is not None and lone_first:
             lines_ = list(one[0].lines)
@@ -497,15 +497,13 @@ def lone_balance(measure, out):
     return unbalanced_lone(*_stack_rows(measure, out))
 
 
-def one_heading(measure, l1, l2, width, sizes, max_lines=2):
+def one_heading(width_at, l1, l2, width, sizes, max_lines=2):
     """(form, font) or None: the two fields' words set as ONE heading by the heading engine (set_heading, lockup, the
     payoff gold from the copy's field seam, the engine's staging over `sizes`: one line, a balanced break, the next
     tier, then an unbalanced break), kept only when it obeys the heading rules (heading.valid via set_heading) and
-    stacks no one-word row under the balance minimum (unbalanced_lone)."""
+    stacks no one-word row under the balance minimum (unbalanced_lone). `width_at(text, size)`: the caller's
+    (_lockup's) measure of a display line, so the lockup and its one-heading form are one size site."""
     from .heading import set_heading
-
-    def width_at(t, sz):
-        return measure.textlength(t, font=get_font(brand.DISPLAY_FONT, sz))
     form = set_heading(f"{l1} {l2}", width_at, width, tuple(sizes), max_lines=max_lines, seam=len(l1.split()),
                        lockup=True)
     if form is None:

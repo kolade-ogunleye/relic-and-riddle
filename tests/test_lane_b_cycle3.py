@@ -246,8 +246,9 @@ CHAIN_PAYLOAD = {
 
 
 def _by(payload):
+    """Each source's whole-line record (int 3: a truth-refused source has a figure-withheld record after the chain)."""
     from src.visual_engine import youtube_headline_chain
-    return {c["source"]: c for c in youtube_headline_chain(payload)}
+    return {c["source"]: c for c in youtube_headline_chain(payload) if not c.get("variant")}
 
 
 def test_the_chain_is_ranked_with_the_eyebrow_last_and_each_source_gated():
@@ -338,7 +339,57 @@ def test_the_thumbnail_is_refused_only_when_the_whole_chain_fails(tmp_path):
     payload = {"title": long, "thumbnail": {"eyebrow": long, "line1": long, "line2": long, "tagline": long}}
     with pytest.raises(LayoutError) as e:
         VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
-    assert "every source" in str(e.value) and "eyebrow" in str(e.value)
+    # int 3 ruling: the decline goes through the refusal plumbing (refusal.decline), its rule named, recorded by the
+    # cover job like every refusal (was a bare LayoutError "refused at every source")
+    from src.refusal import Declined, record
+    assert isinstance(e.value, Declined) and e.value.rule == "youtube.headline_chain"
+    assert "no line of the headline chain passes" in str(e.value) and "eyebrow" in str(e.value)
+    assert record(e.value, "YouTube thumbnail")["rule"] == "youtube.headline_chain"
+
+
+# ------------------------------------------- int 3 ruling: a contradicted figure is withheld, never the cover
+FIG_PAYLOAD = {"title": "The Sahara Eye", "narration_script": "The Richat Structure is about 40 kilometres across.",
+               "thumbnail": {"eyebrow": "DESERT ANOMALY", "line1": "THE 25-MILE", "line2": "SAHARA EYE",
+                             "tagline": "CARVED BY NATURE"}}
+
+
+def test_a_figure_the_evidence_contradicts_is_lifted_out_whole_and_never_a_fragment_left():
+    from src.visual_engine import figure_free
+    w = []
+    assert figure_free("THE 25-MILE", FIG_PAYLOAD, w) == ""                  # the article goes with its figure
+    assert [(x["number"], x["unit"]) for x in w] == [("25", "MILES")] and "contradicts" in w[0]["reason"]
+    assert figure_free("THE 25-MILE SAHARA EYE", FIG_PAYLOAD, []) == "THE SAHARA EYE"   # its noun still follows
+    assert figure_free("BUILT 4,500 YEARS AGO", FIG_PAYLOAD, []) == ""         # its dimension word too, then "BUILT"
+    assert figure_free("ABOUT 40 KILOMETRES ACROSS", FIG_PAYLOAD, w := []) == "ABOUT 40 KILOMETRES ACROSS" and not w
+
+
+def test_the_figure_free_line_comes_after_every_whole_line_and_is_held_to_every_gate():
+    from src.visual_engine import youtube_headline_chain
+    chain = youtube_headline_chain(dict(FIG_PAYLOAD))
+    whole = [c for c in chain if not c.get("variant")]
+    assert chain[:len(whole)] == whole and whole[1]["source"] == "thumbnail" and whole[1]["skipped"].startswith("truth")
+    variant = chain[len(whole):]
+    assert [(c["source"], c["text"], c["variant"]) for c in variant] == [("thumbnail", "SAHARA EYE", "figure withheld")]
+    assert variant[0]["copy"]["line2"] == "SAHARA EYE" and "25" not in " ".join(variant[0]["copy"].values())
+    # a line that says nothing specific once its figure is lifted out is gated like any other candidate
+    p = dict(FIG_PAYLOAD, thumbnail=dict(FIG_PAYLOAD["thumbnail"], line1="THE 25-MILE", line2="CIRCLE"))
+    v = [c for c in youtube_headline_chain(p) if c.get("variant")]
+    assert v and v[0]["copy"] is None and v[0]["skipped"].startswith("not specific")
+
+
+def test_the_thumbnail_draws_the_figure_free_line_and_records_the_figure_withheld(tmp_path):
+    import json
+    from src.visual_engine import VisualEngine
+    hero = tmp_path / "hero.png"
+    Image.new("RGB", (1600, 1200), (120, 96, 70)).save(hero)
+    payload = json.loads(json.dumps(FIG_PAYLOAD))
+    out = VisualEngine().generate_youtube_thumbnail(hero, payload, tmp_path / "yt.jpg")
+    qa = json.loads(Path(out).with_suffix(".qa.json").read_text(encoding="utf-8"))
+    drawn = " ".join(e["text"] for e in qa["elements"])
+    assert "25" not in drawn and "MILE" not in drawn and "SAHARA" in drawn
+    assert qa["figure_withheld"]["number"] == "25" and qa["headline_withheld"][0]["drawn"] == "25 MILES"
+    assert qa["headline_chain"][-1]["variant"] == "figure withheld"
+    assert "25 MILES withheld" in payload["thumbnail_note"]
 
 
 def test_a_place_alone_is_not_specific():

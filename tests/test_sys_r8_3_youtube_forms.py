@@ -20,7 +20,7 @@ import re
 import pytest
 from PIL import Image, ImageDraw
 
-from src import brand, heading, typography
+from src import brand, brand_system, heading, typography
 from src import youtube_thumbnail as yt
 from src.brand_system import TYPE, TYPE_FALLBACK
 from src.refusal import LayoutError
@@ -57,11 +57,13 @@ def _words(l1, l2):
     return (l1 + " " + l2).split()
 
 
-def _oracle(l1, l2, width=WIDTH):
+def _oracle(l1, l2, width=WIDTH, first_lone_ok=True):
     """Every valid form of the copy at or above the floor in at most three rows: [(rows, size)]. A form is valid under
     the engine's own rules (heading.valid) with the payoff seam at the ruled field boundary (heading.lockup_fields).
     Lane B cycle 1: the authored field boundary is a line end like any other (never on a never-end word: CARVED FROM /
-    is not a form)."""
+    is not a form). Integration 3 (SYS-B-6, the lone-row deferral): a one-word first row under the balance minimum is
+    held, and stands (recorded) where no other form replaces it, so it is a form here (`first_lone_ok`); the test
+    holds the deferral itself."""
     _, sizes = _sizes()
     r1, r2, _ = heading.lockup_fields(l1, l2)
     words = _words(r1, r2)
@@ -74,7 +76,7 @@ def _oracle(l1, l2, width=WIDTH):
                 widths = [_width(t, size) for t in rows]
                 if max(widths) > width:
                     continue
-                if any(heading.valid(rows, widths=widths, seam=s) for s in seams):
+                if any(heading.valid(rows, widths=widths, seam=s, first_lone_ok=first_lone_ok) for s in seams):
                     out.append((rows, size))
     return out
 
@@ -100,6 +102,14 @@ def test_a_drawn_youtube_lockup_obeys_the_rules_and_a_refusal_means_no_valid_for
             continue
         lines, sizes, rec = _drawn(got)
         assert forms, (l1, l2)
+        if heading.first_row_lone(lines, [_width(t, s) for t, s in zip(lines, sizes)]):
+            # SYS-B-6: a held one-word first row stands only where no form at the balance minimum sets at its size
+            # (never a shrink only to move a word), and it is recorded
+            assert rec.get("balance_below_min"), rec
+            strict = [r for r, s in _oracle(l1, l2, first_lone_ok=False) if s == rec["sizes"][0]]
+            assert not any(not heading.first_row_lone(r, [_width(t, rec["sizes"][0]) for t in r]) and (
+                len(r) < 2 or min(_width(t, rec["sizes"][0]) for t in r) / max(_width(t, rec["sizes"][0]) for t in r)
+                >= brand_system.SPEC["heading.balance_min"]) for r in strict), (lines, strict)
         assert len(lines) <= 3
         assert min(sizes) >= floor and min(rec["sizes"]) >= floor
         assert all(_width(t, s) <= WIDTH + 1e-6 for t, s in zip(lines, sizes))
@@ -117,7 +127,8 @@ def test_a_drawn_youtube_lockup_obeys_the_rules_and_a_refusal_means_no_valid_for
             # the payoff run gold from the copy's own field seam: no word before it is gold
             seam = rec["seam"]
             assert seam == len(heading.lockup_fields(l1, l2)[0].split())
-            assert heading.lockup_valid(lines, [_width(t, s) for t, s in zip(lines, sizes)], seam)
+            assert heading.lockup_valid(lines, [_width(t, s) for t, s in zip(lines, sizes)], seam,
+                                        first_lone_ok=bool(rec.get("balance_below_min")))
             figure = heading._figure_words(_words(l1, l2))   # a stated quantity is gold wherever it stands
             gold = [i for i, (is_gold, _) in enumerate(rows_words(got)) if is_gold and i not in figure]
             assert all(i >= seam for i in gold), (lines, gold)

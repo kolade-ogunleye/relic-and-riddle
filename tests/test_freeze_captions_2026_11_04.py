@@ -706,7 +706,9 @@ def test_figure_units_exact():
     # lane C cycle 3 (lander ruling: a figure group is a bond, never cut across bursts): the whole range is one burst
     # on two lines, NEARLY 1,090 TONNES / TO 1,168 TONNES., its lead-in FROM with the burst before (was FROM NEARLY
     # 1,090 TONNES | TO 1,168 TONNES)
-    assert "NEARLY 1,090 TONNES TO 1,168 TONNES" in aswan, aswan
+    # lander ruling on 2396b8df: held whole, the range left RANGE FROM | (a never-end end), so it cuts at its joiner,
+    # the only cut a range takes, the hedge with its first end: FROM NEARLY 1,090 TONNES | TO 1,168 TONNES
+    assert "FROM NEARLY 1,090 TONNES" in aswan and "TO 1,168 TONNES" in aswan, aswan
     colossi = _texts(layout("singing_colossi_of_memnon", False)[1])
     assert "(18 M) INCLUDING" in colossi and "THEIR 13-FOOT (4 M)" in colossi, colossi
     # fix round 1 (gate): ROCK SALT is a key term, no figure link: at 9:16 it keeps HEAD's THE MINE'S ROCK | SALT
@@ -1732,7 +1734,9 @@ GATE_FORCED = {
     # lane C cycle 3 (lander ruling: a figure group is a bond, never cut across bursts; it may take one two-line burst,
     # each line within one burst's caps): the range is one burst (kind "group", checked below: HEAD cut a figure link
     # within four words of the new cut). Gone: aswan TONNES | TO and wieliczka 287 | AND (the range is whole)
-    ("unfinished_obelisk_aswan", "9:16", "from", "nearly"): ("group", "HEAD's FROM NEARLY 1,090 | TONNES"),
+    # lander ruling on 2396b8df: a range held whole that leaves a never-end end (RANGE FROM |) cuts at its joiner, and
+    # only there (was the whole range on two lines after RANGE FROM |)
+    ("unfinished_obelisk_aswan", "9:16", "tonnes", "to"): ("group", "HEAD's FROM NEARLY 1,090 | TONNES"),
     ("run:richat_structure_sahara_eye", "9:16", "years", "ago,"): ("group", "HEAD's BETWEEN 94 AND | 104"),
     # lane C cycle 3, int-3 fix (QF-150's lint on 8f00b711): a figure group held whole left its never-end lead-in ending
     # the burst before it (TOOLS DATING FROM |, ITS LENGTH BETWEEN |); the repair now pulls the lead-in into the group's

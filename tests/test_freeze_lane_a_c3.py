@@ -302,3 +302,87 @@ def test_obelisk_upper_face_keeps_the_signed_length():
     bb = im.getbbox()
     assert bb[0] >= 100 and bb[2] <= 601 and bb[3] <= 181
     assert 180 - bb[1] <= 500 * graphics.SUBJECT_LYING_ASPECT + 1
+
+
+# ------------------------------------------------------------------ lander ruling (cycle 3): map framing and the pin
+# real runs' recorded places (output/run_*/graphics/graphic_map.mp4.lineage.json): a vast home on the coast, a vast
+# home inland, a coastal site that was panned into a corner
+FRAMING_PLACES = {
+    "amber": {"label": "Catherine Palace", "country": "Russia", "lat": 59.716, "lon": 30.395555555555557},
+    "tunguska": {"label": "Podkamennaya Tunguska", "country": "Russia", "lat": 57.6873, "lon": 104.3553},
+    "paracas": {"label": "Paracas Peninsula", "country": "Peru", "lat": -13.858888888889, "lon": -76.328888888889},
+}
+
+
+def _locator(tmp_path, monkeypatch, key, size):
+    import json
+    from pathlib import Path
+    from tests.test_qf24_route_neighbours import needs_data
+    from tests.test_r4_graphics_2026_11_02 import _render
+    if needs_data.args and needs_data.args[0]:
+        pytest.skip("Natural Earth data not fetched")
+    calls: list = []
+    real_dot = graphics._draw_dot
+
+    def spy_dot(im, xy, k, scale=1.0, alpha=1.0, ripple=(0.0, 0.0)):
+        calls.append((xy, alpha))
+        return real_dot(im, xy, k, scale, alpha, ripple)
+    monkeypatch.setattr(graphics, "_draw_dot", spy_dot)
+    out = tmp_path / f"{key}.mp4"
+    st = _render(monkeypatch, lambda: graphics.render_map(FRAMING_PLACES[key], out, width=size[0], height=size[1]),
+                 fps=1)
+    st["layout"] = json.loads(Path(str(out) + ".layout.json").read_text(encoding="utf-8"))
+    st["dots"] = calls
+    return st
+
+
+@pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)], ids=["9x16", "16x9"])
+@pytest.mark.parametrize("key", list(FRAMING_PLACES))
+def test_the_close_up_is_framed_on_the_site_with_named_context(tmp_path, monkeypatch, key, size):
+    """Lander ruling (map framing): the site stands in the middle third of the content box (the Reel box, title-safe)
+    on both axes (Catherine Palace's 9:16 end frame had it at x 0.87, y 0.19, Russia a sliver); the end frame names the
+    home and at least one neighbour or sea; and the target is on the site from the first frame."""
+    import numpy as np
+    st = _locator(tmp_path, monkeypatch, key, size)
+    lay = st["layout"]
+    w, h = size
+    u, v = graphics.site_box_share(tuple(lay["anchor"]), w, h)
+    assert graphics.site_in_middle_third(tuple(lay["anchor"]), w, h), (key, size, round(u, 2), round(v, 2))
+    assert lay["country"] is not None, lay["home_drop"]
+    if key == "tunguska":
+        # open item (reported to the lander): deep inside a vast home no neighbour's name or sea fits the close-up's
+        # box at any span the base's detail allows (MONGOLIA's ground is framed in, its name has no room); the
+        # omission is recorded, never silent
+        assert lay["neighbours"] or lay["water"] or any("neighbour" in str(r.get("omitted")) for r in st["omitted"])
+    else:
+        assert lay["neighbours"] or lay["water"], "no neighbour or sea named on the close-up"
+    # the first frame: the target drawn on the site, inside the frame, its BONE ring there in the pixels
+    tx, ty = lay["target_first"]
+    assert 0 <= tx < w and 0 <= ty < h
+    assert st["dots"] and np.hypot(st["dots"][0][0][0] - tx, st["dots"][0][0][1] - ty) < 1 and st["dots"][0][1] == 1
+    arr = np.asarray(st["frames"][0]).astype(int)
+    yy, xx = np.mgrid[0:h, 0:w]
+    ring = np.abs(np.hypot(xx - tx, yy - ty) - (graphics.DOT_D - graphics.DOT_RING_W) / 2 + 1) <= 1.5
+    assert (np.abs(arr[ring] - np.array(brand.BONE)).max(axis=1) <= 40).mean() > 0.5
+    # the opening at continental scale on both orientations: its shorter side spans at least 40 degrees
+    assert lay["span_open"] * min(w, h) / w >= 40 - 1e-6 or lay["span_open"] < 40
+
+
+def test_the_target_is_shown_until_the_marker_lands():
+    for t in (0.0, 0.4, 0.8, 1.0, 1.6, graphics.MAP_TRAVEL):
+        assert graphics.target_motion(t, "pin")[0] == 1.0 and graphics.target_motion(t, "dot")[0] == 1.0
+    # it pulses while the camera travels, never after it rests
+    assert any(graphics.target_motion(t / 10, "pin")[2] > 0 for t in range(10))
+    assert graphics.target_motion(graphics.MAP_TRAVEL + 0.05, "pin")[2] == 0
+    landed = graphics.MAP_PIN_AT + graphics.PIN_FALL_S
+    assert graphics.target_motion(landed + 0.01, "pin")[0] == 0
+    assert graphics.target_motion(graphics.MAP_PIN_AT + graphics.DOT_POP_S + 0.01, "dot")[0] == 0
+
+
+def test_a_vast_home_is_framed_on_context_not_its_share():
+    from src import geo
+    if not geo.available():
+        pytest.skip("Natural Earth data not fetched")
+    russia, peru, malta = (geo.find_country(n) for n in ("Russia", "Peru", "Malta"))
+    assert graphics.is_vast_home(russia) and not graphics.is_vast_home(peru) and not graphics.is_vast_home(malta)
+    assert 1.5e7 < graphics.home_area_km2(russia) < 2.0e7        # about 17.1 million km2 (planar estimate)

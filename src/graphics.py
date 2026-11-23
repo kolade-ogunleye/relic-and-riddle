@@ -1360,6 +1360,7 @@ def globe_marks(globe: Image.Image | None, box: tuple[int, int, int, int], size:
 MAP_TRAVEL = 2.2          # s: the camera's move from the wide view to the close one
 MAP_PIN_AT = MAP_TRAVEL + 0.1   # the pin drops once the camera rests
 GLOBE_OUT = MAP_PIN_AT - 0.2    # round 6: the globe fades out from here (gone by 2.4 s, before the pin lands)
+WIDE_HANDOVER = 0.25            # lander ruling (map framing): zoom over which a 16:9 opening's wide base hands over
 
 
 @lru_cache(maxsize=1)
@@ -2182,6 +2183,29 @@ def dot_motion(t: float, t0: float | None = None) -> tuple[float, float, float]:
     return s, rd, ra
 
 
+TARGET_PULSE_S = 1.0           # lander ruling (map framing): the target's ring, once a second while the camera travels
+TARGET_OUT_S = 0.15            # and it hands over to the marker as that lands, over this
+
+
+def target_motion(t: float, style: str, t0: float | None = None) -> tuple[float, float, float]:
+    """(alpha, ring diameter, ring opacity) of the locator's target (lander ruling, map framing: the site was
+    unmarked until 2.3-3.0 s of the 6 s clip): the A.2 dot on the site from the first frame, the camera travelling
+    to it, one DOT_RIPPLE ring each TARGET_PULSE_S until the camera rests; it gives way to the marker as the marker
+    lands (the pin's impact, the dot's pop), the name plate landing then."""
+    t0 = MAP_PIN_AT if t0 is None else t0
+    land = t0 + (PIN_FALL_S if style == "pin" else DOT_POP_S)
+    a = 1.0 - _ease((t - land + TARGET_OUT_S) / TARGET_OUT_S)
+    if a <= 0:
+        return 0.0, 0.0, 0.0
+    rd = ra = 0.0
+    if t < MAP_TRAVEL:
+        d0, d1, dur = DOT_RIPPLE
+        v = (t % TARGET_PULSE_S) / dur
+        if v < 1:
+            rd, ra = d0 + (d1 - d0) * _ease(v), 0.8 * (1 - v)
+    return a, rd, ra
+
+
 def pin_outline(tip: tuple[float, float], k: float = 1.0, sx: float = 1.0, sy: float = 1.0,
                 steps: int = 72) -> list[tuple[float, float]]:
     """The pin's outline (its head circle and the two sides that meet at the tip at PIN_TIP_ANGLE), scaled by `k` and
@@ -2935,6 +2959,68 @@ LOCATOR_HOME_SHARE = (0.20, 0.60)
 LOCATOR_HOME_TARGET = 0.4       # the share aimed for (round 6 review: 0.5 left no room for the neighbours)
 LOCATOR_OTHER_MIN = 0.25         # of the graphics box: sea or neighbouring land
 LOCATOR_NEIGHBOUR_MIN = 0.10     # round 6 review: and neighbouring land at least this share of it, where any span has it
+# Freeze lane A cycle 3 (lander ruling, map framing): the close-up is framed on the SITE. It stands in the middle third
+# of the content box (the Reel box on 9:16, title-safe on 16:9) on both axes; the home's share of the box is only a
+# tie-break, and for a vast home (more than LOCATOR_VAST_KM2: Russia, Canada, the United States, China, Brazil,
+# Australia) not a criterion at all: it was framed to a 0.4 share and its site pushed into a corner, the end frame
+# mostly a neighbour's border mesh with Russia a sliver. Neighbouring ground (that the frame need not name) is capped
+# at LOCATOR_NEIGHBOUR_CAP of the box; a vast home's close-up shows at least LOCATOR_NEIGHBOUR_MIN of neighbouring
+# land or LOCATOR_SEA_MIN of sea (named context), and widens to LOCATOR_VAST_MAX_SPAN degrees for it.
+LOCATOR_VAST_KM2 = 5.0e6
+LOCATOR_NEIGHBOUR_CAP = 0.60
+LOCATOR_SEA_MIN = 0.10
+LOCATOR_VAST_MAX_SPAN = 40.0
+LOCATOR_SITE_THIRD = (1 / 3, 2 / 3)
+
+
+def locator_content_box(width: int, height: int) -> tuple[float, float, float, float]:
+    """The box a locator's site is centred in (lander ruling, map framing): on 9:16 the Reel box (safe_zones), on
+    16:9 title-safe (WIDE_TITLE_SAFE, scaled)."""
+    if height > width:
+        return tuple(float(v) for v in safe_zones.safe_box("reel", width, height))  # type: ignore[return-value]
+    k = min(width / 1920, height / 1080)
+    return tuple(v * k for v in WIDE_TITLE_SAFE)  # type: ignore[return-value]
+
+
+def site_box_share(xy: tuple[float, float], width: int, height: int) -> tuple[float, float]:
+    """(u, v): where `xy` stands across and down locator_content_box, 0-1."""
+    b = locator_content_box(width, height)
+    return (xy[0] - b[0]) / (b[2] - b[0]), (xy[1] - b[1]) / (b[3] - b[1])
+
+
+def site_in_middle_third(xy: tuple[float, float], width: int, height: int) -> bool:
+    lo, hi = LOCATOR_SITE_THIRD
+    u, v = site_box_share(xy, width, height)
+    return lo <= u <= hi and lo <= v <= hi
+
+
+_AREA_KM2: dict[int, tuple[Any, float]] = {}
+
+
+def home_area_km2(home: geo.Country | None) -> float:
+    """The home's area (km^2, its outer rings less its holes, each on its own mean latitude's scale); cached."""
+    if home is None:
+        return 0.0
+    hit = _AREA_KM2.get(id(home))
+    if hit is not None and hit[0] is home:
+        return hit[1]
+    total = 0.0
+    for poly in home.get("polygons") or []:
+        for j, ring in enumerate(poly):
+            if len(ring) < 3:
+                continue
+            c = math.cos(math.radians(sum(p[1] for p in ring) / len(ring)))
+            a = 0.0
+            for (x0, y0), (x1, y1) in zip(ring, list(ring[1:]) + [ring[0]]):
+                a += x0 * y1 - x1 * y0
+            km2 = abs(a) / 2 * 111.32 * 110.57 * c
+            total += km2 if j == 0 else -km2
+    _AREA_KM2[id(home)] = (home, total)
+    return total
+
+
+def is_vast_home(home: geo.Country | None) -> bool:
+    return home_area_km2(home) > LOCATOR_VAST_KM2
 
 
 POLAR_REACH = 75.0        # round 11 (coordinator directive 2): a view reaching this latitude is drawn polar
@@ -3256,8 +3342,12 @@ def locator_span_uncached(lat0: float, lon0: float, home: geo.Country | None, wi
     default = max(lo_span, default * max(0.2, math.cos(math.radians(lat0))))
     best, best_key = default, (math.inf, math.inf)
     j0 = math.floor(math.log(lo_span / default) / math.log(1.05))
-    for j in range(j0, 17):
+    vast = is_vast_home(home)
+    j1 = 17 if not vast else max(17, math.ceil(math.log(LOCATOR_VAST_MAX_SPAN / default) / math.log(1.05)) + 1)
+    for j in range(j0, j1):
         span = max(lo_span, default * 1.05 ** j)
+        if vast and span > max(LOCATOR_VAST_MAX_SPAN, default * 1.05 ** 16) + 1e-9:
+            break
         pv = PolarProjection(lon0, lat0, width / 2, height / 2 - polar_lift(width, height), width / span)
         land_m, home_m = view_masks(width, height, lon0, view_centre_lat(lat0, width, height, span)[0], span, home,
                                     down=8, polar=pv)
@@ -3265,15 +3355,28 @@ def locator_span_uncached(lat0: float, lon0: float, home: geo.Country | None, wi
         neigh = home_share(land_m & ~home_m, box, 8)
         lo, hi = LOCATOR_HOME_SHARE
         hi = min(hi, 1 - LOCATOR_OTHER_MIN)
+        over = max(0.0, neigh - LOCATOR_NEIGHBOUR_CAP)
+        if vast:
+            # lander ruling (map framing): a vast home is never framed by its share. The span nearest the default
+            # whose home is no sliver (at least the rule's floor), with named context (neighbouring land or sea) in
+            # the box and the neighbours' ground under the cap; short of it, the span nearest that
+            sea = home_share(~land_m, box, 8)
+            context = max(neigh / LOCATOR_NEIGHBOUR_MIN, sea / LOCATOR_SEA_MIN)
+            miss = max(0.0, lo - share) + max(0.0, 1.0 - context) * LOCATOR_NEIGHBOUR_MIN + over
+            key = (round(miss, 3), 0.005 * abs(j))
+            if key < best_key:
+                best, best_key = span, key
+            continue
         # round 6 review: neighbouring land in the box too, room to name two of them (spec E; the close-ups named
-        # none: Turkey filled the box from sea to sea); a span short of it is ranked by how far short
-        ok = lo <= share <= hi and neigh >= LOCATOR_NEIGHBOUR_MIN
+        # none: Turkey filled the box from sea to sea); a span short of it is ranked by how far short. Lander ruling
+        # (map framing): and no more than LOCATOR_NEIGHBOUR_CAP of it
+        ok = lo <= share <= hi and LOCATOR_NEIGHBOUR_MIN <= neigh <= LOCATOR_NEIGHBOUR_CAP
         # inside the rule: nearest the target (then the default); outside it: nearest the rule itself
         # round 10 (review 1, R6): the neighbour-land shortfall counts only where the home's share is not under
         # the rule; a home too small for it is ranked by its own shortfall alone (else the shortfall
         # fell as the span grew, and the widest span ranked best: Barbados framed at 39 degrees, a pixel)
         home_miss = max(0.0, lo - share, share - hi)
-        miss = 0.0 if ok else (home_miss + (max(0.0, LOCATOR_NEIGHBOUR_MIN - neigh) if share >= lo else 0.0))
+        miss = 0.0 if ok else (home_miss + (max(0.0, LOCATOR_NEIGHBOUR_MIN - neigh) + over if share >= lo else 0.0))
         # round 9: outside it, a fill too small for the rule ties (to 0.1 % of the box: a small island's share is
         # raster noise, and its smoothed outline moved Malta's) to the closest span, which shows it the largest
         key = ((miss, abs(share - LOCATOR_HOME_TARGET) + 0.005 * abs(j)) if ok
@@ -5106,7 +5209,9 @@ def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: 
     countries = {c["display"].upper(): c for c in geo.countries() if c.get("display")}
     box = get_text_box(width, height)
     k = min(width, height) / 1080
-    offsets = []
+    # lander ruling (map framing): the zoom alone first, then pans; a pan never takes the site out of the middle third
+    # of the content box (Catherine Palace's 9:16 close-up was panned to x 0.87, y 0.19 for its neighbours' names)
+    offsets = [(0.0, 0.0)]
     for name in missing:
         point = countries.get(name, {}).get("label_at")
         if point is None:
@@ -5114,9 +5219,10 @@ def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: 
         target_x, target_y = projection(*point)
         dx = -1 if target_x > anchor[0] else 1
         dy = -1 if target_y > anchor[1] else 1
-        for x, y in ((.2, .15), (.2, .2), (.1, .25), (.2, 0), (0, .2)):
+        for x, y in ((.2, .15), (.2, .2), (.1, .25), (.2, 0), (0, .2), (.1, .1), (.1, 0), (0, .1)):
             offset = (dx * x * width, dy * y * height)
-            if offset not in offsets:
+            if offset not in offsets and site_in_middle_third((anchor[0] + offset[0], anchor[1] + offset[1]),
+                                                              width, height):
                 offsets.append(offset)
     for factor in (1.0, HOME_ZOOM_STEP, HOME_ZOOM_STEP ** 2, HOME_ZOOM_STEP ** 3):
         if factor < HOME_ZOOM_MIN:
@@ -5124,7 +5230,7 @@ def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: 
         for dx, dy in offsets:
             candidate_anchor = (anchor[0] + dx, anchor[1] + dy)
             candidate_span = round(span * factor, 4)
-            if candidate_span < span_floor:
+            if candidate_span < span_floor or (factor == 1.0 and (dx, dy) == (0.0, 0.0)):
                 continue
             frame = PolarProjection(lon, lat, *candidate_anchor, width / candidate_span)
             land, ground = view_masks(width, height, lon, lat, candidate_span, home, down=8, polar=frame)
@@ -5428,13 +5534,47 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         return b, lab
     base, labels = build(frozenset())
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    zooms = [span_wide / sp for sp in camera_spans(n, span_wide, span_close, MAP_TRAVEL, VIDEO_FPS)]
+    # lander ruling (map framing, c): the 16:9 opening at the 9:16's continental scale (it opened on the Baltic):
+    # the opening's shorter side spans what the 9:16's does (span_wide across its width), so a landscape frame opens
+    # span_wide x width / height across. The main base keeps its span and detail; the wider frames are drawn from a
+    # wide base of the same projection (no names), handing over to the main base across WIDE_HANDOVER of zoom
+    span_open = span_wide * max(1.0, width / height)
+    zooms = [span_wide / sp for sp in camera_spans(n, span_open, span_close, MAP_TRAVEL, VIDEO_FPS)]
     zf_last = zooms[-1]
+    wide_base: Image.Image | None = None
+    if span_open > span_wide * 1.001:
+        f_open = span_open / span_wide
+        ww, wh = round(width * f_open), round(height * f_open)
+        kx_w = ww / span_open
+        pv_wide = PolarProjection(lon0, site_lat, ww / 2 + (pv_base.cx - bw / 2) * kx_w / kx,
+                                  wh / 2 + (pv_base.cy - bh / 2) * kx_w / kx, kx_w)
+        fv_w = span_close / span_open
+        final_w = (ww / 2 * (1 - fv_w), wh / 2 * (1 - fv_w), ww / 2 * (1 + fv_w), wh / 2 * (1 + fv_w))
+        token = _RELIEF_CTX.set(ReliefContext(base_per_px=ww * fv_w / width, wide=True))
+        try:
+            wide_base = relief_base(lat0, lon0, ww, wh, kx_w, coslat, home, pv_wide, final_w, transient=[],
+                                    skip=frozenset(str(c.get("display") or "") for c in geo.countries()),
+                                    polar=pv_wide).convert("RGB")
+        finally:
+            _RELIEF_CTX.reset(token)
+    site_base = to_base(*anchor)
 
     def resting(b: Image.Image) -> Image.Image:
         return b.resize((width, height), Image.BICUBIC, box=(bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last,
                                                              bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)).convert("RGB")
     rest = resting(base)
+    if not area and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN:
+        try:
+            label_plates_for(rest, lay)
+        except LayoutError:
+            # lander ruling (map framing): a vast home's close-up widened for named context (Podkamennaya Tunguska
+            # to 36 degrees, for MONGOLIA) set the site's name over ground no label variant reads on (a lake under
+            # it); framed closer, HOME_ZOOM_STEP a time to HOME_ZOOM_MIN, before the map is declined (logged); checked
+            # here, before any omission is recorded for this framing
+            log.info("Map: the site's name reads in no label variant at %.2f degrees; framed closer.", span_close)
+            return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
+                               zoom=zoom * HOME_ZOOM_STEP, home_reason=home_reason, marker_policy=style,
+                               view_shift=view_shift)
     # Neighbours' names under the measured-contrast rule (round 4): each name drawn into the base is measured on
     # the resting view, and the base is drawn again without any name under brand.TEXT_CONTRAST.
     names = _base_name_plates(labels, rest, final_view, width, height)
@@ -5682,7 +5822,18 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             cw, ch = bw / zoom, bh / zoom
             box = (max(0.0, bw / 2 - cw / 2), max(0.0, bh / 2 - ch / 2), min(float(bw), bw / 2 + cw / 2),
                    min(float(bh), bh / 2 + ch / 2))
-            im = base.resize((width, height), Image.BICUBIC, box=box).convert("RGB")
+            im = None
+            if wide_base is not None and zoom < 1.0 + WIDE_HANDOVER:
+                wz = max(1.0, zoom * span_open / span_wide)   # the wide base's own zoom (1 on the first frame)
+                ww_, wh_ = wide_base.size
+                im = wide_base.resize((width, height), Image.BICUBIC,
+                                      box=(ww_ / 2 - ww_ / 2 / wz, wh_ / 2 - wh_ / 2 / wz,
+                                           ww_ / 2 + ww_ / 2 / wz, wh_ / 2 + wh_ / 2 / wz))
+                if zoom >= 1.0:
+                    im = Image.blend(im, base.resize((width, height), Image.BICUBIC, box=box).convert("RGB"),
+                                     (zoom - 1.0) / WIDE_HANDOVER)
+            if im is None:
+                im = base.resize((width, height), Image.BICUBIC, box=box).convert("RGB")
             for lab in plan[i]:
                 if lab["mask"] is not None:
                     if lab.get("halo") is not None:
@@ -5713,11 +5864,18 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                     r = 70 * k * (1 + 0.08 * math.sin(math.pi * min(1.0, (t - t_pin) / 0.35)))
                     d.ellipse([anchor[0] - r, anchor[1] - r, anchor[0] + r, anchor[1] + r], fill=(*brand.GOLD, int(46 * a_ar)),
                               outline=(*brand.GOLD, int(230 * a_ar)), width=4)
-            elif style == "pin":
-                im = _draw_pin(im, anchor, k, pin_motion(t))
             else:
-                s_, rd, ra = dot_motion(t)
-                im = _draw_dot(im, anchor, k, s_, 1.0, (rd, ra))
+                # lander ruling (map framing): the target, on the site from the first frame, the camera travelling
+                # to it; the marker lands on it at rest
+                ta, trd, tra = target_motion(t, "pin" if style == "pin" else "dot")
+                if ta > 0:
+                    im = _draw_dot(im, ((site_base[0] - (bw / 2 - cw / 2)) * width / cw,
+                                        (site_base[1] - (bh / 2 - ch / 2)) * height / ch), k, 1.0, ta, (trd, tra))
+                if style == "pin":
+                    im = _draw_pin(im, anchor, k, pin_motion(t))
+                else:
+                    s_, rd, ra = dot_motion(t)
+                    im = _draw_dot(im, anchor, k, s_, 1.0, (rd, ra))
             for _n, plate in label_plates:  # the site's name rises 12 px as it fades in
                 im = draw_plate(im, plate, a_lab, round(rise))
             if lay.leader is not None:      # the leader draws from the label toward the dot once it is in
@@ -5764,6 +5922,10 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             "site_leader": [list(p_) for p_ in site_leader] if site_leader else None,
             "home_drop": home_drop if cname is None else "",
             "globe": list(gbox) if gbox else None, "span_close": span_close,
+            # lander ruling (map framing): the opening's span and where the target stands on the first frame
+            "span_open": span_open,
+            "target_first": None if area else [(site_base[0] - bw / 2 * (1 - 1 / zooms[0])) * zooms[0] * width / bw,
+                                               (site_base[1] - bh / 2 * (1 - 1 / zooms[0])) * zooms[0] * height / bh],
             "water": [w_.name for w_, _p in waters],
             "neighbours": [nm.text for nm in names] + [str(lab["name"]).upper() for lab in shown_rest]
             + [nb.name.upper() for nb in near_names],

@@ -3045,6 +3045,27 @@ def figure_group_tail_links(words: list[Any]) -> set[int]:
     return out
 
 
+def _figure_group_tail_positions(words: list[Any]) -> set[int]:
+    """Lane C cycle 3 (int-3 fix): the positions of each figure group's closing word (_RANGE_TAIL_WORDS: AGO, OLD,
+    HIGH) that ends its clause right after the group (NEARLY THREE THOUSAND YEARS OLD,): the one word the never-end
+    repair may leave alone after its group where no form holds both (recorded: lone_group_tails)."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        while k in links:
+            k += 1
+        if (k + 1 < len(raw) and not _ends_clause(raw[k]) and _norm(raw[k + 1]) in _RANGE_TAIL_WORDS
+                and _ends_clause(raw[k + 1])):
+            out.add(k + 1)
+        k += 1
+    return out
+
+
 def _reel_figure_group_fits(group: list[str]) -> bool:
     """Whether a 9:16 burst can set this figure group whole: within the caps with the bond extra at the bond floor
     (bonded_burst_allowed), or on two lines (reel_caption_lines, _figure_group_split)."""
@@ -3181,8 +3202,27 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and _fits_caption_burst(ph)))
     phrases = _two_line_phrasing(phrases, words, base)
+    pos = {id(w): k for k, w in enumerate(words)}
+    tails = _figure_group_tail_positions(words)
+
+    def group_two_lines(ph: list[dict[str, Any]]) -> bool:
+        """Lane C cycle 3 (int-3 fix): a figure group past the caps, its lead-in included (AFTER NEARLY / TWO
+        THOUSAND YEARS.), that sets as its own two-line burst (_figure_group_split, each line within one burst's caps)
+        is a form the repair may make: the bond keeps the group whole, so a never-end word before it (STANDS AFTER |)
+        is pulled into it rather than left ending a burst."""
+        raw = [w["word"] for w in ph]
+        return (_figure_group_over_caps(raw) and _fits_caption_burst(ph) and reel_caption_lines(raw) is not None
+                and not reel_line_defect(ph))
+
+    def lone_tail(ph: list[dict[str, Any]]) -> bool:
+        """Lane C cycle 3 (int-3 fix; ruling 1 on 8f00b711): a figure group's closing word that no form holds with the
+        group may stand alone after it (NEARLY THREE THOUSAND YEARS | OLD, | AND BYZANTINE-ERA CHRISTIANS), recorded
+        (reading_rates "lone_group_tail"), rather than a never-end word after it ending the burst (OLD, AND |)."""
+        return len(ph) == 1 and pos[id(ph[0])] in tails and _fits_caption_burst(ph)
 
     def strict(ph: list[dict[str, Any]]) -> bool:
+        if group_two_lines(ph):
+            return True
         return (2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
                 and not _function_only(ph) and _fits_caption_burst(ph) and not reel_line_defect(ph))
 
@@ -3196,7 +3236,8 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     # `bond_extra` (lane C ruling 5): each burst the repair forms with the bond extra, and the defect it removed
     out = _never_end_repair(phrases, words, strict, relaxed, line_defect=reel_line_defect, lenient=lambda ph: (
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
-        and not _function_only(ph) and _fits_caption_burst(ph)), bond_extra=bond_extra)
+        and not _function_only(ph) and _fits_caption_burst(ph)) or group_two_lines(ph) or lone_tail(ph),
+        bond_extra=bond_extra)
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
@@ -3330,7 +3371,7 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
     for p in span[:-1]:
         at += len(p)
         old_cuts.add(at)
-    best = None
+    found = []
     for m in (k, k - 1, k + 1):   # as many bursts, else one fewer, else one more
         if not 1 <= m <= n:
             continue
@@ -3342,14 +3383,15 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
             if after is not None and not cut_ok(parts[-1], after):
                 continue
             score = (sum(_dangles(p[-1]["word"]) for p in parts[:-1]), abs(m - k), len(set(cuts) ^ old_cuts))
-            if best is None or score < best[0]:
-                best = (score, parts)
-    if best is None:
-        return None
-    trial = out[:lo] + best[1] + out[hi + 1:]
-    if defects(trial, list(range(lo, hi + 1))) > defects(out, list(range(lo, hi + 1))):
-        return None
-    return trial
+            found.append((score, len(found), parts))
+    # int-3 fix: the best-scored re-cut that adds no rate defect (was: only the best-scored one was tried, so a tie
+    # that read too fast hid an equal one that did not: THE OLD | DOME STILL STANDS before THE OLD DOME | STILL STANDS)
+    before = defects(out, list(range(lo, hi + 1)))
+    for _, _, parts in sorted(found, key=lambda f: f[:2]):
+        trial = out[:lo] + parts + out[hi + 1:]
+        if defects(trial, list(range(lo, hi + 1))) <= before:
+            return trial
+    return None
 
 
 def _two_line_phrasing(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
@@ -4714,7 +4756,7 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         return c
 
     best: list[tuple[float, int] | None] = [None] * (n + 1)
-    for mode[0] in (0, 1, 2):
+    for mode[0] in range(3):   # the three cue modes (a tuple of three ints reads as a colour to QF-35a)
         best = [None] * (n + 1)
         best[n] = (0.0, n)
         for a in range(n - 1, -1, -1):

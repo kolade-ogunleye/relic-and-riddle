@@ -697,7 +697,9 @@ def test_figure_units_exact():
     # limit forces a cut HEAD 0036b18 lacks): a figure link HEAD cut holds only where that costs no such cut. Aswan keeps
     # HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES. and (42 M), WITH WEIGHT, and colossi HEAD's (18 M) INCLUDING
     # (was: no burst ends on 1,090 or opens on TONNES or a bracket); ROUGHLY 137 FEET (41.75 M) is held (HEAD cut it)
-    assert "ROUGHLY 137 FEET (41.75 M)" in aswan, aswan
+    # lane C cycle 3, int-3 fix: BETWEEN keeps with its first end (figure_group_bonds), and the never-end repair may
+    # pull it into that burst, so its burst no longer ends on it (was ITS LENGTH BETWEEN | ROUGHLY 137 FEET (41.75 M))
+    assert "BETWEEN ROUGHLY 137 FEET (41.75 M)" in aswan and "ITS LENGTH" in aswan, aswan
     # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure keeps its unit on every path
     # (video_composer.unit_link), so the range gives way at its joiner, FROM NEARLY 1,090 TONNES | TO 1,168 TONNES
     # (was HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES)
@@ -967,7 +969,8 @@ DWELL_EXCEPTIONS = {
     ("singing_colossi_of_memnon", "THEIR 13-FOOT (4 M)"),
     # fix round 2 (the decision as written): OF 60 FEET (18 M) is HEAD 0036b18's HEIGHT OF 60 FEET | (18 M) INCLUDING
     # again and left the list
-    ("unfinished_obelisk_aswan", "ROUGHLY 137 FEET (41.75 M)"),
+    # lane C cycle 3, int-3 fix: the burst now holds BETWEEN too (was ITS LENGTH BETWEEN | ROUGHLY 137 FEET (41.75 M))
+    ("unfinished_obelisk_aswan", "BETWEEN ROUGHLY 137 FEET (41.75 M)"),
 }
 
 
@@ -1731,6 +1734,11 @@ GATE_FORCED = {
     # within four words of the new cut). Gone: aswan TONNES | TO and wieliczka 287 | AND (the range is whole)
     ("unfinished_obelisk_aswan", "9:16", "from", "nearly"): ("group", "HEAD's FROM NEARLY 1,090 | TONNES"),
     ("run:richat_structure_sahara_eye", "9:16", "years", "ago,"): ("group", "HEAD's BETWEEN 94 AND | 104"),
+    # lane C cycle 3, int-3 fix (QF-150's lint on 8f00b711): a figure group held whole left its never-end lead-in ending
+    # the burst before it (TOOLS DATING FROM |, ITS LENGTH BETWEEN |); the repair now pulls the lead-in into the group's
+    # own burst (FROM ROUGHLY 145,000 / TO 29,000 YEARS AGO., BETWEEN ROUGHLY 137 FEET (41.75 M))
+    ("run:richat_structure_sahara_eye", "9:16", "dating", "from"): ("never_end", "the lead-in FROM with its group"),
+    ("unfinished_obelisk_aswan", "9:16", "length", "between"): ("never_end", "the lead-in BETWEEN with its first end"),
     # fix round 3 (review blocker: THIS CIRCULAR || GEOLOGICAL FORMATION split the noun phrase; was circular|geological
     # and structure|as): the forced end goes before the determiner, and the next cue ends before THE STRUCTURE
     ("run:richat_structure_sahara_eye", "cues", "formed", "this"):

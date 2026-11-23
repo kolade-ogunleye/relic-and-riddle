@@ -294,3 +294,44 @@ def test_sidecar_cues_follow_the_burst_bonds_and_never_end_rules(name, path):
         if len(lines) == 2:
             k = start + len(lines[0].split()) - 1
             assert k not in links or vc._norm(raw[k + 1]) in vc.RANGE_JOINERS, text
+
+
+# ---------------------------------------------------------------- int-3: a figure group bond and the never-end rule
+# The two real narrations the int-3 integration caught (QF-150's lint on the bond of 8f00b711): the group held whole
+# left its never-end lead-in or the word after its closing word ending a burst (STANDS AFTER |, OLD, AND |).
+NEVER_END_BEFORE_GROUP = [
+    ("The old dome still stands after nearly two thousand years.", "after nearly two thousand years."),
+    ("Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it "
+     "to hide from raids.", "old,"),
+]
+
+
+def _paced(text: str) -> list[dict]:
+    """The narrator's fitted pace (QF-150's nominal timing on the 69 real runs' words: 0.053 s a letter plus 0.09 s,
+    a clause mark 0.47 s more, a sentence end 0.55 s), the timing the script-stage lint plans these narrations at."""
+    words, at = [], 0.0
+    for w in text.split():
+        span = 0.053 * len(re.sub(r"\W", "", w)) + 0.09
+        words.append({"word": w, "start": round(at, 3), "dur": round(span * 0.85, 3)})
+        at += span + (0.55 if re.search(r"[.!?]$", w) else 0.47 if re.search(r"[,;:]$", w) else 0.0)
+    return words
+
+
+@pytest.mark.parametrize("text,burst", NEVER_END_BEFORE_GROUP)
+def test_a_figure_group_held_whole_leaves_no_never_end_burst_end_before_or_after_it(text, burst):
+    phrases = vc.caption_phrases(_paced(text), None, False)
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    assert vc.never_end_bursts(phrases) == [], texts          # the never-end rule holds
+    assert vc.figure_split_cuts(phrases) == [], texts         # and the group is never cut
+    assert burst in texts, texts
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    assert rec["never_end"] == [] and rec["figure_split"] == []
+    for p in phrases:   # the lead-in rides the group's own two-line form, each line within one burst's caps
+        ws = [w["word"] for w in p]
+        if vc._figure_group_over_caps(ws):
+            k = vc.reel_caption_lines(ws)[0]
+            assert not vc.reel_line_defect(ws)
+            for line in (ws[:k], ws[k:]):
+                assert len(line) <= vc.MAX_BURST_WORDS and len(" ".join(line)) <= vc.MAX_BURST_CHARS
+    if burst == "old,":   # a closing word no form holds with its group stands alone after it, recorded
+        assert rec["lone_group_tail"] == ["nearly three thousand years | old,"]

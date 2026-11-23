@@ -156,7 +156,16 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
     lefts = [_year_group(en)[0].box[0] for en in ent]
     lefts += [p.box[0] for en in ent if not inline(en) for p in en["labels"]]
     lefts += [en["span"].box[0] for en in ent if en["span"] is not None and not _fallback(st, en["span"])]
-    assert max(abs(x - XT) for x in lefts) <= 1, (case, sorted(set(lefts)))
+    # freeze lane A cycle 3 (R8-3): a set the 687 px column refuses at its floor is laid out in the box column, its
+    # column edge the box's (the log says so)
+    xt = XT
+    if "laid out in the box column (R8-3)" in log_text:
+        token = graphics._BOX_COLUMN.set(True)
+        try:
+            xt = graphics.inset_x0(*TALL) + 16 + 56
+        finally:
+            graphics._BOX_COLUMN.reset(token)
+    assert max(abs(x - xt) for x in lefts) <= 1, (case, sorted(set(lefts)))
     if dense:
         column = [p.box[0] for en in ent if inline(en) for p in en["labels"]]
         assert not column or max(column) - min(column) <= 1, (case, column)

@@ -35,18 +35,21 @@ def _plan(key, width, height):
         cache_key = (text, measure)
         if cache_key in fitted:
             return fitted[cache_key]
-        for rows in range(1, g.TALL_LABEL_ROWS_MAX + 1):
-            lines, _font, short = g._probe_tracked(probe, text.upper(), brand.TEXT_FONT, font.size,
-                                                  measure - g.TALL_INK_RESERVE, rows, font.size, track,
-                                                  weight=g.TALL_LABEL_WEIGHT, quiet=True)
-            if short:
-                continue
-            if len(lines) > 1:
-                lines, _obeyed = g.balanced_label_rows(lines, font, measure - g.TALL_INK_RESERVE,
-                                                     track, source=text)
-            if not g.label_hard_fault(lines, text):
-                fitted[cache_key] = lines
-                return lines
+        # freeze lane A cycle 3: the heading engine's line-end rule first (label_hard_fault strict), then the plain
+        # rule, so it chooses between layouts and never refuses one
+        for strict in (True, False):
+            for rows in range(1, g.TALL_LABEL_ROWS_MAX + 1):
+                lines, _font, short = g._probe_tracked(probe, text.upper(), brand.TEXT_FONT, font.size,
+                                                      measure - g.TALL_INK_RESERVE, rows, font.size, track,
+                                                      weight=g.TALL_LABEL_WEIGHT, quiet=True)
+                if short:
+                    continue
+                if len(lines) > 1:
+                    lines, _obeyed = g.balanced_label_rows(lines, font, measure - g.TALL_INK_RESERVE,
+                                                         track, source=text)
+                if not g.label_hard_fault(lines, text, strict=strict):
+                    fitted[cache_key] = lines
+                    return lines
         fitted[cache_key] = None
         return None
 

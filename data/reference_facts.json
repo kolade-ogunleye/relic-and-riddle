@@ -29,6 +29,15 @@
       "source_url": "https://egymonuments.gov.eg/monuments/the-great-pyramid/"
     },
     {
+      "id": "R_RUSHMORE_HEAD",
+      "label": "Mount Rushmore head (Washington)",
+      "feet": 60.0,
+      "context": "Carved head height, chin to crown of George Washington's head.",
+      "statement": "The National Park Service gives the carved head of George Washington on Mount Rushmore as 60 feet (18.3 metres) tall.",
+      "quote": "The head of George Washington is 60 feet (18.3 m) tall",
+      "source_url": "https://www.nps.gov/moru/learn/kidsyouth/how-big-are-the-heads.htm"
+    },
+    {
       "id": "R_US_HEIGHT",
       "label": "U.S. adult man (2021-23 mean)",
       "feet": 5.75,

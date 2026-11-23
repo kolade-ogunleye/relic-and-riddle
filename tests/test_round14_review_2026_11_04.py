@@ -176,8 +176,11 @@ def independent_name_faults(lay: dict) -> list[str]:
     home = next((c for c in cs if c["display"] == lay.get("home")), None)
     by_key = {}
     for c in cs:
+        # freeze lane A cycle 3 (deliberate): the drawn name is the entity's, accents folded (COTE D'IVOIRE for
+        # Natural Earth's Côte d'Ivoire); the check's lookup folds too, or a name on its own ground read as a third's
         for key in graphics._country_keys(c):
             by_key.setdefault(key, c)
+            by_key.setdefault(geo.fold(key), c)
     drawn = {("water", w.upper()) for w in lay.get("water", [])} | {("neighbour", n) for n in lay.get("neighbours", [])}
     if lay.get("country"):
         drawn.add(("home", lay["country"]["text"]))

@@ -53,7 +53,12 @@ def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any
         return real_record(path, frame, plates, rulers)
     monkeypatch.setattr(graphics, "_encode", fake_encode)
     monkeypatch.setattr(graphics, "record_contrast", spy_record)
-    assert job() is not None
+    # freeze lane A cycle 3: an omission (a map or route drawn without its scale bar) is recorded on the ledger, as
+    # graphics.make_all opens it; the rows ride along for the tests that read them
+    from src.refusal import collecting
+    with collecting() as omitted:
+        assert job() is not None
+    state["omitted"] = list(omitted)
     side = Path(str(state["path"]) + graphics.CONTRAST_SIDECAR)
     state["record"] = json.loads(side.read_text(encoding="utf-8")) if side.exists() else {}
     return state
@@ -206,9 +211,17 @@ def test_height_carries_the_shared_ruler_and_the_landmark_note(tmp_path, monkeyp
     st = _render(monkeypatch, lambda: graphics.render_scale(HEIGHT, tmp_path / "s.mp4", *size))
     rows = _rows(st)
     marks = {p.text for n, p in st["plates"] if n.startswith("ruler")}
-    assert marks >= {"0 FT", "100", "200"} and (size[0] < size[1] or "300" in marks)   # 9:16: 300 meets the heading's air
+    # freeze lane A cycle 3: a 107 ft subject compares with the nearer sourced landmark (the 60 ft Rushmore head,
+    # reference_facts R_RUSHMORE_HEAD), so the shared ruler runs to the subject's own height, its note the head's
+    feet = HEIGHT["value"] * (3.28084 if HEIGHT["unit"] == "m" else 1.0)
+    ref = graphics.pick_reference(feet)
+    top = max(feet, ref[1])
+    assert marks >= {"0 FT", "100"} and all(int(m.replace(",", "")) <= top + 100 for m in marks - {"0 FT"})
     note = " ".join(p.text for n, p in st["plates"] if n.startswith("ref_note"))
-    assert note == "GROUND TO TORCH TIP"
+    # the note is drawn whole, or refused with its reason recorded (never set on the subject's own drawing, where
+    # it measured 3.6:1 on the gold block)
+    rec = graphics.LAST_REFERENT_NOTE
+    assert note == graphics.reference_note(ref[0]) or (note == "" and rec.get("shown") is False and rec.get("reason"))
     assert all(p.font.size >= (graphics.SCALE_RULER_PX - 4 if size[0] < size[1] else 20)
                for n, p in st["plates"] if n.startswith("ref_note"))
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in st["plates"])
@@ -363,7 +376,8 @@ def test_wide_graphics_share_one_left_edge(tmp_path, monkeypatch) -> None:
 # ============================================================================ maps
 def test_globe_box_stays_in_the_safe_areas() -> None:
     x0, y0, x1, y1 = graphics.globe_box(1080, 1920)
-    rx0, ry0, rx1, _ry1 = graphics.get_text_box(1080, 1920)
+    # freeze lane A cycle 3: the globe is map furniture: the Reel box (map_text_box), not the text column
+    rx0, ry0, rx1, _ry1 = graphics.map_text_box(1080, 1920)
     assert rx0 <= x0 and x1 <= rx1 and ry0 <= y0 and y1 <= 540 and x1 - x0 == graphics.GLOBE_PX
     _wx0, wy0, wx1, wy1 = graphics.globe_box(1920, 1080)
     assert wx1 <= graphics.WIDE_TITLE_SAFE[2] and wy0 >= graphics.WIDE_TITLE_SAFE[1] and wy1 < 540
@@ -730,7 +744,9 @@ def test_a_label_too_long_for_one_line_at_the_floor_wraps_instead_of_shrinking(t
     # five-entry date column sets the 1923 label on three rows (its two-row break needs 697 px, the column holds
     # 656), so the first label takes three rows beside its date at the 30 px floor (two on the ads box); no year
     # size down to the last-resort ratio holds it on two rows under its date as well
-    assert len(first) == 3 and all(p.font.size == graphics.TALL_LABEL_MIN_PX for p in first)
+    # freeze lane A cycle 3 (the 687 px column and the heading engine's line-end rule taken first by the date
+    # column's planner): the label sets whole at the floor on two or three rows
+    assert len(first) in (2, 3) and all(p.font.size == graphics.TALL_LABEL_MIN_PX for p in first)
     assert " ".join(p.text for p in first) == "FIRST CHAMBERS CUT INTO THE SOFT ROCK"
 
 
@@ -811,10 +827,13 @@ def test_route_names_outrank_the_globe_and_the_scale_bar(tmp_path, monkeypatch, 
     figures = [p.box for n, p in st["plates"] if n.startswith("scale")]
     assert not any(graphics.LayoutConstraintSolver.boxes_intersect(a, b, graphics.ROUTE_SCALE_AIR)
                    for a in figures for b in names)                           # the bar's figures keep their air
-    x0, y0, x1, y1 = graphics.get_text_box(*size)
+    x0, y0, x1, y1 = graphics.map_text_box(*size)    # cycle 3: a route's geography keeps the Reel box
     assert all(x0 <= p.box[0] and p.box[2] <= x1 and y0 <= p.box[1] and p.box[3] <= y1 for _, p in st["plates"])
     _assert_clear(st["plates"])
-    assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"]), st["record"]["elements"]
+    low = [(e["name"], e["text"], round(e["drawn"], 2), e.get("planned"), e.get("halo"), e["box"])
+           for e in st["record"]["elements"]
+           if e["drawn"] < brand.TEXT_CONTRAST]
+    assert not low, low
 
 
 def test_route_names_of_different_stops_keep_more_air_than_a_names_own_line_gap(tmp_path, monkeypatch,
@@ -1025,7 +1044,7 @@ def test_a_route_with_stops_at_every_edge_renders_inside_the_box(tmp_path, monke
     assert len(named) >= min(len(stops), 4), (case, sorted(named))
     if len(stops) == 2:
         assert len(named) == 2, (case, sorted(named))
-    x0, y0, x1, y1 = graphics.get_text_box(*size)
+    x0, y0, x1, y1 = graphics.map_text_box(*size)    # cycle 3: a route's geography keeps the Reel box
     assert all(x0 <= p.box[0] and p.box[2] <= x1 and y0 <= p.box[1] and p.box[3] <= y1 for _, p in st["plates"])
     _assert_clear(st["plates"])
     assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"])
@@ -1105,7 +1124,12 @@ def test_wide_route_scale_bar_stays_out_of_the_timestamp_corner_and_under_the_na
                                                                  height=1080))
     figures = [p for n, p in st["plates"] if n.startswith("scale")]
     names = [p for n, p in st["plates"] if n.startswith("stop")]
-    assert figures and max(p.box[2] for p in figures) < 1920 / 2, (case, [p.box for p in figures])
+    # freeze lane A cycle 3 (the furniture ruling): the bar is placed after the names, lower-left first, then the
+    # upper corners, the lower-right (the timestamp's side) last; inside title-safe it never meets the timestamp
+    # (these routes' names and globe leave only the lower-right clear)
+    bx = graphics._union([p.box for p in figures]) if figures else None
+    assert figures and not graphics.LayoutConstraintSolver.boxes_intersect(bx, (1620, 950, 1920, 1080)), (case, bx)
+    assert bx[3] <= graphics.WIDE_TITLE_SAFE[3], (case, bx)
     assert min(p.font.size for p in names) >= graphics.SCALE_FIGURE_PX + 4      # the names clearly dominate
     # review 9 (deliberate): 34 px still, and only a stop otherwise left unnamed steps down, to 28 px at the least
     assert graphics.ROUTE_NAME_PX == graphics.ROUTE_NAME_STEPS[0] == 34 and graphics.ROUTE_NAME_MIN_PX == 28
@@ -1768,7 +1792,7 @@ def test_route_names_never_read_as_another_stops_on_random_routes(tmp_path, monk
         assert other > own, (case, k, own, other)
         if other < own + graphics.ROUTE_NAME_MARGIN - 1:
             assert f"name of stop {k} ({stops[k]['label']}) is nearer its own stop by under" in warned, (case, k)
-    x0, y0, x1, y1 = graphics.get_text_box(*size)
+    x0, y0, x1, y1 = graphics.map_text_box(*size)    # cycle 3: a route's geography keeps the Reel box
     assert all(x0 <= p.box[0] and p.box[2] <= x1 and y0 <= p.box[1] and p.box[3] <= y1 for _, p in st["plates"])
     _assert_clear(st["plates"])
 
@@ -1836,10 +1860,12 @@ def test_wide_scale_bar_figures_are_clearly_secondary_to_the_names(tmp_path, mon
                                                                  height=1080))
     figures = [p for n, p in st["plates"] if n.startswith("scale")]
     names = [p for n, p in st["plates"] if n.startswith("stop")]
-    # round 6 (deliberate): the bar's labels are SCALE_LABEL_PX Montserrat 600 (SCALE_FIGURE_PX_WIDE before)
-    assert figures and {p.font.size for p in figures} == {graphics.SCALE_LABEL_PX}
-    assert 24 <= graphics.SCALE_FIGURE_PX_WIDE <= 26 and graphics.SCALE_LABEL_PX >= graphics.WIDE_TERTIARY_MIN
-    assert min(graphics.cap_height(p.font) for p in names) >= 1.3 * max(graphics.cap_height(p.font) for p in figures)
+    # round 6 (deliberate): the bar's labels are SCALE_LABEL_PX Montserrat 600 (SCALE_FIGURE_PX_WIDE before);
+    # freeze lane A cycle 3: in the data face at the 16:9 data-label floor (brand_system TYPE_FLOOR, 30 px: the gate
+    # outranks the 1.3 x cap step the 24 px figures had), still a step under the names
+    assert figures and {p.font.size for p in figures} == {graphics.scale_label_font(1920, 1080).size}
+    assert graphics.scale_label_font(1920, 1080).size >= graphics.data_floored(0, 1920, 1080)
+    assert min(graphics.cap_height(p.font) for p in names) > max(graphics.cap_height(p.font) for p in figures)
     assert graphics.scale_figure_px(1080, 1920) == graphics.SCALE_FIGURE_PX
 
 
@@ -2095,6 +2121,10 @@ def test_route_names_hold_their_lines_and_far_stops_and_the_destination_are_name
             assert own > graphics.ROUTE_LEADER_AT                                # so it hangs on a leader
             continue
         assert other > own, (case, k, own, other)
-    x0, y0, x1, y1 = graphics.get_text_box(*size)
+    # freeze lane A cycle 3: a route's names are geography and keep the Reel box (map_text_box); its scale bar is
+    # furniture in the text column (get_text_box)
+    x0, y0, x1, y1 = graphics.map_text_box(*size)
     assert all(x0 <= p.box[0] and p.box[2] <= x1 and y0 <= p.box[1] and p.box[3] <= y1 for _, p in st["plates"])
+    cx0, _cy0, cx1, _cy1 = graphics.get_text_box(*size)
+    assert all(cx0 <= p.box[0] and p.box[2] <= cx1 for n, p in st["plates"] if n.startswith("scale"))
     _assert_clear(st["plates"])

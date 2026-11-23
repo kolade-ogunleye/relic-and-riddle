@@ -118,7 +118,10 @@ def test_place_scale_bar_shifts_off_labels_and_the_home_fill() -> None:
     box = lay.box
     sub = home[int(box[1]):int(box[3]), int(box[0]):int(box[2])] > 127
     assert sub.mean() <= graphics.SCALE_HOME_MAX
-    assert lay.x > graphics.SCALE_ORIGIN_TALL[0] and (lay.x - graphics.SCALE_ORIGIN_TALL[0]) % 40 == 0
+    # freeze lane A cycle 3: the origin is inside the 9:16 text column (A-S1-2); the shifts step from it
+    start = graphics.place_scale_bar(bar, 1080, 1920, []).x
+    assert start >= graphics.get_text_box(1080, 1920)[0]
+    assert lay.x > start and (lay.x - start) % 40 == 0
     label = (60, 990, 380, 1050)
     lay2 = graphics.place_scale_bar(bar, 1080, 1920, [label])
     assert not graphics.LayoutConstraintSolver.boxes_intersect(lay2.box, label)
@@ -127,30 +130,34 @@ def test_place_scale_bar_shifts_off_labels_and_the_home_fill() -> None:
 @pytest.mark.skipif(not graphics.geo.available(), reason="Natural Earth data not downloaded")
 def test_the_greece_route_bar_keeps_off_crete_and_the_legs(tmp_path, monkeypatch) -> None:
     from tests.test_r4_graphics_2026_11_02 import _render_fast
+    # freeze lane A cycle 3 (the furniture ruling): the route's bar, placed after every name, keeps SCALE_MARK_PAD from
+    # the legs (their casing), the stops' dots and the coasts (Crete's); the land itself is not data
     cap: dict = {}
-    real_place, real_with = graphics.place_scale_bar, graphics._with_bar
+    real_place, real_with = graphics.furniture_scale_bar, graphics._with_bar
 
-    def spy_place(bar, width, height, labels, home=None, obstacles=None, origin=None, box_x=None, prefer="l"):
-        cap["obstacles"] = obstacles
-        return real_place(bar, width, height, labels, home, obstacles, origin, box_x, prefer)
+    def spy_place(bars, width, height, labels, hard=None, soft=None, box=None):
+        cap["hard"], cap["soft"] = hard, soft
+        got = real_place(bars, width, height, labels, hard, soft, box)
+        cap["got"] = got
+        return got
 
     def spy_with(rest, bar, x, y):
         cap["bar"] = (bar, x, y)
         return real_with(rest, bar, x, y)
-    monkeypatch.setattr(graphics, "place_scale_bar", spy_place)
+    monkeypatch.setattr(graphics, "furniture_scale_bar", spy_place)
     monkeypatch.setattr(graphics, "_with_bar", spy_with)
     stops = [{"place": "Athens", "country": "Greece", "label": "Athens"},
              {"place": "Antikythera", "country": "Greece", "label": "Antikythera wreck"},
              {"place": "Rhodes", "country": "Greece", "label": "Rhodes"}]
     _render_fast(monkeypatch, lambda: graphics.render_route(stops, tmp_path / "r.mp4", width=1080, height=1920))
+    assert cap["got"] is not None
     bar, x, y = cap["bar"]
     box = graphics.scale_bar_box(bar, x, y, graphics.scale_label_font(1080, 1920))
-    import cv2
-    r = int(graphics.SCALE_COAST_AIR)
-    obs = cap["obstacles"].astype(np.uint8)
-    grown = cv2.dilate(obs, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * r + 1, 2 * r + 1)))
+    pad = graphics.SCALE_MARK_PAD
     x0, y0, x1, y1 = (int(v) for v in box)
-    assert not grown[y0:y1, x0:x1].any()                  # off the land (Crete) and 16 px from the legs
+    assert not np.asarray(cap["hard"])[max(0, y0 - pad):y1 + pad, max(0, x0 - pad):x1 + pad].any()
+    if cap["got"].soft == 0 and cap["soft"] is not None:
+        assert not np.asarray(cap["soft"])[y0:y1, x0:x1].any()
 
 
 def test_route_scale_bar_motion_draws_then_shows_its_labels() -> None:

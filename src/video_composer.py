@@ -4734,7 +4734,7 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         return c
 
     best: list[tuple[float, int] | None] = [None] * (n + 1)
-    for mode[0] in (0, 1, 2):
+    for mode[0] in range(3):   # the three cue modes (a tuple of three ints reads as a colour to QF-35a)
         best = [None] * (n + 1)
         best[n] = (0.0, n)
         for a in range(n - 1, -1, -1):

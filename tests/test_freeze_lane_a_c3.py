@@ -322,12 +322,12 @@ def _locator(tmp_path, monkeypatch, key, size):
     if needs_data.args and needs_data.args[0]:
         pytest.skip("Natural Earth data not fetched")
     calls: list = []
-    real_dot = graphics._draw_dot
+    real_target = graphics._draw_target
 
-    def spy_dot(im, xy, k, scale=1.0, alpha=1.0, ripple=(0.0, 0.0)):
+    def spy_target(im, xy, k, alpha=1.0, pulse=(0.0, 0.0)):
         calls.append((xy, alpha))
-        return real_dot(im, xy, k, scale, alpha, ripple)
-    monkeypatch.setattr(graphics, "_draw_dot", spy_dot)
+        return real_target(im, xy, k, alpha, pulse)
+    monkeypatch.setattr(graphics, "_draw_target", spy_target)
     out = tmp_path / f"{key}.mp4"
     st = _render(monkeypatch, lambda: graphics.render_map(FRAMING_PLACES[key], out, width=size[0], height=size[1]),
                  fps=1)
@@ -356,14 +356,34 @@ def test_the_close_up_is_framed_on_the_site_with_named_context(tmp_path, monkeyp
         assert lay["neighbours"] or lay["water"] or any("neighbour" in str(r.get("omitted")) for r in st["omitted"])
     else:
         assert lay["neighbours"] or lay["water"], "no neighbour or sea named on the close-up"
-    # the first frame: the target drawn on the site, inside the frame, its BONE ring there in the pixels
+    # the first frame: the target (the GOLD site mark in its INK ring) drawn on the site, inside the frame; on every
+    # frame it is drawn (one a second at this test's 1 fps) the mark holds 3:1 against the ground round it, the INK
+    # ring carrying it on the gold home fill and the gold on the ink sea (lander review of c2ec4035)
+    from src.art_direction import contrast
     tx, ty = lay["target_first"]
     assert 0 <= tx < w and 0 <= ty < h
     assert st["dots"] and np.hypot(st["dots"][0][0][0] - tx, st["dots"][0][0][1] - ty) < 1 and st["dots"][0][1] == 1
-    arr = np.asarray(st["frames"][0]).astype(int)
+    assert graphics.TARGET_D >= 22 and graphics.TARGET_PULSE_D >= 80
     yy, xx = np.mgrid[0:h, 0:w]
-    ring = np.abs(np.hypot(xx - tx, yy - ty) - (graphics.DOT_D - graphics.DOT_RING_W) / 2 + 1) <= 1.5
-    assert (np.abs(arr[ring] - np.array(brand.BONE)).max(axis=1) <= 40).mean() > 0.5
+    for i, ((cx, cy), alpha) in enumerate(st["dots"][:3]):
+        if alpha < 1:
+            continue
+        arr = np.asarray(st["frames"][i]).astype(int)
+        rr = np.hypot(xx - cx, yy - cy)
+        core = np.median(arr[rr <= graphics.TARGET_D / 2 - 2], axis=0)
+        ring = np.median(arr[np.abs(rr - graphics.TARGET_D / 2 - graphics.TARGET_RING / 2) <= 1], axis=0)
+        ground = np.median(arr[(rr >= 24) & (rr <= 30)], axis=0)
+        assert np.abs(core - np.array(brand.GOLD)).max() <= 12 and np.abs(ring - np.array(brand.INK)).max() <= 12
+        mark = max(contrast(tuple(int(v) for v in core), tuple(int(v) for v in ground)),
+                   contrast(tuple(int(v) for v in ring), tuple(int(v) for v in ground)))
+        assert mark >= 3.0, (key, size, i, mark)
+    if h > w:
+        # the 1:1 profile-grid square (y 420-1500) that ships keeps the site and at least one drawn name
+        sq = (0, 420, w, 1500)
+        assert sq[1] <= lay["anchor"][1] <= sq[3]
+        drawn = {c["text"] for c in lay["name_checks"] if not c["fault"]}
+        assert any(sq[1] <= c["box"][1] and c["box"][3] <= sq[3] for c in lay["name_checks"]
+                   if not c["fault"] and c["text"] in drawn)
     # the opening at continental scale on both orientations: its shorter side spans at least 40 degrees
     assert lay["span_open"] * min(w, h) / w >= 40 - 1e-6 or lay["span_open"] < 40
 

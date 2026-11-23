@@ -2185,6 +2185,40 @@ def dot_motion(t: float, t0: float | None = None) -> tuple[float, float, float]:
 
 TARGET_PULSE_S = 1.0           # lander ruling (map framing): the target's ring, once a second while the camera travels
 TARGET_OUT_S = 0.15            # and it hands over to the marker as that lands, over this
+# Lander review of c2ec4035: the A.2 dot (a 12 px BONE ring) read as about 4 px at a phone's 400 px Reel and its
+# 24-72 px ripple did not show. The target is the brand's site mark at phone size: a GOLD dot TARGET_D across in an
+# INK ring TARGET_RING wide (the ring carries it on a gold home fill, the gold on the ink sea), and a GOLD pulse ring
+# TARGET_PULSE_W wide, cased in INK, growing from the mark to TARGET_PULSE_D over TARGET_PULSE_GROW s and fading
+TARGET_D = 24.0
+TARGET_RING = 4.0
+TARGET_PULSE_D = 90.0
+TARGET_PULSE_W = 4.0
+TARGET_PULSE_GROW = 0.9
+
+
+def _draw_target(im: Image.Image, xy: tuple[float, float], k: float, alpha: float = 1.0,
+                 pulse: tuple[float, float] = (0.0, 0.0)) -> Image.Image:
+    """The locator's target composited on `im` (changed in place and returned), supersampled: its pulse ring
+    (diameter px at k = 1, opacity), then the GOLD dot in its INK ring, all in the brand's own colours."""
+    x, y = xy
+    reach = max(TARGET_D + 2 * TARGET_RING, pulse[0] if pulse[1] > 0 else 0.0) * k / 2 + TARGET_PULSE_W * k + 3
+    a = int(255 * alpha)
+
+    def paint(d: ImageDraw.ImageDraw, at: Callable[[float, float], tuple[float, float]], ss: float) -> None:
+        cx, cy = at(x, y)
+        if pulse[1] > 0:
+            r = pulse[0] / 2 * k * ss
+            pa = int(255 * alpha * pulse[1])
+            w_ = TARGET_PULSE_W * k * ss
+            d.ellipse([cx - r - w_ / 2 - ss, cy - r - w_ / 2 - ss, cx + r + w_ / 2 + ss, cy + r + w_ / 2 + ss],
+                      outline=(*brand.INK, pa), width=max(1, round(w_ + 2 * ss)))
+            d.ellipse([cx - r - w_ / 2, cy - r - w_ / 2, cx + r + w_ / 2, cy + r + w_ / 2],
+                      outline=(*brand.GOLD, pa), width=max(1, round(w_)))
+        ro = (TARGET_D / 2 + TARGET_RING) * k * ss
+        ri = TARGET_D / 2 * k * ss
+        d.ellipse([cx - ro, cy - ro, cx + ro, cy + ro], fill=(*brand.INK, a))
+        d.ellipse([cx - ri, cy - ri, cx + ri, cy + ri], fill=(*brand.GOLD, a))
+    return _ss_composite(im, (x - reach, y - reach, x + reach, y + reach), paint)
 
 
 def target_motion(t: float, style: str, t0: float | None = None) -> tuple[float, float, float]:
@@ -2199,10 +2233,10 @@ def target_motion(t: float, style: str, t0: float | None = None) -> tuple[float,
         return 0.0, 0.0, 0.0
     rd = ra = 0.0
     if t < MAP_TRAVEL:
-        d0, d1, dur = DOT_RIPPLE
-        v = (t % TARGET_PULSE_S) / dur
+        d0, d1 = TARGET_D + 2 * TARGET_RING, TARGET_PULSE_D
+        v = (t % TARGET_PULSE_S) / TARGET_PULSE_GROW
         if v < 1:
-            rd, ra = d0 + (d1 - d0) * _ease(v), 0.8 * (1 - v)
+            rd, ra = d0 + (d1 - d0) * _ease(v), 1.0 - v ** 1.5
     return a, rd, ra
 
 
@@ -2971,6 +3005,7 @@ LOCATOR_NEIGHBOUR_CAP = 0.60
 LOCATOR_SEA_MIN = 0.10
 LOCATOR_VAST_MAX_SPAN = 40.0
 LOCATOR_SITE_THIRD = (1 / 3, 2 / 3)
+HOME_PANS = ((1.0, 0.0), (0.0, 1.0), (1.0, 1.0))   # a home name's pans: across, then up or down, then both
 
 
 def locator_content_box(width: int, height: int) -> tuple[float, float, float, float]:
@@ -4006,7 +4041,9 @@ def country_outside_place(name: str, home: BoolArray | None, anchor: tuple[float
         d_other = cv2.distanceTransform((~other).astype(np.uint8), cv2.DIST_L2, 5) if other.any() else None
     else:
         d_home = d_other = None
-    tb = get_text_box(width, height)
+    # freeze lane A cycle 3 (the lander's regression check on 0fbe1449: Little Diomede 9:16 lost UNITED STATES OF
+    # AMERICA): a name set over open water by geography keeps the Reel box (map_text_box), as a sea's name does
+    tb = map_text_box(width, height)
     aim = aim or anchor
     label_air = COUNTRY_LABEL_AIR * k
     near_px = COUNTRY_NEAR_PX * k
@@ -4123,7 +4160,7 @@ def country_spot(name: str, rings: list[list[tuple[float, float]]], home: BoolAr
         # 735 px wide, 88 fewer than the ads box: FRENCH SOUTHERN AND ANTARCTIC LANDS measures 802 px at 24) steps
         # down the COUNTRY_SMALL_PX sizes the fill already takes, to their floor, before it is dropped; a name the
         # box holds keeps its size
-        tb = get_text_box(width, height)
+        tb = map_text_box(width, height)
         f_ = get_font(brand.TEXT_FONT, out_px, weight=600)
         wide = ink_box((0.0, 0.0), name, f_, "mm", f_.size * COUNTRY_TRACK)
         steps = [px for px in small if px < out_px]
@@ -4677,6 +4714,15 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
         ii = _integral(mask)
         ii_other = _integral(land_all & ~mask)        # the home's and every third country's ground
         depth = cv2.distanceTransform(mask.astype(np.uint8), cv2.DIST_L2, 5)
+        # freeze lane A cycle 3 (the lander's regression check on 0fbe1449): the country's own deepest place (the
+        # middle of its ridge) is a candidate too, so a narrow country's name centres on its land instead of on
+        # wherever the grid falls (the 9:16 text column moved the grid and GAMBIA's name ran 0.5 px past its air)
+        sub = depth[y0:y1, x0:x1]
+        ridge: tuple[float, float] | None = None
+        if sub.size and float(sub.max()) > 0:
+            ry, rx = np.nonzero(sub >= float(sub.max()) - 0.5)
+            cy_, cx_ = float(ry.mean()) + y0, float(rx.mean()) + x0
+            ridge = (cy_, cx_) if mask[int(round(cy_)), int(round(cx_))] else (float(ry[0] + y0), float(rx[0] + x0))
         done = None
         why: dict[str, int] = {}
         # A narrow country can hold its name at a readable size while not holding
@@ -4698,8 +4744,13 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
                         why["area"] = why.get("area", 0) + 1
                         continue
                     ok = depth[ys_, xs_] >= (1 if relaxed else hh + 6)
-                    candidates_y, candidates_x = ys_[ok], xs_[ok]
-                    for i in np.argsort(-depth[candidates_y, candidates_x], kind="stable"):
+                    candidates_y, candidates_x = ys_[ok].astype(float), xs_[ok].astype(float)
+                    if ridge is not None and depth[int(round(ridge[0])), int(round(ridge[1]))] >= hh + 6:
+                        candidates_y = np.concatenate([[ridge[0]], candidates_y])
+                        candidates_x = np.concatenate([[ridge[1]], candidates_x])
+                    order = np.argsort(-depth[np.round(candidates_y).astype(int), np.round(candidates_x).astype(int)],
+                                       kind="stable")
+                    for i in order:
                         x, y = float(candidates_x[i]), float(candidates_y[i])
                         b = (x - hw, y - hh, x + hw, y + hh)
                         if not inside_tb(b):
@@ -5276,7 +5327,8 @@ def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: 
 def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                 narration: str = "", open_sea: bool = False, home_entity: geo.Country | None = None,
                 resolved: bool = False, zoom: float = 1.0, home_reason: str = "",
-                marker_policy: str | None = None, view_shift: tuple[float, float] | None = None) -> Path | None:
+                marker_policy: str | None = None, view_shift: tuple[float, float] | None = None,
+                home_pan: int = 0, pan_zoom: float | None = None) -> Path | None:
     """Regional locator map (round 6, 2026-11-03): the camera moves from a wide view to a close-up framed so the home
     fill covers 20-60 % of the graphics box (locator_span; camera_spans' log-space ease, then held) while the context
     globe turns into the site and fades out before the arrival; then the marker (MAP_MARKER_STYLE: the pin drops,
@@ -5462,15 +5514,33 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         # Every locator now shares the site-centred projection, so a view that
         # reaches polar latitudes is framed closer the same way (Bamburgh 9:16
         # dropped UNITED KINGDOM from a fill that holds it one step closer).
-        if spot is None and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN and not area \
-                and int(np.count_nonzero(home_f)) >= HOME_ZOOM_FILL_PX * k * k:
+        big_fill = int(np.count_nonzero(home_f)) >= HOME_ZOOM_FILL_PX * k * k
+        if spot is None and not home_pan and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN and not area and big_fill:
             # round 16 (review 1: Luxembourg's 250 x 420 px fill held no name beside LUXEMBOURG CITY, a regression
             # against HEAD): a fill large enough to be a country, not a speck, that holds its name nowhere is drawn
             # closer (HOME_ZOOM_STEP a time, to HOME_ZOOM_MIN) before the name is dropped
             log.info("Map: the home's name %r has no place at %.2f degrees; framed closer.", c_text, span_close)
             return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
                                zoom=zoom * HOME_ZOOM_STEP, home_reason=home_reason, marker_policy=style,
-                               view_shift=view_shift)
+                               view_shift=view_shift, pan_zoom=zoom if pan_zoom is None else pan_zoom)
+        if spot is None and not area and big_fill and home_pan < len(HOME_PANS):
+            # lander review of c2ec4035 (Bamburgh 9:16: UNITED KINGDOM was held only by panning the site to x 0.875):
+            # where no span holds the home's name, the site is panned toward the edge of the middle third of the
+            # content box, away from the home's ground (across, down or up, then both), at the first span; never
+            # out of the middle third. Last of all the name is dropped (logged, home_drop)
+            ys_, xs_ = np.nonzero(home_f)
+            cb = locator_content_box(width, height)
+            lo3, hi3 = LOCATOR_SITE_THIRD[0] + 0.0005, LOCATOR_SITE_THIRD[1] - 0.0005
+            centre = (width / 2, height / 2 - lift)
+            tx = cb[0] + (hi3 if xs_.mean() < anchor[0] else lo3) * (cb[2] - cb[0])
+            ty = cb[1] + (hi3 if ys_.mean() < anchor[1] else lo3) * (cb[3] - cb[1])
+            fx, fy = HOME_PANS[home_pan]
+            shift = ((tx - centre[0]) * fx, (ty - centre[1]) * fy)
+            log.info("Map: the home's name %r has no place; the site panned (%+.0f, %+.0f) inside the middle third.",
+                     c_text, *shift)
+            return _render_map(place, out, width, height, narration, open_sea, home_entity=home, resolved=True,
+                               zoom=zoom if pan_zoom is None else pan_zoom, home_reason=home_reason,
+                               marker_policy=style, view_shift=shift, home_pan=home_pan + 1, pan_zoom=pan_zoom)
         if spot is None:
             home_drop = "fits neither its own fill nor open water beside it" + (f" (last: {last_fault})"
                                                                                  if last_fault else "")
@@ -5869,8 +5939,8 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                 # to it; the marker lands on it at rest
                 ta, trd, tra = target_motion(t, "pin" if style == "pin" else "dot")
                 if ta > 0:
-                    im = _draw_dot(im, ((site_base[0] - (bw / 2 - cw / 2)) * width / cw,
-                                        (site_base[1] - (bh / 2 - ch / 2)) * height / ch), k, 1.0, ta, (trd, tra))
+                    im = _draw_target(im, ((site_base[0] - (bw / 2 - cw / 2)) * width / cw,
+                                           (site_base[1] - (bh / 2 - ch / 2)) * height / ch), k, ta, (trd, tra))
                 if style == "pin":
                     im = _draw_pin(im, anchor, k, pin_motion(t))
                 else:

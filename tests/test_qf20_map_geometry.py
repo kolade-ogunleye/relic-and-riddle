@@ -321,9 +321,17 @@ def test_five_event_date_column_reserves_the_last_rows_descenders(monkeypatch, c
     # This checks portrait cell geometry directly. The shared selection policy
     # correctly falls back to four when the same copy cannot fit widescreen;
     # that must not prevent exercising the five-cell portrait renderer here.
-    events = hierarchy.SETS["lw/lw14"]
-    rendered = r4._render_fast(monkeypatch, lambda: graphics._render_timeline_tall(
-        events, tmp_path / "five.mp4", 1080, 1920, None))
+    # freeze lane A cycle 3 (deliberate, ruling A-S2-2): no row but the last ends on an article or preposition, so
+    # lw14's third label ("... rediscovered of constantinople a halicarnassus 1923") needs four rows and the
+    # five-cell layout refuses it (QF-23: refused, never cut). The geometry is checked on the same set with that
+    # label's two never-end words left out (three rows, the last row's descenders the case under test)
+    import copy
+    events = copy.deepcopy(hierarchy.SETS["lw/lw14"])
+    events[2]["label"] = "Mausoleum constantinople rediscovered constantinople halicarnassus 1923"
+    # freeze lane A cycle 3 (deliberate): the 9:16 timeline is set in the 687 px text column with R8-3's box-column
+    # fallback (with_box_column, as render_timeline calls it); lw14's five labels need the fallback
+    rendered = r4._render_fast(monkeypatch, lambda: graphics.with_box_column(lambda: graphics._render_timeline_tall(
+        events, tmp_path / "five.mp4", 1080, 1920, None), "Timeline 9:16"))
     box = graphics.safe_zones.graphics_box(1080, 1920)
     assert len([name for name, _ in rendered["plates"] if name.startswith("year")]) == 5
     for index, event in enumerate(events):

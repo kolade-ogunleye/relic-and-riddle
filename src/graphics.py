@@ -2549,8 +2549,17 @@ def _rows_box(rows: list[tuple[str, tuple[float, float], str]], font: FreeTypeFo
 
 def _label_rows(lines: list[str], font: FreeTypeFont, x: float, first_base: float,
                 anchor: str) -> list[tuple[str, tuple[float, float], str]]:
-    step = round(cap_height(font) * 1.22)
-    return [(ln, (x, first_base + step * j), anchor) for j, ln in enumerate(lines)]
+    cap = cap_height(font)
+    step = round(cap * 1.22)
+    out, base = [], first_base
+    for j, ln in enumerate(lines):
+        out.append((ln, (x, base), anchor))
+        # freeze lane A cycle 3 (integration 3): a row whose ink runs under its baseline (a comma: "TORSHAVN,") keeps
+        # the rows' air under that ink too; at cap x 1.22 the comma met the next row's caps and every overlay-label
+        # variant measured about 1:1, so the site went unnamed and the map was declined
+        below = max(0.0, float(font.getbbox(ln, anchor="ls")[3]))
+        base += max(step, round(below + cap + 0.22 * cap))
+    return out
 
 
 PIN_ISLAND_COVER_MAX = 0.12     # round 11 (directive 4): the share of the island the pin and its name may cover
@@ -4677,7 +4686,10 @@ def close_neighbours(width: int, height: int, home: geo.Country | None,
     import numpy as np
     k = 1.0 if height > width else min(width / 1920, height / 1080)
     px0 = map_name_px(width, height)
-    tb = get_text_box(width, height)
+    # freeze lane A cycle 3 (integration 3: Pannonhalma's SLOVAKIA lost its room east of the site's name when the
+    # 687 px column took 24 px of it): a neighbour's name is set by geography, in the Reel box (map_text_box), as a
+    # sea's name and a home name over open water are
+    tb = map_text_box(width, height)
     x0, y0, x1, y1 = (int(v) for v in tb)
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
     masks: dict[int, tuple[geo.Country, Image.Image]] = {}
@@ -5324,6 +5336,16 @@ def locator_name_frame(lat: float, lon: float, home: geo.Country | None, width: 
         dy = -1 if target_y > anchor[1] else 1
         for x, y in ((.2, .15), (.2, .2), (.1, .25), (.2, 0), (0, .2), (.1, .1), (.1, 0), (0, .1)):
             offset = (dx * x * width, dy * y * height)
+            if offset not in offsets and site_in_middle_third((anchor[0] + offset[0], anchor[1] + offset[1]),
+                                                              width, height):
+                offsets.append(offset)
+        # integration 3 (Goree 16:9 lost GAMBIA once its 384 px pan was barred): the pans to the middle third's own
+        # edges toward the neighbour too, across, down or up, then both
+        cb = locator_content_box(width, height)
+        lo3, hi3 = LOCATOR_SITE_THIRD[0] + 0.0005, LOCATOR_SITE_THIRD[1] - 0.0005
+        ex = cb[0] + (hi3 if dx > 0 else lo3) * (cb[2] - cb[0]) - anchor[0]
+        ey = cb[1] + (hi3 if dy > 0 else lo3) * (cb[3] - cb[1]) - anchor[1]
+        for offset in ((ex, 0.0), (0.0, ey), (ex, ey)):
             if offset not in offsets and site_in_middle_third((anchor[0] + offset[0], anchor[1] + offset[1]),
                                                               width, height):
                 offsets.append(offset)
@@ -10270,6 +10292,19 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         ref_w = ref_feet * px_ft * width_per_px
         half = max(ref_w / 2 + 50, 150)
         shaft = (cx - half, cx + half)
+        # freeze lane A cycle 3 (the integrator's check: the 9:16 text column, x 137, left "ABOUT 280 FT" no room at
+        # the shaft's floor, and the floor's figure was dropped): the shaft moves right by what its floor figure
+        # needs at its least size, never past the drawing's right edge
+        floor_txt = _depth_ruler(feet, hedge, unit, fact)[-1][1]
+        least_px = rule_px - 2 * ((rule_px - max(26, floor)) // 2)   # the ruler loop's last 2 px step
+        f_min = data_font(least_px)
+        need = ruler_label_runs(shaft[0] - 26, 0.0, floor_txt, f_min)[1][0]
+        if need < x0:
+            move = min(x0 - need, max(0.0, x1 - shaft[1]))
+            cx += move
+            # then the shaft's wall comes in toward the landmark (its air beside it, from 50 px to 16 at the least)
+            half = max(half - (x0 - need - move), ref_w / 2 + 16)
+            shaft = (cx - half, cx + half)
         ref_cx = cx
         top_y = floor_y - ref_feet * px_ft
         # The bracket beside the landmark: its part above the ground, or (it would vanish) from its top up to
@@ -12106,8 +12141,12 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
             lines, _f, overflow = probe_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 2, g.f(lab_px),
                                              weight=600, quiet=True)
             if overflow:   # QF-23: three lines before the graphic is refused (it was cut on two with an ellipsis)
-                lines, _f, _ = fit_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 3,
-                                        g.f(lab_px), weight=600, quiet=True)
+                try:
+                    lines, _f, _ = fit_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 3,
+                                            g.f(lab_px), weight=600, quiet=True)
+                except TextFitError:   # no three rows hold it whole under the line-end rule: the section's refusal
+                    raise TextFitError(" | ".join(str(v["label"]) for v in levels),
+                                       where="the cross-section's label column") from None
             capf = cap_height(ff) / g.k
             h = capf + label_gap + line_step * (len(lines) - 1) + 8
             out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "three": overflow,
@@ -12323,7 +12362,10 @@ def render_cross_section(cs: dict[str, Any], out: Path, width: int = VIDEO_WIDTH
     if total <= 0 or len(levels) < 2:
         return None
     if width <= height:
-        return _render_cross_section_vertical(cs, levels, total, out, width, height)
+        # freeze lane A cycle 3 (integration 3): the 9:16 section in the text column, with R8-3's one fallback to the
+        # box column (with_box_column) before it is refused; the column alone refused Derinkuyu's three-row label
+        return with_box_column(lambda: _render_cross_section_vertical(cs, levels, total, out, width, height),
+                               "Cross-section 9:16")
     return _render_cross_section_wide(cs, levels, total, out, width, height)
 
 

@@ -205,9 +205,9 @@ def test_the_reviews_16x9_timelines_have_no_hard_break(name, tmp_path, monkeypat
     seen: list[list[str]] = []
     real = graphics.label_hard_fault
 
-    def spy(lines, source=None):
+    def spy(lines, source=None, **kw):     # freeze lane A cycle 3: the rule takes strict= (ranking, A-S2-2)
         seen.append(list(lines))
-        return real(lines, source)
+        return real(lines, source, **kw)
     monkeypatch.setattr(graphics, "label_hard_fault", spy)
     with caplog.at_level(logging.INFO, logger=graphics.log.name):
         _render(monkeypatch, lambda: graphics.render_timeline(TL[name], tmp_path / "t.mp4", width=1920, height=1080),

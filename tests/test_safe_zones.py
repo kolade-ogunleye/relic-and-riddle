@@ -31,8 +31,12 @@ def test_the_reel_box_is_the_strictest_of_its_three_platforms():
     # the pill, padding included, fits the box centred on the box (QF-24: the reviewed 640 px measure is kept and
     # centred at x 480, not cut to the 616 px left around the frame's centre; was == centred_width(), 696)
     assert MAX_CAPTION_WIDTH == 640 and MAX_CAPTION_WIDTH + 2 * 28 <= reel_caption_span() == 734
-    assert graphics.get_text_bounds(W, H) == (330, 1090) and graphics.get_text_box(W, H) == (113, 330, 848, 1090)
-    assert graphics.centred_text_width(W, H) == 616 and graphics.TEXT_BOTTOM == 1090
+    # freeze cycle 3 (lane A, panel 4 MG-1, deliberate): a graphic's 9:16 text column is the Reel box inset by the
+    # margin token (safe_zones.text_box, x 137-824), as every card's; the Reel box's own width (113-848) is R8-3's
+    # one fallback (with_box_column) and the map's geography names' box (map_text_box)
+    assert graphics.get_text_bounds(W, H) == (330, 1090) and graphics.get_text_box(W, H) == (137, 330, 824, 1090)
+    assert graphics.map_text_box(W, H) == (113, 330, 848, 1090)
+    assert graphics.centred_text_width(W, H) == 568 and graphics.TEXT_BOTTOM == 1090    # MG-1: 2 x (540 - 137)
     assert graphics.get_text_bounds(1920, 1080) == (129, 820)                         # the documentary's bounds unchanged
 
 
@@ -100,8 +104,12 @@ def test_a_graphics_text_and_figures_stay_inside_the_reel_box(kind, tmp_path):
     assert clip is not None
     poster = Image.open(clip.with_suffix(".jpg"))                                     # the last frame: every element shown
     assert poster.size == (W, H)
-    outside = _bright_outside(poster, graphics.get_text_box(W, H), grow=4)
-    assert outside == 0, f"{kind}: {outside} bright pixels outside {graphics.get_text_box(W, H)}"
+    # freeze cycle 3 (lane A, MG-1, deliberate): get_text_box is now the 687 px text column; the gate this test
+    # guards is the Reel box less the caption band (safe_zones.graphics_box), where the timeline's column has started
+    # since round 4 review 2 (its first year at the box's own top, 288, not the text bounds' 330)
+    box = safe_zones.graphics_box(W, H)
+    outside = _bright_outside(poster, box, grow=4)
+    assert outside == 0, f"{kind}: {outside} bright pixels outside {box}"
 
 
 @pytest.mark.skipif(not graphics.geo.available(), reason="Natural Earth data not installed")
@@ -109,7 +117,8 @@ def test_the_map_label_stays_inside_the_reel_box(tmp_path):
     clip = graphics.render_map({"lat": 21.124, "lon": -11.401, "label": "Richat Structure, the Eye of the Sahara",
                                 "country": "Mauritania"}, tmp_path / "map.mp4")
     poster = Image.open(clip.with_suffix(".jpg"))
-    assert _bright_outside(poster, graphics.get_text_box(W, H), threshold=235, grow=4) == 0  # the relief is never this bright
+    # the Reel box less the caption band (a map's names are set by geography there: map_text_box)
+    assert _bright_outside(poster, graphics.map_text_box(W, H), threshold=235, grow=4) == 0  # the relief is never this bright
 
 
 def test_story_text_blocks_stay_inside_the_story_box(tmp_path):

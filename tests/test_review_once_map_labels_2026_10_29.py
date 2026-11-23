@@ -138,8 +138,12 @@ def test_every_map_label_is_wholly_inside_the_safe_box_on_every_frame(monkeypatc
     monkeypatch.setattr(graphics, "map_label_plan", lambda *a, **k: plans.append(real(*a, **k)) or plans[-1])
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width, height: [next(iter(frames))] and out)
     place = {"lat": 38.373403, "lon": 34.735034, "country": "Turkey", "label": "Derinkuyu Underground City"}
-    graphics.render_map(place, graphics.Path("unused.mp4"))
-    (plan,) = plans
+    # freeze lane A cycle 3: the omission ledger open round the render, as graphics.make_all opens it (a name or the
+    # scale bar left out is recorded there); the last plan is the drawn framing's
+    from src.refusal import collecting
+    with collecting():
+        graphics.render_map(place, graphics.Path("unused.mp4"))
+    plan = plans[-1]
     w, h = graphics.VIDEO_WIDTH, graphics.VIDEO_HEIGHT
     x0, y0, x1, y1 = graphics.get_text_box(w, h)
     assert len(plan) == int(graphics.CLIP_SECONDS * graphics.VIDEO_FPS)

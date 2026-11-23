@@ -77,7 +77,10 @@ def test_then_now_is_placed_against_the_graphics_box():
     year = graphics.get_font("Anton", then_now.YEAR_PX["portrait"])
     assert yy + year.getbbox("2018", anchor="lt")[3] <= GRAPHICS_FOOT
     assert ky + font.getbbox("NOW", anchor="lt")[3] <= GRAPHICS_FOOT
-    assert then_now.marker_xy("then", W, H)[0] == REEL_RECT[0] + 18
+    # freeze lane A cycle 3 (MG-8, deliberate): the 9:16 markers sit in the text column (the Reel box inset by
+    # safe_zones.TEXT_INSET, x 137), 18 px in from it, as the cards start on that margin token; not on the box's edge
+    from src import safe_zones
+    assert then_now.marker_xy("then", W, H)[0] == safe_zones.text_box("reel", W, H)[0] + 18
 
 
 @pytest.fixture

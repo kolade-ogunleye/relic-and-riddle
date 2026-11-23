@@ -135,6 +135,22 @@ def render_one(job):
     else:
         key = f"site-{index + 1:03d}-{width}x{height}"
     path = OUTPUT / (key + ".mp4")  # identifier only; capture_frames writes no video
+    # freeze lane A cycle 3: the omission ledger opened round each render, as graphics.make_all opens it (a map drawn
+    # without its scale bar or a neighbour's name is recorded, the surface drawn); a tree without it renders as before
+    import contextlib
+    try:
+        from src.refusal import collecting
+    except ImportError:
+        collecting = None
+    ledger = collecting() if collecting is not None else contextlib.nullcontext([])
+    try:
+        with ledger as omitted:
+            return _render_one(kind, key, case, path, width, height, omitted)
+    except Exception as exc:  # noqa: BLE001 -- each exception is an explicit failed case in the result
+        return {"case": key, "kind": kind, "faults": [type(exc).__name__ + ": " + str(exc)]}
+
+
+def _render_one(kind, key, case, path, width, height, omitted):
     try:
         if kind == "route":
             GRAPHICS.geo.locate = located(case["stops"])
@@ -152,7 +168,8 @@ def render_one(job):
         if kind == "map" and layout.get("country") is None and not layout.get("home_drop"):
             faults.append("home dropped without a reason")
         return {"case": key, "kind": kind, "faults": faults, "home_drop": layout.get("home_drop", ""),
-                "frame": FRAME_HASHES.pop(str(path))}
+                "frame": FRAME_HASHES.pop(str(path)),
+                "omissions": [str(r.get("omitted")) for r in (omitted or [])]}
     except Exception as exc:  # noqa: BLE001 -- each exception is an explicit failed case in the result
         return {"case": key, "kind": kind, "faults": [type(exc).__name__ + ": " + str(exc)]}
 

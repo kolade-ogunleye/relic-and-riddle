@@ -63,4 +63,14 @@ with tempfile.TemporaryDirectory(prefix="neighbour-layout-") as temporary:
     rendered = json.loads(completed.stdout)
     assert rendered["result"]["faults"] == [], rendered
     assert not rendered["result"]["home_drop"], rendered
+    if tuple(size) == (1920, 1080) and site["label"] == "Goree Island":
+        # freeze lane A cycle 3 (lander ruling, map framing, deliberate): the site stands in the middle third of the
+        # content box. GAMBIA's 16:9 name was found only by panning Goree to x 0.26 of title-safe (offset -384 px);
+        # inside the middle third no span or pan holds it, so it is left out and recorded on the ledger
+        assert expected in rendered["neighbours"] or             f"the neighbour's name {expected}" in rendered["result"].get("omissions", []), rendered
+        return
     assert expected in rendered["neighbours"], rendered
+    # freeze lane A cycle 3 (lander ruling, the scale bar is furniture): the bar is placed after every name and never
+    # displaces one; where no corner holds it, it is omitted and recorded on the ledger (the benchmark opens it, as
+    # make_all does), never the neighbour's name
+    assert f"the neighbour's name {expected}" not in rendered["result"].get("omissions", []), rendered

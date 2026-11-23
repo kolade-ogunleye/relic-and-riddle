@@ -17,8 +17,14 @@ def selected_reference(scale_fact):
     feet = scale_fact["value"] * (3.28084 if scale_fact["unit"] == "m" else 1)
     if feet <= 0:
         return None
-    closest = min(references(), key=lambda r: abs(math.log(feet / r["feet"])))
-    return closest if 1 / 3 <= feet / closest["feet"] <= 3 else None
+    # Within 1/3x-3x of the subject, a landmark at least the subject's size first (the subject is measured up against
+    # it: a 107 ft temple against the 305 ft Statue of Liberty, never the 60 ft carved head, which is for the 20-100 ft
+    # band it was sourced for), the closest by ratio of those; else the closest by ratio.
+    inside = [r for r in references() if 1 / 3 <= feet / r["feet"] <= 3]
+    if not inside:
+        return None
+    taller = [r for r in inside if r["feet"] >= feet]
+    return min(taller or inside, key=lambda r: abs(math.log(feet / r["feet"])))
 
 
 def measurement_text(feet):

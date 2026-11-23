@@ -170,7 +170,19 @@ def test_a_lone_peer_is_never_repeated_as_more_peers(mods, tmp_path):
     assert len(tiles) == 1 and "each once; no STAND-IN" in tiles[0][0] and "ours: slot 2" in tiles[0][0]
 
 
-DEV = Path(os.environ.get("RR_FIXTURE_REPO") or r"C:\Users\omokolade\GitHub\relic-and-riddle")
+def _main_checkout(here: Path) -> Path:
+    """The main checkout of this repository (git's common directory's parent): the dev checkout that holds the
+    gitignored data, found from any worktree without naming a machine path."""
+    import subprocess
+    try:
+        common = subprocess.run(["git", "-C", str(here), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                                capture_output=True, text=True, check=True, timeout=30).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.SubprocessError):
+        return here
+
+
+DEV = Path(os.environ.get("RR_FIXTURE_REPO") or _main_checkout(Path(__file__).resolve().parent))
 SOCIAL_RUN = "run_richat_structure_sahara_eye_1793272675"
 
 

@@ -27,7 +27,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 GROUND_KINDS = ("white", "black", "grey", "noise", "texture", "edge_v", "edge_h", "text_band", "tiny", "aspect_wide",
                 "aspect_tall", "alpha", "hero_crop")
-DEV_ASSETS = Path(os.environ.get("RR_STRESS_ASSETS") or r"C:\Users\omokolade\GitHub\relic-and-riddle\assets")
+
+
+def _main_checkout(here: Path) -> Path:
+    """The main checkout of this repository (git's common directory's parent): the dev checkout that holds the
+    gitignored data, found from any worktree without naming a machine path."""
+    import subprocess
+    try:
+        common = subprocess.run(["git", "-C", str(here), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                                capture_output=True, text=True, check=True, timeout=30).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.SubprocessError):
+        return here
+
+
+DEV_ASSETS = Path(os.environ.get("RR_STRESS_ASSETS") or _main_checkout(Path(__file__).resolve().parent) / "assets")
 BASE = (1400, 1800)     # the cards' test photo size; covers and slides fit it to their own canvas
 
 

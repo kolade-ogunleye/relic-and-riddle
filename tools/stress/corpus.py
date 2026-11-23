@@ -29,7 +29,21 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TREE = HERE.parents[1]
-DEV = Path(os.environ.get("RR_STRESS_DEV") or r"C:\Users\omokolade\GitHub\relic-and-riddle")
+
+
+def _main_checkout(here: Path) -> Path:
+    """The main checkout of this repository (git's common directory's parent): the dev checkout that holds the
+    gitignored data, found from any worktree without naming a machine path."""
+    import subprocess
+    try:
+        common = subprocess.run(["git", "-C", str(here), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                                capture_output=True, text=True, check=True, timeout=30).stdout.strip()
+        return Path(common).parent
+    except (OSError, subprocess.SubprocessError):
+        return here
+
+
+DEV = Path(os.environ.get("RR_STRESS_DEV") or _main_checkout(HERE))
 PROD = Path(os.environ.get("RR_STRESS_PROD") or r"C:\tmp\prod-export-data")
 HEDGE_WORDS = ("about", "around", "roughly", "nearly", "almost", "more than", "over", "up to", "at least", "some",
                "estimated", "between", "approximately", "as many as")

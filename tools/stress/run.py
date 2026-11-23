@@ -57,8 +57,8 @@ def _init(tree: str, out: str) -> None:
     # a private copy of the place cache: a lookup may write it, never into the dev checkout or the tree
     priv = Path(out) / "_geo_cache.json"
     if not priv.exists():
-        src = Path(os.environ.get("RR_STRESS_GEO_CACHE") or
-                   r"C:\Users\omokolade\GitHub\relic-and-riddle\data\geo_cache.json")
+        from corpus import DEV
+        src = Path(os.environ.get("RR_STRESS_GEO_CACHE") or DEV / "data" / "geo_cache.json")
         priv.write_bytes(src.read_bytes() if src.is_file() else b"{}")
     geo.CACHE_FILE = priv
     import capture

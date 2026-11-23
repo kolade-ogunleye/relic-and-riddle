@@ -327,6 +327,7 @@ def test_wide_end_screen_ground_says_what_it_is(mods, monkeypatch):
     monkeypatch.setenv("RR_FIXTURE_REPO", str(DEV))
     monkeypatch.syspath_prepend(str(ROOT / "docs" / "reviews" / "freeze-panel-2026-11-04" / "fixtures"))
     fx = importlib.import_module("fixtures")
+    monkeypatch.setattr(fx, "REPO", DEV)   # fixtures reads RR_FIXTURE_REPO at import: another test may have imported it
     cases = fx.load("endcard")
     i = next(k for k, c in enumerate(cases) if c["topic"] == "wieliczka_salt_mine" and c.get("format") == "16:9")
     im, cls, why = bm.wide_last(fx, cases[i])

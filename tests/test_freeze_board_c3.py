@@ -302,16 +302,19 @@ def test_run_loop_motion_says_when_only_the_default_push_is_available(mods, tmp_
                     reason="needs the dev checkout's recorded social run")
 def test_fb_post_is_publishers_pick(mods):
     """Lane D: the fb_feed collage holds what the publisher posts (facebook_pick: the cover, the strongest middles,
-    the closing slide, at most five, in slide order), read with today's archetypes."""
+    the closing slide, at most five, in slide order but for lane D cycle 3's ruling 4: in a 5-photo collage the figure
+    slide takes the second top tile), read with today's archetypes."""
     be = mods["board_evidence"]
     from src.multi_format import FACEBOOK_PHOTOS
     run = DEV / "output" / SOCIAL_RUN
     every = sorted(p.name for p in (run / "carousel_fb").glob("carousel_slide_*.jpg"))
     picked = be.fb_post_slides(run, {"carousel_slide_05.jpg": "colossal_stat"})
-    assert len(picked) == min(len(every), FACEBOOK_PHOTOS) and picked == sorted(picked)
+    rest = [p for p in picked if p != "carousel_slide_05.jpg"]
+    assert len(picked) == min(len(every), FACEBOOK_PHOTOS) and rest == sorted(rest)
     assert picked[0] == every[0] and picked[-1] == every[-1]
-    if len(every) > FACEBOOK_PHOTOS:   # today's figure slide is the strongest middle: it makes the post
+    if len(every) > FACEBOOK_PHOTOS:   # today's figure slide is the strongest middle: it makes the post, second
         assert "carousel_slide_05.jpg" in picked
+        assert len(picked) != 5 or picked[1] == "carousel_slide_05.jpg"
     assert be.fb_post_slides(DEV / "output" / "no_such_run") == []
 
 

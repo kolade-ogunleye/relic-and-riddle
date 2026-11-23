@@ -140,7 +140,9 @@ def test_a_multi_row_label_lays_its_plate_once():
 def test_the_loop_bridge_follow_never_takes_a_halo_past_the_cap():
     grey = Image.new("RGB", (1080, 1920), (128, 128, 128))
     plate, why = end_card._follow_plate(grey, grey, 0.0, 0.0, 30)
-    assert why is None and plate.variant == "plate" and plate.halo == 0.0
+    # lane E cycle 3: the bridge with FOLLOW is no longer dimmed, so the undimmed mid grey holds INK type (4.9:1);
+    # the dimmed grey it was planned on before needed the held INK plate. Never a halo either way.
+    assert why is None and plate.variant in ("ink", "plate") and plate.halo == 0.0
     for col in ((255, 255, 255), (200, 215, 230), (0, 0, 0)):
         im = Image.new("RGB", (1080, 1920), col)
         p, _ = end_card._follow_plate(im, im, 0.0, 0.0, 30)

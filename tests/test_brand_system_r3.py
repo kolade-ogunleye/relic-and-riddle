@@ -189,13 +189,13 @@ def _story_render(tmp_path, ground=(120, 110, 95)):
     return np.asarray(im.convert("RGB")).tobytes(), lay
 
 
-def _carousel_render(tmp_path, facebook, ground=(150, 120, 90)):
+def _carousel_render(tmp_path, facebook, ground=(150, 120, 90), archetype="immersive"):
     from src.multi_format import MultiFormatGenerator
     photo = tmp_path / "c.jpg"
     Image.new("RGB", (1600, 2000), ground).save(photo)
     im, lay = MultiFormatGenerator()._render_carousel_slide(
-        "immersive", photo, photo, {"heading": "IMPACT THEORY DISPROVED", "body": "The theory was disproved in 1969."},
-        1, 7, {}, "", facebook, subject="EYE OF THE SAHARA")
+        archetype, photo, photo, {"heading": "IMPACT THEORY DISPROVED", "body": "The theory was disproved in 1969."},
+        0 if archetype == "cover" else 1, 7, {}, "", facebook, subject="EYE OF THE SAHARA")
     return np.asarray(im.convert("RGB")).tobytes(), lay
 
 
@@ -268,7 +268,10 @@ def test_masthead_tokens_change_the_complete_surfaces(tmp_path, surface, token, 
             sky = Image.new("RGB", (1920, 1080), (120, 170, 225))
             im, _ = youtube_thumbnail.render(sky, {"title": "THE EYE OF THE SAHARA"}, meta={})
             return np.asarray(im.convert("RGB")).tobytes()
-        return _carousel_render(tmp_path, surface == "facebook")[0]
+        # lane D cycle 3 (lander ruling 1): the Facebook collage carries the masthead on its cover tile only, so the
+        # Facebook probe reads the cover (an interior Facebook slide draws none, recorded fb_interior)
+        return _carousel_render(tmp_path, surface == "facebook",
+                                archetype="cover" if surface == "facebook" else "immersive")[0]
     before = render()
     with brand.use(brand.DEFAULT_BRAND.derive(f"{token} probe", system={token: value})):
         during = render()

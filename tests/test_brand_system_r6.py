@@ -246,9 +246,11 @@ def test_a_name_that_fits_at_the_floor_is_drawn_and_a_refusal_names_the_true_flo
         with brand.use(brand.DEFAULT_BRAND.derive("wide name", text={"masthead": name})):
             assert (masthead.group_width(floor) <= 960) is fits
             for fb in (False, True):
+                # lane D cycle 3 (lander ruling 1): a Facebook interior slide draws no masthead (recorded
+                # fb_interior); the Facebook masthead is read on its cover tile, in a deck of 5+ (the full column)
                 _, lay = MultiFormatGenerator()._render_carousel_slide(
-                    "immersive", photo, photo, {"heading": "OLD ROOMS", "body": "A short body."}, 1, 3, {}, "", fb,
-                    subject="TEST SITE")
+                    "cover" if fb else "immersive", photo, photo, {"heading": "OLD ROOMS", "body": "A short body."},
+                    0 if fb else 1, 7 if fb else 3, {}, "", fb, subject="TEST SITE")
                 rec = lay.meta["masthead"]
                 if fits:
                     assert rec["shown"] and rec["size_px"] == pytest.approx(floor), rec

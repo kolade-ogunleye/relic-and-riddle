@@ -43,6 +43,7 @@ def test_the_masthead_never_competes_with_the_hook(copy):
     ladder = masthead.fit_ladder(yt.BRAND_PX)
     size = rec["size_px"]
     assert abs(size - yt.mast_px()) < 1e-6 and any(abs(size - s) < 1e-6 for s in ladder)
+    assert abs(yt.mast_px() - yt.measured_mast_px()) < 1e-6   # SYS-B-5's token is the measured step
     width = masthead.group_width(size, yt.LEFT)
     assert width <= yt.MARK_RATIO_MAX * yt.WORST_HOOK_ROW + 1.0 or abs(size - ladder[-1]) < 1e-6
     bigger = [s for s in ladder if s > size + 1e-6]

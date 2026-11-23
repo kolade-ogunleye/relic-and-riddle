@@ -526,9 +526,13 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "cover_design:_qualifier_fit": "B",
     "cover_design:_render": "B",
     "cover_design:_tagline_lines": "B",
+    "cover_design:one_heading": "B",              # lane B cycle 3: the two fields set as one heading
+    "cover_design:one_heading.width_at": "B",
     "design_cards:_Card.font": "F",
     "design_cards:_cap": "F",
     "design_cards:_chapter_compose": "F",
+    "design_cards:_chapter_ink_foot": "F",         # lane F cycle 3: descenders inside the foot
+    "design_cards:_chapter_wide_three": "F",       # lane F cycle 3: the 16:9 chapter spans its numeral
     "design_cards:_design_wrap": "F",
     "design_cards:_hook_mast_foot": "F",
     "design_cards:_kicker": "F",
@@ -627,6 +631,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "video_composer:_record_caption_faces": "C",
     "video_composer:reel_cap_height": "C",
     "youtube_thumbnail:_kicker_font": "B",
+    "youtube_thumbnail:_lockup": "B",              # lane B cycle 3: the refusal names its rule at the floor
     "youtube_thumbnail:_lockup.attempt": "B",
     "youtube_thumbnail:_lockup.width_at": "B",
     "youtube_thumbnail:_qual_font": "B",
@@ -634,6 +639,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_figure_fonts": "B",        # cycle 0 round 8: the figure and unit held at their feed floors
     "youtube_thumbnail:_title_form": "B",          # cycle 0 round 8 (ruling 7): the figure title's ladder + two-line tier
     "youtube_thumbnail:_title_form.width_at": "B",
+    "youtube_thumbnail:headline_bound": "B",       # lane B cycle 3: the signed headline's length bound
 })
 
 # Sites the static scan cannot see because the font is made one call away (a font_engine helper rasterising a shaped

@@ -18,7 +18,9 @@ PAYLOAD = {
         "tagline": "ROOM FOR 20,000 PEOPLE",
     },
 }
-COPY_FIELDS = {"eyebrow", "title_1", "title_2", "tagline"}
+# title_2 only where the two lines are drawn as two fields: lane B cycle 3 sets a stack that would leave a one-word
+# row under heading.balance_min as ONE heading (the monument's "DOWN" / "BEHIND A WALL" -> DOWN BEHIND A WALL)
+COPY_FIELDS = {"eyebrow", "title_1", "tagline"}
 
 
 def _hero(tmp_path, ground):

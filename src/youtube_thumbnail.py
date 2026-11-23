@@ -318,19 +318,26 @@ def hook_row(plates) -> float | None:
 # masthead size, a declared step of its own fit ladder chosen so masthead.hook_ratio_max holds on the worst real copy,
 # at or above the ladder's floor (masthead.fit_floor). WORST_HOOK_ROW: the narrowest hook first row measured on the
 # real thumbnails that draw (65 runs, dev output + production sample, lane B cycle 3 tree: 424 px, a one-word row);
-# 0.78 of it (331 px) is under the floor's group (488 px), so the floor holds: 48 px. SYS-B-5 asks for the step as a
-# token (masthead.youtube_px); until then it is derived here from the token and this measurement.
+# 0.78 of it (331 px) is under the floor's group (488 px), so the floor holds: 48 px. SYS-B-5 holds that step as the
+# token masthead.youtube_px (48); mast_px reads it, and measured_mast_px is the measurement it was chosen by.
 WORST_HOOK_ROW = 424.0
 
 
-def mast_px() -> float:
-    """The YouTube masthead's one size: the largest step of masthead.fit_ladder(BRAND_PX) whose drawn group is at most
+def measured_mast_px() -> float:
+    """The step the measurement gives: the largest of masthead.fit_ladder(BRAND_PX) whose drawn group is at most
     masthead.hook_ratio_max of WORST_HOOK_ROW, else the ladder's floor (never under it)."""
     from . import masthead
     from .brand_system import tok
     ladder = masthead.fit_ladder(BRAND_PX)
     room = tok("masthead.hook_ratio_max") * WORST_HOOK_ROW
     return next((s for s in ladder if masthead.group_width(s, LEFT) <= room + 1e-9), ladder[-1])
+
+
+def mast_px() -> float:
+    """The YouTube masthead's one size (SYS-B-5): the token masthead.youtube_px, a step of masthead.fit_ladder
+    (brand_system validates its range; the system's tests hold it to the ladder and to measured_mast_px)."""
+    from .brand_system import tok
+    return float(tok("masthead.youtube_px"))
 
 
 def _mark_room(plates) -> float | None:

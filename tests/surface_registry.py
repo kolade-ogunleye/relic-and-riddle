@@ -661,9 +661,13 @@ def render_all(tmp: Path) -> list[str]:
     graphics.graded_frame = lambda frame, work, vignette=False: None
     done = []
     try:
+        # freeze lane A cycle 3: the omission ledger open round each surface, as graphics.make_all opens it (a map's
+        # home name, a neighbour's name or the scale bar left out is recorded there, the surface still drawn)
+        from src.refusal import collecting
         for key in registry():
             kind, branch, canvas = split_key(key)
-            (forks[kind][branch] if branch else table[kind])(ctx, CANVAS.get(canvas))
+            with collecting():
+                (forks[kind][branch] if branch else table[kind])(ctx, CANVAS.get(canvas))
             done.append(key)
     finally:
         (graphics._encode, then_now._encode, callouts._encode, graphics.VIDEO_FPS, graphics.graded_frame) = saved

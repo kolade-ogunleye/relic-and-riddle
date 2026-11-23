@@ -1343,20 +1343,27 @@ def test_r2_evidence_corrections_keep_the_finding(richat):
         assert len(c) <= 84
 
 
-def test_r2_c5_total_reads_as_its_label_on_the_real_ground(richat):
+@pytest.mark.parametrize("size", [WIDE, TALL], ids=["16x9", "9x16"])
+def test_r2_c5_total_reads_as_its_label_on_the_real_ground(richat, size):
     """Round 2 (review: 9.68 against 9.85 on act 2 busy): on the Richat run's busiest photo (05_commons.jpg) the
-    16:9 total's contrast is within 0.1 of the CHAPTER label's, planned and drawn on the last frame."""
+    total's contrast is within 0.1 of the type it stands with, planned and drawn on the last frame, never under 7.0.
+
+    Lane F cycle 2 (55082555, "the chapter count stands with its numeral on both formats") moved the 16:9 total off
+    the kicker line to the numeral's baseline, across the divider from the CHAPTER label (it was planned against the
+    label's contrast only while it sat beside it), so the type it stands with, and is read against, is its numeral
+    now, on both formats (freeze int 3: the label pairing measured 9.84 against 8.30 there; the numeral 9.91)."""
     photo = ROOT / "assets" / "richat_structure_sahara_eye" / "05_commons.jpg"
     if not photo.is_file():
         pytest.skip("the run's photo is not in this checkout")
     sh = copy.deepcopy(richat)
     plan = dc.plan_chapter_card(dc.ChapterCard(number=2, total=ACTS, title=ACT2, photo=photo,
-                                               title_src=T.gate(ACT2, sh)), sh, *WIDE)
+                                               title_src=T.gate(ACT2, sh)), sh, *size)
     c = dict(plan.meta["_contrast"])
-    assert abs(c["total"].contrast - c["kicker_label"].contrast) <= 0.1
+    assert plan.meta["anchors"]["total_placement"] == "after_numeral"
+    assert abs(c["total"].contrast - c["numeral"].contrast) <= 0.1
     last = dc.frame_at(plan, plan.frames - 1)
-    assert abs(c["total"].measure(last) - c["kicker_label"].measure(last)) <= 0.1
-    assert min(c["total"].contrast, c["kicker_label"].contrast) >= 7.0
+    assert abs(c["total"].measure(last) - c["numeral"].measure(last)) <= 0.1
+    assert min(c["total"].contrast, c["numeral"].contrast, c["total"].measure(last)) >= 7.0
 
 
 # ------------------------------------------------------------------------------------------------ round 4

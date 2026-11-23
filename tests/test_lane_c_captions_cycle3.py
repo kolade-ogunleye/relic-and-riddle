@@ -179,7 +179,12 @@ def test_an_era_range_is_one_figure_group():
 def test_no_burst_cut_falls_inside_a_settable_figure_group(text):
     words = _timed(text)
     phrases = vc.caption_phrases(words, None, False)
-    assert vc.figure_split_cuts(phrases) == [], [" ".join(w["word"] for w in p) for p in phrases]
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    # lander ruling on 2396b8df: a settable RANGE group whose whole form leaves a never-end burst end (ENGINEERS MOVED
+    # FROM |) cuts at its joiner, and only there; every other settable group is never cut
+    cuts = vc._cuts_of(phrases)
+    assert cuts & (vc._figure_bonds([w["word"] for w in words]) | vc.unit_links(words)) <= vc.range_joiner_cuts(words), texts
+    assert not vc.figure_split_cuts(phrases) or vc.never_end_bursts(phrases) == [], texts
     for p in phrases:   # a group past the caps sets on two lines, each line within one burst's caps
         ws = [w["word"] for w in p]
         lay = vc.reel_caption_lines(ws)
@@ -294,3 +299,82 @@ def test_sidecar_cues_follow_the_burst_bonds_and_never_end_rules(name, path):
         if len(lines) == 2:
             k = start + len(lines[0].split()) - 1
             assert k not in links or vc._norm(raw[k + 1]) in vc.RANGE_JOINERS, text
+
+
+# ---------------------------------------------------------------- int-3: a figure group bond and the never-end rule
+# The two real narrations the int-3 integration caught (QF-150's lint on the bond of 8f00b711): the group held whole
+# left its never-end lead-in or the word after its closing word ending a burst (STANDS AFTER |, OLD, AND |).
+NEVER_END_BEFORE_GROUP = [
+    ("The old dome still stands after nearly two thousand years.", "after nearly two thousand years."),
+    ("Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it "
+     "to hide from raids.", "old,"),
+]
+
+
+def _paced(text: str) -> list[dict]:
+    """The narrator's fitted pace (QF-150's nominal timing on the 69 real runs' words: 0.053 s a letter plus 0.09 s,
+    a clause mark 0.47 s more, a sentence end 0.55 s), the timing the script-stage lint plans these narrations at."""
+    words, at = [], 0.0
+    for w in text.split():
+        span = 0.053 * len(re.sub(r"\W", "", w)) + 0.09
+        words.append({"word": w, "start": round(at, 3), "dur": round(span * 0.85, 3)})
+        at += span + (0.55 if re.search(r"[.!?]$", w) else 0.47 if re.search(r"[,;:]$", w) else 0.0)
+    return words
+
+
+@pytest.mark.parametrize("text,burst", NEVER_END_BEFORE_GROUP)
+def test_a_figure_group_held_whole_leaves_no_never_end_burst_end_before_or_after_it(text, burst):
+    phrases = vc.caption_phrases(_paced(text), None, False)
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    assert vc.never_end_bursts(phrases) == [], texts          # the never-end rule holds
+    assert vc.figure_split_cuts(phrases) == [], texts         # and the group is never cut
+    assert burst in texts, texts
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    assert rec["never_end"] == [] and rec["figure_split"] == []
+    for p in phrases:   # the lead-in rides the group's own two-line form, each line within one burst's caps
+        ws = [w["word"] for w in p]
+        if vc._figure_group_over_caps(ws):
+            k = vc.reel_caption_lines(ws)[0]
+            assert not vc.reel_line_defect(ws)
+            for line in (ws[:k], ws[k:]):
+                assert len(line) <= vc.MAX_BURST_WORDS and len(" ".join(line)) <= vc.MAX_BURST_CHARS
+    if burst == "old,":   # a closing word no form holds with its group stands alone after it, recorded
+        assert rec["lone_group_tail"] == ["nearly three thousand years | old,"]
+
+
+# ---------------------------------------------------------------- lander ruling on 2396b8df: a range splits at its joiner
+# Order: the figure group whole (one burst, or its own two lines); where that leaves a never-end burst end, a RANGE group
+# may cut at its joiner and only there, each side with its own number, unit and hedge; only then does a never-end end
+# stay (recorded, and QF-150's lint flags it). The real narrations (unfinished obelisk, dev and production; Antikythera
+# closing sentence, production).
+OBELISK = ("Calculations of the finished obelisk's weight range from nearly 1,090 tonnes to 1,168 tonnes, possibly "
+           "ordered to complement the Lateran Obelisk at Karnak.")
+ANTIKYTHERA = "That astonishing scientific mastery vanished for over a thousand years when the cargo ship was lost."
+
+
+@pytest.mark.parametrize("timing", [_paced, _timed])
+def test_a_range_left_with_a_never_end_lead_in_splits_at_its_joiner_only(timing):
+    phrases = vc.caption_phrases(timing(OBELISK), None, False)
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    assert vc.never_end_bursts(phrases) == [], texts                     # never RANGE FROM |
+    assert "from nearly 1,090 tonnes" in texts and "to 1,168 tonnes," in texts, texts   # the hedge with the first end
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    assert rec["figure_split"] == ["from nearly 1,090 tonnes | to 1,168 tonnes,"]       # the cut is recorded
+    raw = OBELISK.split()
+    assert vc.range_joiner_cuts(raw) == {raw.index("tonnes")}           # only before the joiner, never inside a unit
+
+
+def test_a_range_one_burst_holds_whole_is_not_split():
+    phrases = vc.caption_phrases(_paced("The weight calculations ranged from nearly 1,090 to 1,168 tonnes. Work "
+                                        "stopped."), None, False)
+    assert vc.figure_split_cuts(phrases) == [] and vc.never_end_bursts(phrases) == []
+
+
+def test_a_group_that_is_no_range_stays_whole_and_its_never_end_lead_in_is_recorded():
+    raw = ANTIKYTHERA.split()
+    assert vc.range_joiner_cuts(raw) == set()
+    phrases = vc.caption_phrases(_paced(ANTIKYTHERA), None, False)
+    texts = [" ".join(w["word"] for w in p) for p in phrases]
+    assert "over a thousand years" in texts and vc.figure_split_cuts(phrases) == [], texts
+    rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
+    assert rec["never_end"] == vc.never_end_bursts(phrases) and rec["never_end"], texts

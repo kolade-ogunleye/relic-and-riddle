@@ -3065,6 +3065,56 @@ def figure_group_tail_links(words: list[Any]) -> set[int]:
     return out
 
 
+def _figure_group_tail_positions(words: list[Any]) -> set[int]:
+    """Lane C cycle 3 (int-3 fix): the positions of each figure group's closing word (_RANGE_TAIL_WORDS: AGO, OLD,
+    HIGH) that ends its clause right after the group (NEARLY THREE THOUSAND YEARS OLD,): the one word the never-end
+    repair may leave alone after its group where no form holds both (recorded: lone_group_tails)."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        while k in links:
+            k += 1
+        if (k + 1 < len(raw) and not _ends_clause(raw[k]) and _norm(raw[k + 1]) in _RANGE_TAIL_WORDS
+                and _ends_clause(raw[k + 1])):
+            out.add(k + 1)
+        k += 1
+    return out
+
+
+def range_joiner_cuts(words: list[Any]) -> set[int]:
+    """Lane C cycle 3 (lander ruling on 2396b8df): the cuts a range figure group (X TO Y, BETWEEN X AND Y) may take
+    at its joiner, the position before TO / AND / OR inside the group with a figure on each side, where keeping the
+    group whole leaves a never-end burst end (FROM NEARLY 1,090 TONNES | TO 1,168 TONNES., never RANGE FROM |). Each
+    side keeps its own number, unit and hedge; a cut inside a number and its unit, or between a hedge and its number,
+    is never one. A group that is no range (OVER A THOUSAND YEARS) has none."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    tokens = [_norm(r) for r in raw]
+    links = _figure_bonds(raw) | unit_links(raw)
+    out: set[int] = set()
+    k = 0
+    while k < len(raw):
+        if k not in links:
+            k += 1
+            continue
+        a = k
+        while k in links:
+            k += 1
+        # raw[a..k] is the group
+        for j in range(a + 1, k + 1):
+            if (tokens[j] in RANGE_JOINERS and (j - 1) in links and j in links
+                    and any(_is_figure_at(tokens, i) for i in range(a, j))
+                    and any(_is_figure_at(tokens, i) for i in range(j + 1, k + 1))
+                    and not _ends_clause(raw[j - 1])):
+                out.add(j - 1)
+        k += 1
+    return out
+
+
 def _reel_figure_group_fits(group: list[str]) -> bool:
     """Whether a 9:16 burst can set this figure group whole: within the caps with the bond extra at the bond floor
     (bonded_burst_allowed), or on two lines (reel_caption_lines, _figure_group_split)."""
@@ -3201,8 +3251,27 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and _fits_caption_burst(ph)))
     phrases = _two_line_phrasing(phrases, words, base)
+    pos = {id(w): k for k, w in enumerate(words)}
+    tails = _figure_group_tail_positions(words)
+
+    def group_two_lines(ph: list[dict[str, Any]]) -> bool:
+        """Lane C cycle 3 (int-3 fix): a figure group past the caps, its lead-in included (AFTER NEARLY / TWO
+        THOUSAND YEARS.), that sets as its own two-line burst (_figure_group_split, each line within one burst's caps)
+        is a form the repair may make: the bond keeps the group whole, so a never-end word before it (STANDS AFTER |)
+        is pulled into it rather than left ending a burst."""
+        raw = [w["word"] for w in ph]
+        return (_figure_group_over_caps(raw) and _fits_caption_burst(ph) and reel_caption_lines(raw) is not None
+                and not reel_line_defect(ph))
+
+    def lone_tail(ph: list[dict[str, Any]]) -> bool:
+        """Lane C cycle 3 (int-3 fix; ruling 1 on 8f00b711): a figure group's closing word that no form holds with the
+        group may stand alone after it (NEARLY THREE THOUSAND YEARS | OLD, | AND BYZANTINE-ERA CHRISTIANS), recorded
+        (reading_rates "lone_group_tail"), rather than a never-end word after it ending the burst (OLD, AND |)."""
+        return len(ph) == 1 and pos[id(ph[0])] in tails and _fits_caption_burst(ph)
 
     def strict(ph: list[dict[str, Any]]) -> bool:
+        if group_two_lines(ph):
+            return True
         return (2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
                 and not _function_only(ph) and _fits_caption_burst(ph) and not reel_line_defect(ph))
 
@@ -3216,7 +3285,8 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
     # `bond_extra` (lane C ruling 5): each burst the repair forms with the bond extra, and the defect it removed
     out = _never_end_repair(phrases, words, strict, relaxed, line_defect=reel_line_defect, lenient=lambda ph: (
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
-        and not _function_only(ph) and _fits_caption_burst(ph)), bond_extra=bond_extra)
+        and not _function_only(ph) and _fits_caption_burst(ph)) or group_two_lines(ph) or lone_tail(ph),
+        bond_extra=bond_extra, range_cuts=range_joiner_cuts(words), ranged=lambda ph: strict(ph) or relaxed(ph))
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
@@ -3236,7 +3306,9 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
                       relaxed: Callable[[list[dict[str, Any]]], bool] | None = None,
                       line_defect: Callable[[list[dict[str, Any]]], bool] | None = None,
                       lenient: Callable[[list[dict[str, Any]]], bool] | None = None,
-                      bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+                      bond_extra: list[dict[str, Any]] | None = None,
+                      range_cuts: set[int] | None = None,
+                      ranged: Callable[[list[dict[str, Any]]], bool] | None = None) -> list[list[dict[str, Any]]]:
     """Cycle 0 round 8 (rules2 F4): the last pass of both burst paths (9:16 and 16:9). A burst ending mid-sentence on
     a never-end word (never_end_end: the closed class, brand_system.NEVER_END_WORDS) takes the first words of the
     next burst, else gives its tail to it, else the two are one: the least change whose bursts both hold the path's
@@ -3250,8 +3322,10 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
     CAPTION_BOND_MIN_SIZE: THAT THE MANUSCRIPT'S). Where neither holds, no valid break exists in the window (NEAR /
     THE PODKAMENNAYA: 656 px at 66 against a 640 px budget). Last, a burst END still on a never-end word may take
     words under `lenient` (the path's caps, a line defect allowed): both lines are read at once, so WHERE THE MOST /
-    COMMON reads better than WHERE THE MOST | COMMON across a cut. What stays is named in every record
-    (never_end_bursts, line_defect_bursts)."""
+    COMMON reads better than WHERE THE MOST | COMMON across a cut. Lane C cycle 3 (lander ruling on 2396b8df): only
+    then may a burst END still on a never-end word cut a range figure group at its joiner (`range_cuts`, each burst
+    under `ranged`): FROM NEARLY 1,090 TONNES | TO 1,168 TONNES., recorded (figure_split_cuts). What stays is named
+    in every record (never_end_bursts, line_defect_bursts)."""
     out = [list(p) for p in phrases if p]
     if not out:
         return out
@@ -3259,9 +3333,10 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
     raw = [w["word"] for w in words]
     protected = name_bonds(raw) | caption_bonds(words) | unit_links(words)
     line_defect = line_defect or (lambda ph: False)
+    free: set[int] = set()   # the protected cuts this tier may make (the range tier: range_cuts)
 
     def cut_ok(a: list[dict[str, Any]], b: list[dict[str, Any]]) -> bool:
-        return (pos[id(a[-1])] not in protected and not never_end_end(a[-1]["word"])
+        return ((pos[id(a[-1])] not in protected or pos[id(a[-1])] in free) and not never_end_end(a[-1]["word"])
                 and not _is_atomic_boundary(a[-1]["word"], b[0]["word"]))
 
     def defects(trial: list[list[dict[str, Any]]], at: list[int]) -> int:
@@ -3293,9 +3368,11 @@ def _never_end_repair(phrases: list[list[dict[str, Any]]], words: list[dict[str,
                 return got
         return None
 
-    for ok, lines in ((allowed, True), (relaxed, True), (lenient, False)):
-        if ok is None:
+    for ok, lines, cuts in ((allowed, True, set()), (relaxed, True, set()), (lenient, False, set()),
+                            (ranged, False, range_cuts or set())):
+        if ok is None or (ok is ranged and not cuts):
             continue
+        free = cuts
         i = 0
         while i < len(out):
             if not broken(out, i, lines):
@@ -3350,7 +3427,7 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
     for p in span[:-1]:
         at += len(p)
         old_cuts.add(at)
-    best = None
+    found = []
     for m in (k, k - 1, k + 1):   # as many bursts, else one fewer, else one more
         if not 1 <= m <= n:
             continue
@@ -3362,14 +3439,15 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
             if after is not None and not cut_ok(parts[-1], after):
                 continue
             score = (sum(_dangles(p[-1]["word"]) for p in parts[:-1]), abs(m - k), len(set(cuts) ^ old_cuts))
-            if best is None or score < best[0]:
-                best = (score, parts)
-    if best is None:
-        return None
-    trial = out[:lo] + best[1] + out[hi + 1:]
-    if defects(trial, list(range(lo, hi + 1))) > defects(out, list(range(lo, hi + 1))):
-        return None
-    return trial
+            found.append((score, len(found), parts))
+    # int-3 fix: the best-scored re-cut that adds no rate defect (was: only the best-scored one was tried, so a tie
+    # that read too fast hid an equal one that did not: THE OLD | DOME STILL STANDS before THE OLD DOME | STILL STANDS)
+    before = defects(out, list(range(lo, hi + 1)))
+    for _, _, parts in sorted(found, key=lambda f: f[:2]):
+        trial = out[:lo] + parts + out[hi + 1:]
+        if defects(trial, list(range(lo, hi + 1))) <= before:
+            return trial
+    return None
 
 
 def _two_line_phrasing(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],

@@ -517,42 +517,57 @@ class VisualEngine:
         im = drawn_plates = None
         meta: dict[str, Any] = {}
         for cand in youtube_headline_chain(script_payload):
+            tag = {"variant": cand["variant"]} if cand.get("variant") else {}
             if cand["copy"] is None:
-                tried.append({"source": cand["source"], "skipped": cand["skipped"]})
+                tried.append({"source": cand["source"], **tag, "skipped": cand["skipped"]})
                 continue
             meta = {}
             try:
                 im, drawn_plates = youtube_thumbnail.render(
                     meta=meta, **youtube_render_inputs(script_payload, hero_image_path, copy=cand["copy"]))
             except LayoutError as e:
-                tried.append({"source": cand["source"], "refused": str(e)})
+                tried.append({"source": cand["source"], **tag, "refused": str(e)})
                 im = None
                 continue
             if not youtube_thumbnail.drew_headline(drawn_plates):   # the word budget left the line out whole
-                tried.append({"source": cand["source"], "refused": "no headline drawn (longer than the word budget)"})
+                tried.append({"source": cand["source"], **tag,
+                              "refused": "no headline drawn (longer than the word budget)"})
                 im = None
                 continue
             faults = drawn_faults(drawn_plates, script_payload)
             if faults:   # the drawn headline (a badge figure included) held to the evidence again
-                tried.append({"source": cand["source"], "refused": "truth (drawn): " + "; ".join(faults)})
+                tried.append({"source": cand["source"], **tag, "refused": "truth (drawn): " + "; ".join(faults)})
                 im = None
                 continue
             why = specificity_fault(drawn_text(drawn_plates), script_payload)
             if why:   # the render's own fallback (QF-23 headline_from) may draw another line: held to the gate too
-                tried.append({"source": cand["source"], "refused": why + " (as drawn)"})
+                tried.append({"source": cand["source"], **tag, "refused": why + " (as drawn)"})
                 im = None
                 continue
+            if cand.get("withheld"):   # its contradicted figure lifted out by the chain (figure_free), recorded
+                w, meta["headline_withheld"] = cand["withheld"][0], cand["withheld"]
+                meta.setdefault("figure_withheld", {"number": w["number"], "unit": w["unit"], "reason": w["reason"],
+                                                    "source": cand["source"], "figures": cand["withheld"]})
             meta["headline_source"] = cand["source"]
             # the record says what was DRAWN and the source it came from (the figure branch may draw the copy's badge
             # figure over another of its lines, lander review: pair 1)
             meta["headline_chain"] = tried + [{"source": cand["source"], "candidate": cand["text"],
                                                "drawn": drawn_text(drawn_plates),
+                                               **tag,
                                                **({"drawn_from": meta["headline_from"]} if meta.get("headline_from")
                                                   else {})}]
             break
         if im is None:
-            raise LayoutError("the YouTube thumbnail's headline chain is refused at every source: "
-                              + "; ".join(f"{t['source']}: {t.get('skipped') or t.get('refused')}" for t in tried))
+            # int 3 ruling: only when no candidate passes (each whole line, then each truth-refused line with its
+            # contradicted figure lifted out) does the thumbnail decline, recorded as a refusal (refusal.decline:
+            # main.cover_job keeps it with its surface, cover_job_results puts it on the review card)
+            from .refusal import decline
+            error = decline("YouTube thumbnail", "youtube.headline_chain", "no line of the headline chain passes: "
+                            + "; ".join(f"{t['source']}{' (figure withheld)' if t.get('variant') else ''}: "
+                                        f"{t.get('skipped') or t.get('refused')}" for t in tried))
+            error.chain = tried
+            log.warning("%s", error)
+            raise error
         output_path.parent.mkdir(parents=True, exist_ok=True)
         encoding = save_cover_jpeg(im, output_path, "youtube")
         # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
@@ -565,6 +580,7 @@ class VisualEngine:
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
                                          "headline_fragment", "headline_pair_kept", "headline_source",
+                                         "headline_withheld",
                                          "headline_chain")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
              "encoding": encoding,
@@ -577,7 +593,9 @@ class VisualEngine:
         # lane B cycle 3: the review card names the chain source the headline was drawn from, at approval
         last = meta["headline_chain"][-1]
         source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}"
-                  + (f" (its {last['drawn_from']} line)" if last.get("drawn_from") else "") + f": {last['drawn']}")
+                  + (f" (its {last['drawn_from']} line)" if last.get("drawn_from") else "") + f": {last['drawn']}"
+                  + (" (" + ", ".join(w["drawn"] for w in meta.get("headline_withheld") or [])
+                     + " withheld: the run's evidence contradicts it)" if last.get("variant") else ""))
         note = f"{source}\n{note}" if note else source
         if note:
             script_payload["thumbnail_note"] = note
@@ -882,43 +900,96 @@ def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any
     are the title's); every figure in it is an evidence figure, its hedge and both span ends kept (evidence_faults:
     never its own field or other derived copy); it is specific to this run (specificity_fault). The render then holds
     the heading gates and the drawn text is held to the evidence again (drawn_faults)."""
-    from .youtube_thumbnail import _alone, _content
     base = documentary_cover_copy(script_payload)
-    title = str(script_payload.get("youtube_title") or "")
-    out = []
+    out, contradicted = [], []
     for source in YOUTUBE_HEADLINE_CHAIN:
         l1, l2 = _chain_lines(script_payload, source)
-        text = " ".join(t for t in (l1, l2) if t)
-        rec = {"source": source, "copy": None, "skipped": "", "text": text}
+        rec = _chain_candidate(script_payload, base, source, l1, l2)
         out.append(rec)
-        if not text or text in CODE_LABELS:
-            rec["skipped"] = "none in this run" if not text else "a label the code writes, not signed copy"
+        if rec["skipped"].startswith("truth: "):
+            contradicted.append((source, l1, l2))
+    # int 3 ruling (2026-11-23): a figure the evidence contradicts is never drawn, and the line it sat in is not lost
+    # with it while it says something without it: after every whole line, each truth-refused source once more with
+    # its contradicted figure groups lifted out (figure_free), held to every gate again; never a word added
+    for source, l1, l2 in contradicted:
+        withheld: list = []
+        f1, f2 = (figure_free(t, script_payload, withheld) for t in (l1, l2))
+        if not (f1 or f2):
             continue
-        if _alone(text) != text.rstrip():
-            rec["skipped"] = "not a headline (a fragment, or a line ending on a function word)"
-            continue
-        words = _content(text)
-        if title and words and len(words & _content(title)) / len(words) > TITLE_OVERLAP_MAX:
-            rec["skipped"] = "repeats the video title"
-            continue
-        faults = evidence_faults(text, script_payload)   # every source, the base pair too: evidence only
-        if faults:
-            rec["skipped"] = "truth: " + "; ".join(faults)
-            continue
-        why = specificity_fault(text, script_payload)
-        if why:
-            rec["skipped"] = why
-            continue
-        copy = dict(base, line1=l1, line2=l2)
-        if source != "thumbnail":
-            # the other sources are the headline alone: the eyebrow and tagline are candidates of their own, so the
-            # render's own fallback to them (QF-23 headline_from) never draws one past the chain's gates
-            copy["eyebrow"] = copy["tagline"] = ""
-        for k in ("tagline", "eyebrow"):
-            if copy.get(k, "").upper() in CODE_LABELS:
-                copy[k] = ""    # a code label is never a kicker fill either (it is not signed copy)
-        rec["copy"] = _in_spoken_units(copy, script_payload)
+        rec = _chain_candidate(script_payload, base, source, f1, f2, withheld)
+        rec["variant"] = "figure withheld"
+        out.append(rec)
     return out
+
+
+def _chain_candidate(script_payload: Dict[str, Any], base: Dict[str, str], source: str, l1: str, l2: str,
+                     withheld: List[Dict[str, Any]] | None = None) -> Dict[str, Any]:
+    """One chain record (youtube_headline_chain): the text gates in order, then the render's copy. `withheld`: the
+    figures figure_free lifted out of this source's lines; they are lifted out of the copy's other fields too, so the
+    kicker never states one either."""
+    from .youtube_thumbnail import _alone, _content
+    title = str(script_payload.get("youtube_title") or "")
+    text = " ".join(t for t in (l1, l2) if t)
+    rec = {"source": source, "copy": None, "skipped": "", "text": text}
+    if withheld:
+        rec["withheld"] = withheld
+    if not text or text in CODE_LABELS:
+        rec["skipped"] = "none in this run" if not text else "a label the code writes, not signed copy"
+        return rec
+    if _alone(text) != text.rstrip():
+        rec["skipped"] = "not a headline (a fragment, or a line ending on a function word)"
+        return rec
+    words = _content(text)
+    if title and words and len(words & _content(title)) / len(words) > TITLE_OVERLAP_MAX:
+        rec["skipped"] = "repeats the video title"
+        return rec
+    faults = evidence_faults(text, script_payload)   # every source, the base pair too: evidence only
+    if faults:
+        rec["skipped"] = "truth: " + "; ".join(faults)
+        return rec
+    why = specificity_fault(text, script_payload)
+    if why:
+        rec["skipped"] = why
+        return rec
+    copy = dict(base, line1=l1, line2=l2)
+    if source != "thumbnail":
+        # the other sources are the headline alone: the eyebrow and tagline are candidates of their own, so the
+        # render's own fallback to them (QF-23 headline_from) never draws one past the chain's gates
+        copy["eyebrow"] = copy["tagline"] = ""
+    for k in ("tagline", "eyebrow"):
+        if copy.get(k, "").upper() in CODE_LABELS:
+            copy[k] = ""    # a code label is never a kicker fill either (it is not signed copy)
+    if withheld:
+        for k in ("eyebrow", "tagline"):
+            copy[k] = figure_free(copy.get(k) or "", script_payload, [])
+    rec["copy"] = _in_spoken_units(copy, script_payload)
+    return rec
+
+
+def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[str, Any]]) -> str:
+    """`text` with every figure group the run's evidence contradicts (evidence_faults) lifted out whole: its hedge,
+    number, unit, conversion and the dimension word after it (figures.parse), tidied at the cut as the covers' own
+    withholding is (cover_design._without), and "" when what is left is a fragment (cover_design.withheld_fragment:
+    "ACROSS", "BUILT"). Only the copy's own words remain; none is added. Each lifted figure is appended to
+    `withheld` ({"number", "unit", "drawn", "reason"}) for the record."""
+    import re
+
+    from .cover_design import _without, withheld_fragment
+    from .figures import parse
+    out, cut = text, False
+    for f in reversed(parse(text)):
+        faults = evidence_faults(text[f.start:f.end], script_payload)
+        if not faults:
+            continue
+        end = f.end
+        if f.tail:
+            m = re.match(r"\s*" + re.escape(f.tail) + r"\b", out[end:], re.IGNORECASE)
+            end += m.end() if m else 0
+        out, cut = _without(out, (f.start, end)), True
+        withheld.insert(0, {"number": f.number, "unit": f.unit, "drawn": f.drawn(),
+                            "reason": "the run's evidence contradicts it: " + "; ".join(faults)})
+    out = " ".join(out.split())
+    return "" if cut and withheld_fragment(out) else out
 
 
 def drawn_text(plates) -> str:

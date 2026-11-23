@@ -423,6 +423,41 @@ def _youtube_with(copy, checked=False, **kw):
     return go
 
 
+def _youtube_refused(copy):
+    """Lane B cycle 3: a headline no form sets at the feed floor is refused, its rule named at the floor size
+    (youtube_thumbnail._lockup's refusal_rule)."""
+    def go(ctx, size):
+        from src import youtube_thumbnail
+        from src.refusal import LayoutError
+        try:
+            youtube_thumbnail.render(Image.open(ctx.flat), dict(copy), meta={})
+        except LayoutError:
+            pass
+    return go
+
+
+def _youtube_headline_bound(ctx, size):
+    """Lane B cycle 3: the signed headline's length bound, measured at the hero's feed floor."""
+    from src import youtube_thumbnail
+    youtube_thumbnail.headline_bound()
+
+
+def _cover_one_heading(style):
+    """Lane B cycle 3: a ruled stack with a one-word row under heading.balance_min is set as ONE heading where one
+    sets (cover_design.one_heading: WHY / ROMAN CONCRETE HEALS -> WHY ROMAN / CONCRETE HEALS)."""
+    def go(ctx, size):
+        from src.refusal import LayoutError
+        from src.visual_engine import VisualEngine
+        payload = {"thumbnail": {"eyebrow": "ANCIENT ENGINEERING", "line1": "WHY", "line2": "ROMAN CONCRETE HEALS",
+                                 "tagline": "TWO THOUSAND YEARS ON"}}
+        try:
+            VisualEngine().generate_thumbnails(ctx.busy, payload, ctx.tmp / f"cover_one_{style}", style=style,
+                                               variants=False)
+        except LayoutError:
+            pass
+    return go
+
+
 def _only(canvas, fn):
     """A branch the code has on one canvas only (the 16:9 end screen's credits line, slots and hand-off)."""
     fn.canvases = (canvas,)
@@ -543,11 +578,13 @@ def branches() -> dict[str, dict[str, Callable]]:
             "hedged": _youtube_with(GUMBAZ_COPY, checked=True),
             "one_line_kicker": _youtube_with({"eyebrow": "DESERT ANOMALY", "line1": "THE RICHAT STRUCTURE OF MAURITANIA",
                                               "line2": "SAHARA EYE"}),
+            "refused": _youtube_refused({"line1": "THE 1,200-TON", "line2": "BEDROCK MONSTER"}),
+            "headline_bound": _youtube_headline_bound,
         },
     }
     for s in RENDERABLE_STYLES:
         out[f"cover.{s}"] = {"illustration": _illustrated_cover(s), "focus": _focused_cover(s),
-                             "fact_checked": _checked_cover(s)}
+                             "fact_checked": _checked_cover(s), "one_heading": _cover_one_heading(s)}
     for name in CARD_PLANS:
         out[f"design_cards.{name}"] = {"settle": _card_plan(name, settle=True)}
     long_wide = _card_plan("plan_myth_fact", m=(

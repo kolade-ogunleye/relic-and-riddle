@@ -35,7 +35,10 @@ def test_year_text_and_reference_choice():
     assert graphics.year_text(780, True) == "c. AD 780"
     assert graphics.year_text(1963, False) == "1963"
     assert graphics.pick_reference(280)[0] == "Statue of Liberty (total)"
-    assert graphics.pick_reference(20) is None  # no honest comparison at 1/15 scale
+    # lane A cycle 3 (stress 1, 20-100 ft): a sourced 60 ft landmark (Mount Rushmore's Washington head) inside the
+    # 1/3x-3x window; outside every landmark's window there is still no honest comparison
+    assert graphics.pick_reference(20)[0] == "Mount Rushmore head (Washington)"
+    assert graphics.pick_reference(1) is None and graphics.pick_reference(5000) is None
 
 
 def test_timeline_clip_has_poster_and_full_length(tmp_path):

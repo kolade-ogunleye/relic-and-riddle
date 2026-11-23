@@ -1619,6 +1619,41 @@ def _dashed_border(draw, points, fill, width, dash, gap):
             draw.line(seg, fill=fill, width=width)
 
 
+SMALL_LOOP_SHARE = 0.0015    # lander review of e7a03f1f: a border loop under this share of the frame is not drawn
+
+
+@dataclass(frozen=True)
+class DeferredLoop:
+    """A small border loop held out of a base (relief_base `defer_loops`): its stroke as an RGBA sprite at `origin`
+    (base px) and the area it encloses (base px^2)."""
+    name: str
+    sprite: Image.Image
+    origin: tuple[int, int]
+    area: float
+
+
+def deferred_loops_on(im: Image.Image, loops: Sequence[DeferredLoop], view: tuple[float, float, float, float],
+                      width: int, height: int) -> Image.Image:
+    """Lander review of e7a03f1f (the 1:10m Baykonur Cosmodrome's lone ring on the 16:9 continental opening read as a
+    second marker): each deferred loop drawn on the frame `im` (base `view` box mapped to width x height) only where
+    it encloses at least SMALL_LOOP_SHARE of the frame; a size rule, never a list of places. `im` changed and returned."""
+    if not loops:
+        return im
+    sx = width / (view[2] - view[0])
+    sy = height / (view[3] - view[1])
+    need = SMALL_LOOP_SHARE * width * height
+    for lp in loops:
+        if lp.area * sx * sy < need:
+            continue
+        w_, h_ = max(1, round(lp.sprite.width * sx)), max(1, round(lp.sprite.height * sy))
+        x_, y_ = round((lp.origin[0] - view[0]) * sx), round((lp.origin[1] - view[1]) * sy)
+        if x_ >= width or y_ >= height or x_ + w_ <= 0 or y_ + h_ <= 0:
+            continue
+        spr = lp.sprite.resize((w_, h_), Image.BICUBIC)
+        im.paste(spr.convert("RGB"), (x_, y_), spr.getchannel("A"))
+    return im
+
+
 def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: float, home, project,
                 final_view: tuple[float, float, float, float], label_bottom_fraction: float = 1.0,
                 reserved: tuple[tuple[float, float, float, float], ...] = (),
@@ -1626,7 +1661,9 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
                 transient: list[dict[str, Any]] | None = None, name_px: int = 66,
                 skip: frozenset[str] | set[str] = frozenset(), name_home: bool = False,
                 named: list[str] | None = None, polar: "PolarProjection | None" = None,
-                named_boxes: list[tuple[str, tuple[float, float, float, float]]] | None = None) -> Image.Image:
+                named_boxes: list[tuple[str, tuple[float, float, float, float]]] | None = None,
+                defer_loops: list["DeferredLoop"] | None = None, defer_px2: float = 0.0,
+                keep: frozenset[int] = frozenset()) -> Image.Image:
     """The map background: hillshaded land (the topic's country in warm gold, its relief quiet: relief_multiplier),
     an ink sea, thin borders, and neighbouring countries named at Natural Earth's label points.
     final_safe: the safe box of the last frame, in base pixels; a name drawn into the base must lie in it.
@@ -1796,6 +1833,21 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         if c.get("neutral"):
             continue
         for pts, small, closed in drawn.get(id(c), []):
+            # lander review of e7a03f1f: a closed loop (not the home's, not the site's ground) under `defer_px2` base
+            # px^2 is drawn by the frames only once it passes SMALL_LOOP_SHARE of the frame (deferred_loops_on)
+            if defer_loops is not None and closed and c is not home and id(c) not in keep                     and geo.ring_area(pts) < defer_px2:
+                width_ = max(1, round(bpp)) if small else 3
+                xs_ = [q[0] for q in pts]
+                ys_ = [q[1] for q in pts]
+                pad_ = width_ + 2
+                ox, oy = math.floor(min(xs_)) - pad_, math.floor(min(ys_)) - pad_
+                sprite = Image.new("RGBA", (math.ceil(max(xs_)) + pad_ - ox, math.ceil(max(ys_)) + pad_ - oy),
+                                   (0, 0, 0, 0))
+                raster.Draw(sprite, "RGBA", grid="exact").lines([[(q[0] - ox, q[1] - oy) for q in pts + [pts[0]]]],
+                                                               fill=brand.MAP_BORDER, width=width_, joint="curve")
+                defer_loops.append(DeferredLoop(str(c.get("display") or ""), sprite, (ox, oy),
+                                                float(geo.ring_area(pts))))
+                continue
             if small:
                 if c is home:
                     continue  # preserve the actual tiny fill, rather than cover it with ink
@@ -5591,14 +5643,21 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     ctx = ReliefContext(base_per_px=scale / zf, marker=to_base(*anchor),
                         plates=tuple(box_to_base(b) for b in [lb] + ([cname.box] if cname else [])), wide=not portrait)
 
+    # lander review of e7a03f1f: a small unnamed border loop (not the home's, not the site's ground) is held out of
+    # the base and drawn by the frames once it encloses SMALL_LOOP_SHARE of the frame (deferred_loops_on)
+    keep_ids = frozenset(id(c_) for c_ in (home, frame_home) if c_ is not None)
+    loop_px2 = SMALL_LOOP_SHARE * width * height * (bw / width) * (bh / height)   # at the base's widest frame
+    loops_main: list[DeferredLoop] = []
+
     def build(skip: set[str] | frozenset[str]):
         lab: list[dict[str, Any]] = []
+        loops_main.clear()
         token = _RELIEF_CTX.set(ctx)
         try:
             b = relief_base(lat0, lon0, bw, bh, kx, coslat, home, project, final_view,
                             label_bottom_fraction=get_text_bounds(width, height)[1] / height, reserved=reserved,
                             final_safe=to_base(sx0, sy0) + to_base(sx1, sy1), transient=lab, name_px=name_px,
-                            skip=skip, polar=pv_base)
+                            skip=skip, polar=pv_base, defer_loops=loops_main, defer_px2=loop_px2, keep=keep_ids)
         finally:
             _RELIEF_CTX.reset(token)
         return b, lab
@@ -5612,6 +5671,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     zooms = [span_wide / sp for sp in camera_spans(n, span_open, span_close, MAP_TRAVEL, VIDEO_FPS)]
     zf_last = zooms[-1]
     wide_base: Image.Image | None = None
+    loops_wide: list[DeferredLoop] = []
     if span_open > span_wide * 1.001:
         f_open = span_open / span_wide
         ww, wh = round(width * f_open), round(height * f_open)
@@ -5624,14 +5684,16 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         try:
             wide_base = relief_base(lat0, lon0, ww, wh, kx_w, coslat, home, pv_wide, final_w, transient=[],
                                     skip=frozenset(str(c.get("display") or "") for c in geo.countries()),
-                                    polar=pv_wide).convert("RGB")
+                                    polar=pv_wide, defer_loops=loops_wide,
+                                    defer_px2=SMALL_LOOP_SHARE * ww * wh, keep=keep_ids).convert("RGB")
         finally:
             _RELIEF_CTX.reset(token)
     site_base = to_base(*anchor)
 
     def resting(b: Image.Image) -> Image.Image:
-        return b.resize((width, height), Image.BICUBIC, box=(bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last,
-                                                             bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)).convert("RGB")
+        view_ = (bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last, bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)
+        return deferred_loops_on(b.resize((width, height), Image.BICUBIC, box=view_).convert("RGB"), loops_main, view_,
+                                 width, height)
     rest = resting(base)
     if not area and zoom * HOME_ZOOM_STEP >= HOME_ZOOM_MIN:
         try:
@@ -5904,6 +5966,14 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                                      (zoom - 1.0) / WIDE_HANDOVER)
             if im is None:
                 im = base.resize((width, height), Image.BICUBIC, box=box).convert("RGB")
+            if zoom >= 1.0:
+                im = deferred_loops_on(im, loops_main, (bw / 2 - cw / 2, bh / 2 - ch / 2, bw / 2 + cw / 2, bh / 2 + ch / 2),
+                                       width, height)
+            elif wide_base is not None:
+                ww_, wh_ = wide_base.size
+                wz_ = max(1.0, zoom * span_open / span_wide)
+                im = deferred_loops_on(im, loops_wide, (ww_ / 2 - ww_ / 2 / wz_, wh_ / 2 - wh_ / 2 / wz_,
+                                                        ww_ / 2 + ww_ / 2 / wz_, wh_ / 2 + wh_ / 2 / wz_), width, height)
             for lab in plan[i]:
                 if lab["mask"] is not None:
                     if lab.get("halo") is not None:

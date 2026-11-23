@@ -406,3 +406,61 @@ def test_a_vast_home_is_framed_on_context_not_its_share():
     russia, peru, malta = (geo.find_country(n) for n in ("Russia", "Peru", "Malta"))
     assert graphics.is_vast_home(russia) and not graphics.is_vast_home(peru) and not graphics.is_vast_home(malta)
     assert 1.5e7 < graphics.home_area_km2(russia) < 2.0e7        # about 17.1 million km2 (planar estimate)
+
+
+def _spy_loops(monkeypatch):
+    """Every relief_base call's deferred loops, with the base size."""
+    got: list = []
+    real = graphics.relief_base
+
+    def spy(*a, **kw):
+        out = real(*a, **kw)
+        if kw.get("defer_loops") is not None:
+            got.append(((a[2], a[3]), list(kw["defer_loops"]), out))
+        return out
+    monkeypatch.setattr(graphics, "relief_base", spy)
+    return got
+
+
+def test_a_small_unnamed_border_loop_waits_for_the_frame_to_hold_it(tmp_path, monkeypatch):
+    """Lander review of e7a03f1f: on the Amber 16:9 continental opening the 1:10m Baykonur Cosmodrome's lone ring read
+    as a second marker. A border loop enclosing under SMALL_LOOP_SHARE of the frame is not drawn on that frame (a
+    size rule in the engine, not a list of places); it is drawn once the frame holds it."""
+    import numpy as np
+    got = _spy_loops(monkeypatch)
+    st = _locator(tmp_path, monkeypatch, "amber", (1920, 1080))
+    w, h = 1920, 1080
+    wide = [g for g in got if g[0][0] > w and g[0][0] / g[0][1] > 1.7 and g[0][0] < 3 * w]
+    assert wide, "the 16:9 opening's wide base was drawn without the small-loop rule"
+    (ww, wh), loops, _base = wide[-1]
+    bay = [lp for lp in loops if "baykonur" in lp.name.lower()]
+    assert bay, [lp.name for lp in loops]
+    lp = bay[0]
+    sx, sy = w / ww, h / wh                                   # the first frame shows the whole wide base
+    assert lp.area * sx * sy < graphics.SMALL_LOOP_SHARE * w * h
+    x0, y0 = int(lp.origin[0] * sx), int(lp.origin[1] * sy)
+    x1, y1 = int((lp.origin[0] + lp.sprite.width) * sx) + 1, int((lp.origin[1] + lp.sprite.height) * sy) + 1
+    arr = np.asarray(st["frames"][0]).astype(int)[y0:y1, x0:x1]
+    assert arr.size and (np.abs(arr - np.array(brand.MAP_BORDER)).max(axis=2) <= 10).sum() <= 2
+    # and the rule draws it on a frame that holds it
+    big = Image.new("RGB", (w, h), (0, 0, 0))
+    view = (lp.origin[0] - 20, lp.origin[1] - 20, lp.origin[0] + 60, lp.origin[1] + 60 * h / w)
+    graphics.deferred_loops_on(big, [lp], view, w, h)
+    assert big.getbbox() is not None
+
+
+def test_a_tiny_home_is_never_held_out(tmp_path, monkeypatch):
+    """The home's (and the site's) own ground is drawn whatever its size: Monaco keeps its outline."""
+    from pathlib import Path
+    import json
+    from tests.test_qf24_route_neighbours import needs_data
+    from tests.test_r4_graphics_2026_11_02 import _render
+    if needs_data.args and needs_data.args[0]:
+        pytest.skip("Natural Earth data not fetched")
+    got = _spy_loops(monkeypatch)
+    out = tmp_path / "monaco.mp4"
+    place = {"label": "Monte Carlo", "country": "Monaco", "lat": 43.7396, "lon": 7.4276}
+    _render(monkeypatch, lambda: graphics.render_map(place, out, width=1080, height=1920), fps=1)
+    lay = json.loads(Path(str(out) + ".layout.json").read_text(encoding="utf-8"))
+    assert lay["home"] and "monaco" in lay["home"].lower()
+    assert got and not any("monaco" in lp.name.lower() for _s, loops, _b in got for lp in loops)

@@ -2558,7 +2558,8 @@ def _label_rows(lines: list[str], font: FreeTypeFont, x: float, first_base: floa
         # the rows' air under that ink too; at cap x 1.22 the comma met the next row's caps and every overlay-label
         # variant measured about 1:1, so the site went unnamed and the map was declined
         below = max(0.0, float(font.getbbox(ln, anchor="ls")[3]))
-        base += max(step, round(below + cap + 0.22 * cap))
+        # (a round letter's overshoot, a few px under the baseline, is not a descender: the step is unchanged)
+        base += step if below <= 0.12 * cap else max(step, round(below + cap + 0.22 * cap))
     return out
 
 

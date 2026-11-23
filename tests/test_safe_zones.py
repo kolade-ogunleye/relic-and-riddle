@@ -114,8 +114,12 @@ def test_a_graphics_text_and_figures_stay_inside_the_reel_box(kind, tmp_path):
 
 @pytest.mark.skipif(not graphics.geo.available(), reason="Natural Earth data not installed")
 def test_the_map_label_stays_inside_the_reel_box(tmp_path):
-    clip = graphics.render_map({"lat": 21.124, "lon": -11.401, "label": "Richat Structure, the Eye of the Sahara",
-                                "country": "Mauritania"}, tmp_path / "map.mp4")
+    # freeze lane A cycle 3: the omission ledger open round the render, as graphics.make_all opens it (the scale bar
+    # with no clear corner is left out and recorded there, the map drawn)
+    from src.refusal import collecting
+    with collecting():
+        clip = graphics.render_map({"lat": 21.124, "lon": -11.401, "label": "Richat Structure, the Eye of the Sahara",
+                                    "country": "Mauritania"}, tmp_path / "map.mp4")
     poster = Image.open(clip.with_suffix(".jpg"))
     # the Reel box less the caption band (a map's names are set by geography there: map_text_box)
     assert _bright_outside(poster, graphics.map_text_box(W, H), threshold=235, grow=4) == 0  # the relief is never this bright

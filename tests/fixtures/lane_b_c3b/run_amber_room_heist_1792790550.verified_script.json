@@ -1,0 +1,504 @@
+{
+  "timeline": [
+    {
+      "year": 1941,
+      "approximate": false,
+      "label": "Disassembled by German troops"
+    },
+    {
+      "year": 1944,
+      "approximate": false,
+      "label": "Documentation ends in Königsberg"
+    },
+    {
+      "year": 1997,
+      "approximate": false,
+      "label": "Original stone mosaic recovered"
+    }
+  ],
+  "scale_fact": null,
+  "stat_cards": [
+    {
+      "value": "36 hours",
+      "label": "Time to disassemble the room"
+    },
+    {
+      "value": "Est. over 13,000 lbs",
+      "label": "Amber in completed room"
+    }
+  ],
+  "cross_section": null,
+  "route": null,
+  "photo_labels": null,
+  "emphasis_words": [
+    "Amber Room",
+    "36 hours",
+    "Königsberg Castle"
+  ],
+  "title": "The 6-Ton Amber Room Stolen in 36 Hours 👑",
+  "hook_sentence": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision.",
+  "narration_script": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision. By one estimate, following eighteenth-century expansions, the completed room covered more than 590 square feet (55 sq m) and contained over 13,000 pounds (6 tonnes) of amber. In early 1944, it was packed into crates in Königsberg Castle. Documentation tracking its location ends in August 1944, when Allied bombers heavily fire-bombed Königsberg. Investigations conclude the room was most likely incinerated when Königsberg Castle was bombed by British aircraft and shelled by Soviet artillery. Yet in 1997, an original stone mosaic was recovered in Germany, fueling hunts for the chamber looted in 1941.",
+  "closing_sentence": "Yet in 1997, an original stone mosaic was recovered in Germany, fueling hunts for the chamber looted in 1941.",
+  "caption": "A gilded palace chamber vanished into thin air during wartime chaos.\n✨ Attempts were made to conceal the fragile amber walls from invading German forces behind mundane wallpaper inside the Catherine Palace at Tsarskoye Selo near Saint Petersburg, Russia. By one estimate, following eighteenth-century expansions, the completed room covered more than 55 square metres and contained over 6 tonnes of amber. In early 1944, as Allied forces advanced, the room was disassembled and packed into crates for storage in the Königsberg Castle basement before all documentation ended. Do you believe the lost crates survived in a secret bunker, or were they lost to the firestorms of war? 🤔\n\n#AmberRoom #CatherinePalace #Pushkin #WWIIHistory #LostTreasures\n\n📷 Images via Wikimedia Commons: Sunny365days (CC BY 4.0); giggel (CC BY 3.0); Sergey A. Demidov (CC BY 4.0); Edgar El (CC BY 3.0)",
+  "first_comment": "Do you think the Amber Room was completely incinerated in Königsberg Castle, or could intact crates still be hidden in an undiscovered bunker?",
+  "hashtags": [
+    "#AmberRoom",
+    "#CatherinePalace",
+    "#Pushkin",
+    "#WWIIHistory",
+    "#LostTreasures"
+  ],
+  "thumbnail": {
+    "eyebrow": "HISTORICAL HEIST",
+    "line1": "THE 6-TON ROOM",
+    "line2": "STOLEN IN 36 HOURS",
+    "tagline": "VANISHED IN 1944"
+  },
+  "story_slides": [
+    {
+      "kicker": "THE HEIST",
+      "line1": "DISMANTLED IN HOURS",
+      "line2": "SHIPPED TO A CASTLE",
+      "body": "In 1941, German soldiers disassembled the room in 36 hours under expert supervision."
+    },
+    {
+      "kicker": "THE FATE",
+      "line1": "BOMBED IN 1944",
+      "line2": "EVIDENCE DESTROYED",
+      "body": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg."
+    },
+    {
+      "kicker": "THE VERDICT",
+      "line1": "WHAT HAPPENED?",
+      "line2": "INCINERATED OR HIDDEN",
+      "body": "Did the Amber Room burn in the castle basement, or did crates survive in secret?"
+    }
+  ],
+  "poll": {
+    "question": "What was the room's true fate?",
+    "options": [
+      "Burned in the bombing",
+      "Hidden in secret crates"
+    ]
+  },
+  "carousel_slides": [
+    {
+      "heading": "THE LOST AMBER ROOM",
+      "body": "How a palace chamber containing, by one estimate, over 6 tonnes of amber vanished during World War II."
+    },
+    {
+      "heading": "FAILED CONCEALMENT",
+      "body": "Attempts were made to conceal the fragile amber walls behind mundane wallpaper."
+    },
+    {
+      "heading": "LOOTED IN 36 HOURS",
+      "body": "German soldiers disassembled the Amber Room in 36 hours under expert supervision."
+    },
+    {
+      "heading": "CRATED IN A BASEMENT",
+      "body": "In early 1944, the room was packed into crates in the Königsberg Castle basement."
+    },
+    {
+      "heading": "THE PAPER TRAIL ENDS",
+      "body": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg."
+    },
+    {
+      "heading": "A SURVIVING FRAGMENT",
+      "body": "In 1997, an original Italian stone mosaic from the room was recovered in Germany."
+    },
+    {
+      "heading": "LOST TO HISTORY?",
+      "body": "When cultural treasures vanish in war, does humanity lose a piece of its shared soul?"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Amber Room",
+      "url": "https://en.wikipedia.org/wiki/Amber_Room"
+    },
+    {
+      "title": "Wikipedia: Catherine Palace",
+      "url": "https://en.wikipedia.org/wiki/Catherine_Palace"
+    },
+    {
+      "title": "The Guardian: The Amber Room",
+      "url": "https://www.theguardian.com/books/2004/jul/18/historybooks.highereducation"
+    }
+  ],
+  "carousel_caption": "Swipe through to trace the timeline of the greatest art heist of World War II. When Allied bombers heavily fire-bombed Königsberg in August 1944, official documentation tracking the room's location stopped forever. Could six tonnes of carved amber still be hidden somewhere in Europe? 🔍\n\n#AmberRoom #CatherinePalace #Pushkin #WWIIHistory #LostTreasures",
+  "fact_sheet": true,
+  "topic_id": "amber_room_heist",
+  "origin": "gemini-free",
+  "word_count": 110,
+  "location": {
+    "name": "Catherine Palace",
+    "city": "Pushkin",
+    "region": "Pushkin",
+    "country": "Russia",
+    "latitude": 0.0,
+    "longitude": 0.0
+  },
+  "meta_topic_categories": [
+    "History & Philosophy",
+    "Science & Tech",
+    "Travel & Culture"
+  ],
+  "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+  "fact_sheet_note": "🧾 Written from a verified fact sheet: 12 facts with quoted evidence (1 disputed, used only with their hedges)",
+  "fact_audits": [
+    {
+      "claim": "The Amber Room weighed 6 tonnes and was stolen in 36 hours.",
+      "where": "[title]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941",
+        "amber-room-scale-and-weight"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "On-screen covers, thumbnail lines, and titles are exempt from mandatory statistical hedging words like 'estimated'. The facts confirm the room was disassembled in 36 hours and contained over 6 tonnes of amber by one estimate."
+    },
+    {
+      "claim": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches the fact sheet."
+    },
+    {
+      "claim": "By one estimate, following eighteenth-century expansions, the completed room covered more than 590 square feet (55 sq m) and contained over 13,000 pounds (6 tonnes) of amber.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-scale-and-weight"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Includes the required hedge 'By one estimate' and accurately translates 55 square metres and 6 tonnes."
+    },
+    {
+      "claim": "In early 1944, the Amber Room was packed into crates in Königsberg Castle.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-crated-storage-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Documentation tracking the location of the Amber Room ends in August 1944, when Allied bombers heavily fire-bombed Königsberg.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Investigations conclude the room was most likely incinerated when Königsberg Castle was bombed by British aircraft and shelled by Soviet artillery.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-destruction-investigation-2004"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the 2004 investigation fact."
+    },
+    {
+      "claim": "In 1997, an original stone mosaic from the room was recovered in Germany.",
+      "where": "[narration]",
+      "fact_ids": [
+        "amber-room-recovered-mosaic-1997"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Soviet curators attempted to conceal the fragile amber walls from invading German forces behind mundane wallpaper inside the Catherine Palace at Tsarskoye Selo near Saint Petersburg, Russia.",
+      "where": "[caption]",
+      "fact_ids": [
+        "amber-room-location",
+        "amber-room-wallpaper-concealment"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches the location and concealment facts."
+    },
+    {
+      "claim": "By one estimate, following eighteenth-century expansions, the completed room covered more than 55 square metres and contained over 6 tonnes of amber.",
+      "where": "[caption]",
+      "fact_ids": [
+        "amber-room-scale-and-weight"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Retains the required hedge and figures."
+    },
+    {
+      "claim": "In early 1944, as Allied forces advanced, the room was disassembled and packed into crates for storage in the Königsberg Castle basement before all documentation ended.",
+      "where": "[caption]",
+      "fact_ids": [
+        "amber-room-crated-storage-1944",
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "When Allied bombers heavily fire-bombed Königsberg in August 1944, official documentation tracking the room's location stopped forever.",
+      "where": "[carousel caption]",
+      "fact_ids": [
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches the fact sheet."
+    },
+    {
+      "claim": "The 6-ton room was stolen in 36 hours and vanished in 1944.",
+      "where": "[on-screen cover]",
+      "fact_ids": [
+        "amber-room-scale-and-weight",
+        "amber-room-nazi-looting-1941",
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "On-screen covers are exempt from mandatory statistical hedging words. All stated events and dates are verified."
+    },
+    {
+      "claim": "In 1941, German soldiers disassembled the room in 36 hours under expert supervision.",
+      "where": "[story]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg.",
+      "where": "[story]",
+      "fact_ids": [
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "The Amber Room contained, by one estimate, over 6 tonnes of amber and vanished during World War II.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-scale-and-weight"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Retains the required hedge 'by one estimate'."
+    },
+    {
+      "claim": "Attempts were made to conceal the fragile amber walls behind mundane wallpaper.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-wallpaper-concealment"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "German soldiers disassembled the Amber Room in 36 hours under expert supervision.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "In early 1944, the room was packed into crates in the Königsberg Castle basement.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-crated-storage-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Official records end in August 1944, when Allied bombers heavily fire-bombed Königsberg.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "In 1997, an original Italian stone mosaic from the room was recovered in Germany.",
+      "where": "[slide]",
+      "fact_ids": [
+        "amber-room-recovered-mosaic-1997"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Timeline: 1941 - Disassembled by German troops",
+      "where": "[graphic]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Timeline: 1944 - Documentation ends in Königsberg",
+      "where": "[graphic]",
+      "fact_ids": [
+        "amber-room-loss-of-documentation-1944"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Timeline: 1997 - Original stone mosaic recovered",
+      "where": "[graphic]",
+      "fact_ids": [
+        "amber-room-recovered-mosaic-1997"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "36 hours: Time to disassemble the room",
+      "where": "[graphic]",
+      "fact_ids": [
+        "amber-room-nazi-looting-1941"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by the fact sheet."
+    },
+    {
+      "claim": "Est. over 13,000 lbs: Amber in completed room",
+      "where": "[graphic]",
+      "fact_ids": [
+        "amber-room-scale-and-weight"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Retains the required hedge ('Est.') and accurately reflects the conversion of over 6 tonnes."
+    }
+  ],
+  "consensus_confidence": 100.0,
+  "second_check": {
+    "status": "pass",
+    "confidence": 100.0,
+    "audits": [
+      {
+        "claim": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          17,
+          18,
+          19
+        ],
+        "note": "Army Group North disassembled the Amber Room in 36 hours under the supervision of two experts in 1941."
+      },
+      {
+        "claim": "Following eighteenth-century expansions, the completed room covered more than 55 square metres (590 sq ft) and contained over 6 tonnes (13,000 lbs) of amber.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          14,
+          15
+        ],
+        "note": "After expansion and several 18th-century renovations, the room covered more than 55 square metres (590 sq ft) and contained over 6 tonnes (13,000 lb) of amber."
+      },
+      {
+        "claim": "Attempts were made to conceal the amber room from German forces behind mundane wallpaper inside the Catherine Palace at Tsarskoye Selo near Saint Petersburg.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          1,
+          3,
+          16
+        ],
+        "note": "The Amber Room was located in the Catherine Palace at Tsarskoye Selo near Saint Petersburg and was hidden behind mundane wallpaper to keep German forces from seizing it."
+      },
+      {
+        "claim": "In early 1944, as Allied forces closed in, the room was disassembled and crated for storage in the Königsberg Castle basement.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          19,
+          20
+        ],
+        "note": "In early 1944, with Allied forces closing in, the room was disassembled and crated for storage in the Castle basement at Königsberg."
+      },
+      {
+        "claim": "Documentation tracking the room's location ends in August 1944, when Allied bombers heavily fire-bombed Königsberg.",
+        "claim_type": "epistemic_negation",
+        "verdict": "supported",
+        "quote_ids": [
+          21,
+          22
+        ],
+        "note": "Königsberg was heavily fire-bombed by the Royal Air Force / Allied bombers in August 1944, and documentation of the room's location ends there."
+      },
+      {
+        "claim": "Investigations concluded the room was most likely destroyed/incinerated when Königsberg Castle was bombed by British aircraft and shelled by Soviet artillery.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          24
+        ],
+        "note": "A 2004 investigation by Scott-Clark and Levy concluded the room was most likely destroyed when the castle was damaged during RAF bombing in 1944 followed by Soviet burning and shelling."
+      },
+      {
+        "claim": "In 1997, an original Italian stone mosaic from the room was recovered in Germany.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          23
+        ],
+        "note": "An Italian stone mosaic that had decorated the Amber Room was found in Germany in 1997."
+      },
+      {
+        "claim": "Do you believe the lost crates survived in a secret bunker, or were they lost to the firestorms of war?",
+        "claim_type": "rhetorical_framing",
+        "verdict": "supported",
+        "quote_ids": [],
+        "note": "Audience reflection and open-ended framing that asserts no checkable historical or physical fact."
+      },
+      {
+        "claim": "When cultural treasures vanish in war, does humanity lose a piece of its shared soul?",
+        "claim_type": "rhetorical_framing",
+        "verdict": "supported",
+        "quote_ids": [],
+        "note": "Philosophical and rhetorical question reflecting on the loss of cultural heritage."
+      }
+    ],
+    "summary": "[evidence re-check (gemini-3.7-flash)] All 9 claims supported by the quoted evidence."
+  },
+  "guardrail_passed": true,
+  "fact_review": {
+    "public_fingerprint": "13b174798a821267bb6e2c765a22a400051448903bd8012fd9cb20af14c6b7f7",
+    "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\amber_room_heist.json",
+    "sheet_sha256": "0841f8b25a14f50125a3547f2f3ba7c1d885ae2f1f0e0bec1d358e0fd8a96942",
+    "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+  }
+}

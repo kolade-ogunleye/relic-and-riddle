@@ -220,6 +220,44 @@ def _story_span(line1: str, line2: str):
     return None
 
 
+def gate_deck(slides: list[dict[str, Any]], poll: dict[str, Any] | None, script_payload: dict[str, Any], surface: str,
+              fields: tuple[str, ...] = ("heading", "body"), title: tuple[str, ...] = ("heading",),
+              label: str = "slide") -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+    """(slides, poll, withheld rows): a deck's drawn copy through the one pre-draw figure gate (lane B c3b,
+    visual_engine.gate_drawn), each slide's `fields` in reading order and the poll's question. Each withheld figure is
+    recorded on the run's ledger (record_withheld). A slide whose title fields (`title`) or whose body the gate leaves
+    with nothing readable has no other candidate in its deck: the deck is refused (refusal.Declined, rule
+    figure_gate.evidence; main.hold_layout_error holds it), never drawn with the figure or without its words."""
+    from .visual_engine import gate_drawn, headline_refused, record_withheld
+    out, rows = [], []
+    for i, slide in enumerate(slides, 1):
+        name = f"{surface} {label} {i}"
+        texts = {k: slide[k] for k in fields if isinstance(slide.get(k), str)}
+        gated, r = gate_drawn(texts, script_payload, name, [k for k in fields if k in texts])
+        if r:
+            emptied = [k for k in texts if texts[k].strip() and not gated[k].strip()]
+            if [k for k in emptied if k not in title] or (emptied and not any(gated[k].strip() for k in title
+                                                                              if k in gated)):
+                raise headline_refused(name, r, "its " + " / ".join(emptied))
+        out.append(dict(slide, **gated))
+        rows += r
+    poll = dict(poll or {})
+    if isinstance(poll.get("question"), str) and poll["question"].strip():
+        gated, r = gate_drawn({"question": poll["question"]}, script_payload, f"{surface} poll")
+        if r and not gated["question"].strip():
+            raise headline_refused(f"{surface} poll", r, "its question")
+        poll["question"] = gated["question"]
+        rows += r
+    record_withheld(script_payload, rows)
+    return out, poll, rows
+
+
+def slide_withheld(rows: list[dict[str, Any]], surface: str, i: int, label: str = "slide") -> dict[str, Any] | None:
+    """The figure_withheld record of one slide (gate_deck rows), None when the gate withheld nothing from it."""
+    from .visual_engine import withheld_record
+    return withheld_record([r for r in rows if r["surface"] == f"{surface} {label} {i}"])
+
+
 def story_fields(slide: dict[str, Any], poll: dict[str, Any] | None = None) -> tuple[str, str]:
     """A Story frame's two title fields as drawn: display typography, the poll's question as the headline when the
     slide has none (split by the heading engine), and the authored seam repaired by the engine (round 7, F1: a
@@ -871,6 +909,10 @@ class MultiFormatGenerator:
         lead = deck_lead(script_payload)
         slides_data = [{k: (spoken_units(v, narration, lead) if isinstance(v, str) else v) for k, v in s.items()}
                        for s in slides_data]
+        # Lane B c3b: each frame's two title lines and body through the one pre-draw figure gate
+        # (visual_engine.gate_drawn), as drawn; a frame left with nothing readable holds the Story (gate_deck)
+        slides_data, _, story_rows = gate_deck(slides_data, None, script_payload, "Story", ("line1", "line2", "body"),
+                                               ("line1", "line2"), "frame")
         layout = []  # each frame's text block, for the audit and the evidence renders
         title_px = story_title_px(slides_data, poll=poll)   # round 7 (F10): one title size per Story
 
@@ -917,6 +959,9 @@ class MultiFormatGenerator:
             base, lay, attempts = got
             if isinstance(getattr(lay, "meta", None), dict):
                 lay.meta["kicker_set"] = {"step": list(story_step) if story_step else None, "frames": len(slides_data)}
+                held = slide_withheld(story_rows, "Story", i + 1, "frame")
+                if held:   # lane B c3b: the figures the gate withheld from this frame, on its own record
+                    lay.meta["figure_withheld"] = recipe["figure_withheld"] = held
             layout.append({**lay.meta, "frame": name})
             base.save(path, quality=95)
             _delivered_contrast(lay, path)
@@ -2625,6 +2670,10 @@ class MultiFormatGenerator:
         lead = deck_lead(script_payload)
         cards = [dict(card, **{k: spoken_units(card[k], narration, lead) for k in ("heading", "body")
                                if isinstance(card.get(k), str)}) for card in cards]
+        # Lane B c3b: every slide's heading and body (the colossal stat's figure row is read from the body) and the
+        # closing slide's poll question through the one pre-draw figure gate (visual_engine.gate_drawn), as drawn
+        gate_surface = "Facebook carousel" if facebook else "carousel"
+        cards, poll, gate_rows = gate_deck(cards, poll, script_payload, gate_surface)
         # Lane D cycle 3 (lander correction of ruling 4): the diagram slide keeps its OWN signed heading and body; the
         # drawing carries only its own labels (render_scale drawing_floor draws no title, figure or meaning), so the
         # deck has one title system and no slide's signed copy is replaced (cycle 2 set the drawing's scale copy
@@ -2703,6 +2752,9 @@ class MultiFormatGenerator:
             im, lay, attempts, archetype, photo, photo_next, card, drew = drawn_deck[i]
             if isinstance(getattr(lay, "meta", None), dict):
                 lay.meta["kicker_set"] = {"step": list(deck_step) if deck_step else None, "slides": total}
+                held = slide_withheld(gate_rows, gate_surface, i + 1)
+                if held:   # lane B c3b: the figures the gate withheld from this slide, on its own record
+                    lay.meta["figure_withheld"] = held
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
@@ -2715,6 +2767,8 @@ class MultiFormatGenerator:
                                           **({"kicker_step": list(deck_step)} if deck_step else {}),
                                           **({"diagram_withheld": withheld}
                                              if withheld and i == withheld["slide"] - 1 else {}),
+                                          **({"figure_withheld": lay.meta["figure_withheld"]}
+                                             if lay.meta.get("figure_withheld") else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
@@ -2740,6 +2794,9 @@ class MultiFormatGenerator:
                     path = drawn_paths[j]
                     if isinstance(getattr(lay, "meta", None), dict):
                         lay.meta["kicker_set"] = {"step": list(deck_step) if deck_step else None, "slides": total}
+                        held = slide_withheld(gate_rows, gate_surface, j + 1)
+                        if held:
+                            lay.meta["figure_withheld"] = held
                     self._save_slide(im, path)
                     _delivered_contrast(lay, path)
                     still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide",
@@ -2749,6 +2806,8 @@ class MultiFormatGenerator:
                                                   "subject": subject, "heading_frame": frame, "heading_tier": tier,
                                                   "lead": lead, "window": showing[j], "heading_px": size,
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
+                                                  **({"figure_withheld": lay.meta["figure_withheld"]}
+                                                     if lay.meta.get("figure_withheld") else {}),
                                                   **({"kicker_step": list(deck_step)} if deck_step else {})},
                                       attempts)
                 else:

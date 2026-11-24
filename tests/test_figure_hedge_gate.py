@@ -96,6 +96,18 @@ def test_the_youtube_chain_draws_the_same_hedged_line_in_its_own_rank():
     assert chain[-1].get("variant") == "figure withheld" and chain[-1]["text"] == "FLATTENED FOREST"
 
 
+def test_the_youtube_figure_branch_draws_the_hedge_as_the_figures_qualifier(tmp_path):
+    """The figure branch lifts "830 SQUARE MILES" out of its line as the hero; the hedge beside it is the figure's
+    qualifier and leaves with it (the first render drew a stray "OVER" line under "830 SQ MI")."""
+    p = _payload(TUNGUSKA)
+    out = ve.VisualEngine().generate_youtube_thumbnail(_hero(tmp_path), p, tmp_path / "yt.jpg")
+    qa = json.loads(out.with_suffix(".qa.json").read_text(encoding="utf-8"))
+    drawn = [e["text"] for e in qa["elements"] if e.get("text")]
+    assert drawn.count("OVER") == 1 and "FLATTENED FOREST" in drawn
+    assert qa["headline_source"] == "thumbnail" and qa["figure_hedged"]["figures"][0]["hedged"] == "OVER 830 SQ MI"
+    assert "OVER 830 SQ MI for 830 SQ MI: drawn with its signed hedge" in p["thumbnail_note"]
+
+
 # -------------------------------------------------------------------------------------------- what stays withheld
 def test_odessa_73_day_by_one_estimate_stays_withheld():
     p = _payload(ODESSA)

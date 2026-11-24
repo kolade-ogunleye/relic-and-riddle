@@ -891,6 +891,10 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         found = None
     elif stated is not None and stated.hi:
         found = (stated.number, found[1], found[2], (stated.start, stated.end))
+    elif stated is not None and stated.hedge and not stated.lead_hedge:
+        # lane B c3c: a hedge beside the number ("OVER 830 SQUARE MILES") is the figure's, drawn as its qualifier: it
+        # leaves the line with the figure, never stays behind as a line of its own ("OVER" under "830 SQ MI")
+        found = (found[0], found[1], found[2], (stated.start, max(found[3][1], stated.start)))
     q_raw = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
     if found and found[1] and stated is not None and stated.hedge and not q_raw:
         q_raw = stated.hedge   # the statement's own hedge ("ROUGHLY" before a span, "ESTIMATED" spelled out)

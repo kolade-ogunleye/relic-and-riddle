@@ -3102,6 +3102,12 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
     if grade_bias is None:
         grade_bias = float((payload.get("art_direction") or {}).get("grade_bias") or 0.0)
     labels = payload.get("photo_labels") or []
+    # Lane B c3b: each label through the one pre-draw figure gate (visual_engine.gate_drawn); a label left with
+    # nothing readable is not a candidate (each label is its own), recorded on the run's ledger
+    from .visual_engine import gate_drawn, record_withheld
+    gated, rows = gate_drawn({str(i): str(t) for i, t in enumerate(labels)}, payload, "photo callouts")
+    record_withheld(payload, rows)
+    labels = [gated[str(i)] for i in range(len(labels)) if gated[str(i)].strip()]
     if len(labels) < 2:
         return None
     if auto_approve and not audit_passes():

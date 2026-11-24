@@ -15,6 +15,7 @@ from src import config, still_layout
 from src.multi_format import MultiFormatGenerator
 from src.typography import TextFitError
 from src.video_qa import QualityAuditor
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 FIXTURE = Path(__file__).parent / "fixtures" / "carousel_1080_layouts_2026_10_28.json"
 ARCHETYPES = ("cover", "immersive", "comparison", "blueprint", "colossal_stat", "debate", "editorial_split")
@@ -69,6 +70,7 @@ def test_slides_are_1440x1800_on_both_copies_and_pass_every_check(gen, tmp_path,
     assert MultiFormatGenerator.CAROUSEL_SIZE == (1440, 1800)
     photos = _photos(tmp_path / "photos")
     payload = {"title": "T", "poll": POLL, "carousel_slides": FITTING}
+    payload = signed(payload)
     for facebook in (False, True):
         slides = gen.generate_carousel_sequence(photos, payload, tmp_path, facebook=facebook)
         records = json.loads((slides[0].parent / still_layout.SIDECAR).read_text(encoding="utf-8"))
@@ -86,6 +88,7 @@ def test_the_overlong_card_refuses_its_deck_rather_than_drawing_it_shortened(gen
     # refused now (main.hold_layout_error then holds that deck alone)
     photos = _photos(tmp_path / "photos")
     payload = {"title": "T", "poll": POLL, "carousel_slides": CARDS}
+    payload = signed(payload)
     for facebook in (False, True):
         with pytest.raises(TextFitError, match="Checked copy does not fit"):
             gen.generate_carousel_sequence(photos, payload, tmp_path / str(facebook), facebook=facebook)
@@ -176,6 +179,7 @@ def test_the_1440_layout_is_the_1080_layout_at_four_thirds(gen, tmp_path, monkey
 def test_a_worst_case_slide_stays_far_under_metas_8_mb(gen, tmp_path):
     photo = _noise(tmp_path / "noise.jpg")
     payload = {"title": "T", "poll": POLL, "carousel_slides": FITTING}   # QF-23: the overlong card is refused
+    payload = signed(payload)
     slides = gen.generate_carousel_sequence([photo], payload, tmp_path)
     sizes = [s.stat().st_size for s in slides]
     assert all(Image.open(s).size == (1440, 1800) for s in slides)

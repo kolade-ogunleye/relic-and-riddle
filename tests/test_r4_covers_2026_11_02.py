@@ -341,7 +341,8 @@ def test_a_hook_failure_at_grid_size_redraws_in_another_fitting_style(tmp_path, 
     monkeypatch.setattr(cover_design, "grid_proof", proof)
     hero = tmp_path / "hero.jpg"
     _photo().convert("RGB").save(hero)
-    cover, _ = VisualEngine().generate_thumbnails(hero, {"thumbnail": dict(GUMBAZ), "title": "Dome"},
+    cover, _ = VisualEngine().generate_thumbnails(hero, {"thumbnail": dict(GUMBAZ), "title": "Dome",
+                                                   "narration_script": "The dome is 144 feet across."},
                                                   tmp_path / "out", style="badge", variants=False)
     recipe = still_layout.load(cover)["recipe"]
     assert recipe["style"] == "monument" and recipe["grid_fallback"]["from"] == "badge"
@@ -415,7 +416,8 @@ def test_the_engine_refits_the_paper_card_when_the_hero_fills_too_little(tmp_pat
     monkeypatch.setattr(cover_selector, "fitting", spy)
     hero = tmp_path / "hero.jpg"
     _photo(size=(1600, 1200)).convert("RGB").save(hero)
-    cover, _ = VisualEngine().generate_thumbnails(hero, {"thumbnail": dict(GUMBAZ), "title": "Dome"},
+    cover, _ = VisualEngine().generate_thumbnails(hero, {"thumbnail": dict(GUMBAZ), "title": "Dome",
+                                                   "narration_script": "The dome is 144 feet across."},
                                                   tmp_path / "out", style="depth_sandwich", variants=False)
     recipe = still_layout.load(cover)["recipe"]
     assert recipe["style"] != "depth_sandwich" and recipe["style_refit"]["from"] == "depth_sandwich"

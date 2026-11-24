@@ -1289,7 +1289,12 @@ def share_repeats_narration(line: str, narration: str) -> bool:
 def share_prompt(payload: Dict[str, Any]) -> str:
     """The share-and-follow line a run shows: the writer's, when it passes its checks, else a plain one."""
     line = " ".join(str((payload or {}).get("share_line") or "").split())
-    return line if line and not share_line_problems(line) else SHARE_FALLBACK
+    # Lane B c3b: the carousel's closing slide draws this line, so it goes through the one pre-draw figure gate
+    # (visual_engine.gate_drawn); a line that would need a figure withheld gives way to the plain one (its chain)
+    from .visual_engine import gate_drawn
+    return (line if line and not share_line_problems(line) and not gate_drawn({"share": line}, payload or {},
+                                                                              "carousel share line")[1]
+            else SHARE_FALLBACK)
 
 
 def end_card_share(payload: Dict[str, Any]) -> Tuple[str, bool]:
@@ -1300,7 +1305,10 @@ def end_card_share(payload: Dict[str, Any]) -> Tuple[str, bool]:
     line = " ".join(str((payload or {}).get("share_line") or "").split())
     if line and not share_line_problems(line) and not share_repeats_narration(line, (payload or {}).get("narration_script", "")):
         text = card_text(line)
-        if len(text.split()) >= 3:
+        # Lane B c3b: the line the card can draw (end_card.LOOP_LINE) through the one pre-draw figure gate
+        # (visual_engine.gate_drawn): a line that would need a figure withheld is not drawn; the fallback is (its chain)
+        from .visual_engine import gate_drawn
+        if len(text.split()) >= 3 and not gate_drawn({"share": text}, payload or {}, "end card")[1]:
             return text, False
     return card_text(SHARE_FALLBACK), True
 

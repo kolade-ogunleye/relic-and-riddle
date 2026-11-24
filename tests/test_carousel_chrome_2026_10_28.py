@@ -18,6 +18,7 @@ from src.models import ScriptPackage
 from src.multi_format import MultiFormatGenerator
 from src.publisher import MetaPublisher, UploadPostPublisher
 from src.script_engine import _DIRECTION_MARKS, facebook_photo_caption, neutral_cues, normalize_copy
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 DIRECTIONAL = ("swipe right", "swipe left", "swipe up", "swipe down", "below", "above", "scroll down")
 
@@ -144,6 +145,7 @@ CARDS = [{"heading": "The calendar that outlived its empire", "body": "A shoebox
          {"heading": "What was forgotten?", "body": "If a workshop could make this, what else did we lose?"}]
 PAYLOAD = {"title": "T", "poll": {"question": "Astronomy or metalwork?", "options": ["The astronomy", "The metalwork"]},
            "carousel_slides": CARDS}
+PAYLOAD = signed(PAYLOAD)
 ARCHETYPES = ("cover", "immersive", "comparison", "blueprint", "colossal_stat", "debate", "editorial_split")
 
 
@@ -261,6 +263,7 @@ def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
     monkeypatch.setattr(ImageDraw.ImageDraw, "text", lambda self, xy, text, *a, **k: drawn.append(str(text)) or real_text(self, xy, text, *a, **k))
     slide = {"kicker": "THE FIND", "line1": "A LUMP", "line2": "OF BRONZE", "body": "Divers raised it in 1901."}
     payload = {"story_slides": [slide, slide, slide], "poll": PAYLOAD["poll"], "title": "T", "caption": "", "first_comment": ""}
+    payload = signed(payload)
     photos = _photos(tmp_path)
     gen.generate_story_sequence(photos[0], payload, tmp_path, scene_images=photos)
     assert "FULL STORY IN OUR NEW REEL" in "".join(drawn)   # tracked: drawn a letter at a time (2026-10-29)

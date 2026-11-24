@@ -15,7 +15,8 @@ from src.visual_engine import VisualEngine
 
 
 SELECTABLE_STYLES = ("depth_sandwich", "badge", "minimal")
-PAYLOAD = {"thumbnail": {
+PAYLOAD = {"narration_script": "The dome is 144 feet across.",   # lane B c3b: the figure is signed (gate_drawn)
+           "thumbnail": {
     "eyebrow": "ANCIENT ENGINEERING",
     "line1": "THE 144-FOOT",
     "line2": "WHISPERING DOME",

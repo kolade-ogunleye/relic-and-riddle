@@ -16,6 +16,7 @@ from PIL import Image, ImageDraw
 
 from src import font_engine as FE
 from src import typography as T
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 GlyphRefused = getattr(FE, "GlyphRefused", type("GlyphRefusedMissing", (Exception,), {}))   # absent on the base
 
@@ -246,6 +247,7 @@ def test_a_story_frame_credited_to_an_author_no_face_draws_needs_review_naming_t
     slide = {"kicker": "THE HEIST", "line1": "A ROOM", "line2": "OF AMBER", "body": "It was taken in 1941."}
     payload = {"title": "x", "narration_script": "x", "first_comment": "?", "hashtags": ["#x"],
                "story_slides": [slide, dict(slide, kicker="THE FATE")], "poll": {}}
+    payload = signed(payload)
     run = tmp_path / "run"
     FE.set_glyph_ledger(tmp_path / FE.LEDGER_NAME)
     try:
@@ -496,6 +498,7 @@ def test_a_story_frame_no_face_can_draw_is_refused_and_the_others_drawn(tmp_path
     stale.write_bytes(b"old")
     payload = {"title": "x", "narration_script": "x", "first_comment": "?", "hashtags": ["#x"],
                "story_slides": [slide, slide], "poll": {}}
+    payload = signed(payload)
     frames = gen.generate_story_sequence(photo, payload, tmp_path / "run", scene_images=[photo])
     assert [f.name for f in frames] == [kept]
     assert not stale.exists()

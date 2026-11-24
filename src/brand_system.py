@@ -582,6 +582,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:country_name_place": "A",
     "graphics:country_outside_place": "A",
     "graphics:country_plate": "A",
+    "graphics:country_plates": "A",       # lane A c3 final: the home country's name plates (its own site)
     "graphics:country_spot": "A",
     "graphics:data_font": "A",          # cycle 0 round 7: the data, figure and place roles' fonts
     "graphics:figure_font": "A",

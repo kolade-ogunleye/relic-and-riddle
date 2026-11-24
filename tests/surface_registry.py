@@ -518,6 +518,15 @@ def _thin_geo(tmp: Path):
             (geo, "find_country", lambda name, **k: next((c for c in world if name.lower() in c["names"]), None))]
 
 
+def _long_home_geo(tmp: Path):
+    """A small home whose name is wider than the 9:16 Reel box at the floor (lane A cycle 3, lander ruling on
+    Port-aux-Francais): the name is set outside its fill on two rows (graphics.country_plates, a row each)."""
+    from src import geo
+    world = [_country("French Southern and Antarctic Lands", 69.5, -49.3, 0.6, 0.4)]
+    return [(geo, "countries", lambda: world),
+            (geo, "find_country", lambda name, **k: next((c for c in world if name.lower() in c["names"]), None))]
+
+
 def _same_geo(tmp: Path):
     """The base synthetic world, unchanged (for a branch that changes only the map's site)."""
     return []
@@ -550,7 +559,11 @@ def branches() -> dict[str, dict[str, Callable]]:
                                 # (graphics.with_region_line), a size site of its own
                                 "region": _on_world("map", _same_geo, {"lat": 38.3735, "lon": 34.7347,
                                                                        "label": "Derinkuyu", "region": "Cappadocia",
-                                                                       "country": "Turkey", "approximate": False})},
+                                                                       "country": "Turkey", "approximate": False}),
+                                # lane A cycle 3 (final): a home name set on two rows, 9:16 only
+                                "long_home": _only("tall", _on_world("map", _long_home_geo, {
+                                    "lat": -49.35, "lon": 70.22, "label": "Port-aux-Francais",
+                                    "country": "French Southern and Antarctic Lands", "approximate": False}))},
         "graphics.render_route": {"coast": _on_world("route", _coast_geo)},
         "story.frame": {
             "hero": _story_slide({"kicker": "UNDERGROUND", "line1": "280 FEET", "line2": "BELOW THE HILL",

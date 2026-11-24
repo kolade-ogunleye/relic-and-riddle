@@ -115,7 +115,9 @@ def test_the_scale_bar_keeps_off_a_border_and_away_from_the_marker() -> None:
 def test_a_neighbour_on_a_narrow_strip_is_named_a_step_smaller(monkeypatch) -> None:
     home, other = _box("Home", -5, -5, 0, 5), _box("Sweden", 0, -5, 5, 5)
     monkeypatch.setattr(geo, "countries", lambda: [home, other])
-    tb = graphics.get_text_box(1080, 1920)
+    # freeze lane A cycle 3 (deliberate): a neighbour's name is set by geography in the Reel box (map_text_box), not
+    # the 687 px text column; the strip stands against that box's edge
+    tb = graphics.map_text_box(1080, 1920)
 
     def to_frame(lon: float, lat: float) -> tuple[float, float]:   # Sweden's strip in the box: ~140 px wide
         return tb[2] - 140 + lon * 200, 700 - lat * 100

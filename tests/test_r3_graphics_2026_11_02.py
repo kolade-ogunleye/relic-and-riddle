@@ -422,9 +422,12 @@ def test_locator_draws_its_scale_bar_in_both_orientations(tmp_path, monkeypatch,
     st = _render(monkeypatch, lambda: graphics.render_map(place, tmp_path / "m.mp4", width=size[0], height=size[1]))
     rows = dict(st["plates"])
     assert "scale" in rows
-    x0, y0, x1, y1 = graphics.get_text_box(*size)
-    outside = [(n, p.box) for n, p in st["plates"] if not (x0 <= p.box[0] and p.box[2] <= x1 and y0 <= p.box[1]
-                                                          and p.box[3] <= y1)]
+    # freeze lane A cycle 3 (deliberate): a sea's or a neighbour's name is set by geography in the Reel box (map_text_box, 6aad4200:
+    # the 687 px column left the Amber map's Baltic unnamed); the column copy keeps the text column (MG-1)
+    def box_of(n):
+        return graphics.map_text_box(*size) if n.startswith(("water_", "neighbour_")) else graphics.get_text_box(*size)
+    outside = [(n, p.box) for n, p in st["plates"] if not (box_of(n)[0] <= p.box[0] and p.box[2] <= box_of(n)[2]
+                                                          and box_of(n)[1] <= p.box[1] and p.box[3] <= box_of(n)[3])]
     assert not outside, outside
     assert not graphics.LayoutConstraintSolver.boxes_intersect(rows["scale"].box, (1620, 950, 1920, 1080))
     arr = np.asarray(st["frames"][-1])

@@ -211,17 +211,12 @@ def test_height_carries_the_shared_ruler_and_the_landmark_note(tmp_path, monkeyp
     st = _render(monkeypatch, lambda: graphics.render_scale(HEIGHT, tmp_path / "s.mp4", *size))
     rows = _rows(st)
     marks = {p.text for n, p in st["plates"] if n.startswith("ruler")}
-    # freeze lane A cycle 3: a 107 ft subject compares with the nearer sourced landmark (the 60 ft Rushmore head,
-    # reference_facts R_RUSHMORE_HEAD), so the shared ruler runs to the subject's own height, its note the head's
-    feet = HEIGHT["value"] * (3.28084 if HEIGHT["unit"] == "m" else 1.0)
-    ref = graphics.pick_reference(feet)
-    top = max(feet, ref[1])
-    assert marks >= {"0 FT", "100"} and all(int(m.replace(",", "")) <= top + 100 for m in marks - {"0 FT"})
+    # freeze lane A cycle 3 (integration 3): a 107 ft subject keeps the Statue of Liberty (reference_facts prefers a
+    # landmark at least the subject's size within 1/3x-3x; the 60 ft head is for the 20-100 ft band)
+    assert graphics.pick_reference(107.0)[0] == "Statue of Liberty (total)"
+    assert marks >= {"0 FT", "100", "200"} and (size[0] < size[1] or "300" in marks)   # 9:16: 300 meets the heading's air
     note = " ".join(p.text for n, p in st["plates"] if n.startswith("ref_note"))
-    # the note is drawn whole, or refused with its reason recorded (never set on the subject's own drawing, where
-    # it measured 3.6:1 on the gold block)
-    rec = graphics.LAST_REFERENT_NOTE
-    assert note == graphics.reference_note(ref[0]) or (note == "" and rec.get("shown") is False and rec.get("reason"))
+    assert note == "GROUND TO TORCH TIP"
     assert all(p.font.size >= (graphics.SCALE_RULER_PX - 4 if size[0] < size[1] else 20)
                for n, p in st["plates"] if n.startswith("ref_note"))
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in st["plates"])

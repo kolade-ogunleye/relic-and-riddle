@@ -1,0 +1,234 @@
+{
+ "topic_id": "odessa_catacombs",
+ "built_at": "2026-10-25T23:25:06.276094+00:00",
+ "facts": [
+  {
+   "id": "fact_1",
+   "statement": "The catacombs form a subterranean network beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "Odesa, also spelled Odessa, is the third-most populous city and municipality in Ukraine and a major seaport and transport hub located in the south-west of the country, on the northwestern shore of the Black Sea."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "This created a gigantic, complicated labyrinth of tunnels beneath Odesa, known as the Odesa catacombs."
+    }
+   ]
+  },
+  {
+   "id": "fact_2",
+   "statement": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels known as the Odesa catacombs.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "This created a gigantic, complicated labyrinth of tunnels beneath Odesa, known as the Odesa catacombs."
+    }
+   ]
+  },
+  {
+   "id": "fact_3",
+   "statement": "During World War II, the Odesa catacombs served as a natural underground shelter for civilians escaping aerial bombing.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "During World War II, the catacombs served as a hiding place for partisans and natural shelter for civilians, who were escaping airplane bombing."
+    }
+   ]
+  },
+  {
+   "id": "fact_4",
+   "statement": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive against the Soviet Union.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.marxists.org/reference/archive/stalin/works/1941/07/03.htm",
+     "tier": 3,
+     "quote": "The perfidious military attack by Hitlerite Germany on our Fatherland, begun on June 22, is continuing."
+    },
+    {
+     "url": "https://www.marxists.org/reference/archive/stalin/works/1941/07/03.htm",
+     "tier": 3,
+     "quote": "The fascist aircraft are extending the range of their operations, bombing Murmansk, Orsha, Moghilev, Smolensk, Kiev, Odessa, Sevastopol."
+    }
+   ]
+  },
+  {
+   "id": "fact_5",
+   "statement": "The subterranean tunnels of the catacombs served as an active hiding place for Soviet resistance partisans during World War II.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "Soviet partisans were members of resistance movements that fought a guerrilla war against Axis forces during World War II in the Soviet Union, the previously Soviet-occupied territories of interwar Poland in 1941–1945 and eastern Finland."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "During World War II, the catacombs served as a hiding place for partisans and natural shelter for civilians, who were escaping airplane bombing."
+    }
+   ]
+  },
+  {
+   "id": "fact_6",
+   "statement": "Following the enemy siege of the city, Soviet partisan fighters continued active combat operations from inside the Odesa catacombs.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "Partisan fighting continued, however, in the city's catacombs."
+    }
+   ]
+  },
+  {
+   "id": "fact_7",
+   "statement": "The 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "The Siege of Odessa (1941) started on 5 August and lasted for 73 days."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Odesa",
+     "tier": 2,
+     "quote": "Following the siege, and the Axis occupation, approximately 25,000 Odesans were murdered in the outskirts of the city and over 35,000 deported; this came to be known as the 1941 Odessa massacre."
+    }
+   ]
+  },
+  {
+   "id": "fact_8",
+   "statement": "In response to German pacification sweeps in late 1941 and early 1942, numerous partisan detachments went underground.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "German pacification operations in the summer and autumn 1941 were able to curb the partisan activity significantly."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "Many units went underground, and generally, in late 1941 to early 1942, the partisan units were not undertaking significant military operations, but limiting themselves to sorting out organizational problems, building up support and establishing an influence over the local people."
+    }
+   ]
+  },
+  {
+   "id": "fact_9",
+   "statement": "On July 29, 1941, official Soviet directives ordered the formation of partisan detachments and diversionist units in occupied territory.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "Directives issued on July 29, 1941 and in further documents by the Soviet People's Commissaries Council and Communist Party called for the formation of partisan detachments and 'diversionist' groups in the German-occupied territories."
+    }
+   ]
+  },
+  {
+   "id": "fact_10",
+   "statement": "In a national radio speech on July 3, 1941, calls were broadcast to initiate partisan and diversionist operations behind enemy lines.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "Joseph Stalin iterated his commands and directives to the people in his radio speech on 3 July 1941, and appointed himself Commander-in-Chief of the Red Army on 20 July 1941."
+    },
+    {
+     "url": "https://histrf.ru/lenta-vremeni/event/view/29-iiunia-dien-pamiati-partizan-i-podpol-shchikov",
+     "tier": 3,
+     "quote": "3 июля 1941 г. в речи И.В. Сталина , прозвучавшей по радио, прозвучали призывы к развертыванию в тылу врага партизанской и диверсионной деятельности."
+    }
+   ]
+  },
+  {
+   "id": "fact_11",
+   "statement": "On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate guerrilla warfare operations.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+     "tier": 2,
+     "quote": "In order to coordinate partisan operations the Central Headquarters of the Partisan Movement under Stavka, headed by Panteleimon Ponomarenko (Chief of Staff) and initially commanded by top Politburo member Kliment Voroshilov, was organized on 30 May 1942."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Wikipedia: Soviet partisans",
+   "url": "https://en.wikipedia.org/wiki/Soviet_partisans",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Odesa",
+   "url": "https://en.wikipedia.org/wiki/Odesa",
+   "tier": 2
+  },
+  {
+   "title": "www.marxists.org",
+   "url": "https://www.marxists.org/reference/archive/stalin/works/1941/07/03.htm",
+   "tier": 3
+  },
+  {
+   "title": "ipn.gov.pl",
+   "url": "https://ipn.gov.pl/pl/dla-mediow/komunikaty/10278,Komunikat-dot-sledztwa-w-sprawie-zbrodni-popelnionych-przez-partyzantow-sowiecki.html",
+   "tier": 3
+  },
+  {
+   "title": "histrf.ru",
+   "url": "https://histrf.ru/lenta-vremeni/event/view/29-iiunia-dien-pamiati-partizan-i-podpol-shchikov",
+   "tier": 3
+  },
+  {
+   "title": "rabkrin.org",
+   "url": "https://rabkrin.org/reydyi-sovetskih-partizan-na-territoriyu-finlyandii-v-1942-1944-gg-statya/",
+   "tier": 3
+  },
+  {
+   "title": "glory.rin.ru",
+   "url": "https://glory.rin.ru/cgi-bin/event.pl?act=more&id=32&place=&name=&word=&ids=&start=1&page=3",
+   "tier": 3
+  },
+  {
+   "title": "www.calend.ru",
+   "url": "https://www.calend.ru/holidays/0/0/1715/",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

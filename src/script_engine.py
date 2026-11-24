@@ -1292,9 +1292,27 @@ def share_prompt(payload: Dict[str, Any]) -> str:
     # Lane B c3b: the carousel's closing slide draws this line, so it goes through the one pre-draw figure gate
     # (visual_engine.gate_drawn); a line that would need a figure withheld gives way to the plain one (its chain)
     from .visual_engine import gate_drawn
-    return (line if line and not share_line_problems(line) and not gate_drawn({"share": line}, payload or {},
-                                                                              "carousel share line")[1]
-            else SHARE_FALLBACK)
+    if line and not share_line_problems(line):
+        if not gate_drawn({"share": line}, payload or {}, "carousel share line")[1]:
+            return line
+        hedged = _share_hedged(line, payload, "carousel share line", lambda t: not share_line_problems(t))
+        if hedged:
+            return hedged
+    return SHARE_FALLBACK
+
+
+def _share_hedged(line: str, payload: Dict[str, Any] | None, surface: str, holds) -> str:
+    """Lane B c3c: the share line with each figure that lacks only its signed hedge drawn with it, when that leaves
+    nothing withheld (visual_engine.gate_drawn's `hedged`) and the line still holds its own rules (`holds`: its length
+    and form checks), recorded on the run's ledger (record_hedged); else "" (the line's chain: the plain one)."""
+    from .visual_engine import gate_drawn, record_hedged
+    found: list = []
+    gated, rows = gate_drawn({"share": line}, payload or {}, surface, hedged=found)
+    if rows or not found or not holds(gated["share"]):
+        return ""
+    if payload is not None:
+        record_hedged(payload, found)
+    return gated["share"]
 
 
 def end_card_share(payload: Dict[str, Any]) -> Tuple[str, bool]:
@@ -1310,6 +1328,13 @@ def end_card_share(payload: Dict[str, Any]) -> Tuple[str, bool]:
         from .visual_engine import gate_drawn
         if len(text.split()) >= 3 and not gate_drawn({"share": text}, payload or {}, "end card")[1]:
             return text, False
+        # lane B c3c: a figure that lacks only its signed hedge is drawn with it when the card line still holds
+        # (the whole line hedged and held to its own rules, then cut to the card's share half as before)
+        hedged = _share_hedged(line, payload, "end card", lambda t: not share_line_problems(t)
+                               and len(card_text(t).split()) >= 3 and not gate_drawn({"share": card_text(t)},
+                                                                                       payload or {}, "end card")[1])
+        if hedged:
+            return card_text(hedged), False
     return card_text(SHARE_FALLBACK), True
 
 

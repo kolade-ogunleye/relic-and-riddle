@@ -1189,6 +1189,7 @@ class PipelineCoordinator:
             graphics_dir.mkdir(parents=True, exist_ok=True)
             t_graphics = time.perf_counter()
             payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
+            payload.pop("figure_hedges", None)  # lane B c3c: likewise, the figures drawn with their hedge
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
                 from src import art_direction
                 doc_art = art_direction.record(run_dir, hero_img)
@@ -3548,6 +3549,7 @@ class PipelineCoordinator:
         ai_left_out = [p for p in scene_media if not _is_video(Path(p)) and is_ai_picture(p)]
         t0 = time.perf_counter()
         payload.pop("layout_holds", None)   # QF-23: this render's holds only (a resumed run's old payload had some)
+        payload.pop("figure_hedges", None)  # lane B c3c: likewise, the figures drawn with their hedge
         payload.pop("photo_holds", None)    # QF-65c: likewise
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             # each glyph event names what it was drawn on (QF-94)

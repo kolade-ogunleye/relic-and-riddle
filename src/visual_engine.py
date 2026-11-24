@@ -10,6 +10,7 @@ Scene sequencing and the delivered cover engine.
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
@@ -312,35 +313,50 @@ class VisualEngine:
         out_916_path = output_dir / "thumbnail_cover.jpg"
         out_1x1_path = output_dir / "thumbnail_profile_grid.jpg"
 
-        copy = dict(script_payload.get("thumbnail", {}))
-        if "badge" not in copy:
-            copy["badge"] = extract_curiosity_badge(script_payload)
-        copy = _in_spoken_units(copy, script_payload)
+        raw = dict(script_payload.get("thumbnail", {}))
+        if "badge" not in raw:
+            raw["badge"] = extract_curiosity_badge(script_payload)
+        raw = _in_spoken_units(raw, script_payload)
         # Lane B c3b (int-3 board: "THE 6-TON ROOM" drawn here while the YouTube chain refused it): the one pre-draw
         # figure gate (gate_drawn) on every line the cover can draw, as drawn (spoken units); a headline it leaves with
         # nothing readable is refused, recorded, never drawn with the figure. The grid tile is this cover's crop.
-        copy, self._withheld = gate_drawn(copy, script_payload, "cover", COVER_FIELDS)
+        # Lane B c3c: a figure that lacks only its signed hedge is drawn with it ("OVER 830 SQUARE MILES") when the
+        # cover holds the hedged copy in the style it chose, at its own size rules (no other style, no grid fallback
+        # or hold); else the cover is drawn from the plain gate's copy, the figure withheld as before.
+        self._hedged = []
+        hedged_copy, hedged_rows = gate_drawn(raw, script_payload, "cover", COVER_FIELDS, hedged=self._hedged)
+        copy, self._withheld = gate_drawn(raw, script_payload, "cover", COVER_FIELDS)
+        if self._hedged:
+            copy, self._withheld, plain, plain_rows = hedged_copy, hedged_rows, copy, self._withheld
+        else:
+            plain = plain_rows = None
         if self._withheld and not any(str(copy.get(k) or "").strip() for k in ("line1", "line2")):
             raise headline_refused("cover", self._withheld, "the cover headline")
-        record_withheld(script_payload, self._withheld)
-        # What the fact sheet says about the hero figure (round 3): a range or disputed value never stands as one
-        # number, a hedged one only with its qualifier, and the claim's dimension word travels with it.
-        self._figure = cover_figure(copy, script_payload)
-        # The script's reveal line (round 4): a tagline that answers it is not drawn on the cover.
-        self._reveal = reveal_line(script_payload)
-        # Operator ruling 7 (lane B cycle 1): the run's verified lines a tagline the withheld figure emptied falls back to
         from .cover_design import fallback_tagline, tagline_alternates
         self._tagline_alternates = tagline_alternates(script_payload)
-        self._tagline_fallback = None
-        if any(r["field"] == "tagline" for r in self._withheld) and not str(copy.get("tagline") or "").strip():
-            # lane B c3b: a tagline the gate emptied takes the next line of its own chain (ruling 7's alternates),
-            # never a word added; with none it stays out, recorded
-            fb = fallback_tagline(copy, self._tagline_alternates, self._reveal)
-            self._tagline_fallback = {"from": fb[0] if fb else None, "text": fb[1] if fb else "",
-                                      "reason": "the tagline's figure was withheld (figure_gate.evidence)"
-                                      + ("" if fb else "; no other verified line of the run fits as a tagline")}
-            if fb:
-                copy["tagline"] = fb[1]
+        # The script's reveal line (round 4): a tagline that answers it is not drawn on the cover.
+        self._reveal = reveal_line(script_payload)
+
+        def settle(copy):
+            """The copy as drawn once its gate rows are known: the hero figure's sheet check and a tagline the gate
+            emptied taking its fallback."""
+            # What the fact sheet says about the hero figure (round 3): a range or disputed value never stands as one
+            # number, a hedged one only with its qualifier, and the claim's dimension word travels with it.
+            self._figure = cover_figure(copy, script_payload)
+            # Operator ruling 7 (lane B cycle 1): the run's verified lines a tagline the withheld figure emptied falls
+            # back to
+            self._tagline_fallback = None
+            if any(r["field"] == "tagline" for r in self._withheld) and not str(copy.get("tagline") or "").strip():
+                # lane B c3b: a tagline the gate emptied takes the next line of its own chain (ruling 7's alternates),
+                # never a word added; with none it stays out, recorded
+                fb = fallback_tagline(copy, self._tagline_alternates, self._reveal)
+                self._tagline_fallback = {"from": fb[0] if fb else None, "text": fb[1] if fb else "",
+                                          "reason": "the tagline's figure was withheld (figure_gate.evidence)"
+                                          + ("" if fb else "; no other verified line of the run fits as a tagline")}
+                if fb:
+                    copy["tagline"] = fb[1]
+            return copy
+        copy = settle(copy)
         from .scene_planner import is_illustration
         self._illustration = is_illustration(Path(hero_image_path))
 
@@ -355,15 +371,22 @@ class VisualEngine:
         im = ImageOps.fit(self._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
         self._text_cy = VIDEO_HEIGHT // 2  # legacy recipe field; photo and text now have separate spaces
 
-        def save(path: Path, chosen: str, enforce: bool = False) -> Image.Image:
+        def save(path: Path, chosen: str, enforce: bool = False, exact: str = "") -> Image.Image:
             out, lay, attempts = self._render_checked(im, copy, chosen)
             grid = {}
             if enforce:
                 out, lay, attempts, chosen, grid = self._grid_enforced(im, copy, chosen, out, lay, attempts)
+            if exact and (chosen != exact or grid.get("grid_hold") or grid.get("grid_fallback")):
+                # lane B c3c: the hedged copy is drawn only in the style the cover chose, held whole at its own size
+                # rules; anything else is the plain copy's (the caller draws it)
+                raise _HedgeMisfit(f"the hedged copy draws as {chosen} with {sorted(grid) or 'no change'}")
             evidence = withheld_record(self._withheld)
             if evidence:   # lane B c3b: the gate's withheld figures on the cover's own record (the sheet's beside them)
                 lay.meta["figure_withheld"] = {**evidence, **({"sheet": lay.meta["figure_withheld"]}
                                                               if lay.meta.get("figure_withheld") else {})}
+            hedges = hedged_record(self._hedged)
+            if hedges:     # lane B c3c: each figure drawn with its signed hedge, on the cover's own record
+                lay.meta["figure_hedged"] = hedges
             if self._tagline_fallback:
                 lay.meta.setdefault("tagline_fallback", self._tagline_fallback)
             out = out.convert("RGB")
@@ -379,7 +402,8 @@ class VisualEngine:
                                           "figure": self._figure, "illustration": self._illustration,
                                           "reveal": self._reveal, "grid_proof": lay.meta.get("grid_proof"),
                                           # lane B c3b: what the figure gates withheld, kept on the cover's record
-                                          **({k: lay.meta[k] for k in ("figure_withheld", "tagline_fallback")
+                                          **({k: lay.meta[k] for k in ("figure_withheld", "figure_hedged",
+                                                                       "tagline_fallback")
                                               if lay.meta.get(k)}),
                                           **({"style_refit": self._style_refit}
                                              if enforce and getattr(self, "_style_refit", None) else {}),
@@ -389,10 +413,28 @@ class VisualEngine:
                 log.warning("Cover %s (%s) at profile-grid size: %s", path.name, chosen, "; ".join(proof["fails"]))
             return out
 
+        from .refusal import LayoutError
         from .typography import TextFitError
         chosen = self._fitted_style(copy, style if style in RENDERABLE_STYLES else "badge")
+        final_916 = None
+        if self._hedged:
+            try:
+                final_916 = save(out_916_path, chosen, enforce=True, exact=chosen)
+            except (TextFitError, LayoutError, _HedgeMisfit) as e:
+                # lane B c3c: the hedged copy does not hold in the cover's own style at its size rules: the plain
+                # gate's copy is drawn (the figure withheld, as before), the reason logged
+                log.info("Cover: the hedged copy (%s) does not fit (%s); drawn with the figure withheld.",
+                         "; ".join(h["hedged"] for h in self._hedged), e)
+                self._hedged, self._withheld = [], plain_rows
+                if self._withheld and not any(str(plain.get(k) or "").strip() for k in ("line1", "line2")):
+                    raise headline_refused("cover", self._withheld, "the cover headline")
+                copy = settle(plain)
+                chosen = self._fitted_style(copy, style if style in RENDERABLE_STYLES else "badge")
+        record_withheld(script_payload, self._withheld)
+        record_hedged(script_payload, self._hedged)
         try:
-            final_916 = save(out_916_path, chosen, enforce=True)
+            if final_916 is None:
+                final_916 = save(out_916_path, chosen, enforce=True)
         except TextFitError as e:
             # QF-23: the next style the copy fits whole; a cover no style holds whole stops the run (refused)
             from .cover_selector import fitting
@@ -549,38 +591,58 @@ class VisualEngine:
             if cand["copy"] is None:
                 tried.append({"source": cand["source"], **tag, "skipped": cand["skipped"]})
                 continue
-            meta = {}
-            try:
-                im, drawn_plates = youtube_thumbnail.render(
-                    meta=meta, **youtube_render_inputs(script_payload, hero_image_path, copy=cand["copy"]))
-            except LayoutError as e:
-                tried.append({"source": cand["source"], **tag, "refused": str(e)})
+            # lane B c3c: the candidate is drawn with its hedged kicker and badge (a figure drawn with its signed
+            # hedge); when that render does not set, or the hedged kicker is not drawn whole, it is drawn once more
+            # with the plain gate's kicker and badge (the figure withheld, as before) before the chain goes on
+            def attempt(copy: Dict[str, Any], hedge: bool):
+                meta_: dict[str, Any] = {}
+                badge_hedged: List[Dict[str, Any]] = []
+                try:
+                    im_, plates = youtube_thumbnail.render(meta=meta_, **youtube_render_inputs(
+                        script_payload, hero_image_path, copy=copy, hedged=badge_hedged if hedge else None))
+                except LayoutError as e:
+                    return None, None, meta_, badge_hedged, str(e)
+                if not youtube_thumbnail.drew_headline(plates):   # the word budget left the line out whole
+                    return None, None, meta_, badge_hedged, "no headline drawn (longer than the word budget)"
+                faults = drawn_faults(plates, script_payload)
+                if faults:   # the drawn headline (a badge figure included) held to the evidence again
+                    return None, None, meta_, badge_hedged, "truth (drawn): " + "; ".join(faults)
+                why = specificity_fault(drawn_text(plates), script_payload)
+                if why:   # the render's own fallback (QF-23 headline_from) may draw another line: held to the gate
+                    return None, None, meta_, badge_hedged, why + " (as drawn)"
+                drawn = " ".join(drawn_text(plates).upper().split())
+                lost = [h["text"] for h in (cand.get("kicker_hedged") or []) if hedge
+                        and " ".join(h["text"].upper().split()) not in drawn]
+                if lost:
+                    return None, None, meta_, badge_hedged, f"the hedged kicker {lost[0]!r} is not drawn whole"
+                return im_, plates, meta_, badge_hedged, ""
+            hedges_here = bool(cand.get("kicker_hedged"))
+            im, drawn_plates, meta, badge_hedged, failed = attempt(cand["copy"], True)
+            kicker_rows = list(cand.get("kicker_withheld") or [])
+            if failed and (hedges_here or badge_hedged):
+                log.info("YouTube thumbnail %s: the hedged kicker or badge does not set (%s); drawn plain.",
+                         cand["source"], failed)
+                im, drawn_plates, meta, badge_hedged, failed = attempt(cand.get("copy_plain") or cand["copy"], False)
+                kicker_rows, hedges_here = list(cand.get("kicker_withheld_plain") or kicker_rows), False
+            if failed:
+                tried.append({"source": cand["source"], **tag, "refused": failed})
                 im = None
                 continue
-            if not youtube_thumbnail.drew_headline(drawn_plates):   # the word budget left the line out whole
-                tried.append({"source": cand["source"], **tag,
-                              "refused": "no headline drawn (longer than the word budget)"})
-                im = None
-                continue
-            faults = drawn_faults(drawn_plates, script_payload)
-            if faults:   # the drawn headline (a badge figure included) held to the evidence again
-                tried.append({"source": cand["source"], **tag, "refused": "truth (drawn): " + "; ".join(faults)})
-                im = None
-                continue
-            why = specificity_fault(drawn_text(drawn_plates), script_payload)
-            if why:   # the render's own fallback (QF-23 headline_from) may draw another line: held to the gate too
-                tried.append({"source": cand["source"], **tag, "refused": why + " (as drawn)"})
-                im = None
-                continue
+            hedged_rows = (list(cand.get("hedged") or []) + (list(cand.get("kicker_hedged") or []) if hedges_here
+                                                              else []) + badge_hedged)
+            if hedged_rows:   # lane B c3c: each figure drawn with its signed hedge, on the record and the run's ledger
+                meta["figure_hedged"] = hedged_record(hedged_rows)
+                record_hedged(script_payload, hedged_rows)
             if cand.get("withheld"):   # its contradicted figure lifted out by the chain (figure_free), recorded
                 w, meta["headline_withheld"] = cand["withheld"][0], cand["withheld"]
                 meta.setdefault("figure_withheld", {"number": w["number"], "unit": w["unit"], "reason": w["reason"],
                                                     "source": cand["source"], "figures": cand["withheld"]})
             # lane B c3b: every figure the gate withheld from what this render drew (headline, kicker, badge), on the
             # thumbnail's record and the run's ledger (record_withheld)
-            badge_rows = gate_drawn({"badge": _youtube_badge(cand["copy"], script_payload)}, script_payload,
-                                    YOUTUBE_SURFACE)[1]
-            gated = list(cand.get("withheld") or []) + list(cand.get("kicker_withheld") or []) + badge_rows
+            drawn_copy = cand["copy"] if hedges_here or badge_hedged else (cand.get("copy_plain") or cand["copy"])
+            badge_rows = gate_drawn({"badge": _youtube_badge(drawn_copy, script_payload)}, script_payload,
+                                    YOUTUBE_SURFACE, hedged=[] if badge_hedged else None)[1]
+            gated = list(cand.get("withheld") or []) + kicker_rows + badge_rows
             if gated:
                 meta.setdefault("figure_withheld", withheld_record(gated))
                 record_withheld(script_payload, gated)
@@ -599,7 +661,7 @@ class VisualEngine:
             # main.cover_job keeps it with its surface, cover_job_results puts it on the review card)
             from .refusal import decline
             error = decline("YouTube thumbnail", "youtube.headline_chain", "no line of the headline chain passes: "
-                            + "; ".join(f"{t['source']}{' (figure withheld)' if t.get('variant') else ''}: "
+                            + "; ".join(f"{t['source']}{' (' + t['variant'] + ')' if t.get('variant') else ''}: "
                                         f"{t.get('skipped') or t.get('refused')}" for t in tried))
             error.chain = tried
             log.warning("%s", error)
@@ -616,7 +678,7 @@ class VisualEngine:
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
                                          "headline_fragment", "headline_pair_kept", "headline_source",
-                                         "headline_withheld",
+                                         "headline_withheld", "figure_hedged",
                                          "headline_chain")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
              "encoding": encoding,
@@ -631,7 +693,11 @@ class VisualEngine:
         source = (f"\U0001f5bc YouTube thumbnail headline from {meta['headline_source'].replace('_', ' ')}"
                   + (f" (its {last['drawn_from']} line)" if last.get("drawn_from") else "") + f": {last['drawn']}"
                   + (" (" + ", ".join(w["drawn"] for w in meta.get("headline_withheld") or [])
-                     + " withheld: the run's evidence contradicts it)" if last.get("variant") else ""))
+                     + " withheld: the run's evidence contradicts it)" if meta.get("headline_withheld") else "")
+                  # lane B c3c: a figure drawn with its signed hedge is named on the card too
+                  + (" (" + ", ".join(f"{h['hedged']} for {h['drawn']}" for h in
+                                      (meta.get("figure_hedged") or {}).get("figures") or [])
+                     + ": drawn with its signed hedge)" if meta.get("figure_hedged") else ""))
         note = f"{source}\n{note}" if note else source
         if note:
             script_payload["thumbnail_note"] = note
@@ -726,7 +792,8 @@ def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Di
 
 
 def youtube_render_inputs(script_payload: Dict[str, Any], hero_image_path: Path | None = None,
-                          copy: Dict[str, str] | None = None) -> Dict[str, Any]:
+                          copy: Dict[str, str] | None = None,
+                          hedged: List[Dict[str, Any]] | None = None) -> Dict[str, Any]:
     """The YouTube thumbnail render's inputs (youtube_thumbnail.render keyword arguments, but meta): the one place
     they are made, read by generate_youtube_thumbnail and by the copy-stage fit check (src/cover_fit.py), so the check
     and the render are one decision (freeze lane B cycle 1: the check rendered without the figure check and the badge
@@ -735,9 +802,10 @@ def youtube_render_inputs(script_payload: Dict[str, Any], hero_image_path: Path 
     copy = dict(copy if copy is not None else youtube_cover_copy(script_payload))
     # The badge is not drawn; it is read for the qualifier the covers' copy sets on the figure ("EST."). Lane B c3b:
     # the figure branch can draw its figure, so it goes through the one pre-draw gate (gate_drawn) like every line;
-    # generate_youtube_thumbnail records what the gate withheld from it
+    # generate_youtube_thumbnail records what the gate withheld from it. Lane B c3c: `hedged` given, a badge figure that
+    # lacks only its signed hedge keeps it (appended to `hedged`); the caller draws the plain badge if that does not set
     copy["badge"] = gate_drawn({"badge": _youtube_badge(copy, script_payload)}, script_payload,
-                               YOUTUBE_SURFACE)[0]["badge"]
+                               YOUTUBE_SURFACE, hedged=hedged)[0]["badge"]
     out: Dict[str, Any] = {"source": None, "copy": copy, "focus": None, "figure": cover_figure(copy, script_payload),
                            "youtube_title": script_payload.get("youtube_title") or None,
                            "reveal": reveal_line(script_payload)}
@@ -996,6 +1064,16 @@ def youtube_headline_chain(script_payload: Dict[str, Any]) -> List[Dict[str, Any
         out.append(rec)
         if rec["skipped"].startswith("truth: "):
             contradicted.append((source, l1, l2))
+            # lane B c3c: a line whose figure lacks only its signed hedge is tried at once with the hedge drawn
+            # ("OVER 830 SQUARE MILES"), in its own rank, held to every gate again; if it does not set (the render's
+            # word budget, its fit), the chain goes on as before, to this line's figure-withheld form in its turn
+            hedged: List[Dict[str, Any]] = []
+            lines, rows = gate_drawn({"line1": l1, "line2": l2}, script_payload, YOUTUBE_SURFACE, ("line1", "line2"),
+                                     hedged=hedged)
+            if hedged and (lines["line1"] or lines["line2"]):
+                rec = _chain_candidate(script_payload, base, source, lines["line1"], lines["line2"], rows)
+                rec["variant"], rec["hedged"] = "figure hedged", hedged
+                out.append(rec)
     # int 3 ruling (2026-11-23): a figure the evidence contradicts is never drawn, and the line it sat in is not lost
     # with it while it says something without it: after every whole line, each truth-refused source once more with
     # its contradicted figure groups lifted out (figure_free), held to every gate again; never a word added
@@ -1051,9 +1129,17 @@ def _chain_candidate(script_payload: Dict[str, Any], base: Dict[str, str], sourc
     copy = _in_spoken_units(copy, script_payload)
     # lane B c3b: the kicker and the subline the render may draw beside the headline go through the one pre-draw gate
     # (gate_drawn) on every candidate, not only a figure-withheld one (drawn_faults judges the headline rows alone)
-    kick, rows = gate_drawn({k: copy.get(k) or "" for k in ("eyebrow", "tagline")}, script_payload, YOUTUBE_SURFACE,
-                            ("eyebrow", "tagline"))
-    copy.update(kick)
+    kicker = {k: copy.get(k) or "" for k in ("eyebrow", "tagline")}
+    plain, rows = gate_drawn(kicker, script_payload, YOUTUBE_SURFACE, ("eyebrow", "tagline"))
+    # lane B c3c: a kicker figure that lacks only its signed hedge is drawn with it; generate_youtube_thumbnail draws
+    # the plain kicker (copy_plain, the figure withheld) when the hedged one does not set whole
+    hedged: List[Dict[str, Any]] = []
+    kick, hedged_rows = gate_drawn(kicker, script_payload, YOUTUBE_SURFACE, ("eyebrow", "tagline"), hedged=hedged)
+    if hedged:
+        rec["copy_plain"], rec["kicker_withheld_plain"] = dict(copy, **plain), rows
+        rec["kicker_hedged"] = hedged
+        plain, rows = kick, hedged_rows
+    copy.update(plain)
     if rows:
         rec["kicker_withheld"] = rows
     rec["copy"] = copy
@@ -1061,7 +1147,7 @@ def _chain_candidate(script_payload: Dict[str, Any], base: Dict[str, str], sourc
 
 
 def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[str, Any]], signed: list | None = None,
-                before: str = "") -> str:
+                before: str = "", hedged: List[Dict[str, Any]] | None = None) -> str:
     """`text` with every figure group the run's evidence does not sign (evidence_faults: it contradicts it, or states
     no such figure) lifted out whole: its hedge,
     number, unit, conversion and the dimension word after it (figures.parse), tidied at the cut as the covers' own
@@ -1069,7 +1155,9 @@ def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[s
     "ACROSS", "BUILT"). Only the copy's own words remain; none is added. Each lifted figure is appended to
     `withheld` ({"number", "unit", "drawn", "reason"}) for the record. `signed`: evidence_figures(script_payload) when
     the caller holds it; `before`: the line read just before this one on the same surface, whose closing hedge a
-    figure opening this line reads with (figure_gate._hedge_on_line_before: "MORE THAN / 830 SQ MI")."""
+    figure opening this line reads with (figure_gate._hedge_on_line_before: "MORE THAN / 830 SQ MI"). `hedged`: when
+    given (lane B c3c), a figure whose only fault is the signed hedge it lacks is drawn with that hedge's short form
+    instead of lifted out, where hedge_figure allows it; each such figure is appended to `hedged`."""
     import re
 
     from .cover_design import _without, withheld_fragment
@@ -1077,6 +1165,7 @@ def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[s
     from .figures import parse
     signed = signed if signed is not None else evidence_figures(script_payload)
     out, cut, torn = text, False, False
+    n_withheld, n_hedged = len(withheld), len(hedged) if hedged is not None else 0
     for f in reversed(parse(text)):
         # the figure as parsed whole (figures.Figure.drawn): its hedge, read from the sentence's lead ("By one
         # estimate, ... 144 feet") as the drawn line states it, and both span ends ("between roughly 41.75 metres and
@@ -1093,6 +1182,15 @@ def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[s
             faults = []
         if not faults:
             continue
+        declined = ""
+        if hedged is not None:
+            # lane B c3c: a figure whose only fault is the signed hedge it lacks is drawn with that hedge's short form
+            # (hedge_figure), re-checked against the evidence; else it is lifted out as before, the reason kept
+            got, declined = hedge_figure(out, f, faults, script_payload, signed)
+            if got is not None:
+                out = got["text"]
+                hedged.insert(0, {k: v for k, v in got.items() if k != "text"})
+                continue
         end = f.end
         if f.tail:
             m = re.match(r"\s*" + re.escape(f.tail) + r"\b", out[end:], re.IGNORECASE)
@@ -1102,7 +1200,14 @@ def figure_free(text: str, script_payload: Dict[str, Any], withheld: List[Dict[s
         out, cut = _without(out, (f.start, end)), True
         withheld.insert(0, {"number": f.number, "unit": f.unit, "drawn": f.drawn(),
                             "reason": "the run's evidence does not sign it (it contradicts it or states no such "
-                                      "figure): " + "; ".join(faults)})
+                                      "figure): " + "; ".join(faults),
+                            **({"hedge_declined": declined} if declined else {})})
+    if cut and hedged is not None and len(hedged) > n_hedged:
+        # lane B c3c: a hedge is set only in a line nothing else is cut from (a hedged figure beside a cut one reads
+        # against a sentence the cut changed: "30 and 70 m" -> "and about 70 m"); the line is gated plain
+        del hedged[:len(hedged) - n_hedged]
+        del withheld[:len(withheld) - n_withheld]
+        return figure_free(text, script_payload, withheld, signed, before)
     out = " ".join(out.split())
     return "" if cut and (torn or withheld_fragment(out)) else out
 
@@ -1152,6 +1257,174 @@ def _torn_seam(left: str, right: str) -> bool:
     return bool(last in _ARTICLES and (not first or first in _JOINERS))
 
 
+# ------------------------------------------------------------------------- a missing hedge drawn, not the figure lost
+# Lane B c3c (quality, not truth): when the ONLY fault of a drawn figure is that every signed statement of it carries a
+# bound or approximation hedge the line lacks, the gate draws the line with that hedge's short form instead of lifting
+# the figure out. Tunguska's cover line "830 SQUARE MILES" (signed "more than 830 square miles", "Est. >830 sq mi")
+# is drawn "OVER 830 SQUARE MILES", never "FLATTENED FOREST" alone. The hedge is read from the signed figures' own
+# hedge (figures.HEDGES as parsed; figures.HEDGE_LOWER / HEDGE_UPPER say which way a bound points), never guessed:
+#   a lower bound (more than, over, at least, just / well over, est. >)          -> OVER
+#   up to, as many as, as much as                                               -> UP TO
+#   nearly, almost, just under                                                  -> NEARLY
+#   less than, fewer than, under, est. <                                        -> UNDER
+#   about, around, roughly, approximately, some, circa, ~, an estimated, est.  -> ABOUT
+# OVER rather than MORE THAN: one word, the same lower bound (figures.hedge_direction), and the shorter line holds the
+# headline's size. Every signed statement of the figure must give the same short form, and none may be an attribution
+# (ATTRIBUTION): a hedge that is the sentence's lead ("By one estimate, ... lasted 73 days": figures.Figure.lead_hedge),
+# a disputed fact's hedge, or a sentence that names who says it or that it is contested ("some scholars", "according
+# to legend", "disputed"). One hedge word would misstate those, so the figure stays withheld. A figure with its own
+# bound beside the number keeps it even under such a lead ("By one estimate, the blast devastated more than 830 square
+# miles": the signed figure is "MORE THAN 830 SQ MI").
+# Where the word goes (the article rule): immediately before the figure group, in the line's case, only when the figure
+# opens the line or its clause or follows a word that is not a determiner. After an article, a demonstrative or a
+# possessive ("THE 6-TON ROOM", "ITS 73-DAY SIEGE") the hedge would tear the noun phrase ("THE OVER 6-TON ROOM"), and a
+# figure joined to its noun by a hyphen ("720-TON TITAN") is an adjective a hedge word does not read before; both stay
+# withheld as before. The hedged line is held to the evidence again (figure_gate.headline_figure_faults: signed, whole,
+# its hedge of the signed one's kind); a line that fails it is withheld. Each surface then draws the hedged line only
+# where it fits its own size rules, else the withheld form (the surface's fallback).
+FIGURE_HEDGE_RULE = "figure_gate.hedge"
+
+
+class _HedgeMisfit(Exception):
+    """A surface's hedged copy does not hold at the surface's own size rules: it draws the plain gate's copy."""
+HEDGE_SHORT_FORMS = (("UP TO", frozenset(("UP TO", "AS MANY AS", "AS MUCH AS"))),
+                     ("NEARLY", frozenset(("NEARLY", "ALMOST", "JUST UNDER"))),
+                     ("UNDER", frozenset(("UNDER", "LESS THAN", "FEWER THAN", "ESTIMATED LESS THAN"))),
+                     ("ABOUT", frozenset(("ABOUT", "AROUND", "ROUGHLY", "APPROXIMATELY", "SOME", "CIRCA",
+                                          "ESTIMATED"))))
+# Words that name who says a figure or that it is contested: a sentence that carries one signs an attribution, which a
+# hedge word cannot carry (closed and generic; "estimate" is not here: an estimate's lead is read by the parser).
+ATTRIBUTION = re.compile(
+    r"\b(?:scholars?|historians?|experts?|legends?|legendary|traditions?|traditional(?:ly)?|myths?|folklore|"
+    r"disputed?|disputes|contested|debated?|controvers\w*|according\s+to|claims?|claimed|reportedly|allegedly|"
+    r"supposedly|purportedly|said\s+to|believed|some\s+say|some\s+sources|accounts?\s+(?:say|claim|suggest))\b",
+    re.IGNORECASE)
+_DETERMINERS = frozenset({"THE", "A", "AN", "ITS", "THEIR", "THIS", "THAT", "THESE", "THOSE", "HIS", "HER", "OUR",
+                          "YOUR", "MY", "EACH", "EVERY", "ANY", "NO", "SOME", "ALL", "BOTH", "WHOSE", "WHICH", "WHAT"})
+
+
+def hedge_short_form(hedge: str) -> str:
+    """The one hedge a line draws for a signed figure's `hedge` (see above): "OVER", "UP TO", "NEARLY", "UNDER",
+    "ABOUT"; "" for none (an unknown hedge is never guessed)."""
+    from .figures import hedge_direction
+    h = " ".join(str(hedge or "").upper().split())
+    if not h:
+        return ""
+    if hedge_direction(h) > 0:
+        return "OVER"
+    return next((word for word, kinds in HEDGE_SHORT_FORMS if h in kinds), "")
+
+
+def _evidence_sources(script_payload: Dict[str, Any]) -> list:
+    """[(text, disputed)] of evidence_texts, in its order: a disputed fact's hedge marked True."""
+    from . import figure_gate
+    fields = {k: script_payload[k] for k in EVIDENCE_KEYS if k in script_payload}
+    sheet = fields.get("fact_sheet")
+    if not isinstance(sheet, dict):
+        sheet = _loaded_sheet(script_payload)
+    fields.pop("fact_sheet", None)
+    out = [(t, False) for t in figure_gate.signed_texts(fields)]
+    for fact in (sheet.get("facts") or []) if isinstance(sheet, dict) else []:
+        if isinstance(fact, dict):
+            disputed = bool(fact.get("disputed")) and str(fact.get("hedge") or "").strip()
+            out += ([(str(fact.get("hedge") or ""), True)] if disputed
+                    else [(str(fact.get("statement") or ""), False), (str(fact.get("hedge") or ""), False)])
+    return [(t, d) for t, d in out if t and t.strip()]
+
+
+def _attributed(text: str, f: Any, disputed: bool) -> str:
+    """Why the signed figure `f` (parsed from `text`) is an attribution a hedge word cannot carry, or ""."""
+    if disputed:
+        return "a disputed fact's hedge"
+    if f.lead_hedge:
+        return f"the hedge is the sentence's lead ({f.hedge})"
+    starts = [0] + [m.end() for m in re.finditer(r"[.!?](?:\s+|$)", text[:f.start])]
+    stop = re.search(r"[.!?](?:\s|$)", text[f.end:])
+    sentence = text[starts[-1]:f.start] + " " + text[f.end:f.end + (stop.start() if stop else len(text))]
+    m = ATTRIBUTION.search(sentence)
+    return f"its sentence attributes it ({m.group(0).lower()!r})" if m else ""
+
+
+def _signed_hedges(f: Any, script_payload: Dict[str, Any]) -> list:
+    """[(signed hedge, attribution reason or "")] of every signed statement of the drawn figure `f`: the same values in
+    the same unit (or its bracketed conversion), as figures.truth_faults matches them exactly."""
+    from .figures import _canon, _eras_ok, parse
+    out = []
+    for text, disputed in _evidence_sources(script_payload):
+        for s in parse(text):
+            for v in (s, s.conv):
+                if (v is not None and _canon(v.unit) == _canon(f.unit) and _eras_ok(f, v)
+                        and v.values == f.values):
+                    out.append((s.hedge, _attributed(text, s, disputed)))
+                    break
+    return out
+
+
+def _hedge_site(text: str, f: Any) -> str:
+    """Why a hedge word cannot open the figure `f` in `text` (the article rule, above), or "" when it can."""
+    seg = text[f.start:f.end]
+    if re.search(r"\d\s*-\s*[^\W\d_]", seg) or text[f.end:f.end + 1] == "-":
+        return "the figure is joined to its noun by a hyphen (an adjective)"
+    clause = re.split(r"[.;:!?,()—–\"]", text[:f.start])[-1]
+    words = re.findall(r"[^\W_]+(?:['’][^\W_]+)*", clause)
+    if words:
+        last = words[-1].upper().replace("’", "'")
+        if last in _DETERMINERS or last.endswith("'S"):
+            return f"the figure follows a determiner ({last})"
+        if last in ("AND", "OR", "TO", "BY", "X") and len(words) > 1 and re.search(r"\d", words[-2]):
+            return "the figure is the far end of a pair of numbers (the hedge would bound one end)"
+    return ""
+
+
+def _in_case(word: str, text: str, at: int) -> str:
+    """`word` (capitals) in the case of `text` where it is set at `at`: capitals in a capitals line, else a sentence's
+    capital when it opens the line or a sentence, else lower case."""
+    letters = [c for c in text if c.isalpha()]
+    if letters and all(c.isupper() for c in letters):
+        return word
+    if not text[:at].strip() or re.search(r"[.!?]\s*$", text[:at]):
+        return word.capitalize()
+    return word.lower()
+
+
+def hedge_figure(text: str, f: Any, faults: List[str], script_payload: Dict[str, Any],
+                 signed: list | None = None) -> Tuple[Dict[str, Any] | None, str]:
+    """(the hedged record, "") when the drawn figure `f` of `text` (its gate `faults`) can be drawn with its signed
+    hedge's short form (see above), else (None, why not; "" when the fault is not a missing hedge). The record:
+    {"text": the line with the hedge, "number", "unit", "drawn" (the figure as the copy had it), "hedged" (as drawn
+    now), "hedge", "signed" (the signed hedges), "reason", "rule"}. The hedged line is checked again: never fails open."""
+    from . import figure_gate
+    from .figures import hedge_direction, parse
+    if f.hedge or not faults or not all("the signed figure is hedged (" in x and "the drawn one is not" in x
+                                        for x in faults):
+        return None, ""
+    found = _signed_hedges(f, script_payload)
+    if not found:
+        return None, "no signed statement of it was found to read its hedge from"
+    why = next((a for _h, a in found if a), "")
+    if why:
+        return None, f"an attribution, not a bound or an approximation: {why}"
+    forms = {hedge_short_form(h) for h, _a in found}
+    if "" in forms or len(forms) != 1:
+        return None, "the signed hedges give no one short form (" + "; ".join(sorted({h for h, _ in found})) + ")"
+    word = forms.pop()
+    site = _hedge_site(text, f)
+    if site:
+        return None, site
+    out = text[:f.start] + _in_case(word, text, f.start) + " " + text[f.start:]
+    signed = signed if signed is not None else evidence_figures(script_payload)
+    g = next((g for g in parse(out) if g.start == f.start and g.values == f.values), None)
+    if g is None or g.hedge != word or hedge_direction(g.hedge) != hedge_direction(word):
+        return None, f"the line does not read the figure with {word} as its hedge"
+    again = figure_gate.headline_figure_faults(g.drawn(), signed)
+    if again:
+        return None, f"with {word} it still fails: " + "; ".join(again)
+    return {"text": out, "number": f.number, "unit": f.unit, "drawn": f.drawn(), "hedged": g.drawn(), "hedge": word,
+            "signed": sorted({h for h, _a in found}),
+            "reason": f"every signed statement of it is hedged ({', '.join(sorted({h for h, _a in found}))}); drawn "
+                      f"with its hedge as {g.drawn()!r}", "rule": FIGURE_HEDGE_RULE}, ""
+
+
 # ------------------------------------------------------------------------------ the one pre-draw figure gate
 # Lane B c3b (int-3 board, lander ruling, binding): a figure the run's evidence does not sign is never drawn on any
 # surface. The int-3 board drew "THE 6-TON ROOM" on the Amber Room Reel cover and grid tile while the YouTube chain
@@ -1167,11 +1440,15 @@ FIGURE_GATE_RULE = "figure_gate.evidence"
 
 
 def gate_drawn(fields: Dict[str, Any], script_payload: Dict[str, Any], surface: str,
-               order: tuple | list | None = None) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+               order: tuple | list | None = None,
+               hedged: List[Dict[str, Any]] | None = None) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """(fields with every unsigned figure lifted out, withheld rows): THE pre-draw figure gate (above). `fields`: the
     surface's drawn text fields ({"line1": ..., "body": ...}; non-text values pass as they are); `order`: the fields in
     reading order (default: as given), so a hedge closing one line reads with the figure opening the next. Each row:
-    {"surface", "field", "number", "unit", "drawn", "reason", "rule"}."""
+    {"surface", "field", "number", "unit", "drawn", "reason", "rule"}. `hedged` (lane B c3c): when given, a figure whose
+    only fault is a missing signed hedge is drawn with its short form where hedge_figure allows (never on a quotation:
+    its caller passes none), and appended to `hedged` ({"surface", "field", "text", "drawn", "hedged", "hedge", ...});
+    the caller draws that form only where it fits, else the plain gate's (no `hedged`) withheld form."""
     signed = evidence_figures(script_payload)
     out = dict(fields)
     rows: List[Dict[str, Any]] = []
@@ -1181,10 +1458,43 @@ def gate_drawn(fields: Dict[str, Any], script_payload: Dict[str, Any], surface: 
         if not isinstance(text, str) or not text.strip():
             continue
         lifted: List[Dict[str, Any]] = []
-        out[key] = figure_free(text, script_payload, lifted, signed=signed, before=before)
+        found: List[Dict[str, Any]] | None = [] if hedged is not None else None
+        out[key] = figure_free(text, script_payload, lifted, signed=signed, before=before, hedged=found)
         rows += [{**w, "surface": surface, "field": key, "rule": FIGURE_GATE_RULE} for w in lifted]
+        if found and hedged is not None:
+            hedged += [{**h, "surface": surface, "field": key, "text": out[key]} for h in found]
         before = out[key]
     return out, rows
+
+
+def hedged_record(rows: List[Dict[str, Any]]) -> Dict[str, Any] | None:
+    """The surface record's figure_hedged entry for `rows` (gate_drawn's `hedged`): each figure drawn with its signed
+    hedge (text, hedge, reason); None for none. The figure is drawn, so nothing goes on payload["layout_holds"]."""
+    if not rows:
+        return None
+    return {"rule": FIGURE_HEDGE_RULE, "figures": [{k: r[k] for k in ("surface", "field", "text", "drawn", "hedged",
+                                                                     "hedge", "signed", "reason") if k in r}
+                                                   for r in rows]}
+
+
+def record_hedged(script_payload: Dict[str, Any], rows: List[Dict[str, Any]]) -> None:
+    """Each figure drawn with its signed hedge (gate_drawn's `hedged`) on the run's own ledger,
+    payload["figure_hedges"] ({"surface", "field", "drawn", "from", "hedge", "reason"}), which the review card lists:
+    never payload["layout_holds"] (nothing was withheld). One row per surface and figure."""
+    if not rows:
+        return
+    ledger = script_payload.setdefault("figure_hedges", [])
+    seen = {(h.get("surface"), h.get("drawn")) for h in ledger if isinstance(h, dict)}
+    for r in rows:
+        key = (r["surface"], r["hedged"])
+        if key in seen:
+            continue
+        seen.add(key)
+        ledger.append({"surface": r["surface"], "field": r["field"], "drawn": r["hedged"], "from": r["drawn"],
+                       "hedge": r["hedge"], "text": r.get("text", ""), "reason": r["reason"],
+                       "rule": FIGURE_HEDGE_RULE})
+        log.info("%s: figure %r drawn with its signed hedge as %r (%s)", r["surface"], r["drawn"], r["hedged"],
+                 r["field"])
 
 
 def withheld_record(rows: List[Dict[str, Any]]) -> Dict[str, Any] | None:
@@ -1225,16 +1535,18 @@ def record_withheld(script_payload: Dict[str, Any], rows: List[Dict[str, Any]]) 
 # modules to an entry here.
 DRAWN_FIGURE_PATHS = (
     ("Reel cover and grid tile", "src.visual_engine:VisualEngine.generate_thumbnails", "gate",
-     "eyebrow, both headline rows, tagline, badge; the grid tile is the cover's crop"),
+     "eyebrow, both headline rows, tagline, badge; the grid tile is the cover's crop; a missing signed hedge drawn "
+     "when the cover holds it in its own style (c3c)"),
     ("YouTube thumbnail headline", "src.visual_engine:youtube_headline_chain", "gate",
-     "each truth-refused source again with its figures lifted out"),
+     "each truth-refused source again with its figures lifted out; one lacking only its hedge first drawn with it"),
     ("YouTube thumbnail kicker and subline", "src.visual_engine:_chain_candidate", "gate",
      "every candidate, then drawn_faults on the drawn rows"),
     ("YouTube thumbnail badge", "src.visual_engine:youtube_render_inputs", "gate", "the figure branch's badge"),
     ("YouTube thumbnail record", "src.visual_engine:VisualEngine.generate_youtube_thumbnail", "gate",
      "records what the gate withheld from the drawn candidate"),
     ("Instagram and Facebook carousel slides", "src.multi_format:MultiFormatGenerator.generate_carousel_sequence",
-     "gate", "heading and body of every slide (the colossal stat's figure row is read from the gated body), the poll"),
+     "gate", "heading and body of every slide (the colossal stat's figure row is read from the gated body), the poll; "
+     "a missing signed hedge drawn where the deck's size decisions hold (c3c)"),
     ("carousel deck gate", "src.multi_format:gate_deck", "gate", "the deck form of the gate (carousel and Story)"),
     ("carousel closing slide share line", "src.script_engine:share_prompt", "gate", "else the plain line"),
     ("Story frames", "src.multi_format:MultiFormatGenerator.generate_story_sequence", "gate",
@@ -1242,7 +1554,8 @@ DRAWN_FIGURE_PATHS = (
     ("photo callouts", "src.callouts:make", "gate", "each photo label"),
     ("end card (loop bridge) share line", "src.script_engine:end_card_share", "gate",
      "drawn only when end_card.LOOP_LINE is on; else the fallback line"),
-    ("quote card", "src.design_cards:_quote_gates", "gate", "a quotation is drawn whole: an unsigned figure refuses"),
+    ("quote card", "src.design_cards:_quote_gates", "gate",
+     "a quotation is drawn whole: an unsigned figure refuses (never hedged: a quotation is not edited)"),
     ("hook card", "src.design_cards:_hook_claim", "equivalent",
      "ground_line / ground_text against the cited facts, plus cover_design.figure_check"),
     ("chapter card", "src.design_cards:plan_chapter_card", "equivalent", "ground_line / ground_text"),

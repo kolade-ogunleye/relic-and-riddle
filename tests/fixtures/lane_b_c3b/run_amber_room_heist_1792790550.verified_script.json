@@ -497,7 +497,7 @@
   "guardrail_passed": true,
   "fact_review": {
     "public_fingerprint": "13b174798a821267bb6e2c765a22a400051448903bd8012fd9cb20af14c6b7f7",
-    "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\amber_room_heist.json",
+    "sheet_path": "data/fact_sheets/amber_room_heist.json",
     "sheet_sha256": "0841f8b25a14f50125a3547f2f3ba7c1d885ae2f1f0e0bec1d358e0fd8a96942",
     "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
   }

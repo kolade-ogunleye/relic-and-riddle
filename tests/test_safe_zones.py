@@ -138,7 +138,9 @@ def test_story_text_blocks_stay_inside_the_story_box(tmp_path):
         ],
         "poll": {"question": "Lost city or geology?", "options": ["A lost city", "Geology, nothing more"]},
     }
-    slides = MultiFormatGenerator().generate_story_sequence(hero, payload, tmp_path)
+    # lane B c3b: the layout copy's figures are signed ("Thirty miles across"), so the pre-draw gate draws them
+    from tests.figure_evidence import signed
+    slides = MultiFormatGenerator().generate_story_sequence(hero, signed(payload), tmp_path)
     layout = json.loads((tmp_path / "stories" / "layout.json").read_text(encoding="utf-8"))
     box = safe_zones.safe_box("story")
     assert [e["frame"] for e in layout] == [p.name for p in slides] and len(layout) == 2  # hook, reveal (QF-80)

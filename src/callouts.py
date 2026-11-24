@@ -3102,11 +3102,9 @@ def label_holds(hedged: str, plain: str, fmt: str) -> bool:
     sizes = label_sizes(fmt)
 
     def fits_at(text: str) -> int | None:
-        for s in sizes:
-            if _fitting(measure, text.upper(), get_font(brand.TEXT_FONT, s, weight=700), LABEL_TRACK * s,
-                        LABEL_MAX_W[fmt]):
-                return s
-        return None
+        # the size _shapes sets the label at (its own size site), None when nothing fits (its smallest-size fallback)
+        shape = _shapes(measure, text, fmt)[0]
+        return shape.font.size if _fitting(measure, text.upper(), shape.font, shape.track, LABEL_MAX_W[fmt]) else None
     got = fits_at(hedged)
     want = fits_at(plain) if plain.strip() else sizes[0]
     return got is not None and (want is None or got >= want)

@@ -2,7 +2,8 @@ from PIL import Image
 
 from src.visual_engine import COVER_STYLES, VisualEngine
 
-COPY = {"thumbnail": {"eyebrow": "CAPPADOCIA, TURKEY", "line1": "280 FEET DOWN", "line2": "FOUND BEHIND A WALL",
+COPY = {"narration_script": "The city ran 280 feet down, with room for up to 20,000 people.",   # signed (lane B c3b)
+        "thumbnail": {"eyebrow": "CAPPADOCIA, TURKEY", "line1": "280 FEET DOWN", "line2": "FOUND BEHIND A WALL",
                       "tagline": "Room for up to 20,000 people"}}
 
 
@@ -73,6 +74,7 @@ def test_cover_generation_omits_unused_variant_suite(tmp_path):
     Image.new("RGB", (1080, 1920), (70, 60, 50)).save(hero)
     payload = {
         "title": "The Antikythera Mechanism",
+        "narration_script": "The 2,000-year-old device held 35 gears.",   # signed (lane B c3b)
         "thumbnail": {
             "eyebrow": "ANCIENT MARVEL",
             "line1": "2,000-YEAR-OLD",

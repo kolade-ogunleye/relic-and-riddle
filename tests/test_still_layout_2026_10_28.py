@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw
 from src import config, safe_zones, still_layout, still_vision
 from src.multi_format import MultiFormatGenerator
 from src.visual_engine import COVER_STYLES, VisualEngine, cover_text_zone
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 # The production copy, verbatim (C:\tmp\audit\prod\output\<run>\verified_script.json).
 ANTIKYTHERA = {
@@ -28,6 +29,7 @@ ANTIKYTHERA = {
     ],
     "poll": {"question": "Which ancient feat is more impressive?", "options": ["Predicting eclipses", "Cutting miniature gears"]},
 }
+ANTIKYTHERA = signed(ANTIKYTHERA)
 RICHAT = {
     "title": "The Eye of the Sahara", "poll": {"question": "What shaped the desert rings?",
                                                 "options": ["Subsurface intrusion", "Meteorite collision"]},
@@ -43,6 +45,7 @@ RICHAT = {
         {"heading": "ENDURING LANDMARKS", "body": "Which natural formations on Earth do you think will still remain visible from space?"},
     ],
 }
+RICHAT = signed(RICHAT)
 LONG_LINE = ("By one estimate, computer X-ray tomography scans of every surviving fragment indicate that the original "
              "mechanism once contained at least thirty-five meshing bronze gears, cut by hand with triangular teeth, "
              "driven by a single crank on its side, read through dials on its front and back, and described in "
@@ -85,6 +88,7 @@ def test_antikythera_story_text_and_a_long_line_stay_whole_inside_the_story_box(
     # A body beyond the available space must be refused, preserving its checked
     # words for revision rather than delivering a shortened factual statement.
     long_payload = {**ANTIKYTHERA, "story_slides": [dict(ANTIKYTHERA["story_slides"][2], body=LONG_LINE * 2)] * 3}
+    long_payload = signed(long_payload)
     with pytest.raises(ValueError, match="Checked copy does not fit"):
         MultiFormatGenerator().generate_story_sequence(photo, long_payload, tmp_path / "long")
     assert not list((tmp_path / "long" / "stories").glob("*.jpg"))

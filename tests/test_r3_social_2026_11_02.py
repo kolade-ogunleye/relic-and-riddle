@@ -21,6 +21,7 @@ from src.multi_format import (
     typeset,
     warm_ground,
 )
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 M = MultiFormatGenerator
 PX = M._px(M.CAROUSEL_SIZE[0])
@@ -74,6 +75,7 @@ def test_no_poll_room_is_written_now_the_poll_frame_is_cut(tmp_path) -> None:
         {"kicker": "DID YOU KNOW?", "line1": "ONE MAN KNOCKED", "line2": "THROUGH HIS WALL", "body": "Cappadocia, 1963."},
         {"kicker": "WHAT HE FOUND", "line1": "AN UNDERGROUND CITY", "line2": "~280 FEET DEEP", "body": "Stables and wells."},
         QUESTION], "poll": POLL, "narration_script": "It was about 280 feet deep."}
+    payload = signed(payload)
     M().generate_story_sequence(photos[0], payload, tmp_path / "run", scene_images=photos)
     manifest = json.loads((tmp_path / "run" / "companion_posting.json").read_text(encoding="utf-8"))
     layout = json.loads((tmp_path / "run" / "stories" / "layout.json").read_text(encoding="utf-8"))
@@ -359,6 +361,7 @@ def test_the_one_line_frame_reserves_every_body_line_a_content_slide_draws() -> 
 def _deck(photos, tmp_path, headings, facebook, name="run"):
     cards = [{"heading": h, "body": "Carbonatite rocks cooled slowly beneath the desert surface."} for h in headings]
     payload = {"title": "Test", "carousel_slides": cards, "narration_script": "", "poll": {}}
+    payload = signed(payload)
     return M().generate_carousel_sequence(photos * 3, payload, tmp_path / name, facebook=facebook)
 
 
@@ -464,6 +467,7 @@ def test_a_two_line_diagram_heading_keeps_round_twos_frame_and_its_drawing(tmp_p
 def test_the_facebook_copy_writes_its_collage_report_marked_advisory(photos, tmp_path) -> None:
     cards = [{"heading": f"Heading {i}", "body": "A short body line for the slide."} for i in range(6)]
     payload = {"title": "Test", "carousel_slides": cards, "narration_script": "", "poll": {}}
+    payload = signed(payload)
     slides = M().generate_carousel_sequence(photos * 3, payload, tmp_path / "run", facebook=True)
     rep = json.loads((slides[0].parent / multi_format.COLLAGE_REPORT).read_text())
     assert rep["advisory"] is True
@@ -478,6 +482,7 @@ def test_the_facebook_copy_writes_its_collage_report_marked_advisory(photos, tmp
 def test_the_platform_contrast_flags_are_kept_per_element_in_still_layout(photos, tmp_path) -> None:
     cards = [{"heading": f"Heading {i}", "body": "A short body line for the slide."} for i in range(5)]
     payload = {"title": "Test", "carousel_slides": cards, "narration_script": "", "poll": {}}
+    payload = signed(payload)
     slides = M().generate_carousel_sequence(photos * 3, payload, tmp_path / "run", facebook=True)
     for p in slides:
         rec = still_layout.load(p)

@@ -26,6 +26,7 @@ from src.multi_format import (
     CAROUSEL_PHOTOS, CAROUSEL_SHARE_ALIKE, MultiFormatGenerator, carousel_credits, facebook_pick, slide_alt_text,
 )
 from src.publisher import MetaPublisher, UploadPostPublisher, _caption_for
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 ROMAN = {
     "carousel_slides": [
@@ -40,6 +41,7 @@ ROMAN = {
     "poll": {"question": "Built for the future?", "options": ["Yes", "No"]},
     "carousel_caption": "Swipe through to discover how ancient Roman concrete heals itself. 🏛️\n\n#Pantheon #AncientRome",
 }
+ROMAN = signed(ROMAN)
 NAZCA_STAT = {"heading": "Massive Animal Shapes",
               "body": "By one estimate, the etched condor spans 134 meters, and the hummingbird spans 93 meters."}
 NAZCA_FOUND = {"heading": "Simple Surveying",

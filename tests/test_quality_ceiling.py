@@ -15,6 +15,7 @@ from PIL import Image
 from src.multi_format import MultiFormatGenerator
 from src.video_qa import QualityAuditor
 from src.visual_engine import COVER_STYLES, VisualEngine, extract_foreground_mask
+from tests.figure_evidence import signed  # lane B c3b: the layout copy's figures are signed
 
 
 def test_cinema_tone_curves_ffmpeg():
@@ -109,6 +110,7 @@ def test_multi_template_carousel_generation(tmp_path):
         ],
         "poll": {"options": ["Phrygians", "Hittites"]},
     }
+    payload = signed(payload)
     mfg = MultiFormatGenerator()
     slides = mfg.generate_carousel_sequence([hero], payload, tmp_path)
     assert len(slides) == 7

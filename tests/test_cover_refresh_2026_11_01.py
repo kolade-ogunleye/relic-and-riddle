@@ -11,6 +11,8 @@ from src.visual_engine import COVER_STYLES, VisualEngine
 
 
 PAYLOAD = {
+    # lane B c3b: the figures the copy draws are signed by the run's evidence (visual_engine.gate_drawn)
+    "narration_script": "The city ran 280 feet down, with room for 20,000 people.",
     "thumbnail": {
         "eyebrow": "CAPPADOCIA, TURKEY",
         "line1": "280 FEET DOWN",

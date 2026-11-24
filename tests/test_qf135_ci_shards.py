@@ -302,14 +302,16 @@ def test_the_committed_timings_cover_the_suite_and_its_skip_baseline():
     cs = _cs()
     assert TIMINGS.is_file()
     data = cs.load_timings(TIMINGS)
-    # The suite's skip count on the single-job baseline run (43731546225: 9,363 passed, 387 skipped).
-    assert cs.load_suite_baseline(TIMINGS) == 387
+    # The suite's skip count, measured on the sharded runs 45334404878 and 45357943761 (freeze int 3). It was 387 on
+    # the single-job run 43731546225; the 18 added skips are all environmental (Natural Earth not fetched on CI, no
+    # dev runs or photos), so they are expected on CI and counted here.
+    assert cs.load_suite_baseline(TIMINGS) == 405
     files = data["files"]
     assert len(files) >= 380 and all(f.startswith("tests/") and f.endswith(".py") for f in files)
     # Measured on CI (the mean of this row's runs): the per-file baselines and the skipped ids add up to the
     # suite's, so the per-file and per-shard skip checks are on.
     assert len(data["suite"]["runs"]) >= 2
-    assert sum(row["skipped"] for row in files.values()) == 387 == len(data["skipped_tests"])
+    assert sum(row["skipped"] for row in files.values()) == 405 == len(data["skipped_tests"])
     assert all(row["seconds"] >= 0 and row["skipped"] >= 0 for row in files.values())
     assert all(cs.file_of(t) in files for t in list(data["tests"]) + data["skipped_tests"])
     on_disk = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tests").glob("test_*.py")}

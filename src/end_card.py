@@ -139,6 +139,7 @@ MATTE_DARK_SHARE = 0.95   # of the outside that is matte-dark, at least
 MATTE_CUT_SHARE = 0.5     # of the window's inner rim where the picture is off the matte's black, at least
 MATTE_RIM_STEP = 6.0      # luma over the matte's median that is picture, not matte, at the rim
 MATTE_RECT = 0.98         # the window is a rectangle when its area is at least this share of its bounding box
+MATTE_TILE = 64           # px: the stretch of the window's edge whose own step sets the feather (matte_field)
 MATTE_HULL_BLACK = 1.0    # a window of any other shape: the matte's median luma at most this (digital black)
 KICKER = "WATCH NEXT"    # generic: the video YouTube shows in the slot is not known at render time
 # The kicker is the system's (src/brand_system.py kicker.*, cycle 0): the text face at 800 in tracked gold capitals led
@@ -685,18 +686,30 @@ def matte_window(base: Image.Image) -> Optional[Tuple[np.ndarray, Dict[str, Any]
 
 def matte_field(dist: np.ndarray, rest: Image.Image, width: int) -> Tuple[np.ndarray, int]:
     """The INK field over a matte (matte_window's `dist`): 1 on the matte, easing to 0 into the picture by smoothstep
-    over the band-edge feather (brand_system.edge_feather) for the step the edge crosses on `rest` (the ground at rest:
-    the 95th-percentile luma of the picture within the feather, less INK's), measured again over the longer reach once,
-    as band_edge.feather does. Returns (the field, its feather in px)."""
+    over the band-edge feather (brand_system.edge_feather) for the step the edge crosses on `rest` (the ground at rest),
+    measured again over the longer reach, as band_edge.feather does. The step is the brightest stretch of the edge's:
+    per MATTE_TILE square along it, the picture's 95th-percentile luma within the feather, less INK's, the largest of
+    them (a long curved edge is mostly under the text column's full dim; its bright stretch is where the rim shows).
+    Returns (the field, its feather in px)."""
     from .band_edge import smoothstep
     from .brand_system import edge_feather
     lum = np.asarray(rest.convert("RGB"), dtype=np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
     ink = float(np.dot(np.asarray(brand.INK, np.float32), [0.2126, 0.7152, 0.0722]))
+    ys, xs = np.mgrid[0:lum.shape[0], 0:lum.shape[1]]
+    tiles = (ys // MATTE_TILE) * (lum.shape[1] // MATTE_TILE + 1) + xs // MATTE_TILE
     length = 1.0
-    for _ in range(3):
+    for _ in range(4):
         band = (dist > 0) & (dist <= max(length, 4.0))
-        step = max(0.0, float(np.percentile(lum[band], 95)) - ink) if band.any() else 0.0
-        need = edge_feather(step, width)
+        step = 0.0
+        if band.any():
+            t, v = tiles[band], lum[band]
+            order = np.argsort(t, kind="stable")
+            t, v = t[order], v[order]
+            cuts = np.flatnonzero(np.diff(t)) + 1
+            for part in np.split(v, cuts):
+                if part.size >= MATTE_TILE:   # a stretch of edge, not a corner's few pixels
+                    step = max(step, float(np.percentile(part, 95)) - ink)
+        need = edge_feather(max(0.0, step), width)
         if need <= length:
             break
         length = float(need)

@@ -50,6 +50,11 @@ def test_every_slide_draws_its_own_signed_words_the_diagram_slide_included(tmp_p
         kinds = [r["recipe"]["archetype"] for r in recs]
         assert kinds.count("diagram") == 1
         for i, (rec, signed) in enumerate(zip(recs, CARDS)):
+            # lane D cycle 4: the scale slide's body is its signed body, then the line naming the drawing's landmark
+            line = (rec["recipe"].get("comparator") or {}).get("line")
+            if line:
+                assert kinds[i] == "diagram" and rec["recipe"]["comparator"]["drawn"]
+                signed = dict(signed, body=f"{signed['body']} {line}")
             # the recipe's card is the signed card (no figure here for the lead unit to convert)
             assert rec["recipe"]["card"] == signed, (i, rec["recipe"]["card"])
             if kinds[i] in ("colossal_stat", "debate"):

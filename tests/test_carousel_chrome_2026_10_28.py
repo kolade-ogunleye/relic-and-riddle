@@ -266,7 +266,9 @@ def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
     payload = signed(payload)
     photos = _photos(tmp_path)
     gen.generate_story_sequence(photos[0], payload, tmp_path, scene_images=photos)
-    assert "FULL STORY IN OUR NEW REEL" in "".join(drawn)   # tracked: drawn a letter at a time (2026-10-29)
+    # tracked: drawn a letter at a time (2026-10-29); lane D cycle 4: it names the profile, never a link it lacks
+    assert "FULL STORY ON OUR PROFILE" in "".join(drawn)
+    assert "NEW REEL" not in "".join(drawn)
     assert not any("REPLY" in t for t in drawn)       # no set-reply ask on the poll frame (2026-10-29)
     assert not any(_DIRECTION_MARKS.search(t) or "BELOW" in t for t in drawn)
     manifest = json.loads((tmp_path / "companion_posting.json").read_text(encoding="utf-8"))

@@ -1226,7 +1226,8 @@ class QualityAuditor:
                 score -= 30
 
         from . import still_vision
-        issues.extend(still_vision.findings(slides, "carousel slide", [still_vision.carousel_copy(payload, i) for i in range(len(slides))],
+        issues.extend(still_vision.findings(slides, "carousel slide", [still_vision.carousel_copy(payload, i, slide=s)
+                                                                       for i, s in enumerate(slides)],
                                             "carousel_slide_look", "slide"))
 
         final_score = max(0, min(100, score))

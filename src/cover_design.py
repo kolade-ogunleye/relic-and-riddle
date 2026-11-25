@@ -680,10 +680,17 @@ def _immersive(source, aperture, focus, lay, full_width=False):
     yy = np.clip(np.arange(1920) - top, 0, size[1] - 1)
     backdrop = np.asarray(photo)[yy[:, None], xx[None, :]]
     im = _ambient(Image.fromarray(backdrop), (left, top, left + size[0], top + size[1]))
-    if full_width and top > 0:
+    # lane B c4: the one edge-fade rule both paths use (was min(64, 0.8 x margin) on the full-width path: a 64 px join
+    # over a busy top row read as a blur-to-sharp line)
+    own_fade = _edge_fade(fy0 * sy) if full_width else 0
+    if full_width and top > 0 and own_fade < FULL_WIDTH_OWN_FADE:
         # Above a full-width photograph the canvas continues its own top row (the edge-extended backdrop,
         # unblurred) and eases into the ambient field over FULL_WIDTH_BLEND px, so the photo's top edge is not
         # a hard seam (round 3 review, 2026-11-02: a visible line across Gol Gumbaz's sky and over Richat).
+        # Lane B c4: only where the photograph has too little room above its feature to fade on its own (Gol
+        # Gumbaz's dome near the top). With room (Richat as a badge cover), the continued row is a vertical run of
+        # held colour bands: streaks and a line where the photograph starts; its own long fade into the ambient
+        # field (the inset window's join) is used instead.
         ys = np.arange(1920, dtype=np.float32)
         ease = np.clip((ys - (top - FULL_WIDTH_BLEND)) / FULL_WIDTH_BLEND, 0, 1)
         ease[ys >= top + size[1]] = 0   # never the clamped rows below the photo (they streak)
@@ -698,21 +705,24 @@ def _immersive(source, aperture, focus, lay, full_width=False):
     # Limit the fade to the margin outside the explicitly reviewed feature.
     clear = 0   # rows of the photograph's top left to the ambient field (the inset window only)
     if full_width:   # only the top edge can end inside the canvas; the shade below does the bottom fade
-        margin = max(0, fy0 * sy)
-        feather = min(64, int(margin * 0.8))
+        feather = top_fade = own_fade
         if feather > 1:
             mask = np.clip(np.arange(size[1], dtype=np.float32) / feather, 0, 1)[:, None] + np.zeros((1, size[0]))
             photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
     else:
-        # The inset window (a feature too tall to fill the width inside its band). Its top edge stays
-        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02: Richat's window started 12 px under
-        # RELIC & RIDDLE, so the name sat on the photo's edge); the context above that row is the ambient field.
-        # Each edge fades over its own margin outside the feature (one shared minimum gave hard sides).
-        clear = max(0, min(fy0 * sy, (_brand_foot() + INSET_CLEAR) - top))
+        # The inset window (a feature too tall to fill the width inside its band). Each edge fades over its own
+        # margin outside the feature (one shared minimum gave hard sides). Freeze lane B cycle 4 (panel 5, Richat:
+        # a straight blur-to-sharp seam across the full width at y ~540): the photograph's top used to be cut
+        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02, when the cover drew RELIC & RIDDLE), which
+        # left the top edge 26 px of room to fade over before the feature. Operator ruling 2 (2026-11-16) removed the
+        # masthead from the Reel cover (_brand draws none), so nothing sits in that band any more: the photograph
+        # keeps the context it has above the feature and the top fades over all of it (_edge_fade). The clear band
+        # stands only while a cover draws a masthead (_cover_masthead_drawn).
+        clear = max(0, min(fy0 * sy, (_brand_foot() + INSET_CLEAR) - top)) if _cover_masthead_drawn() else 0
         margins = (fx0 * sx, fy0 * sy - clear, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
         f = [min(INSET_FEATHER_MAX, int(max(0, m) * 0.8)) for m in margins]
-        f[1] = min(INSET_FEATHER_MAX, int(max(0, margins[1]) - 2))   # the top fades over all its room: soft edge
-        yy = np.arange(size[1], dtype=np.float32)[:, None] - clear
+        f[1] = top_fade = _edge_fade(margins[1])   # the top fades over all its room: soft edge
+        yy =np.arange(size[1], dtype=np.float32)[:, None] - clear
         xx = np.arange(size[0], dtype=np.float32)[None, :]
 
         def ramp(dist, width):
@@ -734,6 +744,9 @@ def _immersive(source, aperture, focus, lay, full_width=False):
             "focus_box": focus["focus_box"], "protected_box": protected,
             "aperture": list(aperture), "reviewed": focus["reviewed"], "source_sha256": focus["sha256"],
             "full_width": bool(full_width),
+            # the px the photograph's top edge fades over where it ends inside the canvas (0 where it runs off the
+            # top), so a short join (a photograph ending at its reviewed feature) is on the record
+            "edge_fade_top": int(top_fade) if top + clear > 0 else 0,
         }
     return im
 
@@ -745,6 +758,24 @@ FULL_WIDTH_BLEND = 220      # px above a full-width photo over which its continu
 INSET_CLEAR = 24            # Discovery inset window: px of clear field between the masthead's foot and the
                             # photo's first row (which then fades in to the feature: half strength ~45 px down)
 INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge within its own margin)
+FULL_WIDTH_OWN_FADE = 96    # lane B c4: a full-width photograph whose top fades over at least this many px of its
+                            # own context needs no continued top row above it (_immersive)
+
+
+def _cover_masthead_drawn():
+    """Whether a Reel cover draws the masthead. Operator ruling 2 (2026-11-16): it never does (_brand records why),
+    so no photograph is cut back to clear a band for it."""
+    probe = type("_Probe", (), {"meta": {}})()
+    _brand(None, probe, grid_delivery=True)
+    return bool(probe.meta.get("masthead", {}).get("shown"))
+
+
+def _edge_fade(margin):
+    """The px over which a photograph's edge that ends inside the canvas fades into the field around it: all of
+    the room the photograph has outside the reviewed feature (`margin`), up to INSET_FEATHER_MAX, so the feature
+    itself is never faded. Under 2 px of room it is a cut (ramp treats width <= 1 as a step); the composition
+    record keeps the fade, so a short one is visible there (_immersive's "edge_fade")."""
+    return min(INSET_FEATHER_MAX, int(max(0, margin) - 2))
 
 
 def _brand_foot():

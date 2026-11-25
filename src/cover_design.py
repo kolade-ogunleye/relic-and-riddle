@@ -1932,30 +1932,63 @@ def sandwich_fill(copy, focus, source_size, figure=None):
 def _provenance(im, lay):
     """The on-screen disclosure over a generated hero illustration: the existing wording
     (video_composer.RECON_BADGE_LABEL), IBM Plex Mono in STONE_LT on an INK plate at the window's lower-left edge,
-    inside the profile-grid square, measured like every other line."""
+    inside the profile-grid square, measured like every other line.
+
+    Freeze lane F cycle 4 (panel 5 TY r1, the Aswan Reel cover: the plate ran ~70 px past its photo window onto the
+    INK field; on real heroes 29 of 49 cover cases, up to 242 px): the plate stands INSIDE the window it labels,
+    PROVENANCE_INSET from its left and right edges. The label whole on one line at the largest PROVENANCE_SIZES size
+    that fits; else broken at its own separator (" · ", kept on the first line, so the drawn text is the label
+    whole) into two lines at the largest size that fits; LayoutError when neither fits at the floor (the cover is
+    refused and recorded, never drawn with the disclosure off its window or missing)."""
+    from .refusal import LayoutError
+    from .typography import tracked_width
     from .video_composer import RECON_BADGE_LABEL
     comp = (lay.meta.get("composition") if lay is not None else None) or {}
     box = comp.get("image_box") or [84, 560, 996, 1100]
-    x0, y1 = max(84, int(box[0]) + 24), min(1460, int(box[3]) - 24)
-    font = get_font(brand.DATA_FONT, PROVENANCE_PX, weight=600)
-    from .typography import tracked_width
-    w = tracked_width(RECON_BADGE_LABEL, font, 1.0)
+    x0, y1 = max(84, int(box[0]) + PROVENANCE_INSET), min(1460, int(box[3]) - PROVENANCE_INSET)
+    room = int(box[2]) - PROVENANCE_INSET - x0
+    head, sep, tail = RECON_BADGE_LABEL.partition(" · ")
+    fit = None
+    for lines in [[RECON_BADGE_LABEL]] + ([[head + sep.rstrip(), tail]] if sep else []):
+        for px in PROVENANCE_SIZES:
+            font = get_font(brand.DATA_FONT, px, weight=600)
+            w = max(tracked_width(ln, font, 1.0) for ln in lines) + 2 * PROVENANCE_PAD[0]
+            if w <= room:
+                fit = (px, lines, font, round(w))
+                break
+        if fit:
+            break
+    if fit is None:
+        raise LayoutError(f"the AI disclosure does not fit its {int(box[2]) - int(box[0])} px photo window at "
+                          f"{PROVENANCE_SIZES[-1]} px on two lines (disclosure rule: the label sits inside the "
+                          f"window it labels)")
+    px, lines, font, w = fit
     cap = cap_h_of(font)
-    plate = (x0, y1 - cap - 2 * PROVENANCE_PAD[1], x0 + w + 2 * PROVENANCE_PAD[0], y1)
+    h = cap + 2 * PROVENANCE_PAD[1] + (len(lines) - 1) * round(PROVENANCE_LEAD * cap)
+    plate = (x0, y1 - h, x0 + w, y1)
     im = im.convert("RGBA")
     ImageDraw.Draw(im).rectangle(plate, fill=brand.INK + (255,))
-    im, p = place_text(im, (x0 + PROVENANCE_PAD[0], y1 - PROVENANCE_PAD[1]), RECON_BADGE_LABEL, font,
-                       brand.STONE_LT, anchor="ls", target=5.1, track=1.0, halo_px=0)
+    ps = []
+    for k, ln in enumerate(lines):
+        base = y1 - PROVENANCE_PAD[1] - (len(lines) - 1 - k) * round(PROVENANCE_LEAD * cap)
+        im, p = place_text(im, (x0 + PROVENANCE_PAD[0], base), ln, font,
+                           brand.STONE_LT, anchor="ls", target=5.1, track=1.0, halo_px=0)
+        ps.append(p)
     if lay is not None:
         # Kept in the renderer's record, not as a layout element: it sits on the photograph on purpose (the
         # window it labels), which the layout check would otherwise report as an overlap.
-        lay.meta.setdefault("plates", {})["provenance"] = [p]
-        lay.meta["provenance"] = {"label": RECON_BADGE_LABEL, "plate": [round(v) for v in plate],
-                                  "contrast": p.contrast}
+        lay.meta.setdefault("plates", {})["provenance"] = ps
+        cs = [p.contrast for p in ps if p.contrast is not None]
+        lay.meta["provenance"] = {"label": RECON_BADGE_LABEL, "lines": list(lines), "px": px,
+                                  "plate": [round(v) for v in plate], "window": [round(v) for v in box],
+                                  "contrast": min(cs) if cs else None}
     return im
 
 
 PROVENANCE_PX, PROVENANCE_PAD = 30, (14, 10)
+PROVENANCE_SIZES = (PROVENANCE_PX, 28, 26, 24)   # one line from 30 px; the floor of either form
+PROVENANCE_INSET = 24       # design px: the plate's edge inside its photo window
+PROVENANCE_LEAD = 1.75      # cap heights between the two lines' baselines
 
 # The profile-grid proof (round 3): which recorded elements must carry the hook at grid size, and their floors in
 # px of cap height at 124 px wide. Texture elements (eyebrow, tagline, dimension word, disclosure) may go small,

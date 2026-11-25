@@ -110,9 +110,10 @@ HOOK_SECONDS = 1.5
 # over 0.18 s, so for three frames after the type had gone (1.233 s) an empty INK band stood across the photo at
 # 0.98-0.58 alpha. The ground now leaves WITH its type: from the same HOOK_HOLD, over one frame longer than the type's
 # fade, so (1) the ground is never thinner than the type it carries (ground alpha >= type alpha at every t) and (2) on
-# the first frame without type the ground is at most HOOK_EMPTY_MAX (it is 0.064 at frame 37, gone at frame 38).
-# HOOK_GROUND_HOLD = HOOK_HOLD and HOOK_GROUND_FADE = HOOK_FADE + one frame: derived from the tokens when read
-# (hook_timing), so the plate can neither outlast nor undercut its type.
+# the first frame without type the ground is at most HOOK_EMPTY_MAX (it was 0.064 at frame 37; since cycle 4 it is gone with the type).
+# HOOK_GROUND_HOLD = HOOK_HOLD and HOOK_GROUND_FADE = HOOK_FADE (lane F cycle 4: was one frame longer, which MO read
+# as the plate trailing its type): derived from the tokens when read (hook_timing), so the plate can neither outlast
+# nor undercut its type; both leave on the same frame.
 HOOK_EMPTY_MAX = 0.10       # the ground's alpha on any frame whose type is gone (the type's own 0.10 rule, mirrored)
 CAPTION_CLEAR = 1.40        # s: the composer's first caption burst may start here
 HOOK_TARGET = 5.1           # the hook's planned contrast (the brand's own plate keeps PLACE_TARGET)
@@ -196,7 +197,8 @@ def hook_masthead_record() -> dict[str, Any]:
     return {"shown": False, "cap_124": round(cap * GRID_SCALE[0], 1),
             "reason": "operator ruling 2: no masthead on the hook frame "
                       f"(under {MASTHEAD_GRID_CAP} px cap height at profile-grid size)"}
-HOOK_PLATE_FEATHER = 64     # freeze panel H6 (4): design px over which the plate's top and bottom edges feather
+HOOK_PLATE_FEATHER = 128    # freeze panel H6 (4): design px over which the plate's top and bottom edges feather
+                            # (lane F cycle 4: was 64, a near-hard edge at feed size; see HOOK_PLATE_SIDE)
 EYEBROW_SCRIM_AIR = 56      # design px: the hook's wash is flat from this far above the eyebrow rule
 RULE_HALO_PX = 12           # the eyebrow rule's INK halo: its feather past the measuring band
 DISCLOSURE_AIR = 32         # design px between the disclosure plate's foot and the claim block
@@ -264,6 +266,9 @@ class ChapterCard:
     photo: Path | None = None
     fact_ids: tuple[str, ...] = ()
     title_src: CardRef | Gated | None = None
+    # lane F cycle 4: every chapter title of the video, in order (this one included), so the set shares one title
+    # size per format (_chapter_set_px); empty: the card is sized alone
+    set_titles: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -353,7 +358,9 @@ def hook_timing() -> dict[str, float]:
     """The hook's timing now (SYS-F-1): the type's hold and fade (motion.hook_hold, motion.hook_fade), the ground's
     (the same hold, one frame longer fade) and the push per frame (motion.push_per_frame)."""
     hold, fade = float(_mtok("motion.hook_hold")), float(_mtok("motion.hook_fade"))
-    return {"HOOK_HOLD": hold, "HOOK_FADE": fade, "HOOK_GROUND_HOLD": hold, "HOOK_GROUND_FADE": fade + 1.0 / VIDEO_FPS,
+    # lane F cycle 4 (panel 5 MO backlog, row12_motion_hook f32-f38: the wash at ~0.25 while the type was at ~0.1,
+    # the plate trailing its type by a frame): the ground's fade is the type's own, so both end on the same frame
+    return {"HOOK_HOLD": hold, "HOOK_FADE": fade, "HOOK_GROUND_HOLD": hold, "HOOK_GROUND_FADE": fade,
             "LOOP_PUSH": float(_mtok("motion.push_per_frame"))}
 
 
@@ -1677,13 +1684,13 @@ def _numeral_tall(total: int) -> int:
 
 
 def _chapter_wide_off(lines: Sequence[str], P: int, col_tall: int) -> list[int]:
-    """16:9 title baseline offsets (A1's _lead); with two lines the step grows (C5, round 4) so the first line's cap
-    top (baseline - round(0.86 P)) meets the numeral column's ink top, never past CHAPTER_WIDE_LEAD_MAX x P."""
+    """16:9 title baseline offsets (A1's _lead), the title's one step (0.98 P, the system's lead.display of ~1.13 cap
+    heights) for any line count. Lane F cycle 4 (panel 5 TY r2 TY-G2: the same title role led 13 px on act 1's three
+    lines and 40 px on act 4's two): two lines no longer open towards CHAPTER_WIDE_LEAD_MAX x P (C5, round 4) to span
+    the numeral; where they do not span it they are top-aligned on its ink top (_chapter_wide_rise), so `col_tall`
+    no longer changes the step."""
     cap, step = round(0.86 * P), round(0.98 * P)
-    off = _lead(lines, P, step, cap)
-    if len(off) == 2:
-        off = [0, max(off[1], min(col_tall - cap, round(CHAPTER_WIDE_LEAD_MAX * P)))]
-    return off
+    return _lead(lines, P, step, cap)
 
 
 def _chapter_wide_two_ok(P: int, col_tall: int) -> bool:
@@ -1711,8 +1718,8 @@ def _phrase_splits(lines: Sequence[str]) -> int:
     return sum(_parts_phrase(a.split()[-1], b.split()[0]) for a, b in itertools.pairwise(lines) if a.split() and b.split())
 
 
-def _chapter_wide_three(t: str, fit: tuple[int, list[str]], col_tall: int, measure: int, geo: _Geo
-                        ) -> tuple[int, list[str]]:
+def _chapter_wide_three(t: str, fit: tuple[int, list[str]], col_tall: int, measure: int, geo: _Geo,
+                        cap_px: int | None = None) -> tuple[int, list[str]]:
     """Lane F cycle 3 (16:9 chapter title against the numeral): a two-line title that cannot span the numeral
     column's ink (top-aligned under the operator decision of 2026-11-05, so its foot stands above the numeral's) is
     set in three lines instead, at the largest CHAPTER_WIDE_TWO size whose three lines span no more than that ink
@@ -1729,6 +1736,8 @@ def _chapter_wide_three(t: str, fit: tuple[int, list[str]], col_tall: int, measu
     for P in CHAPTER_WIDE_TWO:
         if round(0.86 * P) + 2 * round(0.98 * P) > col_tall + CHAPTER_TALL_SLACK:
             continue
+        if cap_px is not None and P > cap_px:
+            return fit        # lane F cycle 4: the spanning size is over the chapter set's size (no smaller three)
         ls = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 3, geo, even=True, cohesive=True, min_lines=3)
         if (ls and len(ls) == 3 and not _stop_end(ls) and heading_valid(ls)
                 and _phrase_splits(ls) < _phrase_splits(two)
@@ -1766,42 +1775,24 @@ def _chapter_ink_foot(P: int, lines: Sequence[str]) -> int:
 PLAN_SIZES: dict[str, tuple[tuple[int, int], ...]] = {"plan_hook_frame": ((1080, 1920),)}
 
 
-def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height: int = 1920, *,
-                      payload: Mapping[str, Any] | None = None) -> CardPlan:
-    geo = _Geo(width, height)
-    if not (1 <= spec.total <= 12 and 1 <= spec.number <= spec.total):
-        raise CardRefused(f"chapter {spec.number} of {spec.total} (1..total, total <= 12)")
-    title = " ".join(str(spec.title or "").split())
-    if not title:
-        raise CardRefused("a chapter title is empty")
-    if _TITLE_PREFIX.match(title):
-        raise CardRefused("the title repeats the chapter number")
-    t, cited, prov = ground_line(title, spec.title_src, sheet, spec.fact_ids, role="title", payload=payload)
-    t = t.upper()
-    num = str(spec.number)
-    total_t = f"/ {spec.total}" if spec.total >= 2 else ""      # C1: the chapter count is structural (ChapterCard.total)
-    f_num = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[geo.wide])
-    num_ink = _ink(num, f_num)
-    # 16:9 (C2): the numeral and its "/ N" right-aligned on a column fixed per video; the divider a fixed CHAPTER_GAP
-    # after that column, and the title the same gap after the divider (lane F cycle 2: the total stands with its
-    # numeral, as on 9:16, so it widens the column)
-    edge = 153 + _numeral_column(spec.total, total_t)
-    div_x = edge + CHAPTER_GAP
-    title_x = div_x + 2 + CHAPTER_GAP
-    num_tall = -num_ink[1]                      # C2: the numeral's measured ink height (CHAPTER_WIDE_TALL)
-    # C5: the height cap is one per video (the tallest numeral ink of 1..total, 311 at 360 px for a 5-act video), so
-    # every chapter of the video sets its title by the same rule
-    col_tall = max(num_tall, _numeral_tall(spec.total))
+def _chapter_fit(t: str, geo: _Geo, col_tall: int, title_x: int, cap_px: int | None = None
+                 ) -> tuple[tuple[int, list[str]], int, bool]:
+    """The chapter title's ((px, lines), left edge, conjunction last resort) on `geo`'s format, by the rules below.
+    Lane F cycle 4: with `cap_px` (the video's chapter-set size, _chapter_set_px) every ladder starts at or under it.
+    CardRefused where no rule sets the title."""
+    def capped(ladder: Sequence[int]) -> tuple[int, ...]:
+        return tuple(P for P in ladder if cap_px is None or P <= cap_px)
     # review 2026-11-03 (second round, 3): the 9:16 title runs larger (it sat small in the upper third)
     sizes, measure = (((120, 112, 104, 96), 1766 - title_x) if geo.wide
                       else ((136, 128, 120, 112, 104, 100, 96, 92, 88, 84), CHAPTER_TALL_MEASURE))
+    sizes = capped(sizes)
     fit = None
     if geo.wide:
         # review 2026-11-03 (round 3, C): a 120 px title left the right third empty. The title now fills its
         # measure: the largest CHAPTER_WIDE_ONE size that sets it on one line, else two even lines at the largest
         # CHAPTER_WIDE_TWO size whose two lines stand at most CHAPTER_TALL_SLACK taller than the numeral's own ink
         # (C2, C5), under W2
-        for P in CHAPTER_WIDE_ONE:
+        for P in capped(CHAPTER_WIDE_ONE):
             lines = _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 1, geo)
             if lines:
                 fit = (P, lines)
@@ -1812,12 +1803,12 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
             # CHAPTER_WIDE_LEAD_MAX x P; operator decision 2026-11-05 (draw every chapter card): a long title steps
             # on down the ladder to its 96 px floor, its first cap top still on the numeral's ink top
             # (_chapter_wide_rise); only a title that does not fit two lines at the floor is refused
-            two = [P for P in CHAPTER_WIDE_TWO if _chapter_wide_two_ok(P, col_tall)]
+            two = [P for P in capped(CHAPTER_WIDE_TWO) if _chapter_wide_two_ok(P, col_tall)]
             fit = _w1_ladder(two, lambda P: _design_wrap(t, brand.DISPLAY_FONT, None, P, measure, 2, geo, even=True))
             if fit is None:
                 raise CardRefused(f"the 16:9 title does not fit two lines at {two[-1] if two else '-'} px, the "
                                   f"type floor", code="no_fit")
-            fit = _chapter_wide_three(t, fit, col_tall, measure, geo)
+            fit = _chapter_wide_three(t, fit, col_tall, measure, geo, cap_px)
     if fit is None:
         refused = None
         try:
@@ -1872,6 +1863,92 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
         raise refused
     if fit is None:
         raise CardRefused("the title does not fit two lines at the floor size")
+    return fit, tall_left, conj_last_resort
+
+
+CHAPTER_SET_ROUNDS = 4     # lane F cycle 4: the set's size settles within this many rounds (each only steps down)
+
+
+def _chapter_set_px(titles: tuple[str, ...], width: int, height: int, total: int) -> int | None:
+    """Lane F cycle 4: the chapter set's one title size on this canvas: the least size any title of the set sets at,
+    re-checked with every title capped at it until no title steps further down (a capped ladder may land a step
+    lower). A title the rules refuse has no card and does not size the set; a title refused only under the cap
+    keeps its own size (plan_chapter_card records it). None for a set of fewer than two drawable titles."""
+    return _chapter_set_px_cached(tuple(" ".join(str(x or "").split()).upper() for x in titles),
+                                  int(width), int(height), int(total), brand.fingerprint())
+
+
+@lru_cache(maxsize=64)
+def _chapter_set_px_cached(titles: tuple[str, ...], width: int, height: int, total: int, brand_fp: str) -> int | None:
+    geo = _Geo(width, height)
+    total_t = f"/ {total}" if total >= 2 else ""
+    title_x = 153 + _numeral_column(total, total_t) + CHAPTER_GAP + 2 + CHAPTER_GAP
+    col_tall = _numeral_tall(total)
+    own: dict[str, int] = {}
+    for t in dict.fromkeys(t for t in titles if t):
+        try:
+            own[t] = _chapter_fit(t, geo, col_tall, title_x)[0][0]
+        except CardRefused:
+            continue
+    if len(own) < 2:
+        return None
+    cap = min(own.values())
+    for _ in range(CHAPTER_SET_ROUNDS):
+        got = []
+        for t, P in own.items():
+            if P <= cap:
+                got.append(P)
+                continue
+            try:
+                got.append(_chapter_fit(t, geo, col_tall, title_x, cap)[0][0])
+            except CardRefused:
+                continue          # kept at its own size (recorded on its card)
+        new = min(got + [cap])
+        if new == cap:
+            break
+        cap = new
+    return cap
+
+
+def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height: int = 1920, *,
+                      payload: Mapping[str, Any] | None = None) -> CardPlan:
+    geo = _Geo(width, height)
+    if not (1 <= spec.total <= 12 and 1 <= spec.number <= spec.total):
+        raise CardRefused(f"chapter {spec.number} of {spec.total} (1..total, total <= 12)")
+    title = " ".join(str(spec.title or "").split())
+    if not title:
+        raise CardRefused("a chapter title is empty")
+    if _TITLE_PREFIX.match(title):
+        raise CardRefused("the title repeats the chapter number")
+    t, cited, prov = ground_line(title, spec.title_src, sheet, spec.fact_ids, role="title", payload=payload)
+    t = t.upper()
+    num = str(spec.number)
+    total_t = f"/ {spec.total}" if spec.total >= 2 else ""      # C1: the chapter count is structural (ChapterCard.total)
+    f_num = get_font(brand.DISPLAY_FONT, CHAPTER_NUMERAL_PX[geo.wide])
+    num_ink = _ink(num, f_num)
+    # 16:9 (C2): the numeral and its "/ N" right-aligned on a column fixed per video; the divider a fixed CHAPTER_GAP
+    # after that column, and the title the same gap after the divider (lane F cycle 2: the total stands with its
+    # numeral, as on 9:16, so it widens the column)
+    edge = 153 + _numeral_column(spec.total, total_t)
+    div_x = edge + CHAPTER_GAP
+    title_x = div_x + 2 + CHAPTER_GAP
+    num_tall = -num_ink[1]                      # C2: the numeral's measured ink height (CHAPTER_WIDE_TALL)
+    # C5: the height cap is one per video (the tallest numeral ink of 1..total, 311 at 360 px for a 5-act video), so
+    # every chapter of the video sets its title by the same rule
+    col_tall = max(num_tall, _numeral_tall(spec.total))
+    fit, tall_left, conj_last_resort = _chapter_fit(t, geo, col_tall, title_x)
+    # lane F cycle 4 (panel 5 TY r2 TY-G3, real Richat act titles: 9:16 caps 72..103 px in one video): one title size
+    # per video's chapter set, the largest every title of the set (ChapterCard.set_titles) sets at by these rules; a
+    # title that would be refused at the set's size keeps its own (recorded)
+    set_px = _chapter_set_px(tuple(spec.set_titles), geo.width, geo.height, spec.total) if spec.set_titles else None
+    set_rec: dict[str, Any] | None = None
+    if set_px is not None:
+        set_rec = {"px": set_px, "titles": len(spec.set_titles)}
+        if set_px < fit[0]:
+            try:
+                fit, tall_left, conj_last_resort = _chapter_fit(t, geo, col_tall, title_x, set_px)
+            except CardRefused as e:
+                set_rec["kept_own"] = f"refused at the set's {set_px} px: {e.reason}"
     P, lines = fit
     cap, step, n = round(0.86 * P), round(0.98 * P), len(lines)
     off = _chapter_wide_off(lines, P, col_tall) if geo.wide else _lead(lines, P, step, cap)
@@ -1904,6 +1981,8 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
                                 div_x, title_x, edge, tall_left=tall_left)
         if conj_last_resort:
             plan.meta["anchors"]["conjunction_end_last_resort"] = True
+        if set_rec is not None:
+            plan.meta["anchors"]["chapter_set"] = set_rec
         # C5 / C6: the total is GOLD type now (no longer muted), so C3 measures it with the rest
         dmin = min((p.contrast for nm, p in plan.meta["_contrast"] if p.contrast is not None), default=None)
         if sat <= CHAPTER_SAT_MAX or (dmin is not None and dmin >= CHAPTER_SAT_TARGET) or attempt == CHAPTER_SAT_STEPS:
@@ -3979,10 +4058,22 @@ HOOK_PLATE_PAD = (28, 34)    # design px the band runs above the block's air and
 HOOK_PLATE_AIR = 44          # design px from the panel's top edge to the masthead's ink, and from the claim's ink foot
 
 
-def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float, feather: float = 0.0
-                 ) -> Image.Image:
-    """A full-bleed INK band from y0 to y1 at `strength`, its edges crisp (one antialiased pixel), or with
-    `feather` (freeze panel H6 (4)) eased (smoothstep) from nothing `feather` px outside y0 and y1 to full at them."""
+# Freeze lane F cycle 4 (panel 5 CD r1 CD-F1 and r2 CD-r8-hook-band, two runs: on the bright Aswan quarry the
+# full-width near-solid band with 64 px edges "reads as a slab" across the obelisk). The plate now grades out to the
+# right of the claim, as the wash does: full strength from the frame's left edge to HOOK_WASH_RIGHT_AIR past the
+# block's right ink (every line and its measuring ring stay on the full plate, so the contrast gate is unchanged),
+# then smoothstepped to HOOK_PLATE_SIDE_FLOOR of its strength over HOOK_PLATE_SIDE; and its top and bottom edges
+# feather over HOOK_PLATE_FEATHER (was 64, ~20 px at feed size: a near-hard edge). No vertical edge anywhere.
+HOOK_PLATE_SIDE = 360       # design px over which the plate eases right of the block
+HOOK_PLATE_SIDE_FLOOR = 0.0  # the share of the plate's strength it eases to (the frame's edge may end before it)
+
+
+def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float, feather: float = 0.0,
+                 x1: float | None = None) -> Image.Image:
+    """An INK band from y0 to y1 at `strength`, its edges crisp (one antialiased pixel), or with `feather` (freeze
+    panel H6 (4)) eased (smoothstep) from nothing `feather` px outside y0 and y1 to full at them. Full bleed, or with
+    `x1` (lane F cycle 4) full from the left edge to x1 and smoothstepped right of it to HOOK_PLATE_SIDE_FLOOR x
+    strength over HOOK_PLATE_SIDE."""
     yy = np.arange(size[1], dtype=np.float32) + 0.5
     if feather > 0:
         d = np.maximum(y0 - yy, yy - y1)
@@ -3990,7 +4081,12 @@ def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float, f
         v = np.where(d <= 0, 1.0, x * x * (3 - 2 * x)).astype(np.float32)
     else:
         v = np.clip(np.minimum(yy - y0, y1 - yy) + 0.5, 0, 1)
-    a = np.clip(v[:, None] * strength * 255.0 + np.zeros((1, size[0]), np.float32), 0, 255).astype("uint8")
+    if x1 is None:
+        hx = np.ones(size[0], np.float32)
+    else:
+        u = np.clip((np.arange(size[0], dtype=np.float32) + 0.5 - x1) / HOOK_PLATE_SIDE, 0, 1)
+        hx = 1 - (1 - HOOK_PLATE_SIDE_FLOOR) * (u * u * (3 - 2 * u))
+    a = np.clip(v[:, None] * hx[None, :] * strength * 255.0, 0, 255).astype("uint8")
     layer = Image.new("RGBA", size, brand.INK + (255,))
     layer.putalpha(Image.fromarray(a))
     return layer
@@ -4011,6 +4107,8 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         eb = _row_plates(bg, [eyebrow_row])
         plates = plates + eb
         field = np.maximum(field, _halo_field(bg.size, eb, eyebrow_row[3]))
+    right = max([p.box[2] for p in plates if not getattr(p, "empty", False)] + [box[0]]) + HOOK_WASH_RIGHT_AIR
+
     def plate(why: str | None = None) -> tuple[Image.Image, dict]:
         tried: list[dict] = []
         under = Image.new("RGBA", bg.size, (0, 0, 0, 0))
@@ -4023,14 +4121,14 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
             y1 = plate_bottom             # the claim's ink foot plus the same air as above the masthead
         for i, st in enumerate(HOOK_PLATE_STEPS):
             last = i == len(HOOK_PLATE_STEPS) - 1
-            h, worst, under = _least_halo(base, _plate_layer(bg.size, y0, y1, st, feather), field, plates,
+            h, worst, under = _least_halo(base, _plate_layer(bg.size, y0, y1, st, feather, right), field, plates,
                                           1.0 if last else HOOK_GLOW_MAX)
             tried.append({"strength": st, "min": round(worst, 2), "halo": h})
             if h is not None:
                 break
         rec = {"luminance": round(lum, 3), "mode": "plate", "strength": tried[-1]["strength"],
                "halo": tried[-1]["halo"], "tried": tried, "plate": [round(y0), round(y1)],
-               "feather": feather, "above_kept": _above_kept(base, under, box[1])}
+               "feather": feather, "plate_right": round(right), "above_kept": _above_kept(base, under, box[1])}
         if why:
             rec["plate_reason"] = why
         if eyebrow_row is not None:
@@ -4040,7 +4138,6 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
     if lum >= HOOK_PLATE_LUM:
         return plate()
     steps = _steps_from(lum, HOOK_WASH_START, HOOK_WASH_STEPS)
-    right = max([p.box[2] for p in plates if not getattr(p, "empty", False)] + [box[0]]) + HOOK_WASH_RIGHT_AIR
     washes = []
     # lane F cycle 3 (lander ruling: the hook's frame 0 is a feed tile; subject visibility outranks ornament): the
     # wash keeps at least HOOK_ABOVE_KEPT of the photo's brightness above the claim with the contrast gate met;
@@ -4445,14 +4542,17 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         _provenance(ground0.convert("RGBA"), lay)
         prov = lay.meta["provenance"]["plate"]
         md.rectangle([prov[0], prov[1], prov[2], prov[3]], fill=brand.INK + (255,))
-        pp = lay.meta["plates"]["provenance"][0]
-        if pp.contrast is None or pp.contrast < HOOK_TARGET:
-            raise CardRefused(f"the disclosure reaches only {pp.contrast}")
         card._el("provenance_plate", "mark", "", "", None, 0, brand.INK, prov[:2], "", 0.0, tuple(prov), hook)
         card.roles["provenance_plate"] = "mark"
-        card._el("provenance", "text", pp.text, brand.DATA_FONT, 600, pp.font.size, brand.STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
-        card.roles["provenance"], card.drawn["provenance"] = "data", pp.text
-        plates.append(pp)
+        # lane F cycle 4: the disclosure may set on two lines (cover_design.provenance_fit); every line is drawn
+        pps = lay.meta["plates"]["provenance"]
+        for k, pp in enumerate(pps):
+            if pp.contrast is None or pp.contrast < HOOK_TARGET:
+                raise CardRefused(f"the disclosure reaches only {pp.contrast}")
+            name = "provenance" if k == 0 else f"provenance_{k + 1}"
+            card._el(name, "text", pp.text, brand.DATA_FONT, 600, pp.font.size, brand.STONE_LT, pp.xy, "ls", 1.0, pp.box, hook)
+            card.roles[name], card.drawn[name] = "data", pp.text
+            plates.append(pp)
     r_ = {"hook": True, "bg": bg, "under": under, "marks": marks, "top": top, "plates": plates, "last_t": 0.0}
     frame0 = _hook_compose(r_, 0)
     proof = grid_proof(frame0, lay)
@@ -4469,7 +4569,7 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     frames, seconds = _frames(HOOK_SECONDS)
     contrast = [(nm, p) for nm, p in card.contrast]
     if spec.photo_kind == "generated":
-        contrast.append(("provenance", lay.meta["plates"]["provenance"][0]))
+        contrast += [("provenance", p) for p in lay.meta["plates"]["provenance"]]
     # H5: the drawn contrast, measured on frames 0 and 32 as the chapter and myth cards measure theirs
     drawn = {}
     frame32 = _hook_compose(r_, 32)

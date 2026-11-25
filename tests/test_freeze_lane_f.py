@@ -21,9 +21,10 @@ FRAMES = range(round(dc.HOOK_SECONDS * VIDEO_FPS) + 1)
 def test_hook_motion_reads_the_runtime_tokens():
     """SYS-F-1: the hook's hold and fade are the system's runtime tokens, read now; the ground derives from them."""
     assert dc.HOOK_HOLD == tok("motion.hook_hold") and dc.HOOK_FADE == tok("motion.hook_fade")
-    assert dc.HOOK_GROUND_HOLD == dc.HOOK_HOLD and dc.HOOK_GROUND_FADE == pytest.approx(dc.HOOK_FADE + 1 / VIDEO_FPS)
+    # lane F cycle 4 (panel 5 MO: the plate trailed its type by a frame): the ground's fade is the type's own
+    assert dc.HOOK_GROUND_HOLD == dc.HOOK_HOLD and dc.HOOK_GROUND_FADE == pytest.approx(dc.HOOK_FADE)
     with brand.use(brand.DEFAULT_BRAND.derive("hook probe", system={"motion.hook_hold": 0.9, "motion.hook_fade": 0.2})):
-        assert dc.HOOK_HOLD == 0.9 and dc.HOOK_GROUND_FADE == pytest.approx(0.2 + 1 / VIDEO_FPS)
+        assert dc.HOOK_HOLD == 0.9 and dc.HOOK_GROUND_FADE == pytest.approx(0.2)
         assert dc._hook_alpha(0.95) < 1.0 and dc._hook_ground_alpha(0.95) >= dc._hook_alpha(0.95)
 
 
@@ -39,6 +40,9 @@ def test_lane_f_hook_ground_leaves_with_type():
     assert dc._hook_ground_alpha(dc.CAPTION_CLEAR) == 0.0
     # the type still holds whole through frame 32 (H4), and so does its ground
     assert all(dc._hook_ground_alpha(i / VIDEO_FPS) == 1.0 for i in range(33))
+    # lane F cycle 4 (panel 5 MO): the ground never trails its type: both leave on the same frame
+    last = lambda f: max(i for i in FRAMES if f(i / VIDEO_FPS) > 0.0)   # noqa: E731
+    assert last(dc._hook_ground_alpha) == last(dc._hook_alpha)
 
 
 @pytest.mark.parametrize("ground", ["sky", "dark", "warm"])
@@ -401,3 +405,130 @@ def test_lane_f_thumbnail_disclosure_is_a_small_corner_label_only_on_illustratio
     assert cap_height(badge.font) <= min(cap_height(p.font) for p in block)
     assert not _overlaps(badge.box, _box_union([p.box for p in block]))
     assert "provenance" in yt._TEXTURE
+
+
+# ------------------------------------------------------------------------------------------------ cycle 4
+@pytest.mark.parametrize("width", [340, 360, 420, 500, 560, 640, 912])   # real windows: 360..892
+def test_lane_f_c4_disclosure_stands_inside_its_window(width):
+    """Panel 5 TY r1 (the Aswan Reel cover: the recon badge plate ran ~70 px past its photo window; on real heroes 29
+    of 49 cover cases ran past it, up to 242 px): on any window the plate stands inside it, PROVENANCE_INSET from its
+    edges, the label drawn whole (one line, or two at its own separator), never under the floor and at the gate."""
+    from PIL import Image as _Image
+    from src import cover_design as cd
+    from src.still_layout import Layout
+    from src.video_composer import RECON_BADGE_LABEL
+    x0 = round((1080 - width) / 2)
+    box = [x0, 560, x0 + width, 1100]
+    lay = Layout("cover", (1080, 1920), (60, 440, 1020, 1480))
+    lay.meta["composition"] = {"image_box": box}
+    cd._provenance(_Image.new("RGB", (1080, 1920), (200, 190, 170)), lay)
+    rec, ps = lay.meta["provenance"], lay.meta["plates"]["provenance"]
+    plate = rec["plate"]
+    assert box[0] + cd.PROVENANCE_INSET <= plate[0] and plate[2] <= box[2] - cd.PROVENANCE_INSET, (plate, box)
+    assert box[1] <= plate[1] and plate[3] <= box[3] - cd.PROVENANCE_INSET
+    assert " ".join(p.text for p in ps) == RECON_BADGE_LABEL == " ".join(rec["lines"])
+    assert all(p.font.size >= min(cd.PROVENANCE_SIZES) for p in ps)
+    assert all(plate[0] <= p.box[0] and p.box[2] <= plate[2] and plate[1] <= p.box[1] and p.box[3] <= plate[3]
+               for p in ps)
+    assert all(p.contrast is not None and p.contrast >= 5.1 for p in ps)
+
+
+def test_lane_f_c4_disclosure_refuses_rather_than_overrun():
+    """A window no form of the label fits is refused (a LayoutError the cover records), never overrun."""
+    from PIL import Image as _Image
+    from src import cover_design as cd
+    from src.refusal import LayoutError
+    from src.still_layout import Layout
+    lay = Layout("cover", (1080, 1920), (60, 440, 1020, 1480))
+    lay.meta["composition"] = {"image_box": [440, 560, 640, 1100]}
+    with pytest.raises(LayoutError):
+        cd._provenance(_Image.new("RGB", (1080, 1920)), lay)
+
+
+@pytest.mark.parametrize("claim,fid", [("About 40 km across", "f_len"), ("Quartzite ridges form the ring", "f_geo")])
+def test_lane_f_c4_hook_plate_grades_out_right_of_the_block(claim, fid, photos):
+    """Panel 5 CD r1 + r2 (the full-width band read as a slab on bright grounds): the plate is full under the whole
+    claim block (every line on it, at the gate) and grades out right of it with no step; its top and bottom feather
+    over HOOK_PLATE_FEATHER, so the band has no hard edge anywhere."""
+    plan = F.hook_plan(photos["sky"], claim, fid)
+    sc = plan.meta["scrim"]
+    assert sc["mode"] == "plate", sc
+    xr = sc["plate_right"]
+    texts = [e for e in plan.elements if e.kind == "text" and e.name.startswith("title_")]
+    assert texts and max(e.box[2] for e in texts) <= xr - dc.HOOK_WASH_RIGHT_AIR + 1
+    for _, p in plan.meta["_contrast"]:
+        assert p.contrast >= dc.HOOK_TARGET
+    a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)
+    row = a[sum(sc["plate"]) // 2]
+    assert (row[:xr] == row[0]).all() and row[-1] < row[0]
+    assert (np.diff(row) <= 0).all() and np.abs(np.diff(row)).max() <= 2
+    col = a[:, 40]
+    assert np.abs(np.diff(col)).max() <= 2 * round(255 * sc["strength"] / dc.HOOK_PLATE_FEATHER) + 2
+
+
+def _chapter_set(size, acts, titles):
+    import dataclasses
+    out = []
+    for n, title in enumerate(acts, 1):
+        spec = F.T.chapter(sheet=F.SHEET, number=n, total=len(acts), title=title)
+        out.append(dc.plan_chapter_card(dataclasses.replace(spec, set_titles=tuple(titles)), F.SHEET, *size))
+    return out
+
+
+@pytest.mark.parametrize("size", [F.TALL, F.WIDE])
+def test_lane_f_c4_chapter_set_shares_one_size_and_one_lead(size):
+    """Panel 5 TY r2 (TY-G3: the real Richat act titles set at caps 72..103 px in one 9:16 video; TY-G2: the 16:9 title
+    led 0.98 P on three lines and 1.2 P on two): every card of a video's chapter set takes the set's one title size
+    (recorded), and the title's one step, the system's display lead, whatever its line count."""
+    plans = _chapter_set(size, F.RICHAT_ACTS, F.RICHAT_ACTS)
+    anchors = [p.meta["anchors"] for p in plans]
+    sizes = {a["title_px"] for a in anchors if "kept_own" not in a["chapter_set"]}
+    assert len(sizes) == 1 and sizes == {anchors[0]["chapter_set"]["px"]}, [a["title_px"] for a in anchors]
+    for a, title in zip(anchors, F.RICHAT_ACTS):
+        bl = a["title_baselines"]
+        assert all(b - c == round(0.98 * a["title_px"]) for c, b in zip(bl, bl[1:])), (title, bl)
+        assert " ".join(a["title_lines"]) == " ".join(title.upper().split())
+    alone = F.chapter_plan(size, 4, len(F.RICHAT_ACTS), F.RICHAT_ACTS[3])
+    assert "chapter_set" not in alone.meta["anchors"]          # a card sized alone keeps its own ladder
+    assert alone.meta["anchors"]["title_px"] >= anchors[3]["title_px"]
+
+
+def test_lane_f_c4_chapter_set_ignores_a_title_with_no_card():
+    """A title the rules refuse has no card, so it never sizes the set; one drawable title is no set."""
+    long_title = " ".join(["Extraordinarily"] * 9)
+    with pytest.raises(dc.CardRefused):
+        F.chapter_plan(F.TALL, 1, 2, long_title)
+    assert dc._chapter_set_px((long_title, F.RICHAT_ACTS[0]), 1080, 1920, 2) is None
+    two = dc._chapter_set_px((F.RICHAT_ACTS[0], F.RICHAT_ACTS[2]), 1080, 1920, 2)
+    assert two is not None
+
+
+def test_lane_f_c4_composition_passes_the_chapter_set():
+    """card_composition.make_all hands every chapter card the titles of the chapter cards the video draws."""
+    import inspect
+    from src import card_composition
+    src_ = inspect.getsource(card_composition.make_all)
+    assert "set_titles=set_titles" in src_ and 'r[0] == "chapter"' in src_
+
+
+def test_lane_f_c4_disclosure_badge_never_holds_on_a_data_card(tmp_path):
+    """Operator rule (panel 5 AD r2 AD-08, a forced board case): the AI disclosure labels AI-made imagery only. A
+    graphic beat (data, chapter or myth card) next to an illustration carries the badge only inside the crossfade
+    it shares with it (TRANS_DUR / 2), never over its own held frames; one not next to an illustration never; a run
+    with no illustration has none."""
+    from src.video_composer import TRANS_DUR, reconstruction_badge_intervals
+    scenes = [tmp_path / "a.jpg", tmp_path / "gap_gen_x.jpg", tmp_path / "graphic_numbers_01.mp4",
+              tmp_path / "b.jpg", tmp_path / "graphic_chapter_02.mp4", tmp_path / "gap_gen_y.jpg",
+              tmp_path / "graphic_mythfact_01.mp4"]
+    durs = [3.0, 4.0, 3.0, 3.0, 2.5, 3.0, 4.0]
+    got = reconstruction_badge_intervals(scenes, durs, sum(durs))
+    starts = [sum(durs[:i]) for i in range(len(durs))]
+    for i, s in enumerate(scenes):
+        if not s.name.startswith("graphic_"):
+            continue
+        a, b = starts[i], starts[i] + durs[i]
+        on = sum(max(0.0, min(b, e) - max(a, st)) for st, e in got)
+        near = sum(scenes[j].name.startswith("gap_gen_") for j in (i - 1, i + 1) if 0 <= j < len(scenes))
+        assert on <= near * TRANS_DUR / 2 + 1e-9, (s.name, on)
+    plain = [tmp_path / "a.jpg", tmp_path / "graphic_numbers_01.mp4", tmp_path / "b.jpg"]
+    assert reconstruction_badge_intervals(plain, [3.0, 3.0, 3.0], 9.0) == []

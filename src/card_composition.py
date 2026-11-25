@@ -410,6 +410,11 @@ def make_all(payload: dict, work_dir: Path, *, photo: Path | None = None,
         spec = dc.ChapterCard(number, len(chapters), field["text"], photo=photo,
                               title_src=title_src, fact_ids=tuple(field.get("fact_ids", [])))
         requests.append(("chapter", number, "statements", field, spec, float(chapter["start_sec"]), []))
+    # lane F cycle 4: the titles of the chapter cards this video draws travel with each card, so the set shares one
+    # title size per format (design_cards._chapter_set_px)
+    set_titles = tuple(r[4].title for r in requests if r[0] == "chapter")
+    requests = [(r[0], r[1], r[2], r[3], replace(r[4], set_titles=set_titles), *r[5:])
+                if r[0] == "chapter" else r for r in requests]
     for kind, plural, spec_type in (("mythfact", "myths", dc.MythFact), ("quote", "quotes", dc.QuoteCard)):
         for number, field in enumerate(fields.get(plural, []), 1):
             ref = dc.CardRef(plural, field["id"])

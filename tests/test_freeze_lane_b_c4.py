@@ -40,3 +40,22 @@ def test_framed_window_bands_end_in_the_plate_value_no_gutter(kind, style) -> No
     lum = rgb.mean(axis=(1, 2))
     assert np.abs(np.diff(lum[top - 60:top + 4])).max() < 6
     assert np.abs(np.diff(lum[foot - 4:foot + 61])).max() < 6
+
+
+@pytest.mark.parametrize("copy", [{"title": "THE EYE OF THE SAHARA"}, {"line1": "A CITY", "line2": "UNDER A FIELD"}])
+@pytest.mark.parametrize("kind", ["bright", "dark"])
+def test_youtube_masthead_size_is_the_ruled_step_and_says_so(copy, kind) -> None:
+    """Panel 5 (BC MG-02, PL r1 gain 3): the YouTube masthead draws at 48 px with "size_asked 64, room 488.5" on its
+    record, which reads as a fit to each hook. It is the token masthead.youtube_px, a declared step of the masthead's
+    fit ladder (lane B cycle 3 ruling B-S2-1, SYS-B-5): the record names that rule, and the drawn size is it."""
+    from src import masthead, youtube_thumbnail
+    meta: dict = {}
+    youtube_thumbnail.render(_ground(kind).resize((1920, 1080)), dict(copy), meta=meta)
+    rec = meta["masthead"]
+    rule = rec["size_rule"]
+    ladder = masthead.fit_ladder(youtube_thumbnail.BRAND_PX)
+    assert rule["token"] == "masthead.youtube_px" and rule["ladder"] == ladder
+    assert rule["step"] is not None and ladder[rule["step"]] == rule["px"] >= ladder[-1]
+    assert rule["px"] == youtube_thumbnail.measured_mast_px()   # the token is the measurement's step
+    if rec.get("shown"):
+        assert rec["size_px"] == rule["px"]                      # drawn at the ruled step, never another

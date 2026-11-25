@@ -340,6 +340,23 @@ def mast_px() -> float:
     return float(tok("masthead.youtube_px"))
 
 
+def mast_size_rule() -> dict:
+    """The YouTube masthead's size as the record states it (lane B c4): the token, the canvas size it steps down from,
+    the declared ladder and the step taken, and why that step (lane B cycle 3 ruling B-S2-1, SYS-B-5). The same on
+    every thumbnail: it never depends on the hook drawn."""
+    from . import masthead
+    from .brand_system import tok
+    ladder = masthead.fit_ladder(BRAND_PX)
+    px = mast_px()
+    return {"token": "masthead.youtube_px", "px": px, "canvas_px": float(BRAND_PX), "ladder": ladder,
+            "step": ladder.index(px) if px in ladder else None, "floor": ladder[-1],
+            "measured_px": measured_mast_px(), "worst_hook_row": WORST_HOOK_ROW,
+            "hook_ratio_max": tok("masthead.hook_ratio_max"),
+            "why": ("one size on every thumbnail: the largest step of the masthead's fit ladder whose group is at most "
+                    "masthead.hook_ratio_max of the narrowest real hook row (WORST_HOOK_ROW), never under the ladder's "
+                    "floor (lane B cycle 3 ruling B-S2-1; SYS-B-5)")}
+
+
 def _mark_room(plates) -> float | None:
     """The masthead group's room over these plates' hook (MARK_RATIO_MAX of its first row), never under its fit ladder's
     floor size's own width; None with no hook drawn. Lane B cycle 3: no longer drawn per hook (mast_px is the one
@@ -867,6 +884,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
                                                   max_width=masthead.group_width(mast_px(), LEFT) + 0.5)
     im = im.convert(mode)
+    # Lane B c4 (panel 5 BC MG-02 / PL: "48 px drawn against 64 asked, room 488.5" read as a fit to each hook): the
+    # size is the ruled token, not a measure of this thumbnail; the record says which rule set it.
+    meta["masthead"]["size_rule"] = mast_size_rule()
     if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).

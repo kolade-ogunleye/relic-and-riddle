@@ -71,6 +71,7 @@ CLASS_PATTERNS: List[Tuple[str, str]] = [
     (r"^Payoff:", "script.payoff"),   # QF-15: before "hook" and "word", which its findings also say
     (r"^Hedge:", "script.hedge"),     # QF-16: before "facts" and "disputed", which its findings also say
     (r"^Caption break:", "script.caption_break"),   # QF-150: before "facts", "words" and the sentence it quotes
+    (r"^Drawn figure in ", "script.drawn_figure"),  # lane C cycle 4: before "poll", "story slide" and "facts"
     (r"\bpoll\b", "script.poll"),
     (r"repeats the phrase|repeated phrase", "script.repetition"),
     (r"trailing word", "script.trailing_word"),

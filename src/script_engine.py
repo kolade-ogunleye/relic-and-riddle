@@ -116,16 +116,16 @@ Topic notes (unverified): {key_facts}
 
 Requirements:
 - narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
-- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. When a figure is left out, rebuild the line around another verified detail (what happened, a name, a place or a time), never the bare noun the figure described left on its own. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji. A figure in it follows the headline rule (see thumbnail).
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
 - No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#<Place>", "#<Era>History"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
-- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room.
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room. A figure in a frame is one the narration or the verified facts state, drawn as they state it: with their hedge ("about", "over", "nearly", "an estimated"), both ends of a span, never a figure only the on-screen copy gives; a line that cannot carry the figure whole says another verified detail instead.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
-- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments. A figure in a heading or body is one the narration or the verified facts state, drawn as they state it: with their hedge ("about", "over", "nearly", "an estimated"), both ends of a span, never a figure only the slides give; a heading that cannot carry the figure whole says another verified detail instead. Bodies are plain, spoken English read at a glance ("used", not "utilized"; "from about X to Y", not "spanning from around X to Y").
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
 - sources: the pages you used, with real URLs."""
@@ -139,16 +139,16 @@ Location: {location}
 Requirements:
 - narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 12 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 12 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then the stake and 2-3 concrete reveals; then the payoff (payoff_sentence) answering the hook with one of its nouns; then the closing loop sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
-- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
+- thumbnail: the cover's words, shared by every cover style, the carousel and the YouTube thumbnail: eyebrow (a short kicker), line1 and line2 (the headline) and tagline (the deck under it), each at most 22 characters. A figure in them follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. When a figure is left out, rebuild the line around another verified detail (what happened, a name, a place or a time), never the bare noun the figure described left on its own. A size says what it measures, in the facts' own word ("144 FT ACROSS" for a diameter, "280 FT DEEP"), never a bare "144-FOOT". A line that shortens a fact keeps every word that limits it: "NO IRON CLAMPS" where the fact says "without the use of iron clamps", never "BUILT WITHOUT CLAMPS"; a superlative keeps its place and time ("ONCE THE REGION'S LARGEST"). A year says what happened in it, in the facts' word for that year ("FOUND 1963" where the facts say "rediscovered in 1963"), never bare beside a place (a city's name and a bare year read as its founding date). The deck poses the open question or the stake from a verified fact, never gives away the answer the video builds to ("CARVED BY NATURE" ends the riddle before it starts); leave the tagline empty rather than restate the headline.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji. A figure in it follows the headline rule (see thumbnail).
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
 - No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#<Place>", "#<Era>History"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
-- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room.
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room. A figure in a frame is one the narration or the verified facts state, drawn as they state it: with their hedge ("about", "over", "nearly", "an estimated"), both ends of a span, never a figure only the on-screen copy gives; a line that cannot carry the figure whole says another verified detail instead.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
-- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments. A figure in a heading or body is one the narration or the verified facts state, drawn as they state it: with their hedge ("about", "over", "nearly", "an estimated"), both ends of a span, never a figure only the slides give; a heading that cannot carry the figure whole says another verified detail instead. Bodies are plain, spoken English read at a glance ("used", not "utilized"; "from about X to Y", not "spanning from around X to Y").
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
 - sources: the pages you used, with real URLs."""
@@ -1626,7 +1626,8 @@ def told_story_problems(pkg: ScriptPackage) -> List[str]:
 
 
 # ---------------------------------------------------------------- headline figures (review rc72, item 15)
-# Titles and covers are exempt from the hedge rule, and their figures were verified by nobody: the development
+# Titles and covers were once exempt from the hedge rule (withdrawn: freeze SYS batch 3, figure_gate's one headline
+# rule), and their figures were verified by nobody: the development
 # obelisk run's title and cover said "1,200-TON" where the fact sheet gives 1,090-1,168 t. Every figure in the
 # title, the cover (thumbnail) and the caption's first line must now be the verified sheet's: an undisputed figure
 # as it is; a disputed one only as a floor at or below its range's minimum ("1,000+ tonnes"); one only a single
@@ -1782,7 +1783,8 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
     whole (freeze SYS batch 3, lander ruling: ONE headline rule, figure_gate.headline_figure_faults, the release
     gate's): the hedge the facts give it, both span ends, in the copy's unit (a bare ton is a tonne in metric copy, a
     short ton in US customary copy); a floor only for a fact that is one; covers not exempt from hedges. Evidence: the
-    verified sheet and the package's own body (narration, slides, Stories, stat cards), never its derived copy."""
+    verified sheet and the package's evidence fields as the draw-time gate reads them (_evidence_payload: narration,
+    stat cards, graphics fields), never its derived copy (slides and Stories included: lane C cycle 4)."""
     if sheet is None:
         sheet = _draft_sheet.get()
         sheet = sheet() if callable(sheet) else sheet   # the run's sheet, as the engine has it (never built here)
@@ -1792,17 +1794,7 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
     from . import figures as figs
     from .figure_gate import (HEADLINE_FIGURE_RULE, _tons_in, disputed_groups, evidence_texts, headline_figure_faults,
                               run_unit_system)
-
-    def plain(v: Any) -> Any:
-        if hasattr(v, "model_dump"):
-            return v.model_dump()
-        if isinstance(v, (list, tuple)):
-            return [plain(x) for x in v]
-        return v
-    payload: Dict[str, Any] = {k: plain(getattr(pkg, k, None)) for k in
-                               ("narration_script", "carousel_slides", "story_slides", "stat_cards")
-                               if getattr(pkg, k, None)}
-    payload["fact_sheet"] = sheet
+    payload = _evidence_payload(pkg, sheet)
     system = run_unit_system(payload)
     evidence = figs.signed_figures([_tons_in(t, system) for t in evidence_texts(payload)])
     disputed = disputed_groups(payload, system)
@@ -1816,7 +1808,88 @@ def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None
             if found:
                 wrong.append(f"{f.drawn()} ({found[0].split(': ', 1)[-1]})")
         if wrong:
-            problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". " + HEADLINE_FIGURE_RULE)
+            problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". " + HEADLINE_FIGURE_RULE + " "
+                            + HEADLINE_RECAST)
+    return problems
+
+
+# ---------------------------------------------------------------- drawn figures upstream (lane C cycle 4)
+# Cycle 3 lander ruling (a): the writer is held to signed or hedged figures upstream, so the draw-time figure gate
+# (visual_engine.gate_drawn) rarely fires. The gate held the cover's figure ("THE 6-TON ROOM" drawn as "THE ROOM") and
+# withheld or refused whole decks whose slide or Story copy stated a figure the run's evidence does not sign ("73-DAY"
+# for an estimated 73 days, one end of a signed span, a floor the facts do not give): 10 of 34 dev runs had such a
+# slide or Story line, and no draft check saw them (headline_problems reads the title, cover and caption only, and
+# counted the slides and Stories as their own evidence, which the draw-time gate never does). Each is now a finding at
+# draft time, read by the gate itself over the gate's own evidence (_evidence_payload, visual_engine.EVIDENCE_KEYS),
+# after the deck's unit rule (typography.spoken_units, figures.deck_lead), on the fields the deck and the Story draw.
+# It gets the copy edit (never a rewrite: the narration and its facts stay) and never blocks a draft: a figure the edit
+# cannot sign ships and the gate withholds it at draw, recorded as before. Nothing here writes a figure: the finding
+# asks for the signed hedge, both span ends, or the figure left out and the line rebuilt (HEADLINE_RECAST).
+DRAWN_FIGURE_PROBLEM = "Drawn figure in "
+# the drawn copy per field, as the deck and the Story draw it (multi_format: gate_deck's fields), and the poll question
+DRAWN_FIGURE_FIELDS = (("carousel_slides", "carousel slide", ("heading", "body")),
+                       ("story_slides", "Story slide", ("line1", "line2", "body")))
+# Cycle 3 quality note (lander): a headline whose figure was left out read as a bare noun ("THE ROOM", "THE SIEGE"):
+# truthful but weak. The writer rebuilds the line instead (said after the headline rule, which figure_gate owns).
+HEADLINE_RECAST = ("When a figure is left out, rebuild the line around another verified detail (what happened, a "
+                   "name, a place or a time), never the bare noun the figure described left on its own.")
+DRAWN_FIGURE_RULE = ("A figure in a slide, a Story frame or the poll is drawn as the narration or the verified facts "
+                     "state it: with their hedge (\"about\", \"over\", \"nearly\", \"an estimated\"), both ends of a "
+                     "span, never a figure only the on-screen copy gives. " + HEADLINE_RECAST)
+
+
+def _evidence_payload(pkg: Any, sheet: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """The package's evidence for a drawn figure, as the draw-time gate reads it (visual_engine.EVIDENCE_KEYS: the
+    narration, the stat cards, the graphics fields and the verified sheet), never its derived copy (title, cover,
+    captions, slides, Stories, comments)."""
+    from .visual_engine import EVIDENCE_KEYS
+
+    def plain(v: Any) -> Any:
+        if hasattr(v, "model_dump"):
+            return v.model_dump()
+        if isinstance(v, (list, tuple)):
+            return [plain(x) for x in v]
+        return v
+    payload: Dict[str, Any] = {k: plain(getattr(pkg, k, None)) for k in EVIDENCE_KEYS
+                               if k != "fact_sheet" and getattr(pkg, k, None)}
+    payload["fact_sheet"] = sheet
+    return payload
+
+
+def drawn_figure_problems(pkg: Any, sheet: Optional[Dict[str, Any]] = None) -> List[str]:
+    """One finding per carousel slide, Story frame and poll question whose drawn copy states a figure the draw-time gate
+    would withhold (visual_engine.gate_drawn over _evidence_payload, after the deck's unit rule): the figure as drawn,
+    the field and the gate's reason. [] without a verified sheet (nothing to hold the figures to). Never blocking
+    (blocking_problems): the copy edit is asked once; a figure it cannot sign is withheld at draw, recorded."""
+    if sheet is None:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet
+    if not (sheet or {}).get("facts"):
+        return []
+    from .figures import deck_lead
+    from .typography import spoken_units
+    from .visual_engine import gate_drawn
+    payload = _evidence_payload(pkg, sheet)
+    narration = str(payload.get("narration_script") or "")
+    lead = deck_lead(payload)
+    problems = []
+
+    def check(label: str, texts: Dict[str, str], order: Tuple[str, ...]) -> None:
+        drawn = {k: spoken_units(v, narration, lead) for k, v in texts.items() if v.strip()}
+        if not drawn:
+            return
+        _, rows = gate_drawn(drawn, payload, label, [k for k in order if k in drawn])
+        if rows:
+            problems.append(f"{DRAWN_FIGURE_PROBLEM}{label}: " + "; ".join(
+                f"{r['drawn']} in its {r['field']} ({r['reason']})" for r in rows) + ". " + DRAWN_FIGURE_RULE)
+    for key, label, fields in DRAWN_FIGURE_FIELDS:
+        for i, item in enumerate(getattr(pkg, key, None) or [], 1):
+            get = item.get if isinstance(item, dict) else (lambda f, _it=item: getattr(_it, f, ""))
+            check(f"{label} {i}", {f: str(get(f) or "") for f in fields}, fields)
+    poll = getattr(pkg, "poll", None)
+    question = (poll.get("question") if isinstance(poll, dict) else getattr(poll, "question", "")) if poll else ""
+    if question:
+        check("poll", {"question": str(question)}, ("question",))
     return problems
 
 
@@ -2557,6 +2630,9 @@ _COPY_PREFIXES = (
     (HEADLINE_PROBLEM + "caption", ("caption",)),
     (trace_check.COVER_PROBLEM, ("thumbnail",)),   # a cover line that drops a limit or a size's measure
     ("Cover fit: ", ("thumbnail",)),   # round 8: a headline the YouTube thumbnail or Reel cover cannot set (cover_fit)
+    # lane C cycle 4: a slide, Story or poll figure the draw-time gate would withhold (drawn_figure_problems)
+    (DRAWN_FIGURE_PROBLEM + "carousel slide", ("carousel_slides",)),
+    (DRAWN_FIGURE_PROBLEM + "Story slide", ("story_slides",)), (DRAWN_FIGURE_PROBLEM + "poll", ("poll",)),
 )
 _BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
                          r"|story slide \d+|carousel slide \d+) \(")
@@ -2615,7 +2691,7 @@ only so the listed problems are gone. Keep each field's facts, names, numbers an
 the problem needs (move, cut or reword); never add a fact that is not in the verified facts, and never a figure
 without its hedge. Each field you return replaces the old one whole and must follow its rules and limits. Return
 only the fields you were given; the narration is shown for context and is not yours to change. A title or caption
-leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline (title, cover, the caption's first line) follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
+leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline (title, cover, the caption's first line) follows the headline rule. A figure in a title or a cover line is a signed statement drawn whole: the hedge the facts give it ("about", "over", "nearly", "an estimated", "roughly"), both ends of a span, in the copy's unit (in metric copy a ton is a tonne, in US customary copy a short ton; name the ton when it matters). A floor ("1,000+", "over 1,000") only where the fact itself is a floor, with the same kind of hedge. Never one number taken from a range, never a rounded or derived figure the facts do not state; titles and covers are not exempt from hedges. A headline that cannot carry the figure whole leaves the figure out. When a figure is left out, rebuild the line around another verified detail (what happened, a name, a place or a time), never the bare noun the figure described left on its own. A figure in a slide, a Story frame or the poll is drawn as the narration or the verified facts state it, with their hedge and both ends of a span. On the cover, a size says what it measures in the facts' word ("144 FT ACROSS"), and a
 shortened line keeps every word that limits the claim ("NO IRON CLAMPS", never "BUILT WITHOUT CLAMPS" for "without iron clamps");
 a year says what happened in it in the facts' word ("FOUND 1963" for "rediscovered in 1963"), never bare beside a place."""
 
@@ -2714,6 +2790,7 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
             + payoff_problems(pkg.narration_script, pkg.payoff_sentence) + hedge_problems(pkg.narration_script)
             + story_problems(pkg) + headline_problems(pkg) + cover_problems(pkg) + cover_fit_problems(pkg)
+            + drawn_figure_problems(pkg)   # lane C cycle 4: the copy edit, never blocking
             + caption_break_problems(pkg.narration_script, pkg.emphasis_words))   # QF-150: advice, never blocking
 
 
@@ -2763,9 +2840,11 @@ def blocking_problems(problems: List[str]) -> List[str]:
     # recorded on the review card (main.cover_job_results), never a silent stop
     # QF-150 (lander ruling): a caption break the plan cannot make gets one narrow edit (_fix_caption_breaks) and is
     # otherwise recorded (payload["caption_lint"]): it never sends a draft back or costs a rewrite
+    # Lane C cycle 4: a slide, Story or poll figure the draw-time gate would withhold (DRAWN_FIGURE_PROBLEM) gets the
+    # copy edit like a cover's fit; one the edit cannot sign is withheld at draw and recorded, never a rewrite
     return [p for p in problems
             if not p.startswith((STORY_PROBLEM, HOOK_SIGNAL_PROBLEM, PAYOFF_NOUN_PROBLEM, HEDGE_WORDING_PROBLEM,
-                                 "Cover fit: ", CAPTION_BREAK_PROBLEM))]
+                                 "Cover fit: ", CAPTION_BREAK_PROBLEM, DRAWN_FIGURE_PROBLEM))]
 
 
 def hook_signal_note(narration: str) -> str:
@@ -3360,7 +3439,8 @@ class ScriptEngine:
                 pkg, problems = edited, draft_problems(edited)
             elif any(p.startswith((HOOK_PROBLEM, PAYOFF_PROBLEM, HEDGE_PROBLEM)) for p in blocking()):
                 return pkg, problems   # a fault the edit could not fix sends the draft back: no further edit is spent
-        fit = any(p.startswith("Cover fit: ") for p in problems)   # round 8: edited even when nothing else blocks
+        # round 8: edited even when nothing else blocks (lane C cycle 4: and a drawn figure the gate would withhold)
+        fit = any(p.startswith(("Cover fit: ", DRAWN_FIGURE_PROBLEM)) for p in problems)
         if not (blocking() or fit) or not all(narrow(p) for p in blocking()):
             return self._fix_caption_breaks(pkg, problems, sheet)   # QF-150: asked only when nothing blocks
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
@@ -3369,10 +3449,12 @@ class ScriptEngine:
             if shortened is not None:
                 pkg, problems = shortened, draft_problems(shortened)
         copy = [p for p in blocking() if copy_problem_fields(p, pkg) is not None]
-        copy += [p for p in problems if p.startswith("Cover fit: ") and p not in copy]   # round 8: the cover's fit
+        copy += [p for p in problems if p.startswith(("Cover fit: ", DRAWN_FIGURE_PROBLEM)) and p not in copy]
         for p in copy:
             if p.startswith(HEADLINE_PROBLEM):   # a figure the sheet does not support: a finding, then the copy edit
                 improve.note("script.headline_figure", p[:300], "structure")
+            elif p.startswith(DRAWN_FIGURE_PROBLEM):   # lane C cycle 4: likewise a slide, Story or poll figure
+                improve.note("script.drawn_figure", p[:300], "structure")
             elif p.startswith(trace_check.COVER_PROBLEM):   # a dropped limit or an unmeasured size, likewise
                 improve.note("script.cover_copy", p[:300], "structure")
         if copy and sheet is not None and all(narrow(p) for p in blocking()):

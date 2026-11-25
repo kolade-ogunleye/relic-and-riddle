@@ -32,11 +32,14 @@ def _graph() -> str:
     return f"scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,{to_bt709('bt709')}"
 
 
-def encode(frames: Iterable, path: Path, size: tuple[int, int], fps: int = FPS) -> dict[str, Any]:
-    """RGB frames -> one H.264 clip by the delivery encoder (the master's colour tags). {path, frames, sha256, args}."""
+def encode(frames: Iterable, path: Path, size: tuple[int, int], fps: int = FPS,
+           codec: list[str] | None = None) -> dict[str, Any]:
+    """RGB frames -> one H.264 clip by the delivery encoder (the master's colour tags), or by `codec` where the
+    surface's renderer names its own (end_card.end_screen_encoder: the delivery encoder, one GOP).
+    {path, frames, sha256, args}."""
     from src.encoding import delivery_video_encoder
     w, h = size
-    args = ["-vf", _graph(), *delivery_video_encoder(), "-pix_fmt", "yuv420p", "-color_range", "tv",
+    args = ["-vf", _graph(), *(codec or delivery_video_encoder()), "-pix_fmt", "yuv420p", "-color_range", "tv",
             "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-r", str(fps)]
     path.parent.mkdir(parents=True, exist_ok=True)
     p = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}",
@@ -398,7 +401,11 @@ def _encode_end(surface: str, make, stats: dict[str, Any], path: Path, size) -> 
     except BridgeNotShipped as e:
         be.REFUSED.append((surface, "not shipped (the composer's bridge ladder)", str(e)[:400]))
         return None
-    return be.guarded(surface, encode, frames, path, size)
+    codec = None
+    if path.name.startswith("endscreen_169"):   # cycle 4 (lane E): the end screen's own encoder, as its renderer names it
+        from src import end_card
+        codec = end_card.end_screen_encoder() if hasattr(end_card, "end_screen_encoder") else None
+    return be.guarded(surface, encode, frames, path, size, codec=codec)
 
 
 def draw_end(clips: Path, topic: str, name: str) -> dict[str, Any]:

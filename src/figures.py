@@ -325,12 +325,43 @@ def parse(text: str) -> list[Figure]:
             between = any(toks[k][0].lower() == "between" for k in range(max(0, i - 3), i))
             nxt = _number_after_sep(toks, num[1], between=between)
             scaled = num[1] < len(toks) and toks[num[1]][0].lower() in SCALE_WORDS
-            if nxt is None and _unit_at(toks, num[1]) is None and not scaled:
+            if (nxt is None and _unit_at(toks, num[1]) is None and not scaled
+                    and _count_noun_after(toks, num[1], tok) is None):
                 i += 1
                 continue
         fig, i = _figure_from(text, toks, i)
         out.append(fig)
     return out
+
+
+COUNT_MODIFIERS_MAX = 2   # modifier words a count word may carry before its count noun ("three superimposed levels")
+
+
+def _count_noun_after(toks, j: int, count: str) -> tuple[str, int, int] | None:
+    """(the count unit as drawn, its token index, the index after it) when a count unit (COUNT_UNITS, never a
+    measurement unit) follows token j across 1 .. COUNT_MODIFIERS_MAX modifier words; else None (freeze cycle 4, SYS:
+    "three superimposed underground levels" signed no figure). Only after a spelled count word `count` of two or
+    more: a digit before modifiers is as often a year ("in 2005 new levels ..."), and "one" before them an idiom
+    ("one fine day"), not a count. A modifier is a plain word: never a closed-
+    class word (an article, a preposition, a quantifier, a conjunction: brand_system.NEVER_END_WORDS, so "three of
+    the levels" and "two more years" are not read), a number word, a scale word, a unit, a hedge or punctuation."""
+    from .brand_system import NEVER_END_WORDS
+    if NUMBER_WORDS.get(str(count).lower(), 0) < 2:
+        return None
+    k = j
+    for _ in range(COUNT_MODIFIERS_MAX):
+        if k >= len(toks):
+            return None
+        w = toks[k][0].lower()
+        if (not w.isalpha() or w in NEVER_END_WORDS or w in NUMBER_WORDS or w in SCALE_WORDS or w in ERAS
+                or _match_phrase(toks, k, _unit_tokens()) or _match_phrase(toks, k, HEDGES)
+                or _match_phrase(toks, k, DIMENSION_WORDS)):
+            return None
+        k += 1
+        m = _match_phrase(toks, k, COUNT_UNITS)
+        if m and not (m[1] < len(toks) and toks[m[1]][0] == "²"):
+            return _unit_drawn(m[0])[0], k, m[1]
+    return None
 
 
 def _number_after_sep(toks, j: int, between: bool = False) -> tuple[str, int, int, str] | None:
@@ -386,6 +417,12 @@ def _figure_from(text: str, toks, i: int) -> tuple[Figure, int]:
     if unit1:
         unit, u_after, measured = unit1
         gold[-1] = (gold[-1][0], toks[u_after - 1][2])
+        j = u_after
+    elif not _is_num(toks[i][0]) and not scale and not plus and (counted := _count_noun_after(toks, j, toks[i][0])):
+        # a count word and its count noun across its modifiers ("three superimposed underground levels" = 3 LEVELS):
+        # the number and the noun gold, the modifiers bone (ruling 8); the figure ends at the noun
+        unit, u_at, u_after = counted
+        gold.append((toks[u_at][1], toks[u_after - 1][2]))
         j = u_after
     conv1, j = _conversion(text, toks, j)
     era, era_hi, lo_suffix = "", "", False

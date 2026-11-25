@@ -55,10 +55,11 @@ def reviewed_focus(path, kept=None):
     return None
 
 
-def _shade(im, top, bottom, strength=0.78, feather=280, foot=None):
+def _shade(im, top, bottom, strength=0.78, feather=280, foot=None, colour=(0, 0, 0)):
     """Neutral, smoothly feathered shade; never re-grade the photograph's hue. `foot` (y, strength, ease): from y
     down, the shade eases to that lighter strength over `ease` px and holds it to `bottom` (round 4: the badge's
-    empty area under the deck shows the ambient field faintly, not a dead black band)."""
+    empty area under the deck shows the ambient field faintly, not a dead black band). `colour`: what the shade
+    darkens towards; a shade that meets a plate ends in the plate's own value (lane B c4, _render)."""
     import numpy as np
 
     y = np.arange(im.height, dtype=np.float32)
@@ -71,7 +72,7 @@ def _shade(im, top, bottom, strength=0.78, feather=280, foot=None):
         t = np.clip((y - y0) / max(1.0, ease), 0, 1)
         level = strength + (light - strength) * (t * t * (3 - 2 * t))
     alpha = Image.fromarray(np.clip(v * level * 255, 0, 255).astype("uint8")[:, None]).resize(im.size)
-    layer = Image.new("RGBA", im.size, (0, 0, 0, 255))
+    layer = Image.new("RGBA", im.size, tuple(colour)[:3] + (255,))
     layer.putalpha(alpha)
     return Image.alpha_composite(im.convert("RGBA"), layer)
 
@@ -1820,9 +1821,11 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         # A quiet continuation of the photograph outside the profile crop, fading
         # into an ink ground behind the deliberately arranged central composition.
         im = _shade(im, 0, im.height, strength=70 / 255, feather=1)
-        im = _shade(im, 420, 1500, strength=1.0, feather=180)
+        # Lane B c4 (panel 5 CD r1, PL: the bands faded to black, then stepped up to the INK plate at y 420 and 1500,
+        # a dark gutter line and a lid on bright heroes): the fade ends in the plate's own value, one field.
+        im = _shade(im, 420, 1500, strength=1.0, feather=180, colour=brand.INK)
         # Ink is an editorial ground, not a colour grade applied to the photograph.
-        ImageDraw.Draw(im).rectangle((0, 420, 1079, 1499), fill=brand.INK + (255,))
+        ImageDraw.Draw(im).rectangle(PLATE_SQUARE, fill=brand.INK + (255,))
     im = _brand(im, lay, centered, paper, grid_delivery=True)
     if style == "minimal":
         # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the
@@ -1866,7 +1869,8 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
     return _paint(im, rows, 540 if centered else margin, top, centered, lay)
 
 
-SANDWICH_WINDOW_TOP = 520   # the paper card's window starts under the masthead (12 px under its ink; round 4:
+PLATE_SQUARE = (0, 420, 1079, 1499)   # the framed-window covers' INK plate: the profile grid's 1:1 square
+SANDWICH_WINDOW_TOP = 520  # the paper card's window starts under the masthead (12 px under its ink; round 4:
                             # 4 px of it went to the deck's 32 px card foot, so the window keeps half the card)
 SANDWICH_CARD_FOOT = 1479   # the card's own foot (inside the 1:1 square, y 420-1500)
 SANDWICH_FOOT = SANDWICH_CARD_FOOT - 32   # the card's type ends here: >= 32 px of card under the deck (round 4)

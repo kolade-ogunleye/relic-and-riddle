@@ -59,3 +59,35 @@ def test_youtube_masthead_size_is_the_ruled_step_and_says_so(copy, kind) -> None
     assert rule["px"] == youtube_thumbnail.measured_mast_px()   # the token is the measurement's step
     if rec.get("shown"):
         assert rec["size_px"] == rule["px"]                      # drawn at the ruled step, never another
+
+
+@pytest.mark.parametrize("size", [(3024, 4032), (3000, 3330), (2000, 2000), (1200, 3000)])
+def test_a_tall_photograph_shows_its_form_on_the_youtube_frame(size) -> None:
+    """Panel 5 (CD r1 gain 5, CD r2 near-white crop): filled across the whole width, a tall photograph kept a thin
+    slice (the Aswan obelisk's top surface only; the stand-in's flat vitrine wall, fragments cut). It now covers only
+    the photo side at full height and shows at least SHOW_MIN of its height where covering that side allows; the field
+    left of it joins without an edge."""
+    from src import youtube_thumbnail as yt
+    sw, sh = size
+    rng = np.random.default_rng(2)
+    src = Image.fromarray(rng.integers(60, 200, (sh // 10, sw // 10, 3), dtype=np.uint8)).resize(size)
+    meta: dict = {}
+    out = np.asarray(yt._photo(src, None, meta).convert("L"), dtype=np.float32)
+    side = meta["photo_side"]
+    cover_side = max((yt.W - yt.PHOTO_SIDE_LEFT) / sw, yt.H / sh)
+    assert side["left"] <= yt.PHOTO_SIDE_LEFT                                   # the photo side is covered
+    assert side["shown_height"] >= min(yt.SHOW_MIN, yt.H / (sh * cover_side)) - 0.005
+    assert side["shown_height"] > side["full_width_shown"]                      # never less than before
+    cols = out.mean(axis=0)
+    x = side["left"]
+    assert np.abs(np.diff(cols[max(0, x - 40):x + yt.SIDE_FEATHER + 40])).max() < 4   # no edge where it starts
+
+
+@pytest.mark.parametrize("size", [(6000, 4000), (3840, 2392), (7500, 3841)])
+def test_a_wide_photograph_keeps_the_full_width_fill(size) -> None:
+    from src import youtube_thumbnail as yt
+    sw, sh = size
+    assert yt.photo_side_scale(sw, sh) == max(yt.W / sw, yt.H / sh)
+    meta: dict = {}
+    yt._photo(Image.new("RGB", size, (90, 80, 70)), None, meta)
+    assert "photo_side" not in meta

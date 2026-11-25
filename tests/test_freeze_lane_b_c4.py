@@ -91,3 +91,35 @@ def test_a_wide_photograph_keeps_the_full_width_fill(size) -> None:
     meta: dict = {}
     yt._photo(Image.new("RGB", size, (90, 80, 70)), None, meta)
     assert "photo_side" not in meta
+
+
+# ----------------------------------------------------------------- a hedged hyphenated adjective (ruling 2026-11-25, 2)
+NEARLY_SYN = {"narration_script": "Each statue weighs nearly 720 tons. The pit is about 45 metres deep."}
+# the Memnon run's own signed sentence (run_singing_colossi_of_memnon_1792952878 narration): "an estimated" -> ABOUT
+MEMNON = {"narration_script": "Standing 60 feet (18 m) tall, each colossus weighs an estimated 720 tons."}
+
+
+@pytest.mark.parametrize("payload, line, drawn, why", [
+    (NEARLY_SYN, "720-TON TITAN", "NEARLY 720-TON TITAN", None),          # the ruling's form: drawn
+    (NEARLY_SYN, "A SINGING 720-TON TITAN", None, "does not open its line"),  # only as the phrase's first word
+    (NEARLY_SYN, "THE 720-TON TITAN", None, "does not open its line"),     # the article rule still holds
+    (NEARLY_SYN, "THE TITAN, 720-TON", None, "modifies no word"),         # the adjective must modify a word after it
+    (NEARLY_SYN, "THE 45-METRE PIT", None, "ABOUT does not read before an adjective"),
+    (NEARLY_SYN, "45-METRE PIT", None, "ABOUT does not read before an adjective"),
+    (MEMNON, "720-TON TITAN", None, "ABOUT does not read before an adjective"),   # the real case stays withheld
+])
+def test_a_hyphenated_figure_draws_only_with_an_adverb_hedge(payload, line, drawn, why):
+    from src.visual_engine import gate_drawn, evidence_faults
+    hedged: list = []
+    gated, rows = gate_drawn({"t": line}, payload, "x", hedged=hedged)
+    if drawn is not None:
+        assert gated["t"] == drawn and not rows and hedged and hedged[0]["hedge"] == "NEARLY"
+        assert evidence_faults(drawn, payload) == []                     # re-passes the gate as drawn
+    else:
+        assert not hedged and rows and why in rows[0]["hedge_declined"]
+
+
+def test_an_unhedged_hyphenated_adjective_stays_withheld():
+    from src.visual_engine import gate_drawn
+    gated, rows = gate_drawn({"t": "720-TON TITAN"}, NEARLY_SYN, "x")   # the plain gate (no hedge offered)
+    assert rows and "720" not in gated["t"]

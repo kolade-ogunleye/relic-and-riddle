@@ -1,7 +1,7 @@
 """Cycle-0 system board (FREEZE-PLAYBOOK.md v2 section 1; CYCLE0-system-brief.md section 6): the 13 rows, rendered
 fresh from one code tree on real run inputs, for the lander's panel (the builder never renders the panel board).
 
-    python board.py <tree> <dev checkout holding output/run_* and assets/> <out dir> [--brand default|second]
+    python board.py <tree> <dev checkout holding output/run_* and assets/> <out dir> [--brand default|second|second-colours]
                     [--rows 1,2,...] [--per-kind 2] [--no-surfaces]
                     [--workers N] [--timings <previous surfaces.json>] [--surface-jobs <file>]
 
@@ -23,7 +23,8 @@ clips (<out>/clips/*.mp4, listed in board.json "clips") with strips and curves r
 table (row13_motion_tokens.png/json); peer_feed_<feed>.png is a feed sheet per feed surface (--peers <dir>, else
 STAND-IN slots); refusals_<brand>.png/json is the palette's refusal table; board.json "seconds" holds the time of every
 row (printed as it goes).
-Run it once per palette (default, then --brand second: QF-35a's test brand) into two out dirs. One heavy run: it starts
+Run it once per palette (default, --brand second: QF-35a's test brand, --brand second-colours: its colours with
+today's faces) into one out dir each. One heavy run: it starts
 QF-35a's render_surfaces.py once (all surfaces of rows 3-11, the graphic kinds limited to --per-kind runs) and draws
 rows 1, 2, 12 and 13 itself. Output: <out>/rowNN_<name>.png (full size) and _half.jpg (Lanczos, q90) per row,
 <out>/surfaces/*.png (every surface's last frame), <out>/surfaces.json (hashes, errors, the src hash), and
@@ -39,6 +40,15 @@ of the ground's own topic first (REAL) before a cross-run STAND-IN. Every row dr
 of its surfaces render_surfaces.py refused or failed. Row 13 is generated (board_table.py). --peers fills what a
 partial peer dir holds. --portability <jobs> draws a lane's candidate in the default palette, the second palette and
 the non-history copy set side by side (board_portability.py).
+
+Cycle 4 (lane BOARD, queue/BOARD-cycle4.md): --brand second-colours (PALETTES; board.json "palette" lists the roles it
+moves); --workers N merges every render_surfaces.py record key (the omission ledger included: it crashed on
+"omissions"); row 12 adds the then-and-now cases (both formats) and the photo callout as clips encoded by their own
+renderers, each with a strip, curves and a timing table from the renderer's own schedule (row12_motion_thennow__*,
+row12_motion_callouts__*); row 13 adds every social frame's masthead record by kind (the Facebook cover's variant,
+the Facebook interiors drawn without one) and row13_fb_masthead (the regions); a surface drawn without a part is on
+its row with a RECORDED OMISSION note on its label (render_surfaces.py "surface_omissions") and in the refusal table;
+a stress ground's STAND-IN label says why from the dev checkout.
 
 Heroes (the brief's worst cases): near-white / bright = unfinished_obelisk_aswan (run 1792985912), busy / dark =
 amber_room_heist (1792790550) and wieliczka_salt_mine (1792974672), longest copy = richat_structure_sahara_eye
@@ -392,12 +402,53 @@ def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     board_speed.install()
     import board_inputs   # cycle 3: this worker's reads join the board's input record (board_evidence.captured)
     board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[tempfile.gettempdir() + os.sep + "board-"])
-    if brand_name == "second":
-        sys.path.insert(0, str(Path(tree) / "docs/reviews/quality-fixes-2026-11/QF-35a"))
-        import render_surfaces
+    configure_palette(Path(tree), brand_name)
 
+
+# The board's palettes (render_surfaces.py --brand): the default; "second", QF-35a's test brand (every palette colour
+# with red and blue swapped, Montserrat in the display role, another masthead and end-card lines: the configure-refused
+# evidence brand, 2026-11-19); "second-colours" (cycle 4, ruling 2026-11-19: BC4 re-theming is judged on it), the same
+# test brand's colour set, masthead and lines with today's faces, so a fit refusal on it is a colour finding, never the
+# display face's. The value is the display face second_brand takes (None: today's).
+PALETTES = {"default": None, "second": "Montserrat", "second-colours": None}
+
+
+def evidence_brand(tree: Path, brand_name: str):
+    """The BrandConfig a palette other than the default draws in (render_surfaces.second_brand, the one definition
+    render_surfaces.py --brand configures), or None for the default."""
+    if brand_name == "default":
+        return None
+    qf35a = str(Path(tree) / "docs/reviews/quality-fixes-2026-11/QF-35a")
+    if qf35a not in sys.path:
+        sys.path.insert(0, qf35a)
+    import render_surfaces
+
+    from src import brand
+    return render_surfaces.second_brand(brand, PALETTES[brand_name])
+
+
+def configure_palette(tree: Path, brand_name: str) -> None:
+    """The board process (or a compose worker) draws rows 1, 2, 12 and 13 in `brand_name`'s palette, as
+    render_surfaces.py --brand draws the surfaces (configured unvalidated: evidence, the corpus's verdict recorded)."""
+    cfg = evidence_brand(tree, brand_name)
+    if cfg is not None:
         from src import brand
-        brand.configure(render_surfaces.second_brand(brand), validate=False)
+        brand.configure(cfg, validate=False)
+
+
+def palette_record(brand_name: str, tree: Path) -> dict:
+    """board.json "palette" (cycle 4): every colour role's default value and this palette's, the roles it leaves
+    unmoved, and the faces and brand lines it changes, so a reviewer reads what the re-theme covers."""
+    from src import brand
+    base = brand.DEFAULT_BRAND
+    cfg = evidence_brand(tree, brand_name) or base
+    roles = {k: v for k, v in base.palette.items() if not isinstance(v, str)}
+    moved = {k: (list(v), list(cfg.palette[k])) for k, v in roles.items() if tuple(cfg.palette[k]) != tuple(v)}
+    return {"name": brand_name, "colour_roles": len(roles), "moved": len(moved),
+            "unmoved": sorted(k for k in roles if k not in moved),
+            "aliases": {k: v for k, v in base.palette.items() if isinstance(v, str)},
+            "fonts_changed": {k: [base.fonts.get(k), v] for k, v in cfg.fonts.items() if base.fonts.get(k) != v},
+            "text_changed": {k: [base.text.get(k), v] for k, v in cfg.text.items() if base.text.get(k) != v}}
 
 
 def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -> list[str]:
@@ -435,9 +486,14 @@ def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -
         reveal(*REVEAL_SURFACES[1])
     if rows & {9, 12}:
         end(bm.END_NAMES[1:])
-    if 11 in rows:
-        PREFETCH["callout held"] = pool.submit(be.captured, bx.callout_held, work)
-        done.append("row 11 callout held frame")
+    if rows & {11, 12}:   # cycle 4: the callout's held frame and its clip are one draw
+        PREFETCH["callout held"] = pool.submit(be.captured, bx.callout_held, work, clips)
+        done.append("row 11 callout held frame and row 12 callout clip")
+    if 12 in rows:   # cycle 4: the then-and-now clips (row 12)
+        for topic, tag, _size, _case in bm.thennow_cases():
+            bm.MOTION_PREFETCH[("thennow", topic, tag)] = pool.submit(be.captured, bm.draw_thennow, clips, work,
+                                                                      topic, tag)
+            done.append(f"then-and-now clip {topic} {tag}")
     return done
 
 
@@ -593,6 +649,8 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
         made += ["row12_motion_hook", "row12_motion_hook_curves"]
     for g, why in hook.get("refused", {}).items():
         manifest["labels"][f"card__hook__{g}__916 (row 12)"] = f"REFUSED: {why}"
+    made += thennow_motion(out, clips, work, clip_rec)   # cycle 4 (panel 5 MO): then-and-now and callout clips
+    made += callout_motion(out, clips, work, clip_rec)
     # the act dissolve
     diss = bm.act_dissolve(dev, clips, bx.ASWAN_DECK_RUN) or {"missing": "act dissolve not drawn"}
     if "missing" in diss:
@@ -617,6 +675,60 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
             x_label="progress (t / the element's duration)").save(out / "row12_motion_eases.png")
     made.append("row12_motion_eases")
     return made
+
+
+def callout_items(work: Path, clips: Path) -> list[dict]:
+    """The callout's held frame (row 11) and its clip (row 12): one draw (board_extras.callout_held), by a worker
+    when prefetched, kept for the other row."""
+    import board_extras as bx
+    if "callout held" in PREFETCH:
+        bx._cache["callout"] = prefetched("callout held")
+    return bx.callout_held(work, clips)
+
+
+def motion_case(out: Path, sname: str, seq, label: str, rows: list[tuple], curves, scale_h: int) -> list[str]:
+    """One motion case's evidence (cycle 4): the strip of its kept frames from the decoded clip, its curves and its
+    timing table (png and json)."""
+    import board_motion as bm
+    tiles = [(f"{n} | {label}" if k == 0 else n, im)
+             for k, (n, im) in enumerate(bm.strip(seq, scale_h=scale_h, label=f"{sname.split('__', 1)[-1]} "))]
+    sheet(tiles, out / sname, tile_h=scale_h, cols=8)
+    curves.save(out / f"{sname}_curves.png")
+    draw_table(rows, (420, 200, 140, 900)).save(out / f"{sname}_timing.png")
+    (out / f"{sname}_timing.json").write_text(json.dumps([dict(zip(rows[0], r)) for r in rows[1:]], indent=1,
+                                                         default=str), encoding="utf-8", newline="\n")
+    return [sname, f"{sname}_curves", f"{sname}_timing"]
+
+
+def thennow_motion(out: Path, clips: Path, work: Path, clip_rec) -> list[str]:
+    """Row 12, cycle 4 (panel 5 MO: then-and-now judged from stills only): every then-and-now case of the catalogue
+    in both formats, drawn and encoded once by its renderer, decoded once: strip, curves and timing table each."""
+    import board_evidence as be
+    import board_motion as bm
+    made = []
+    for name, seq in bm.thennow_sequences(clips, work).items():
+        cls, why = be.pairing(name)
+        tag = f" ({cls}: {why})" if cls != be.REAL else " (the run's own pair)"
+        clip_rec(seq, "12", f"then-and-now {seq.topic} {seq.tag}{tag}")
+        made += motion_case(out, f"row12_motion_{name}", seq, f"then-and-now {seq.topic} {seq.tag}{tag}, decoded",
+                            bm.thennow_timing(seq), bm.thennow_curves(seq), 576 if seq.tag == "916" else 324)
+    return made
+
+
+def callout_motion(out: Path, clips: Path, work: Path, clip_rec) -> list[str]:
+    """Row 12, cycle 4 (panel 5 MO: the callout judged from its held still only): the callout clip as its renderer
+    encodes it, decoded once: strip, curves and timing table from the renderer's own per-frame record."""
+    import board_evidence as be
+    import board_motion as bm
+    callout_items(work, clips)
+    seq = bm.callout_sequence(clips, work)
+    if seq is None:
+        return []
+    cls, why = be.pairing(seq.name)
+    label = f"photo callout 9:16 ({cls}: {why}), decoded"
+    clip_rec(seq, "12", label)
+    return motion_case(out, "row12_motion_callouts__reference_pair__916", seq, label, bm.callout_timing(seq),
+                       bm.callout_curves(seq), 576)
 
 
 def frame_no(n: str) -> int:
@@ -772,9 +884,14 @@ def row13_table(out: Path, work: Path) -> list[str]:
     import board_motion as bm
     import board_table as bt
     ends = bm.all_end()
+    sj = out / "surfaces.json"
+    surfaces = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
     parts = [
         ("Drawn on this board: each renderer's own masthead record per surface across its grounds (row 2 records, "
          "and the end sequences' stats of rows 9 / 12)", draw_table(bt.drawn(out, ends), (420, 190, 190, 230, 240, 230, 520))),
+        ("Drawn on this board: the masthead of every social frame by kind, cover and interiors (each frame's own "
+         "layout record from render_surfaces.py; row13_fb_masthead shows the regions)",
+         draw_table(bt.social_masthead_rows(surfaces), (380, 150, 170, 190, 150, 560, 170, 520))),
         ("From the code: each surface's entry point and what it reaches (an AST call graph over src/*.py; colours and "
          "tokens named in the surface's own module)", draw_table(bt.code_rows(), (560, 380, 330, 420, 760))),
         ("Weights: every <role>.weight value, the src modules that read it, and what row 1's specimen draws",
@@ -803,6 +920,7 @@ def row13_table(out: Path, work: Path) -> list[str]:
         im.paste(t, (0, y + 40))
         y += 40 + t.height
     im.save(out / "row13_elements.png")
+    made = ["row13_elements"] + fb_masthead_sheet(out, surfaces)
     # round 8 (MO-1): the motion tokens (durations, eases, overshoot) as this tree holds and draws them; cycle 3
     # (MO r1): each end sequence's delivered length beside the constant that names it
     asses = {f"{c['topic']} {c['format']}": c["ass"] for c in caption_cases(work)}
@@ -810,7 +928,54 @@ def row13_table(out: Path, work: Path) -> list[str]:
     draw_table(mrows, (420, 560, 300, 760)).save(out / "row13_motion_tokens.png")
     (out / "row13_motion_tokens.json").write_text(json.dumps([dict(zip(mrows[0], r)) for r in mrows[1:]], indent=1,
                                                              default=str), encoding="utf-8", newline="\n")
-    return ["row13_elements", "row13_motion_tokens"]
+    return made + ["row13_motion_tokens"]
+
+
+MASTHEAD_REGION = (0.0, 0.0, 0.62, 0.2)   # the top-left share of a 4:5 frame the masthead sits in (HEADER_Y / FB)
+
+
+def fb_masthead_sheet(out: Path, surfaces: dict | None) -> list[str]:
+    """Cycle 4 (panel 5 BC, carry-in 3): per deck, the Instagram cover's masthead region beside the Facebook cover's
+    (its own variant: FB_HEADER_Y, the matched reach) and every Facebook interior's (which draws none by rule), each
+    labelled with its frame's own masthead record; the whole Facebook cover at 1x beside them. Read from this board's
+    surfaces, nothing drawn again. [] when the board has no Facebook frames."""
+    import board_evidence as be
+    import board_table as bt
+    from PIL import Image
+    recs = (surfaces or {}).get("masthead_records") or {}
+    pngs = {p.stem: p for p in sorted((out / "surfaces").glob("social__*.png"))}
+    decks: dict[str, dict] = {}
+    for stem in pngs:
+        part = bt.social_part(stem)
+        if part and part[1] in ("carousel", "fb"):
+            decks.setdefault(part[0], {}).setdefault(part[1], []).append((part[2], stem))
+    tiles = []
+
+    def state(stem: str) -> str:
+        r = recs.get(stem)
+        if r is None:
+            return "no masthead record"
+        if r.get("shown") is False:
+            return f"NOT DRAWN: {r.get('reason')}"
+        return (f"{r.get('variant', 'bone')} {r.get('size')} px, {r.get('contrast')}:1 (worst letter)"
+                + (f", reach matched {r['reach_matched']}" if r.get("reach_matched") else ""))
+    for deck, kinds in sorted(decks.items()):
+        fb = sorted(kinds.get("fb") or [])
+        if not fb:
+            continue
+        order = [s for k, s in sorted(kinds.get("carousel") or []) if k == 1] + [s for _k, s in fb]
+        for stem in order:
+            im = Image.open(pngs[stem]).convert("RGB")
+            w, h = im.size
+            box = tuple(round(v * (w if i % 2 == 0 else h)) for i, v in enumerate(MASTHEAD_REGION))
+            what = "Instagram cover" if "__carousel_" in stem else (
+                "Facebook cover" if stem.endswith("_01") else "Facebook interior")
+            tiles.append((be.label(stem, f"{what} masthead region | {state(stem)}"), im.crop(box)))
+        tiles.append((be.label(fb[0][1], "Facebook cover, whole, 1x"), Image.open(pngs[fb[0][1]]).convert("RGB")))
+    if not tiles:
+        return []
+    sheet(tiles, out / "row13_fb_masthead", tile_h=None, cols=5)
+    return ["row13_fb_masthead"]
 
 
 def caption_cases(work: Path) -> list[dict]:
@@ -1085,9 +1250,14 @@ JOB_SECONDS = {"endcard": 410, "cards": 406, "route": 291, "map": 155, "callouts
                "thennow": 55, "numbers": 47, "cross-section": 47, "timeline_dense": 21, "captions": 19, "timeline": 15,
                "cover": 8}
 SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged by union (a job's own records)
-                   "retired", "rerouted", "bridge_ladder", "wide_grounds")   # cycle 3: retired frames not drawn, slides re-routed
+                   "retired", "rerouted", "bridge_ladder", "wide_grounds",   # cycle 3: retired frames not drawn, slides re-routed
+                   # cycle 4: the omission ledger per job (SYS batch 3, lane A) and per surface (render_surfaces.py
+                   # attributes each row to the surface it was drawn into), and each frame's masthead record
+                   "omissions", "surface_omissions", "masthead_records")
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
+SHARD_SKIP_KEYS = ("count",)   # recomputed after the merge
+SHARD_COPY_SET_KEYS = ("copy_set",)   # --copy-set's record: its file and hash equal in every shard, "swapped" a union
 
 
 def shard_jobs(names: list[str], prior: dict[str, float], n: int) -> list[list[str]]:
@@ -1105,7 +1275,9 @@ def shard_jobs(names: list[str], prior: dict[str, float], n: int) -> list[list[s
 
 def merge_shards(parts: list[dict]) -> dict:
     """One surfaces.json from the shards' (the schema and content of a one-process run's, its `seconds` the shards'
-    own): a key outside the known ones, a differing shared value or a surface in two shards is an error."""
+    own): a key outside the known ones, a differing shared value or a surface in two shards is an error. Every key
+    render_surfaces.py can write is in exactly one of SHARD_ONLY_KEYS / SHARD_UNION_KEYS / SHARD_SAME_KEYS /
+    SHARD_SKIP_KEYS (test_freeze_board_c4 reads them from its source, so a new record key cannot crash --workers)."""
     merged: dict = {}
     for part in parts:
         for k, v in part.items():
@@ -1121,7 +1293,13 @@ def merge_shards(parts: list[dict]) -> dict:
                 if k in merged and merged[k] != v:
                     raise RuntimeError(f"surfaces shards: {k} differs between shards ({merged[k]!r} / {v!r})")
                 merged[k] = v
-            elif k != "count":
+            elif k in SHARD_COPY_SET_KEYS:
+                have = merged.get(k)
+                rest = {x: y for x, y in v.items() if x != "swapped"}
+                if have is not None and {x: y for x, y in have.items() if x != "swapped"} != rest:
+                    raise RuntimeError(f"surfaces shards: {k} differs between shards")
+                merged[k] = {**rest, "swapped": sorted(set((have or {}).get("swapped") or []) | set(v.get("swapped") or []))}
+            elif k not in SHARD_SKIP_KEYS:
                 raise RuntimeError(f"surfaces shards: unknown key {k!r} (board.py merge_shards needs it)")
     merged["count"] = len(merged.get("surfaces", {}))
     return merged
@@ -1133,7 +1311,7 @@ def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, br
     `workers` shards (--jobs) merged into the same surfaces.json. Returns what ran (for board.json)."""
     script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
     base = [sys.executable, str(here / "run_surfaces.py"), str(script), str(tree), str(dev)]
-    common = ["--per-kind", str(per_kind)] + (["--brand", "second"] if brand_name == "second" else [])
+    common = ["--per-kind", str(per_kind)] + (["--brand", brand_name] if brand_name != "default" else [])
     keep = ["--keep", str(out / "surfaces")]
     if workers > 1 and "--list-jobs" not in script.read_text(encoding="utf-8"):
         print("board: this tree's render_surfaces.py has no --list-jobs: surfaces in one process", file=sys.stderr)
@@ -1192,7 +1370,7 @@ def main() -> None:
     ap.add_argument("tree", type=Path)
     ap.add_argument("dev", type=Path)
     ap.add_argument("out", type=Path)
-    ap.add_argument("--brand", choices=("default", "second"), default="default")
+    ap.add_argument("--brand", choices=tuple(PALETTES), default="default")
     ap.add_argument("--rows", default="")
     ap.add_argument("--per-kind", type=int, default=2)
     ap.add_argument("--no-surfaces", action="store_true", help="reuse <out>/surfaces (builder iteration only)")
@@ -1210,7 +1388,8 @@ def main() -> None:
     ap.add_argument("--end-topics", default="", help="rows 9 / 12: only these board grounds' end sequences "
                     "(comma-separated; default every board ground with a catalogue end-card case)")
     ap.add_argument("--portability", type=Path, help="a lane's freeze candidate: a file of render_surfaces.py job "
-                    "names (as --surface-jobs). Renders them in the default palette, the second palette and the "
+                    "names (as --surface-jobs). Renders them in the default palette, the second palette, its colours with "
+                    "today's faces (second-colours) and the "
                     "default palette on the non-history stress copy set (board_portability.py), side by side, into "
                     "<out>/portability; nothing else is drawn")
     a = ap.parse_args()
@@ -1253,12 +1432,10 @@ def main() -> None:
                                                         a.surface_jobs.resolve() if a.surface_jobs else None)}
         took("surfaces (render_surfaces.py)", t0)
     from src import brand
-    if a.brand == "second":   # rows 1, 2, 12, 13 in QF-35a's test brand too
-        sys.path.insert(0, str(tree / "docs/reviews/quality-fixes-2026-11/QF-35a"))
-        import render_surfaces
-        brand.configure(render_surfaces.second_brand(brand), validate=False)   # round 8: evidence (the corpus refuses it)
+    manifest["palette"] = palette_record(a.brand, tree)   # cycle 4: what this palette moves (BC4)
+    configure_palette(tree, a.brand)   # rows 1, 2, 12, 13 in the palette too (round 8: evidence, unvalidated)
     import board_evidence as be
-    if a.brand == "second":   # the configure-time validation's own list, in this palette's refusal table
+    if a.brand != "default":   # the configure-time validation's own list, in this palette's refusal table
         try:
             from src.brand_system import validate_display
             for why in validate_display(brand.active()) or []:
@@ -1315,6 +1492,9 @@ def main() -> None:
         retired = set((surfaces_rec or {}).get("retired") or {})   # cycle 3: a retired frame's old file is not shown
         pick = [p for p in pngs if on_row(r, prefixes, p.stem) and p.stem not in retired]
         heroes = hero_pick(pick)
+        # cycle 4 (carry-in 6): a surface drawn without a part is on its row even when it is not a hero case
+        omitted = be.surface_omissions(surfaces_rec)
+        heroes += [p for p in pick if p.stem in omitted and p not in heroes]
         # round 8 (AD E3, CD-20): every tile labelled through board_evidence.label, its pairing class first
         ladder = (surfaces_rec or {}).get("bridge_ladder") or {}
 
@@ -1325,7 +1505,9 @@ def main() -> None:
             seam = rec.get("seam") or {}
             return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
                     f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
-        tiles = [(be.label(p.stem, shipped(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
+        def note(stem: str) -> str:   # cycle 4: the ladder's rung and any recorded omission, on the tile's label
+            return " | ".join(x for x in (shipped(stem), be.omission_note(stem, surfaces_rec)) if x)
+        tiles = [(be.label(p.stem, note(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
         def add(item: dict, tiles=tiles) -> None:
@@ -1443,8 +1625,7 @@ def main() -> None:
                     add({"name": f"endscreen__{es.index}_{es.topic}__rest", "image": es.kept[es.n - 1],
                          "label": f"at rest: frame {es.n - 1} (t={(es.n - 1) / bm.FPS:.3f}s), production encode"})
         if r == 11:
-            for item in extra("callout held frame", lambda: prefetched("callout held") if "callout held" in PREFETCH
-                              else bx.callout_held(work), []):
+            for item in extra("callout held frame", lambda: callout_items(work, clips), []):
                 add(item)
             for item in extra("cover badges", lambda: bx.cover_badges(dev, work, HEROES), []):
                 add(item)

@@ -517,6 +517,229 @@ def hook_sequence(clips: Path) -> dict[str, Any]:
     return res
 
 
+# ---------------------------------------------------------------------------------------------- then-and-now (cycle 4)
+# Panel 5 MO: the then-and-now and the photo callout were judged from stills only (not_judged on motion). Each case is
+# now drawn ONCE by its renderer exactly as production calls it, encoded by the renderer's own clip encode (the file
+# production writes as graphic_thennow / the callout clip: then_now._encode, libx264 slow CRF 16 grain; callouts through
+# graphics._encode, the delivery encoder; never NVENC), decoded ONCE, and shown as a strip, curves and a timing table
+# read from the renderer's own schedule beside the decoded clip.
+THENNOW_FORMATS = (((1080, 1920), "916"), ((1920, 1080), "169"))
+MOTION_PREFETCH: dict[tuple, Any] = {}   # ("thennow", topic, tag) -> Future of board_evidence.captured(draw_thennow, ...)
+
+
+def thennow_cases() -> list[tuple[str, str, tuple[int, int], dict[str, Any]]]:
+    """(topic, tag, size, case) for every then-and-now case of the catalogue in both formats (render_surfaces.py's
+    thennow job, the same order)."""
+    fx = _fx()
+    return [(c["topic"], tag, size, c) for c in fx.load("thennow") for size, tag in THENNOW_FORMATS]
+
+
+def draw_thennow(clips: Path, work: Path, topic: str, tag: str) -> dict[str, Any]:
+    """One then-and-now case drawn and encoded by then_now.render into `work`, the clip copied to
+    <clips>/thennow__<topic>__<tag>.mp4: {clip, record (the renderer's schedule and divider per frame), seconds}.
+    A worker process runs it under board.py --workers (board.prefetch_compose)."""
+    import shutil
+
+    from src import then_now
+    from src.art_direction import use_palette
+    use_palette(None)   # as render_surfaces.py's thennow job draws it (no run palette)
+    fx = _fx()
+    t0 = time.perf_counter()
+    (_t, _g, size, case), = [x for x in thennow_cases() if x[0] == topic and x[1] == tag]
+    w, h = size
+    tmp = Path(work) / f"thennow__{topic}__{tag}.mp4"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    import board_evidence as be
+    got = be.guarded(f"thennow__{topic}__{tag} (clip)", then_now.render, fx.path(case["old"]), int(case["old_year"]),
+                     fx.path(case["new"]), int(case["new_year"]), tmp, w, h)
+    if got is None:
+        return {"clip": None, "record": {}, "seconds": time.perf_counter() - t0}
+    path = Path(clips) / tmp.name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(tmp, path)
+    n = round(then_now.CLIP_SECONDS * FPS) if hasattr(then_now, "CLIP_SECONDS") else None
+    meta = dict(then_now.last_meta)
+    sched = meta.pop("schedule", {}) or {}
+    n = n or max((len(v) for v in sched.values()), default=0)
+    record = {"schedule": sched, "divider": [round(float(then_now.divider_at(i / FPS, w, h)), 1) for i in range(n)],
+              "groups": meta.get("groups"), "type_mode": meta.get("type_mode"), "side": meta.get("side"),
+              "wipe": dict(getattr(then_now, "WIPE", {}) or {}), "clip_seconds": getattr(then_now, "CLIP_SECONDS", None),
+              "push": getattr(then_now, "PUSH", None), "years": [case["old_year"], case["new_year"]]}
+    clip = {"path": path, "frames": n, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "encoder": "then_now._encode (the renderer's own clip encode, as production writes graphic_thennow)"}
+    return {"clip": clip, "record": record, "seconds": time.perf_counter() - t0}
+
+
+def _box(b, size) -> tuple | None:
+    if not b:
+        return None
+    w, h = size
+    x0, y0, x1, y1 = (int(round(v)) for v in b)
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(w, x1), min(h, y1)
+    return (x0, y0, x1, y1) if x1 > x0 and y1 > y0 else None
+
+
+def thennow_sequences(clips: Path, work: Path) -> dict[str, Any]:
+    """name (thennow__<topic>__<tag>) -> Seq of every then-and-now case, its renderer's record in `.record`, each
+    drawn and encoded once (by a worker when prefetched), decoded once: every 6th frame kept for the strip, plus each
+    marker's first frame, the frame it is fully in and its first fade, and the divider's settle."""
+    if "thennow" in _cache:
+        return _cache["thennow"]
+    import board_evidence as be
+    out: dict[str, Any] = {}
+    for topic, tag, size, _case in thennow_cases():
+        key = ("thennow", topic, tag)
+        got = (be.replay(MOTION_PREFETCH.pop(key)) if key in MOTION_PREFETCH
+               else draw_thennow(clips, work, topic, tag))
+        if got["clip"] is None:
+            continue
+        rec = got["record"]
+        keys = set(range(0, got["clip"]["frames"], 6)) | set(thennow_marks(rec).values())
+        regions = {f"{w} marker": _box(b, size) for w, b in (rec.get("groups") or {}).items()}
+        seq = Seq(f"thennow__{topic}__{tag}", got["clip"], size, {k: v for k, v in regions.items() if v},
+                  keep=lambda i, keys=keys: i in keys)
+        seq.record, seq.topic, seq.tag, seq.seconds = rec, topic, tag, round(got["seconds"], 1)
+        out[seq.name] = seq
+    _cache["thennow"] = out
+    return out
+
+
+def _first(vals, pred) -> int | None:
+    return next((i for i, v in enumerate(vals) if pred(v)), None)
+
+
+def thennow_marks(rec: dict[str, Any]) -> dict[str, int]:
+    """The frames the schedule and the divider mark: each marker's first frame on screen (alpha > 0), its first
+    frame fully in (>= 0.999) and its first fade after that; the divider's first move, its far point and its settle."""
+    marks: dict[str, int] = {}
+    for w, s in (rec.get("schedule") or {}).items():
+        on = _first(s, lambda v: v > 0)
+        full = _first(s, lambda v: v >= 0.999)
+        if on is not None:
+            marks[f"{w} marker first on"] = on
+        if full is not None:
+            marks[f"{w} marker fully in"] = full
+            fade = next((i for i in range(full, len(s)) if s[i] < 0.999), None)
+            if fade is not None:
+                marks[f"{w} marker first fade"] = fade
+    div = rec.get("divider") or []
+    if div:
+        move = _first([abs(div[i] - div[i - 1]) if i else 0 for i in range(len(div))], lambda v: v > 0.5)
+        if move is not None:
+            marks["divider first move"] = move
+            far = min(range(move, len(div)), key=lambda i: div[i])
+            marks["divider far point"] = far
+            settle = next((i for i in range(far, len(div)) if all(abs(div[j] - div[-1]) < 0.5 for j in range(i, len(div)))),
+                          None)
+            if settle is not None:
+                marks["divider settled"] = settle
+    return marks
+
+
+def thennow_timing(seq) -> list[tuple]:
+    """The timing table of one then-and-now clip: the renderer's own constants, each mark (thennow_marks) with its
+    frame and time, and per marker the decoded clip's mean luma change in its group box at that mark."""
+    rec = seq.record
+    rows: list[tuple] = [("what", "frame", "time (s)", "source")]
+    rows.append(("clip", f"{seq.n} decoded frames", f"{seq.n / FPS:.3f}",
+                 f"then_now.CLIP_SECONDS {rec.get('clip_seconds')}, {seq.clip['encoder']}"))
+    rows.append(("wipe constants", "-", "-", f"then_now.WIPE {rec.get('wipe')}; PUSH {rec.get('push')}"))
+    rows.append(("type", "-", "-", f"THEN {(rec.get('type_mode') or {}).get('then')}, NOW "
+                                   f"{(rec.get('type_mode') or {}).get('now')}; side {(rec.get('side') or {}).get('side', '-')}"))
+    for what, i in sorted(thennow_marks(rec).items(), key=lambda x: (x[1], x[0])):
+        rows.append((what, i, f"{i / FPS:.3f}", "the renderer's schedule (then_now.last_meta) / divider_at"))
+    return rows
+
+
+def thennow_curves(seq):
+    """The markers' group alpha (the renderer's schedule), the divider's travel (share of its far edge) and the
+    decoded clip's frame-to-frame MAD, on real time."""
+    rec = seq.record
+    t = [i / FPS for i in range(seq.n)]
+    series = {f"{w} marker alpha (schedule)": ([i / FPS for i in range(len(s))], s)
+              for w, s in (rec.get("schedule") or {}).items()}
+    div = rec.get("divider") or []
+    if div:
+        top = max(div) or 1
+        series["divider position / its start"] = ([i / FPS for i in range(len(div))], [v / top for v in div])
+    series["frame-to-frame MAD / 25 (decoded)"] = (t, [m / 25 for m in seq.mad])
+    return plot(series, f"then-and-now {seq.topic} {seq.tag}: the markers' alpha, the divider and the decoded steps",
+                "share (0-1)", (0, 1.05), marks={k: v / FPS for k, v in thennow_marks(rec).items()
+                                                 if k.endswith(("first on", "fully in"))})
+
+
+# ---------------------------------------------------------------------------------------------- photo callout (cycle 4)
+def callout_sequence(clips: Path, work: Path):
+    """The photo callout clip (board_extras.callout_held drew and encoded it, its renderer's own per-frame record
+    beside it), decoded once: every 6th frame and each label's marks kept. None when it was refused."""
+    if "callout" in _cache:
+        return _cache["callout"]
+    import board_extras as bx
+    items = bx.callout_held(work, clips)
+    item = next((x for x in items if x.get("clip")), None)
+    if item is None:
+        _cache["callout"] = None
+        return None
+    clip, rec = item["clip"], item["record"]
+    keys = set(range(0, clip["frames"], 6)) | set(callout_marks(rec).values())
+    seq = Seq("callouts__reference_pair__916", clip, (1080, 1920), None, keep=lambda i: i in keys)
+    seq.record, seq.seconds = rec, item.get("seconds")
+    _cache["callout"] = seq
+    return seq
+
+
+def callout_marks(rec: dict[str, Any]) -> dict[str, int]:
+    """Per label (in cue order): the frame its marker lands (first drawn), its plate is fully open, its text is fully
+    in, its exit starts (text alpha falls) and its last drawn frame, from the renderer's per-frame record."""
+    marks: dict[str, int] = {}
+    frames = rec.get("frames") or []
+    labels = sorted({k for f in frames for k in (f.get("labels") or {})})
+    for k in labels:
+        live = [(f["i"], f["labels"][k]) for f in frames if k in (f.get("labels") or {})]
+        if not live:
+            continue
+        name = f"label {k + 1} ({(rec.get('texts') or {}).get(str(k), '')})".replace(" ()", "")
+        marks[f"{name} marker lands"] = live[0][0]
+        full = next((i for i, d in live if d.get("plate", 0) >= 0.999), None)
+        if full is not None:
+            marks[f"{name} plate fully open"] = full
+        text = next((i for i, d in live if d.get("text_a", 0) >= 0.999), None)
+        if text is not None:
+            marks[f"{name} text fully in"] = text
+            out = next((i for i, d in live if i > text and d.get("text_a", 0) < 0.999), None)
+            if out is not None:
+                marks[f"{name} exit starts"] = out
+        marks[f"{name} last drawn"] = live[-1][0]
+    return marks
+
+
+def callout_timing(seq) -> list[tuple]:
+    rec = seq.record
+    rows: list[tuple] = [("what", "frame", "time (s)", "source")]
+    rows.append(("clip", f"{seq.n} decoded frames", f"{seq.n / FPS:.3f}",
+                 f"callouts.CLIP_SECONDS {rec.get('clip_seconds')}, {seq.clip['encoder']}"))
+    rows.append(("cues and exit", "-", "-", f"reveal {rec.get('reveal')}; DOT_LEAD {rec.get('dot_lead')}; EXIT_LEAD "
+                                          f"{rec.get('exit_lead')}, EXIT_TIME {rec.get('exit_time')}; exit_frame "
+                                          f"{rec.get('exit_frame')}"))
+    for what, i in sorted(callout_marks(rec).items(), key=lambda x: (x[1], x[0])):
+        rows.append((what, i, f"{i / FPS:.3f}", "the renderer's per-frame record (callouts.render record=)"))
+    return rows
+
+
+def callout_curves(seq):
+    rec = seq.record
+    frames = rec.get("frames") or []
+    series = {}
+    for k in sorted({k for f in frames for k in (f.get("labels") or {})}):
+        t = [f["i"] / FPS for f in frames]
+        series[f"label {k + 1} text alpha"] = (t, [((f.get("labels") or {}).get(k) or {}).get("text_a", 0.0) for f in frames])
+        series[f"label {k + 1} plate open"] = (t, [((f.get("labels") or {}).get(k) or {}).get("plate", 0.0) for f in frames])
+    series["frame-to-frame MAD / 25 (decoded)"] = ([i / FPS for i in range(seq.n)], [m / 25 for m in seq.mad])
+    return plot(series, "photo callout (reference pair, 9:16): each label's plate and text from the renderer's "
+                "record, and the decoded steps", "share (0-1)", (0, 1.05),
+                marks={k: v / FPS for k, v in callout_marks(rec).items() if k.endswith("marker lands")})
+
+
 def act_dissolve_spec() -> dict[str, Any]:
     """The act dissolve as this tree's composer drives it, read from its code, never assumed: the length from
     video_composer.act_dissolve_s() (round 8: tok("motion.act_dissolve") in whole frames), else the older literal

@@ -8,14 +8,17 @@ non-history copy set on every surface, same invariants): one lane's freeze candi
 the board's exact memo) as
   - default: the default palette on the runs' own copy,
   - second: the second palette (QF-35a's test brand: every colour moved, another display face and masthead),
+  - second-colours (cycle 4, ruling 2026-11-19: BC4 re-theming is judged on it): the same test brand's colours,
+    masthead and lines with today's faces (board.PALETTES), so its refusals are the colours', never the face's,
   - nonhistory: the default palette on the non-history stress copy set (portability_copy.json: generic nature,
     science and true-crime copy, generated for this board, never a topic of this channel; a case takes entry
     k mod 3) wherever the surface's copy comes from a run; a surface whose words are recorded inputs or test fields
     draws its own words and its tile says so.
-The three variants run as their own processes (in parallel when --workers > 1). Output in <out>/portability:
-<variant>/surfaces/*.png and surfaces.json, portability_NN.png / _half.jpg (three tiles per surface: default |
-second | non-history; a refused one is its refusal tile with the reason) and portability.json (per surface and
-variant: hash, refusal, the copy set's record, the second brand's configure-time verdict).
+The variants run as their own processes (in parallel when --workers > 1). Output in <out>/portability:
+<variant>/surfaces/*.png and surfaces.json, portability_NN.png / _half.jpg (one tile per variant and surface: default |
+second | second-colours | non-history; a refused one is its refusal tile with the reason; a surface drawn without a
+part says so on its label) and portability.json (per surface and variant: hash, refusal, recorded omissions, the copy
+set's record, each palette's configure-time verdict).
 """
 from __future__ import annotations
 
@@ -27,6 +30,8 @@ from pathlib import Path
 
 VARIANTS = (("default", "default palette, the runs' own copy", []),
             ("second", "second palette (QF-35a test brand), the runs' own copy", ["--brand", "second"]),
+            ("second-colours", "second palette's colours with today's faces, the runs' own copy",
+             ["--brand", "second-colours"]),
             ("nonhistory", "default palette, the non-history stress copy set", None))   # None: --copy-set
 COPY_SET = "portability_copy.json"
 SURFACES_PER_SHEET = 6
@@ -69,6 +74,7 @@ def main(here: Path, tree: Path, dev: Path, out: Path, jobs: Path, workers: int)
                    {n for r in res.values() for n in (r.get("errors") or {}) if "__" in n})
     record: dict = {"jobs": jobs.read_text(encoding="utf-8").splitlines(), "variants": {}, "surfaces": {},
                     "second_brand_validation": res["second"].get("brand_validation"),
+                    "second_colours_validation": res["second-colours"].get("brand_validation"),
                     "copy_set": res["nonhistory"].get("copy_set")}
     for name, what, _x in VARIANTS:
         record["variants"][name] = {"what": what, "src_sha256": res[name].get("src_sha256"),
@@ -88,20 +94,22 @@ def main(here: Path, tree: Path, dev: Path, out: Path, jobs: Path, workers: int)
             png = pout / variant / "surfaces" / f"{n}.png"
             note = what if variant != "nonhistory" or group in swapped else (
                 "default palette; this surface's words are its recorded inputs or test fields (no copy-set field)")
+            omitted = be.omission_note(n, res[variant])   # cycle 4: a recorded drop shows on the tile
             row[variant] = {"sha256": (rec or {}).get("sha256"), "refused": (rec or {}).get("refused"),
-                            "error": str(err).strip().splitlines()[-1][:300] if err else None, "note": note}
+                            "error": str(err).strip().splitlines()[-1][:300] if err else None, "note": note,
+                            "omitted": be.surface_omissions(res[variant]).get(n) or []}
             if png.is_file() and rec and "refused" not in rec:
                 im = Image.open(png).convert("RGB")
             else:
                 why = (rec or {}).get("refused") or row[variant]["error"] or "not drawn"
                 im = be.refusal_tile(n, why, word="REFUSED" if (rec or {}).get("refused") else "NOT DRAWN")
-            tiles.append((be.label(n, f"{variant.upper()}: {note}"), im))
+            tiles.append((be.label(n, f"{variant.upper()}: {note}" + (f" | {omitted}" if omitted else "")), im))
         record["surfaces"][n] = row
     made = []
-    per = 3 * SURFACES_PER_SHEET
+    per = len(VARIANTS) * SURFACES_PER_SHEET
     for k in range(0, len(tiles), per):
         name = f"portability_{k // per + 1:02d}"
-        board.sheet(tiles[k:k + per], pout / name, tile_h=720, cols=3)
+        board.sheet(tiles[k:k + per], pout / name, tile_h=720, cols=len(VARIANTS))
         made.append(name)
     record["sheets"] = made
     record["seconds"] = round(time.perf_counter() - t0, 1)

@@ -116,6 +116,33 @@ def third_brand(brand):
                              "handoff": "The next find is waiting."})
 
 
+class AttributedSurfaces(dict):
+    """result["surfaces"] (cycle 4, lane BOARD): each surface written takes the omission ledger's rows (src/refusal.py
+    omit, inside the job's collecting() round) recorded since the job's previous surface, i.e. the rows drawn into it
+    (a map without a neighbour's name, a timeline without an event), as result["surface_omissions"][name]; a refused
+    surface takes the rows recorded while it was tried. A tree without the ledger records nothing. A record only:
+    nothing drawn changes."""
+
+    def __init__(self, result: dict):
+        super().__init__()
+        self.result, self.seen = result, 0
+
+    def new_job(self) -> None:
+        """A job opens its own ledger: its rows count from 0."""
+        self.seen = 0
+
+    def __setitem__(self, name, rec) -> None:
+        super().__setitem__(name, rec)
+        try:
+            from src.refusal import omissions
+        except ImportError:
+            return
+        rows = omissions()
+        new, self.seen = rows[self.seen:], len(rows)
+        if new:
+            self.result.setdefault("surface_omissions", {})[name] = [dict(r) for r in new]
+
+
 def copy_swap(payload: dict, entry: dict) -> dict:
     """A run payload with its words replaced by a copy-set entry's (cycle 3, portability): title, thumbnail lines,
     YouTube title, carousel and Story slides (cycled over the run's own count, so every recipe keeps its slide),
@@ -198,7 +225,8 @@ def main() -> None:
     for f in sorted((tree / "src").glob("*.py")):
         src_hash.update(f.name.encode() + f.read_bytes().replace(bytes([13, 10]), bytes([10])))
     result: dict = {"src_sha256": src_hash.hexdigest()[:16],
-                    "brand": a.brand, "surfaces": {}, "errors": {}, "seconds": {}}
+                    "brand": a.brand, "errors": {}, "seconds": {}}
+    result["surfaces"] = AttributedSurfaces(result)
     if a.keep:
         a.keep.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="qf35a-"))
@@ -255,6 +283,7 @@ def main() -> None:
             listed.append(name)
             return
         t0 = time.perf_counter()
+        result["surfaces"].new_job()
         # freeze lane A cycle 3: an omission ledger round each job, as graphics.make_all opens one (a map drawn
         # without its scale bar, a neighbour's name left out: recorded, the surface drawn); a tree without the
         # ledger (before SYS batch 3) renders as before
@@ -600,8 +629,10 @@ def main() -> None:
                     except Exception:  # noqa: BLE001
                         result["errors"][key] = traceback.format_exc()[-1200:]
                         continue
+                    meta = getattr(lay, "meta", None) or {}
+                    if "masthead" in meta:   # cycle 4 (BC): the frame's own masthead record (drawn or why not)
+                        result.setdefault("masthead_records", {})[key] = dict(meta["masthead"])
                     if kind == "story":   # cycle 3: the frame's own layout record (the size it drew at)
-                        meta = getattr(lay, "meta", None) or {}
                         result.setdefault("story_title_px", {})[key] = {
                             "drawn": meta.get("title_px"), "story": meta.get("story_title_px"),
                             "passed": int(r.get("title_px") or title_px or 0) or None}

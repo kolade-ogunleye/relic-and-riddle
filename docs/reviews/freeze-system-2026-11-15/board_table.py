@@ -204,6 +204,53 @@ def drawn(out: Path, end_seqs: list[tuple[str, str, Any]]) -> list[tuple]:
     return rows
 
 
+SOCIAL_KINDS = {"carousel": "Instagram carousel", "fb": "Facebook multi-photo post", "story": "Story"}
+
+
+def social_part(stem: str) -> tuple[str, str, int] | None:
+    """(deck, kind, frame index) of a render_surfaces.py social surface (social__<run>__<kind>_<frame>), else None."""
+    m = re.match(r"social__(.+?)__(carousel|fb|story)_(?:carousel_slide|story)_(\d+)", stem)
+    return (m.group(1), m.group(2), int(m.group(3))) if m else None
+
+
+def masthead_class(stem: str) -> str | None:
+    """A social surface's masthead class: its kind's cover (frame 1) or an interior / later frame."""
+    part = social_part(stem)
+    if part is None:
+        return None
+    _deck, kind, k = part
+    return f"{SOCIAL_KINDS[kind]} {'cover (frame 1)' if k == 1 else 'interior (frame 2+)'}"
+
+
+def social_masthead_rows(surfaces: dict[str, Any] | None) -> list[tuple]:
+    """Cycle 4 (panel 5 BC, carry-in 3): the masthead each social frame drew on this board, from its renderer's own
+    layout record (render_surfaces.py "masthead_records"): per kind's cover and interiors, the sizes, variants and
+    contrast drawn, the Facebook cover's matched reach where it took it, and every reason a frame draws none (a
+    Facebook interior carries no masthead by rule: the collage's cover tile is branded once)."""
+    rows = [("surface (records)", "masthead size px", "variant", "contrast (worst letter)", "shown / not drawn",
+             "not drawn because", "Facebook cover reach matched", "decks")]
+    recs = (surfaces or {}).get("masthead_records") or {}
+    if not recs:
+        rows.append(("no frame masthead records on this board (render_surfaces.py before cycle 4, or no social "
+                     "job)", "-", "-", "-", "-", "-", "-", "-"))
+        return rows
+    by: dict[str, list] = {}
+    for stem, r in sorted(recs.items()):
+        cls = masthead_class(stem)
+        if cls:
+            by.setdefault(cls, []).append((stem, r))
+    for cls, items in sorted(by.items()):
+        rs = [r for _s, r in items]
+        shown = [r for r in rs if r.get("shown", True) is not False]
+        reasons = sorted({str(r.get("reason")) for r in rs if r.get("shown") is False})
+        rows.append((cls, _span([r.get("size") for r in shown]),
+                     ", ".join(sorted({str(r.get("variant")) for r in shown if r.get("variant")})) or "-",
+                     _span([r.get("contrast") for r in shown]), f"{len(shown)} / {len(rs) - len(shown)}",
+                     "; ".join(reasons) or "-", _span([r.get("reach_matched") for r in rs]),
+                     ", ".join(sorted({social_part(s)[0] for s, _r in items}))))
+    return rows
+
+
 def delivered_motion(end_seqs: list[tuple[str, str, Any]]) -> list[tuple]:
     """(name, value, kind, what): each end sequence's delivered length (decoded frames / fps) beside its module
     constant and its stats' own seconds, so a constant that no longer times the card shows as such."""

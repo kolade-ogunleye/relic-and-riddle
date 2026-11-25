@@ -267,3 +267,22 @@ def test_board_writes_the_motion_names_exp_cases_expects(mods):
     bm_src = (BOARD / "board_motion.py").read_text(encoding="utf-8")
     assert 'f"thennow__{topic}__{tag}.mp4"' in bm_src
     assert '"callouts__reference_pair__916.mp4"' in (BOARD / "board_extras.py").read_text(encoding="utf-8")
+
+
+def test_fb_collage_of_fewer_than_five_follows_the_trees_model(mods):
+    """Facebook's post of 5 is drawn on the capture's measured boxes; a smaller post (a deck of 4 slides or fewer)
+    on the tree's own collage model, never as the 5-photo layout with an empty box."""
+    be = mods["board_evidence"]
+    from PIL import Image
+
+    from src.multi_format import FACEBOOK_COLLAGE
+    photos = [Image.new("RGB", (1440, 1800), (40 * k, 200, 0)) for k in range(5)]
+    five = be.fb_collage(photos)
+    assert five.size == (1137, be.fb_collage_boxes(1137)[-1][3])
+    if 4 in FACEBOOK_COLLAGE:
+        boxes = be.tree_collage_boxes(4, 1137)
+        four = be.fb_collage(photos[:4])
+        assert len(boxes) == 4 and four.size == (1137, max(b[3] for b in boxes))
+        for k, b in enumerate(boxes):   # every box holds its own photo, none is left as the gap colour
+            cx, cy = (b[0] + b[2]) // 2, (b[1] + b[3]) // 2
+            assert four.getpixel((cx, cy)) == (40 * k, 200, 0)

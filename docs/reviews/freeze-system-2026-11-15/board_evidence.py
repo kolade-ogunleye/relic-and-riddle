@@ -555,12 +555,30 @@ def fb_collage_boxes(w: int) -> list[tuple[int, int, int, int]]:
     return boxes
 
 
+def tree_collage_boxes(n: int, w: int) -> list[tuple[int, int, int, int]] | None:
+    """The boxes of an `n`-photo post `w` px wide from the tree's own collage model (multi_format.FACEBOOK_COLLAGE:
+    tiles in shares of the width), or None when the tree has no model for `n` (a post of 4 photos is a deck of 4
+    slides or fewer, where facebook_pick posts them all: no real run has one yet, cycle 4)."""
+    try:
+        from src.multi_format import FACEBOOK_COLLAGE
+    except ImportError:
+        return None
+    tiles = FACEBOOK_COLLAGE.get(n)
+    if not tiles:
+        return None
+    return [(round(x * w), round(y * w), round((x + tw) * w), round((y + th) * w)) for x, y, tw, th in tiles]
+
+
 def fb_collage(photos: list, w: int = 1137):
     """`photos` (a deck's Facebook slides, in order) as Facebook's feed draws a multi-photo post: the first 5 each
     centre-cropped into its box (fb_collage_boxes), "+N" over the 5th when there are N more."""
     from PIL import Image, ImageDraw, ImageFont, ImageOps
     boxes = fb_collage_boxes(w)
-    out = Image.new("RGB", (w, boxes[-1][3]), (39, 39, 39))   # the gap colour of the capture (dark mode)
+    if len(photos) < FB_COLLAGE_PHOTOS:   # cycle 4: a smaller post as the tree's own collage model lays it out
+        model = tree_collage_boxes(len(photos), w)
+        if model:
+            boxes = model
+    out = Image.new("RGB", (w, max(b[3] for b in boxes)), (39, 39, 39))   # the gap colour of the capture (dark mode)
     for box, im in zip(boxes, photos[:FB_COLLAGE_PHOTOS]):
         size = (box[2] - box[0], box[3] - box[1])
         out.paste(ImageOps.fit(im.convert("RGB"), size, Image.LANCZOS), box[:2])

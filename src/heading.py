@@ -545,6 +545,62 @@ def lockup_valid(lines: Sequence[str], widths: Sequence[float] | None = None, se
     return valid(rows, widths=widths, seam=seam, free_ends=free, first_lone_ok=first_lone_ok)
 
 
+# ---- labels and lines (freeze cycle 4, SYS item 2; panel 5 TY: the map, scale, end-card and callout renderers broke
+# their lines by their own rules, "305 FT / GROUND / TO TORCH / TIP"): the ONE break rule for a line of words that is
+# not a display heading (a drawing's label, a callout's name, an end card's share line), at one size, no ladder and no
+# accent. The engine's hard rules hold (valid: no row but the last ends on a never word, no row of function words only,
+# a value never split from its unit, no one-word last or middle row in a label of three words or more but the phrase
+# exception); a one-word FIRST row is a label's ragged first line, not a lockup's stacked head, so SYS-B-6's first-row
+# balance is not read here. Of the valid forms: the fewest rows, then no conjunction end, then the narrowest widest row
+# (balanced), then the evenest.
+def label_ok(lines: Sequence[str], widths: Sequence[float] | None = None) -> bool:
+    """A label's drawn rows obey the engine's hard rules (label rows: a one-word first row allowed)."""
+    rows = [t for t in lines if t.strip()]
+    return len(rows) < 2 or valid(rows, widths=widths, first_lone_ok=True)
+
+
+def label_fault(lines: Sequence[str], widths: Sequence[float] | None = None) -> str:
+    """The rule a label's rows break, named as a record names it ("" when label_ok holds)."""
+    rows = [t for t in lines if t.strip()]
+    if label_ok(rows, widths):
+        return ""
+    rule = broken_rule(rows, widths)
+    return rule or "the no-lone-row rule (a one-word last row the phrase exception does not hold)"
+
+
+def set_lines(text: str, measure: Callable[[str], float], width: float, max_lines: int = 2,
+              min_lines: int = 1) -> tuple[str, ...] | None:
+    """`text` on the fewest rows (min_lines .. max_lines) that each fit `width` (`measure(row)`: its drawn width, as
+    drawn: tracked, in its face) in a form label_ok holds; None when no such form fits (the caller then takes its own
+    next step, a smaller size or another place, or records the rule it gives up: never a silent break)."""
+    words = tuple(" ".join(str(text or "").split()).split())
+    if not words:
+        return None
+    memo: dict[str, float] = {}
+
+    def w(t: str) -> float:
+        if t not in memo:
+            memo[t] = float(measure(t))
+        return memo[t]
+    points = break_points(words)
+    for n in range(max(1, min_lines), max(1, max_lines) + 1):
+        best = None
+        for cuts in itertools.combinations(points, n - 1):
+            # the words as written (a label's or a sentence's comma stays: drawn text is the signed text)
+            lines = tuple(" ".join(words[a:b]) for a, b in itertools.pairwise((0, *cuts, len(words))))
+            widths = [w(t) for t in lines]
+            if max(widths) > width + 1e-6 or not label_ok(lines, widths):
+                continue
+            conj = sum(bare(words[k - 1]) in brand_system.LINE_END_LAST_RESORT
+                       and not lines[i].endswith(tuple(_CLOSE)) for i, k in enumerate(cuts))
+            score = (conj, round(max(widths), 3), max(widths) - min(widths))
+            if best is None or score < best[0]:
+                best = (score, lines)
+        if best is not None:
+            return best[1]
+    return None
+
+
 def check_drawn(lines: Sequence[str]) -> bool:
     """For a renderer's post-draw record: the drawn lines obey the engine's hard rules."""
     return valid([t for t in lines if t.strip()]) if len([t for t in lines if t.strip()]) > 1 else True

@@ -613,10 +613,14 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
 
 def kicker_label(im: Image.Image, xy, text: str, font, colour, anchor: str, track: float, rule, target: float) -> dict:
     """A kicker as one member of the overlay-label rule (typography.plan_label's arguments): its colour, then bone,
-    on its words and its lead `rule` (a box the held plate also holds)."""
+    on its words and its lead `rule` (a box the held plate also holds). Freeze cycle 4 (SYS item 3, panel 5 BC-02 /
+    TY: the Aswan deck drew every kicker bone, the pure INK diagram slide's too, where gold reads 10:1): ONE kicker
+    colour rule, colour_held: the kicker is its colour on every ground, the ground answered by its backing (the halo,
+    then the held INK plate) before the colour gives way to bone (a palette whose colour misses the kicker gate even on
+    the plate; recorded by the step drawn)."""
     colours = tuple(dict.fromkeys((tuple(colour[:3]), tuple(brand.BONE))))
     return {"ground": im, "rows": [(xy, drawable(text, font), font, anchor, track)], "colours": colours,
-            "target": target, "extra": [rule] if rule is not None else ()}
+            "target": target, "extra": [rule] if rule is not None else (), "colour_held": True}
 
 
 def finish_kicker(plates, rec: dict, rule, gate: float, target: float, text: str, passes=None, set_broken=None,
@@ -674,7 +678,7 @@ def deck_kicker_step(lays) -> tuple[str, int] | None:
     steps = {step_key(r["step"]) for r in recs}
     if len(steps) <= 1:
         return next(iter(steps)) if steps else None
-    return set_step(label_ladder((0, 1)), [r.get("passes") or [r["step"]] for r in recs])
+    return set_step(label_ladder((0, 1), colour_held=True), [r.get("passes") or [r["step"]] for r in recs])
 
 
 _DECK_STEPS: dict[str, tuple[str, int] | None] = {}
@@ -3480,6 +3484,12 @@ def _break_address(d, line: str, font, width: int) -> list[str]:
     return out
 
 
+def _credit_weight() -> int:
+    """The credit role's weight (tok("credit.weight"), freeze cycle 4: read, no longer a written SPEC value)."""
+    from .brand_system import tok as _tok
+    return int(_tok("credit.weight"))
+
+
 def story_credit_fit(d, lines: list[str], width: int | None = None, probe: bool = False) -> dict[str, Any]:
     """How a credit's `lines` are set at the foot of a Story frame: {"px", "font", "drawn", "fits"}. The fewest drawn
     lines, each within the text column, at any size from STORY_CREDIT_PX down to STORY_CREDIT_MIN_PX (a credit is set
@@ -3493,7 +3503,7 @@ def story_credit_fit(d, lines: list[str], width: int | None = None, probe: bool 
     sizes = [(c_px, False) for c_px in range(STORY_CREDIT_PX, STORY_CREDIT_MIN_PX - 1, -2)] + [(STORY_CREDIT_MIN_PX, True)]
     for c_px, broken in sizes:
         # the credit's lines in one face (QF-94): a fallback face for all of them when one needs it
-        base = get_font(brand.DATA_FONT, c_px, weight=500)
+        base = get_font(brand.DATA_FONT, c_px, weight=_credit_weight())   # freeze cycle 4: the credit token
         font_c = choose_face("\n".join(lines), base) if probe else field_font("\n".join(lines), base)
         if font_c is None:
             raise GlyphRefused("\n".join(lines), Path(str(base.path)).name, "")

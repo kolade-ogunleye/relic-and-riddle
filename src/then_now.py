@@ -1691,7 +1691,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         return {"ground": lightest[which], "rows": [(kxy, words[which], k_font, anchor, track),
                                                     (fxy, str(years[which]), y_font, anchor, 0)],
                 "colours": ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), "target": PLACE_TARGET,
-                "dark_ground": darkest[which], "ink": INK_ON_PAPER and gate[which]["ok"], "extra": [rules[which]]}
+                "dark_ground": darkest[which], "ink": INK_ON_PAPER and gate[which]["ok"], "extra": [rules[which]],
+                "colour_held": True}   # freeze cycle 4 (SYS item 3): the one kicker colour rule (typography.label_ladder)
 
     # Cycle 0 round 8 (R1, one treatment per set): THEN and NOW are one twin pair on one frame, so they are planned
     # as ONE set (typography.plan_label_set): the least intrusive step that holds on both markers' grounds, the

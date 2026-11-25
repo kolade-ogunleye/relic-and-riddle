@@ -662,7 +662,10 @@ def label_sizes(fmt: str) -> list[int]:
 
 
 def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, max_w: int) -> list[list[str]]:
-    """The label's line sets that fit its plate at this font (_shapes): one line, and the best two balanced lines."""
+    """The label's line sets that fit its plate at this font (_shapes): one line, and the best two balanced lines
+    whose break the heading engine's one line rule holds (freeze cycle 4, SYS item 2: heading.label_ok; never a line
+    ending on an article or a preposition, never a one-word last line in a name of three words or more)."""
+    from .heading import label_ok
     words = text.split()
     out = []
     if len(text) <= LABEL_MAX_CHARS and _tracked(measure, text, font, track) <= max_w:
@@ -671,7 +674,7 @@ def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, m
     for i in range(1, len(words)):
         a, b = " ".join(words[:i]), " ".join(words[i:])
         wa, wb = _tracked(measure, a, font, track), _tracked(measure, b, font, track)
-        fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w
+        fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w and label_ok([a, b], [wa, wb])
         if fits and (best is None or max(wa, wb) < best[0]):
             best = (max(wa, wb), [a, b])
     if best:

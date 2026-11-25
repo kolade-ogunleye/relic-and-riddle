@@ -264,7 +264,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "figure.face": "display",         # a brand font role
     "figure.colour": "GOLD",          # a palette role
     "figure.conversion": 0.5,         # the conversion's px, at most this share of its lead figure's
-    "data.unit_gap": 0.2,             # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6)
+    # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6). Freeze cycle 4 (SYS-A-c4-1, panel
+    # 5 TY MG-2: "0FT" read as one word at 0.2 em = 0.29 of the data face's cap): 0.25 em = 0.36 cap in IBM Plex Mono
+    # and in Cinzel (cap 0.70 em each), a thin space inside TY's 0.3-0.4 cap
+    "data.unit_gap": 0.25,
     "figure.dash_gap_em": 0.06,       # em: a range's en dash keeps at least this ink gap to each figure (font_engine
                                       # opens a face's span dash by the least spacing that holds it; SYS batch 1)
     # ---- place labels: a map's site name and a route's stop names (one role)

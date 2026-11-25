@@ -6821,7 +6821,17 @@ def ruled_rows(lines: list[str], font, width: float, track: float = 0.0, source:
     if not obeyed:
         log.info("Label %r: no break of its %d rows keeps the word rule within %.0f px; set as fitted.",
                  " ".join(lines), len(lines), width)
-        return list(lines)
+        got = list(lines)
+    # freeze cycle 4 (SYS item 2, SYS-A-c4-2): the heading engine's one line rule for labels (heading.label_ok: no
+    # one-word last or middle row, no never-word end) over the same number of rows, where a form within `width` holds
+    # it; else the rows as they were (the cross-section's label column, the number cards' labels: "AMBER / IN
+    # COMPLETED ROOM")
+    from .heading import label_fault, set_lines
+    if label_fault(got):
+        n = len(got)
+        ruled = set_lines(" ".join(got), lambda t: _tracked_w(t, font, track), width, n, min_lines=n)
+        if ruled is not None:
+            return list(ruled)
     return got
 
 
@@ -10118,62 +10128,44 @@ def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, 
     font_n = get_font(brand.TEXT_FONT, note_px, weight=600) if note else None
     first_fig = None
     tried = []
-    from .heading import label_fault, set_lines
-    # freeze cycle 4 (SYS item 2, panel 5 TY: "305 FT / GROUND / TO TORCH / TIP"): the note's rows by the heading
-    # engine's one line rule (heading.label_fault: no one-word last row, no never-word end) in every form first;
-    # only where no form holds it, the first form that holds the rest, its broken rule recorded (the note defines
-    # what the figure measures, so it is kept rather than refused for its rhythm)
-    for strict in (True, False):
-        for name, way, x_t, tick in forms:
-            sgn = 1 if way == "r" else -1
-            x_end = x_t + sgn * tick * n
-            cap = cap_height(f_fig)
-            base = tick_y + cap / 2
-            w_fig = tracked_width(fig_text, f_fig, fig_track)
-            fx = x_end + REFERENT_TICK_AIR * n if way == "r" else x_end - REFERENT_TICK_AIR * n - w_fig
-            fig = quantity_plate(ground, (fx, base), fig_text, f_fig, "ls", track=fig_track)
-            if fig.empty or not clear(fig.box):
-                if strict:
-                    tried.append(f"{name}: the figure is not clear")
-                continue
-            if first_fig is None:
-                first_fig = (fig, (x_t, tick_y, x_end))
-            if not note:
-                return fig, [], (x_t, tick_y, x_end), {"note": "", "shown": False, "form": name}
-            col = (fig.box[0], None) if way == "r" else (None, fig.box[2])   # the note aligns to the figure's edge
-            measure = _block_measure(clear, fig.box, way, font_n)
-            if strict:   # every valid form of the note in this column (heading.set_lines), the fewest rows
-                got = set_lines(note, lambda t: tracked_width(t, font_n, note_track), measure, REFERENT_ROWS)
-                lines = list(got) if got else None
-            else:
-                lines = (tracked_wrap(note, font_n, measure, note_track, strict=True, max_lines=REFERENT_ROWS)
-                         or tracked_wrap(note, font_n, measure, note_track))     # cycle 3: the hard rule first
-                if lines is not None and len(lines) > 1:   # cycle 3: balanced rows ("GROUND TO / TORCH TIP")
-                    lines = ruled_rows(lines, font_n, measure, note_track)
-            if lines is None or len(lines) > REFERENT_ROWS:
-                if strict:
-                    tried.append(f"{name}: no wrap in {REFERENT_ROWS} rows at {note_px} px by the line rule")
-                continue
-            fault = label_fault(lines, [tracked_width(ln, font_n, note_track) for ln in lines])
-            if strict and fault:
-                tried.append(f"{name}: {fault}")
-                continue
-            step = round(cap_height(font_n) * 1.6)
-            top = fig.box[3] + REFERENT_GAP * cap_height(font_n)
-            rows = []
-            for k, ln in enumerate(lines):
-                b = top + cap_height(font_n) + k * step
-                lx = col[0] if way == "r" else col[1] - tracked_width(ln, font_n, note_track)
-                rows.append((ln, (lx, b), font_n))
-            boxes = [ink_box(xy, ln, f, "ls", note_track) for ln, xy, f in rows]
-            if not all(bx is not None and clear(bx) for bx in boxes):
-                if strict:
-                    tried.append(f"{name}: the note is not clear")
-                continue
-            return fig, rows, (x_t, tick_y, x_end), {"note": note, "shown": True, "form": name, "px": note_px,
-                                                      "rows": len(rows), "figure_box": list(fig.box),
-                                                      "note_boxes": [list(bx) for bx in boxes],
-                                                      **({"rule_given_up": fault} if fault else {})}
+    for name, way, x_t, tick in forms:
+        sgn = 1 if way == "r" else -1
+        x_end = x_t + sgn * tick * n
+        cap = cap_height(f_fig)
+        base = tick_y + cap / 2
+        w_fig = tracked_width(fig_text, f_fig, fig_track)
+        fx = x_end + REFERENT_TICK_AIR * n if way == "r" else x_end - REFERENT_TICK_AIR * n - w_fig
+        fig = quantity_plate(ground, (fx, base), fig_text, f_fig, "ls", track=fig_track)
+        if fig.empty or not clear(fig.box):
+            tried.append(f"{name}: the figure is not clear")
+            continue
+        if first_fig is None:
+            first_fig = (fig, (x_t, tick_y, x_end))
+        if not note:
+            return fig, [], (x_t, tick_y, x_end), {"note": "", "shown": False, "form": name}
+        col = (fig.box[0], None) if way == "r" else (None, fig.box[2])   # the note aligns to the figure's edge
+        measure = _block_measure(clear, fig.box, way, font_n)
+        lines = (tracked_wrap(note, font_n, measure, note_track, strict=True, max_lines=REFERENT_ROWS)
+                 or tracked_wrap(note, font_n, measure, note_track))     # cycle 3: the hard rule first
+        if lines is not None and len(lines) > 1:     # cycle 3: balanced rows ("GROUND TO / TORCH TIP", not "... / TIP")
+            lines = ruled_rows(lines, font_n, measure, note_track)
+        if lines is None or len(lines) > REFERENT_ROWS:
+            tried.append(f"{name}: no wrap in {REFERENT_ROWS} rows at {note_px} px")
+            continue
+        step = round(cap_height(font_n) * 1.6)
+        top = fig.box[3] + REFERENT_GAP * cap_height(font_n)
+        rows = []
+        for k, ln in enumerate(lines):
+            b = top + cap_height(font_n) + k * step
+            lx = col[0] if way == "r" else col[1] - tracked_width(ln, font_n, note_track)
+            rows.append((ln, (lx, b), font_n))
+        boxes = [ink_box(xy, ln, f, "ls", note_track) for ln, xy, f in rows]
+        if not all(bx is not None and clear(bx) for bx in boxes):
+            tried.append(f"{name}: the note is not clear")
+            continue
+        return fig, rows, (x_t, tick_y, x_end), {"note": note, "shown": True, "form": name, "px": note_px,
+                                                  "rows": len(rows), "figure_box": list(fig.box),
+                                                  "note_boxes": [list(bx) for bx in boxes]}
     rec = {"note": note, "shown": False, "reason": "; ".join(tried) or "no form"}
     if first_fig is not None:
         return first_fig[0], [], first_fig[1], rec

@@ -256,3 +256,19 @@ def test_a_headline_figure_only_a_slide_or_a_story_states_is_refused_by_the_rele
     # the body's own words still sign it
     run["narration_script"] = "Its door weighed 12 tonnes."
     assert figure_gate.headline_faults(run) == []
+
+
+# ------------------------------------------------- SYS-A-c4-1 / -2: the unit's thin space, label rows on the line rule
+
+def test_the_unit_gap_is_a_thin_space_of_the_data_face_cap():
+    cap = brand_system.face_metrics(str(brand.DEFAULT_BRAND.family("data")))[0]
+    assert 0.3 <= brand_system.tok("data.unit_gap") / cap <= 0.4
+
+
+def test_ruled_rows_keeps_the_row_count_and_takes_the_line_rule_where_a_form_holds():
+    from src import graphics
+    from src.typography import get_font
+    f = get_font(brand.TEXT_FONT, 30, weight=600)
+    w = graphics._tracked_w("IN COMPLETED ROOM", f, 0.0) + 2
+    got = graphics.ruled_rows(["AMBER IN COMPLETED", "ROOM"], f, w, 0.0)
+    assert len(got) == 2 and " ".join(got) == "AMBER IN COMPLETED ROOM" and heading.label_ok(got)

@@ -19,6 +19,9 @@ conversion and before any layout, and it works like this:
   reads; no word is added.
 - **Record.** The withheld figure goes on the surface's own record as `figure_withheld`, and on the run's ledger in
   `payload["layout_holds"]`, which is what the review card's Held list and `figure_gate.held_note` read.
+- **Hedge (lane B c3c).** A figure whose only fault is a missing bound or approximation hedge is drawn with that
+  hedge's short form where the line and the surface hold it (OVER 830 SQUARE MILES). Its record is `figure_hedged`, not
+  `figure_withheld`; see `../freeze-lane-b-c3c-2026-11-24/README.md`.
 - **Nothing readable left.** The surface tries the next candidate in its own chain: the tagline alternates, the
   YouTube chain, or the plain share line. If there is none, the surface is refused with `refusal.Declined`, rule
   `figure_gate.evidence`. It is never drawn with the figure and never drawn empty.
@@ -71,8 +74,8 @@ These came up while gating mid-sentence copy:
 |---|---|---|---|
 | amber_room_heist_1792790550 | cover line1 | 6 TON | THE ROOM / STOLEN IN 36 HOURS |
 | gol_gumbaz_whispering_gallery_1793278143 | cover line1 | 144 FT (signed: estimated) | WHISPERING DOME |
-| hal_saflieni_hypogeum_1792949304 | cover tagline | 7,000 (signed: approximately) | RESTING SOULS |
-| hal_saflieni_hypogeum_1792949304 | carousel slide 4 heading | 7,000 | deck refused (heading empty) |
+| hal_saflieni_hypogeum_1792949304 | cover tagline | 7,000 (signed: approximately) | RESTING SOULS (c3c: ABOUT 7,000 RESTING SOULS) |
+| hal_saflieni_hypogeum_1792949304 | carousel slide 4 heading | 7,000 | deck refused (heading empty) (c3c: RESTING PLACE OF ABOUT 7,000, deck drawn) |
 | hal_saflieni_hypogeum_1792949304 | Story frame 2 line2 | 3 LEVELS (parser miss, see below) | line1 only |
 | kailasa_temple_monolith_1792524470 | carousel slide 7 body | 12 CENTURIES | deck refused |
 | nazca_lines_runway_paradox_1792961797 | carousel slide 1 body, Story frame 1 line2 | OVER 2 THOUSAND YEARS | deck refused; Story line1 only |
@@ -80,7 +83,7 @@ These came up while gating mid-sentence copy:
 | richat_structure_sahara_eye_1792737039_short | carousel slide 5 body | APPROXIMATELY 98.2 MILLION YEARS AGO | deck refused |
 | richat_structure_sahara_eye_1792778206 | carousel slide 6 body, Story frame 2 line2 | 145,000 YEARS AGO; 100 MILLION YEARS | figure-free body; Story line1 only |
 | singing_colossi_of_memnon_1792952878 | cover line2 | 720 TON | THE SINGING |
-| tunguska_event_1908_1792930600 | cover line1 | 830 SQ MI (signed: more than) | FLATTENED FOREST |
+| tunguska_event_1908_1792930600 | cover line1 | 830 SQ MI (signed: more than) | FLATTENED FOREST (c3c: OVER 830 SQUARE MILES / FLATTENED FOREST) |
 | unfinished_obelisk_aswan_1792985912 | cover line1 | 1,200 TON | BEDROCK MONSTER |
 | unfinished_obelisk_aswan_1792993374 | Story frame 2 | OVER 1,000 TONS; UP TO 1,168 TONNES | Story refused |
 | wieliczka_salt_mine_1792974672 | cover tagline, badge | 327 M (signed: about) | tagline left out (no alternate) |

@@ -3464,7 +3464,8 @@ def _quote_gates(spec: QuoteCard, sheet: dict, wide: bool) -> tuple[str, dict, d
     if not speaker or len(speaker) > 28:
         raise CardRefused("a speaker of 1-28 characters is required")
     # Lane B c3b: a quotation is drawn whole (no figure can be lifted out of it), so a figure in it the run's evidence
-    # (its fact sheet) does not sign through the one pre-draw figure gate (visual_engine.gate_drawn) refuses the card
+    # (its fact sheet) does not sign through the one pre-draw figure gate (visual_engine.gate_drawn) refuses the card.
+    # Lane B c3c: never hedged either (no `hedged` list): a quotation is not edited, so a missing hedge refuses it too
     from .visual_engine import gate_drawn
     unsigned = gate_drawn({"quotation": text}, {"fact_sheet": sheet}, "quote card")[1]
     if unsigned:

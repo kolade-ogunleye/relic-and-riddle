@@ -93,9 +93,9 @@ def test_the_render_and_the_check_build_their_inputs_in_one_place(monkeypatch, t
     calls = []
     real = visual_engine.youtube_render_inputs
 
-    def spy(payload, hero=None, copy=None):
+    def spy(payload, hero=None, copy=None, **kw):   # lane B c3c: `hedged` (the badge's signed hedge) passes through
         calls.append(hero)
-        return real(payload, hero, copy=copy)
+        return real(payload, hero, copy=copy, **kw)
     monkeypatch.setattr(visual_engine, "youtube_render_inputs", spy)
     hero = tmp_path / "hero.jpg"
     Image.new("RGB", (1920, 1080), (90, 80, 70)).save(hero)

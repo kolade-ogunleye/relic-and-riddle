@@ -222,34 +222,118 @@ def _story_span(line1: str, line2: str):
 
 def gate_deck(slides: list[dict[str, Any]], poll: dict[str, Any] | None, script_payload: dict[str, Any], surface: str,
               fields: tuple[str, ...] = ("heading", "body"), title: tuple[str, ...] = ("heading",),
-              label: str = "slide") -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
+              label: str = "slide", hedged: list[dict[str, Any]] | None = None
+              ) -> tuple[list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]]:
     """(slides, poll, withheld rows): a deck's drawn copy through the one pre-draw figure gate (lane B c3b,
     visual_engine.gate_drawn), each slide's `fields` in reading order and the poll's question. Each withheld figure is
     recorded on the run's ledger (record_withheld). A slide whose title fields (`title`) or whose body the gate leaves
     with nothing readable has no other candidate in its deck: the deck is refused (refusal.Declined, rule
-    figure_gate.evidence; main.hold_layout_error holds it), never drawn with the figure or without its words."""
+    figure_gate.evidence; main.hold_layout_error holds it), never drawn with the figure or without its words.
+    `hedged` (lane B c3c): when given, a figure that lacks only its signed hedge is drawn with it and appended there
+    ({"slide": i or None for the poll, "plain": the plain gate's form}); the caller reverts a slide that does not fit
+    (revert_hedges) and records the rest (visual_engine.record_hedged)."""
     from .visual_engine import gate_drawn, headline_refused, record_withheld
     out, rows = [], []
     for i, slide in enumerate(slides, 1):
         name = f"{surface} {label} {i}"
         texts = {k: slide[k] for k in fields if isinstance(slide.get(k), str)}
-        gated, r = gate_drawn(texts, script_payload, name, [k for k in fields if k in texts])
-        if r:
-            emptied = [k for k in texts if texts[k].strip() and not gated[k].strip()]
-            if [k for k in emptied if k not in title] or (emptied and not any(gated[k].strip() for k in title
-                                                                              if k in gated)):
-                raise headline_refused(name, r, "its " + " / ".join(emptied))
+        order = [k for k in fields if k in texts]
+        gated, r = gate_drawn(texts, script_payload, name, order)
+        if hedged is not None:
+            # lane B c3c: a figure that lacks only its signed hedge is drawn with it; the plain gate's form (the figure
+            # withheld) is kept on each row for the caller, which draws it where the hedged slide does not fit
+            found: list[dict[str, Any]] = []
+            h_gated, h_r = gate_drawn(texts, script_payload, name, order, hedged=found)
+            if found:
+                plain = {"fields": gated, "rows": r, "refused": _deck_emptied(texts, gated, r, title)}
+                hedged += [dict(h, slide=i, plain=plain) for h in found]
+                gated, r = h_gated, h_r
+        emptied = _deck_emptied(texts, gated, r, title)
+        if emptied:
+            raise headline_refused(name, r, emptied)
         out.append(dict(slide, **gated))
         rows += r
     poll = dict(poll or {})
     if isinstance(poll.get("question"), str) and poll["question"].strip():
-        gated, r = gate_drawn({"question": poll["question"]}, script_payload, f"{surface} poll")
+        texts = {"question": poll["question"]}
+        gated, r = gate_drawn(texts, script_payload, f"{surface} poll")
+        if hedged is not None:
+            found = []
+            h_gated, h_r = gate_drawn(texts, script_payload, f"{surface} poll", hedged=found)
+            if found:
+                plain = {"fields": gated, "rows": r,
+                         "refused": "its question" if r and not gated["question"].strip() else ""}
+                hedged += [dict(h, slide=None, plain=plain) for h in found]
+                gated, r = h_gated, h_r
         if r and not gated["question"].strip():
             raise headline_refused(f"{surface} poll", r, "its question")
         poll["question"] = gated["question"]
         rows += r
     record_withheld(script_payload, rows)
     return out, poll, rows
+
+
+def _deck_emptied(texts: dict[str, Any], gated: dict[str, Any], rows: list, title: tuple[str, ...]) -> str:
+    """gate_deck's refusal: "its <fields>" when the gate left the slide's body or every title field with nothing
+    readable, else ""."""
+    if not rows:
+        return ""
+    emptied = [k for k in texts if texts[k].strip() and not gated[k].strip()]
+    if [k for k in emptied if k not in title] or (emptied and not any(gated[k].strip() for k in title if k in gated)):
+        return "its " + " / ".join(emptied)
+    return ""
+
+
+def revert_hedges(slides: list[dict[str, Any]], poll: dict[str, Any], hedged: list[dict[str, Any]], which: set,
+                  script_payload: dict[str, Any], surface: str, label: str = "slide") -> list[dict[str, Any]]:
+    """Lane B c3c: the slides in `which` (1-based; None for the poll) drawn from the plain gate's form instead of the
+    hedged one (gate_deck's `hedged` rows: the hedged slide does not fit its size site), in place. Their withheld
+    figures go on the run's ledger; a slide the plain form leaves with nothing readable refuses the deck, as gate_deck
+    does. Returns the withheld rows added; the reverted rows are taken out of `hedged`."""
+    from .visual_engine import headline_refused, record_withheld
+    added: list[dict[str, Any]] = []
+    done: set = set()
+    for h in [h for h in hedged if h["slide"] in which]:
+        i, plain = h["slide"], h["plain"]
+        if i in done:
+            continue
+        done.add(i)
+        name = f"{surface} poll" if i is None else f"{surface} {label} {i}"
+        if plain["refused"]:
+            raise headline_refused(name, plain["rows"], plain["refused"] + " (its hedged form does not fit)")
+        if i is None:
+            poll["question"] = plain["fields"]["question"]
+        else:
+            slides[i - 1] = dict(slides[i - 1], **plain["fields"])
+        added += plain["rows"]
+    hedged[:] = [h for h in hedged if h["slide"] not in which]
+    record_withheld(script_payload, added)
+    return added
+
+
+def plain_deck(slides: list[dict[str, Any]], hedged: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """A copy of `slides` with every hedged slide in its plain gate's form (for measuring the deck's size decisions
+    both ways); the ledger is not touched."""
+    out = [dict(s) for s in slides]
+    for h in hedged:
+        if h["slide"] is not None:
+            out[h["slide"] - 1].update(h["plain"]["fields"])
+    return out
+
+
+def _hedged_fits(got: Any) -> bool:
+    """True when a drawn slide or frame (still_layout.drawn's (image, layout, attempts)) holds its copy at its own size
+    rules: drawn, no layout problem and no field shortened (lane B c3c: a hedged form that does not is not drawn)."""
+    if not isinstance(got, tuple) or len(got) < 2:
+        return False
+    lay = got[1]
+    return not lay.problems() and not list(getattr(lay, "shortened", None) or [])
+
+
+def slide_hedged(hedged: list[dict[str, Any]], surface: str, i: int, label: str = "slide") -> dict[str, Any] | None:
+    """The figure_hedged record of one slide (gate_deck's `hedged` rows), None when no figure on it was hedged."""
+    from .visual_engine import hedged_record
+    return hedged_record([h for h in hedged if h["surface"] == f"{surface} {label} {i}"])
 
 
 def slide_withheld(rows: list[dict[str, Any]], surface: str, i: int, label: str = "slide") -> dict[str, Any] | None:
@@ -911,10 +995,18 @@ class MultiFormatGenerator:
                        for s in slides_data]
         # Lane B c3b: each frame's two title lines and body through the one pre-draw figure gate
         # (visual_engine.gate_drawn), as drawn; a frame left with nothing readable holds the Story (gate_deck)
+        # Lane B c3c: a figure that lacks only its signed hedge is drawn with it where the frame holds it at the
+        # Story's own size rules: the Story's one title size unchanged (else every hedged frame takes the plain form)
+        # and the frame drawn without a problem or a shortened field (else that frame takes the plain form)
+        story_hedged: list[dict[str, Any]] = []
         slides_data, _, story_rows = gate_deck(slides_data, None, script_payload, "Story", ("line1", "line2", "body"),
-                                               ("line1", "line2"), "frame")
+                                               ("line1", "line2"), "frame", hedged=story_hedged)
         layout = []  # each frame's text block, for the audit and the evidence renders
         title_px = story_title_px(slides_data, poll=poll)   # round 7 (F10): one title size per Story
+        if story_hedged and story_title_px(plain_deck(slides_data, story_hedged), poll=poll) != title_px:
+            story_rows += revert_hedges(slides_data, {}, story_hedged, {h["slide"] for h in story_hedged},
+                                        script_payload, "Story", "frame")
+            title_px = story_title_px(slides_data, poll=poll)
 
         from . import still_layout
         slides = []
@@ -936,6 +1028,13 @@ class MultiFormatGenerator:
         # Cycle 0 round 8 (R1, one treatment per set): a Story's kickers are one set, like a deck's
         # (generate_carousel_sequence): one step that holds on every frame's ground, colour kept where it holds.
         frames_drawn = draw_frames(None)
+        misfit = {h["slide"] for h in story_hedged if not _hedged_fits(frames_drawn[h["slide"] - 1])}
+        if misfit:
+            story_rows += revert_hedges(slides_data, {}, story_hedged, misfit, script_payload, "Story", "frame")
+            title_px = story_title_px(slides_data, poll=poll)
+            frames_drawn = draw_frames(None)
+        from .visual_engine import record_hedged
+        record_hedged(script_payload, story_hedged)
         story_lays = [v[1] for v in frames_drawn.values() if not isinstance(v, GlyphRefused)]
         story_step = deck_kicker_step(story_lays)
         if story_step is not None and not kickers_on(story_lays, story_step):
@@ -962,6 +1061,9 @@ class MultiFormatGenerator:
                 held = slide_withheld(story_rows, "Story", i + 1, "frame")
                 if held:   # lane B c3b: the figures the gate withheld from this frame, on its own record
                     lay.meta["figure_withheld"] = recipe["figure_withheld"] = held
+                hedges = slide_hedged(story_hedged, "Story", i + 1, "frame")
+                if hedges:   # lane B c3c: the figures drawn with their signed hedge, on the frame's own record
+                    lay.meta["figure_hedged"] = recipe["figure_hedged"] = hedges
             layout.append({**lay.meta, "frame": name})
             base.save(path, quality=95)
             _delivered_contrast(lay, path)
@@ -2673,7 +2775,12 @@ class MultiFormatGenerator:
         # Lane B c3b: every slide's heading and body (the colossal stat's figure row is read from the body) and the
         # closing slide's poll question through the one pre-draw figure gate (visual_engine.gate_drawn), as drawn
         gate_surface = "Facebook carousel" if facebook else "carousel"
-        cards, poll, gate_rows = gate_deck(cards, poll, script_payload, gate_surface)
+        # Lane B c3c: a figure that lacks only its signed hedge is drawn with it ("RESTING PLACE OF ABOUT 7,000")
+        # where the slide holds it at the deck's own size rules: the deck's heading tier and both copies' heading
+        # frames unchanged (else every hedged slide takes the plain form), and the slide drawn without a problem or a
+        # shortened field (else that slide takes the plain form); the plain form withholds the figure as before
+        gate_hedged: list[dict[str, Any]] = []
+        cards, poll, gate_rows = gate_deck(cards, poll, script_payload, gate_surface, hedged=gate_hedged)
         # Lane D cycle 3 (lander correction of ruling 4): the diagram slide keeps its OWN signed heading and body; the
         # drawing carries only its own labels (render_scale drawing_floor draws no title, figure or meaning), so the
         # deck has one title system and no slide's signed copy is replaced (cycle 2 set the drawing's scale copy
@@ -2681,6 +2788,14 @@ class MultiFormatGenerator:
 
         # SYS-D-5: the deck's one content-heading tier, over both copies (one size per deck, one form per heading)
         _render_state.tile_px = None
+        if gate_hedged:
+            plain_cards = plain_deck(cards, gate_hedged)
+            if (self._deck_heading_tier(cards, archetypes) != self._deck_heading_tier(plain_cards, archetypes)
+                    or any(self._deck_heading_frame(cards, archetypes, fb)
+                           != self._deck_heading_frame(plain_cards, archetypes, fb) for fb in (False, True))):
+                log.info("%s: the hedged headings change the deck's size decisions; drawn plain.", gate_surface)
+                gate_rows += revert_hedges(cards, poll, gate_hedged, {h["slide"] for h in gate_hedged},
+                                           script_payload, gate_surface)
         tier = self._deck_heading_tier(cards, archetypes)
 
         def copy_layout(fb: bool) -> tuple[int, dict[int, dict[str, Any]], list[int]]:
@@ -2736,18 +2851,38 @@ class MultiFormatGenerator:
         # SYS-R8 integration (lander ruling 3): the Instagram and Facebook copies are the SAME slides, so they are
         # one set: the step is planned once over both copies' kickers (the first copy drawn surveys the other copy
         # too) and kept for the deck (deck_set_step), so the second copy draws on it without planning again.
-        key = deck_set_key(output_dir, cards, archetypes, photos, diagram, poll, share, subject, lead, showing)
-        planned, deck_step = deck_set_step(key)
-        if planned:
-            drawn_deck = draw_deck(deck_step)
-        else:
-            drawn_deck = draw_deck(None)
+        def plan_deck():
+            key = deck_set_key(output_dir, cards, archetypes, photos, diagram, poll, share, subject, lead, showing)
+            planned, step = deck_set_step(key)
+            if planned:
+                return draw_deck(step), step
+            drawn = draw_deck(None)
             sibling = draw_deck(None, not facebook)
-            deck_step = deck_kicker_step([drawn_deck[i][1] for i in order]
-                                         + [entry[1] for entry in sibling.values()])
-            keep_deck_set_step(key, deck_step)
-            if deck_step is not None and not kickers_on([drawn_deck[i][1] for i in order], deck_step):
-                drawn_deck = draw_deck(deck_step)
+            step = deck_kicker_step([drawn[i][1] for i in order] + [entry[1] for entry in sibling.values()])
+            keep_deck_set_step(key, step)
+            if step is not None and not kickers_on([drawn[i][1] for i in order], step):
+                drawn = draw_deck(step)
+            return drawn, step
+
+        drawn_deck, deck_step = plan_deck()
+        # lane B c3c: a hedged slide drawn with a problem or a shortened field takes its plain form (the poll's question
+        # with any such slide), and the deck is measured and drawn again from its copy as it now stands
+        misfit = {h["slide"] for h in gate_hedged
+                  if h["slide"] is not None and not _hedged_fits(drawn_deck[h["slide"] - 1][:2])}
+        if misfit and any(h["slide"] is None for h in gate_hedged):
+            misfit.add(None)
+        if misfit:
+            log.info("%s: hedged slide(s) %s do not fit; drawn plain.", gate_surface,
+                     sorted(i for i in misfit if i is not None))
+            gate_rows += revert_hedges(cards, poll, gate_hedged, misfit, script_payload, gate_surface)
+            _render_state.tile_px = None
+            tier = self._deck_heading_tier(cards, archetypes)
+            layouts.clear()
+            layouts[facebook] = copy_layout(facebook)
+            frame, _strips, order = layouts[facebook]
+            drawn_deck, deck_step = plan_deck()
+        from .visual_engine import record_hedged
+        record_hedged(script_payload, gate_hedged)
         for i in order:
             im, lay, attempts, archetype, photo, photo_next, card, drew = drawn_deck[i]
             if isinstance(getattr(lay, "meta", None), dict):
@@ -2755,6 +2890,9 @@ class MultiFormatGenerator:
                 held = slide_withheld(gate_rows, gate_surface, i + 1)
                 if held:   # lane B c3b: the figures the gate withheld from this slide, on its own record
                     lay.meta["figure_withheld"] = held
+                hedges = slide_hedged(gate_hedged, gate_surface, i + 1)
+                if hedges:   # lane B c3c: the figures drawn with their signed hedge, on the slide's own record
+                    lay.meta["figure_hedged"] = hedges
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
@@ -2769,6 +2907,8 @@ class MultiFormatGenerator:
                                              if withheld and i == withheld["slide"] - 1 else {}),
                                           **({"figure_withheld": lay.meta["figure_withheld"]}
                                              if lay.meta.get("figure_withheld") else {}),
+                                          **({"figure_hedged": lay.meta["figure_hedged"]}
+                                             if lay.meta.get("figure_hedged") else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
@@ -2797,6 +2937,9 @@ class MultiFormatGenerator:
                         held = slide_withheld(gate_rows, gate_surface, j + 1)
                         if held:
                             lay.meta["figure_withheld"] = held
+                        hedges = slide_hedged(gate_hedged, gate_surface, j + 1)
+                        if hedges:
+                            lay.meta["figure_hedged"] = hedges
                     self._save_slide(im, path)
                     _delivered_contrast(lay, path)
                     still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide",
@@ -2808,6 +2951,8 @@ class MultiFormatGenerator:
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"figure_withheld": lay.meta["figure_withheld"]}
                                                      if lay.meta.get("figure_withheld") else {}),
+                                                  **({"figure_hedged": lay.meta["figure_hedged"]}
+                                                     if lay.meta.get("figure_hedged") else {}),
                                                   **({"kicker_step": list(deck_step)} if deck_step else {})},
                                       attempts)
                 else:

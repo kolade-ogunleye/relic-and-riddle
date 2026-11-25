@@ -543,6 +543,18 @@ def layout_hold_lines(holds: Any) -> list[str]:
     return out
 
 
+def figure_hedge_lines(hedges: Any) -> list[str]:
+    """Each figure a surface drew with its signed hedge (payload["figure_hedges"]: visual_engine.record_hedged, lane B
+    c3c), as 'cover: OVER 830 SQ MI (copy: 830 SQ MI; signed MORE THAN)' lines."""
+    out: list[str] = []
+    for h in hedges if isinstance(hedges, list) else []:
+        if isinstance(h, dict) and h.get("surface") and h.get("drawn"):
+            signed = h.get("reason", "").partition("hedged (")[2].partition(")")[0]
+            out.append(f"{h['surface']}: {h['drawn']} (copy: {h.get('from') or '?'}"
+                       + (f"; signed {signed}" if signed else "") + ")")
+    return out
+
+
 def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
     """The card's lists whole, for the message under a card whose lists were shortened: each section with an
     expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
@@ -2336,6 +2348,9 @@ class TelegramApprovalBot:
         holds = layout_hold_lines(script_payload.get("layout_holds"))
         if holds:   # QF-23: a deck or graphic refused rather than drawn with its checked copy cut
             text += "\n" + listed(f"✋ Held, its text would not fit whole: {len(holds)}", [e(x) for x in holds], cap) + "\n"
+        hedges = figure_hedge_lines(script_payload.get("figure_hedges"))
+        if hedges:   # lane B c3c: a figure drawn with its signed hedge (it is drawn: never a hold)
+            text += "\n" + listed(f"〰 Drawn with the signed hedge: {len(hedges)}", [e(x) for x in hedges], cap) + "\n"
         photo_holds = layout_hold_lines(script_payload.get("photo_holds"))
         if photo_holds:   # QF-65c: a deck whose every picture is AI-made is not made, never padded with one
             text += "\n" + listed(f"✋ Held, no real photo to draw on: {len(photo_holds)}",

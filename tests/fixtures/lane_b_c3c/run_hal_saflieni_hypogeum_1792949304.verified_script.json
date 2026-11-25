@@ -1,0 +1,488 @@
+{
+ "timeline": [
+  {
+   "year": -4000,
+   "approximate": true,
+   "label": "Initial prehistoric use"
+  },
+  {
+   "year": -2500,
+   "approximate": true,
+   "label": "End of prehistoric use"
+  },
+  {
+   "year": 1902,
+   "approximate": false,
+   "label": "Accidentally discovered"
+  }
+ ],
+ "scale_fact": null,
+ "stat_cards": [
+  {
+   "value": "Approx. 7,000",
+   "label": "Estimated human remains"
+  }
+ ],
+ "cross_section": null,
+ "route": null,
+ "photo_labels": [
+  "Oracle Room",
+  "resonance niche",
+  "steps and doorways"
+ ],
+ "emphasis_words": [
+  "Paola, Malta",
+  "approximately 7,000",
+  "1902"
+ ],
+ "title": "Malta's 7,000-Body Underground Necropolis 🏛️",
+ "hook_sentence": "Beneath the town of Paola, Malta, prehistoric builders engineered an ancient subterranean monument across three superimposed underground levels linked by steps and doorways.",
+ "narration_script": "Beneath the town of Paola, Malta, prehistoric builders engineered an ancient subterranean monument across three superimposed underground levels linked by steps and doorways. Hollowed directly out of soft globigerina limestone, the underground chambers were carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian. Archaeological records indicate that the underground necropolis originally contained the remains of approximately 7,000 individuals, utilized from around 4000 B.C. to 2500 B.C. Inside, a carved resonance niche in the Oracle Room creates an acoustic echo that carries sound throughout the chambers. Construction workers discovered the underground complex by accident in 1902 while cutting cisterns for new housing.",
+ "closing_sentence": "Construction workers discovered the underground complex by accident in 1902 while cutting cisterns for new housing.",
+ "caption": "A three-level city of the dead lay hidden beneath Malta for thousands of years 🏛️\n\nPrehistoric builders in Paola, Malta carved this subterranean monument across three superimposed underground levels using only antlers, chert, flint, and obsidian. The chambers held the remains of approximately 7,000 individuals, utilized from around 4000 B.C. to 2500 B.C. It remained unseen until 1902, when workers cutting cisterns broke through the rock ceiling.\n\nWould you descend into an ancient underground necropolis carved entirely by hand? ⏳\n\n#HalSaflieni #AncientMalta #MalteseArchaeology #SubterraneanHistory\n\n📷 Images via Wikimedia Commons: xiquinhosilva (CC BY 2.0)",
+ "first_comment": "Would you feel comfortable descending into an underground chamber that held 7,000 ancient burials, or should sites like this remain undisturbed?",
+ "hashtags": [
+  "#HalSaflieni",
+  "#AncientMalta",
+  "#MalteseArchaeology",
+  "#SubterraneanHistory"
+ ],
+ "thumbnail": {
+  "eyebrow": "ANCIENT MALTA",
+  "line1": "CARVED DEEP",
+  "line2": "UNDERGROUND",
+  "tagline": "7,000 RESTING SOULS"
+ },
+ "story_slides": [
+  {
+   "kicker": "ACCIDENTAL FIND",
+   "line1": "HIDDEN BENEATH",
+   "line2": "PAOLA'S STREETS",
+   "body": "In 1902, workers cutting housing cisterns broke through into an underground monument."
+  },
+  {
+   "kicker": "STONE TOOLS",
+   "line1": "CARVED BY HAND",
+   "line2": "IN THREE LEVELS",
+   "body": "Chambers were cut from soft globigerina limestone using antlers, chert, and flint."
+  },
+  {
+   "kicker": "THE POLL",
+   "line1": "WHICH REQUIRED",
+   "line2": "MORE SKILL?",
+   "body": "The necropolis held approximately 7,000 individuals from 4000 B.C. to 2500 B.C."
+  }
+ ],
+ "poll": {
+  "question": "Which required more skill?",
+  "options": [
+   "Hand-carving the rock",
+   "Acoustic room design"
+  ]
+ },
+ "carousel_slides": [
+  {
+   "heading": "HAL SAFLIENI HYPOGEUM",
+   "body": "Swipe to see the prehistoric subterranean monument carved across three underground levels."
+  },
+  {
+   "heading": "ACCIDENTAL DISCOVERY",
+   "body": "Workers cutting cisterns for new housing in 1902 broke through its ceiling by accident."
+  },
+  {
+   "heading": "CARVED WITHOUT METAL",
+   "body": "Chambers were hollowed by hand from globigerina limestone using antlers and stone tools."
+  },
+  {
+   "heading": "RESTING PLACE OF 7,000",
+   "body": "The underground necropolis contained the remains of approximately 7,000 individuals."
+  },
+  {
+   "heading": "CENTURIES OF USE",
+   "body": "The site was continuously utilized spanning from around 4000 B.C. to 2500 B.C."
+  },
+  {
+   "heading": "THE ORACLE ROOM",
+   "body": "A carved resonance niche creates an acoustic echo that carries sound through chambers."
+  },
+  {
+   "heading": "ENDURING DEVOTION",
+   "body": "What inspires human beings to spend centuries carving deep monuments for their dead?"
+  }
+ ],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Ħal Saflieni Hypogeum",
+   "url": "https://whc.unesco.org/en/list/130"
+  },
+  {
+   "title": "Smithsonian Magazine - Malta's Hypogeum",
+   "url": "https://www.smithsonianmag.com/travel/maltas-hypogeum-one-worlds-best-preserved-prehistoric-sites-reopens-public-180963397/"
+  },
+  {
+   "title": "Wikipedia - Ħal Saflieni Hypogeum",
+   "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum"
+  }
+ ],
+ "carousel_caption": "Swipe through to explore the subterranean levels of Paola, Malta 🏛️ Prehistoric builders hollowed this underground complex out of soft globigerina limestone using antlers and stone tools, holding the remains of approximately 7,000 individuals. What drives a civilization to carve so deeply into the earth? ⏳\n\n#HalSaflieni #AncientMalta #MalteseArchaeology #SubterraneanHistory",
+ "fact_sheet": true,
+ "topic_id": "hal_saflieni_hypogeum",
+ "origin": "gemini-free",
+ "word_count": 107,
+ "location": {
+  "name": "Ħal Saflieni Hypogeum",
+  "city": "Paola",
+  "region": "Southern Harbour",
+  "country": "Malta",
+  "latitude": 35.8697,
+  "longitude": 14.5069
+ },
+ "meta_topic_categories": [
+  "History & Philosophy",
+  "Archaeology",
+  "Travel & Culture"
+ ],
+ "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+ "fact_sheet_note": "🧾 Written from a verified fact sheet: 14 facts with quoted evidence (1 disputed, used only with their hedges)",
+ "fact_audits": [
+  {
+   "claim": "Malta's underground necropolis held approximately 7,000 individuals",
+   "where": "[title]",
+   "fact_ids": [
+    "estimated_human_remains"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately reflects the estimated human remains count of approximately 7,000 individuals; titles are exempt from mandatory statistical hedging words."
+  },
+  {
+   "claim": "Prehistoric builders engineered an ancient subterranean monument beneath Paola, Malta across three superimposed underground levels linked by steps and doorways",
+   "where": "[narration]",
+   "fact_ids": [
+    "hal_saflieni_location",
+    "three_superimposed_levels"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Fully matches the fact sheet details regarding location and three superimposed levels."
+  },
+  {
+   "claim": "The underground chambers were hollowed directly out of soft globigerina limestone and carved entirely by hand using antlers and stone tools made of chert, flint, and obsidian",
+   "where": "[narration]",
+   "fact_ids": [
+    "globigerina_limestone_construction",
+    "stone_and_antler_tools"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches the construction material and hand tool facts."
+  },
+  {
+   "claim": "Archaeological records indicate that the underground necropolis originally contained the remains of approximately 7,000 individuals, utilized from around 4000 B.C. to 2500 B.C.",
+   "where": "[narration]",
+   "fact_ids": [
+    "estimated_human_remains",
+    "dates_of_use"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Maintains the required hedge 'approximately' and accurately states the continuous utilization dates."
+  },
+  {
+   "claim": "A carved resonance niche in the Oracle Room creates an acoustic echo that carries sound throughout the chambers",
+   "where": "[narration]",
+   "fact_ids": [
+    "oracle_room_resonance"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by the fact sheet."
+  },
+  {
+   "claim": "Construction workers discovered the underground complex by accident in 1902 while cutting cisterns for new housing",
+   "where": "[narration]",
+   "fact_ids": [
+    "accidental_discovery_1902"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by the fact sheet."
+  },
+  {
+   "claim": "Prehistoric builders in Paola, Malta carved the subterranean monument across three superimposed underground levels using only antlers, chert, flint, and obsidian",
+   "where": "[caption]",
+   "fact_ids": [
+    "hal_saflieni_location",
+    "three_superimposed_levels",
+    "stone_and_antler_tools"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Matches the location, three levels, and tools specified in the fact sheet."
+  },
+  {
+   "claim": "The chambers held the remains of approximately 7,000 individuals and were utilized from around 4000 B.C. to 2500 B.C.",
+   "where": "[caption]",
+   "fact_ids": [
+    "estimated_human_remains",
+    "dates_of_use"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately conveys burial estimates and chronological span with proper hedging."
+  },
+  {
+   "claim": "The site remained unseen until 1902, when workers cutting cisterns broke through the rock ceiling",
+   "where": "[caption]",
+   "fact_ids": [
+    "accidental_discovery_1902"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches accidental discovery details."
+  },
+  {
+   "claim": "Prehistoric builders hollowed this underground complex in Paola, Malta out of soft globigerina limestone using antlers and stone tools, holding the remains of approximately 7,000 individuals",
+   "where": "[carousel caption]",
+   "fact_ids": [
+    "hal_saflieni_location",
+    "globigerina_limestone_construction",
+    "stone_and_antler_tools",
+    "estimated_human_remains"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately combines location, stone type, tools, and burial estimate."
+  },
+  {
+   "claim": "In ancient Malta, 7,000 souls were laid to rest deep underground",
+   "where": "[on-screen cover]",
+   "fact_ids": [
+    "hal_saflieni_location",
+    "estimated_human_remains"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Accurately reflects the historical subject; thumbnail/cover text is exempt from mandatory statistical hedging words."
+  },
+  {
+   "claim": "In 1902, workers cutting housing cisterns beneath Paola's streets broke through into an underground monument",
+   "where": "[story]",
+   "fact_ids": [
+    "accidental_discovery_1902",
+    "hal_saflieni_location"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by accidental discovery and location facts."
+  },
+  {
+   "claim": "Chambers were cut from soft globigerina limestone across three levels using antlers, chert, and flint",
+   "where": "[story]",
+   "fact_ids": [
+    "three_superimposed_levels",
+    "globigerina_limestone_construction",
+    "stone_and_antler_tools"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches three superimposed levels, limestone type, and tools."
+  },
+  {
+   "claim": "The necropolis held approximately 7,000 individuals from 4000 B.C. to 2500 B.C.",
+   "where": "[story]",
+   "fact_ids": [
+    "estimated_human_remains",
+    "dates_of_use"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches estimated remains and dates of use."
+  },
+  {
+   "claim": "Ħal Saflieni Hypogeum is a prehistoric subterranean monument carved across three underground levels",
+   "where": "[slide]",
+   "fact_ids": [
+    "hal_saflieni_location",
+    "three_superimposed_levels"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by location and level facts."
+  },
+  {
+   "claim": "Workers cutting cisterns for new housing in 1902 broke through its ceiling by accident",
+   "where": "[slide]",
+   "fact_ids": [
+    "accidental_discovery_1902"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by discovery fact."
+  },
+  {
+   "claim": "Chambers were hollowed by hand from globigerina limestone using antlers and stone tools",
+   "where": "[slide]",
+   "fact_ids": [
+    "globigerina_limestone_construction",
+    "stone_and_antler_tools"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches globigerina limestone construction and hand tools."
+  },
+  {
+   "claim": "The underground necropolis contained the remains of approximately 7,000 individuals",
+   "where": "[slide]",
+   "fact_ids": [
+    "estimated_human_remains"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by estimated human remains fact."
+  },
+  {
+   "claim": "The site was continuously utilized spanning from around 4000 B.C. to 2500 B.C.",
+   "where": "[slide]",
+   "fact_ids": [
+    "dates_of_use"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches dates of use."
+  },
+  {
+   "claim": "A carved resonance niche in the Oracle Room creates an acoustic echo that carries sound through chambers",
+   "where": "[slide]",
+   "fact_ids": [
+    "oracle_room_resonance"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by Oracle Room resonance fact."
+  },
+  {
+   "claim": "Initial prehistoric use began c. 4000 BC and ended c. 2500 BC",
+   "where": "[graphic]",
+   "fact_ids": [
+    "dates_of_use"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches dates of continuous prehistoric use."
+  },
+  {
+   "claim": "Accidentally discovered in 1902",
+   "where": "[graphic]",
+   "fact_ids": [
+    "accidental_discovery_1902"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches 1902 accidental discovery date."
+  },
+  {
+   "claim": "Approx. 7,000 estimated human remains",
+   "where": "[graphic]",
+   "fact_ids": [
+    "estimated_human_remains"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly matches human remains estimate."
+  },
+  {
+   "claim": "The Hypogeum contains the Oracle Room, resonance niche, and steps and doorways",
+   "where": "[graphic]",
+   "fact_ids": [
+    "three_superimposed_levels",
+    "oracle_room_resonance"
+   ],
+   "claim_type": "domain_fact",
+   "verdict": "traced",
+   "note": "Directly supported by three superimposed levels and Oracle Room facts."
+  }
+ ],
+ "consensus_confidence": 100.0,
+ "second_check": {
+  "status": "pass",
+  "confidence": 100.0,
+  "audits": [
+   {
+    "claim": "Beneath the town of Paola, Malta, a prehistoric subterranean monument was constructed across three superimposed underground levels interconnected by steps and doorways.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     1,
+     2,
+     5,
+     6
+    ],
+    "note": "Q1, Q2, Q5, and Q6 confirm the prehistoric subterranean structure is located in Paola, Malta, and consists of three superimposed levels interconnected by steps, lintels, and doorways."
+   },
+   {
+    "claim": "The underground chambers were carved directly out of soft globigerina limestone using antlers and tools made of chert, flint, and obsidian.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     5,
+     6
+    ],
+    "note": "Q5 and Q6 confirm the chambers are cut into soft globigerina limestone using only chert, flint, and obsidian tools and antlers."
+   },
+   {
+    "claim": "The necropolis was used from around 4000 B.C. to 2500 B.C. and originally contained the remains of approximately 7,000 individuals.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     8,
+     9,
+     10,
+     11,
+     12
+    ],
+    "note": "Q8, Q9, Q10, Q11, and Q12 confirm the site was used from around 4000 B.C. to 2500 B.C. and originally contained the estimated remains of about 7,000 individuals."
+   },
+   {
+    "claim": "A carved resonance niche in the Oracle Room creates an echo that projects sound throughout the chambers.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     14,
+     16
+    ],
+    "note": "Q14 and Q16 confirm that a resonance niche cut into the Oracle Room echoes and was designed to project sound throughout the Hypogeum."
+   },
+   {
+    "claim": "Workers discovered the site by accident in 1902 while cutting cisterns for a new housing development.",
+    "claim_type": "domain_fact",
+    "verdict": "supported",
+    "quote_ids": [
+     2,
+     3,
+     4
+    ],
+    "note": "Q2, Q3, and Q4 document that workers cutting cisterns for new housing accidentally broke through into the site in 1902."
+   },
+   {
+    "claim": "Audience reflection questions asking whether one would descend into the necropolis, how comfortable one would feel, or what inspires civilizations to carve monuments for their dead.",
+    "claim_type": "rhetorical_framing",
+    "verdict": "supported",
+    "quote_ids": [],
+    "note": "These are open audience reflection prompts asserting no testable factual claim about the site."
+   }
+  ],
+  "summary": "[evidence re-check (gemini-3.7-flash)] All 6 claims supported by the quoted evidence."
+ },
+ "guardrail_passed": true,
+ "script_rounds": 2,
+ "script_round_reasons": [
+  "REJECTED by fact checker: 2 untraceable claim(s): 'graphic: 3 is not in the fact sheet' (number check); 'number card: 3 (Superimposed underground levels) is not a figure the narration says' (number ch"
+ ],
+ "fact_review": {
+  "public_fingerprint": "0483f35ad45d284c040a6b07beb63463231511b536d70211ce6d149cd0787310",
+  "sheet_path": "tests/fixtures/lane_b_c3c/hal_saflieni_hypogeum.fact_sheet.json",
+  "sheet_sha256": "3fe50daf2e52412dc82f92162f17a33ae3e487dddbd4f179c5a6675a5929154c",
+  "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+ }
+}

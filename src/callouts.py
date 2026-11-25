@@ -661,6 +661,24 @@ def label_sizes(fmt: str) -> list[int]:
     return list(range(size0, math.ceil(size0 * 0.8) - 1, -LABEL_STEP))
 
 
+def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, max_w: int) -> list[list[str]]:
+    """The label's line sets that fit its plate at this font (_shapes): one line, and the best two balanced lines."""
+    words = text.split()
+    out = []
+    if len(text) <= LABEL_MAX_CHARS and _tracked(measure, text, font, track) <= max_w:
+        out.append([text])
+    best = None
+    for i in range(1, len(words)):
+        a, b = " ".join(words[:i]), " ".join(words[i:])
+        wa, wb = _tracked(measure, a, font, track), _tracked(measure, b, font, track)
+        fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w
+        if fits and (best is None or max(wa, wb) < best[0]):
+            best = (max(wa, wb), [a, b])
+    if best:
+        out.append(best[1])
+    return out
+
+
 def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None = None) -> list[_Shape]:
     """The label's plate shapes: on one line and on two balanced lines (at most LABEL_MAX_CHARS each), in
     Montserrat Bold tracked +0.04 em, at the largest size down to four fifths of LABEL_PX where either fits
@@ -672,18 +690,7 @@ def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None 
     for s in sizes:
         font = get_font(brand.TEXT_FONT, s, weight=700)
         track = LABEL_TRACK * s
-        out = []
-        if len(text) <= LABEL_MAX_CHARS and _tracked(measure, text, font, track) <= max_w:
-            out.append([text])
-        best = None
-        for i in range(1, len(words)):
-            a, b = " ".join(words[:i]), " ".join(words[i:])
-            wa, wb = _tracked(measure, a, font, track), _tracked(measure, b, font, track)
-            fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w
-            if fits and (best is None or max(wa, wb) < best[0]):
-                best = (max(wa, wb), [a, b])
-        if best:
-            out.append(best[1])
+        out = _fitting(measure, text, font, track, max_w)
         if out:
             return [_Shape(lines, font, track, fmt, measure) for lines in out]
     font = get_font(brand.TEXT_FONT, sizes[-1], weight=700)   # nothing fits: the smallest size, on two lines
@@ -3087,6 +3094,22 @@ def replay(audit_path: Path, out: Path | None = None) -> Path:
                   reveal=[lab["cue"] for lab in rec["labels"]])
 
 
+def label_holds(hedged: str, plain: str, fmt: str) -> bool:
+    """Lane B c3c: True when the `hedged` label (a figure drawn with its signed hedge) sets on its plate (_shapes
+    finds a shape, not the nothing-fits fallback) at the size the `plain` label (the figure withheld) sets at, or
+    larger: no smaller label size for the hedge word. An empty plain label sets at the largest size."""
+    measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    sizes = label_sizes(fmt)
+
+    def fits_at(text: str) -> int | None:
+        # the size _shapes sets the label at (its own size site), None when nothing fits (its smallest-size fallback)
+        shape = _shapes(measure, text, fmt)[0]
+        return shape.font.size if _fitting(measure, text.upper(), shape.font, shape.track, LABEL_MAX_W[fmt]) else None
+    got = fits_at(hedged)
+    want = fits_at(plain) if plain.strip() else sizes[0]
+    return got is not None and (want is None or got >= want)
+
+
 def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], work_dir: Path, width: int = VIDEO_WIDTH,
          height: int = VIDEO_HEIGHT, words: list[dict[str, Any]] | None = None, approved: Any = ...,
          auto_approve: bool = False, grade_bias: float | None = None) -> Path | None:
@@ -3104,9 +3127,21 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
     labels = payload.get("photo_labels") or []
     # Lane B c3b: each label through the one pre-draw figure gate (visual_engine.gate_drawn); a label left with
     # nothing readable is not a candidate (each label is its own), recorded on the run's ledger
-    from .visual_engine import gate_drawn, record_withheld
-    gated, rows = gate_drawn({str(i): str(t) for i, t in enumerate(labels)}, payload, "photo callouts")
+    from .visual_engine import gate_drawn, record_hedged, record_withheld
+    texts = {str(i): str(t) for i, t in enumerate(labels)}
+    gated, rows = gate_drawn(texts, payload, "photo callouts")
+    # Lane B c3c: a label figure that lacks only its signed hedge is drawn with it when the hedged label sets on its
+    # plate at the size the plain label sets at (label_holds); else the plain label (the figure withheld) as before
+    hedged: list[dict[str, Any]] = []
+    h_gated, h_rows = gate_drawn(texts, payload, "photo callouts", hedged=hedged)
+    fmt = _fmt(width, height)
+    kept = [h for h in hedged if label_holds(h["text"], gated[h["field"]], fmt)]
+    for h in kept:
+        gated[h["field"]] = h["text"]
+    rows = [r for r in rows if r["field"] not in {h["field"] for h in kept}] + \
+        [r for r in h_rows if r["field"] in {h["field"] for h in kept}]
     record_withheld(payload, rows)
+    record_hedged(payload, kept)
     labels = [gated[str(i)] for i in range(len(labels)) if gated[str(i)].strip()]
     if len(labels) < 2:
         return None

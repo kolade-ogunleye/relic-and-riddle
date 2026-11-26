@@ -102,6 +102,7 @@ def story_posting_frames(paths) -> list[tuple[int, str]]:
 STORY_BODY_PX = 46      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt; 40 until
                         # the overhaul of 2026-10-29, which sets it at the critic's measured 46-48 px, ~16 pt)
 STORY_BODY_LINES = 3
+STORY_POINTER = "FULL STORY ON OUR PROFILE"   # the hook frame's pointer to the Reel (lane D cycle 4: no link sticker)
 STORY_BODY_WEIGHT = 600  # Montserrat SemiBold (2026-11-02 round 2: stated, so a default elsewhere cannot thin it)
 STORY_TITLE_W = 860      # the title's measure: three lines at its design size before it shrinks (2026-11-02)
 STORY_TITLE_LINES = 3
@@ -319,6 +320,102 @@ def plain_deck(slides: list[dict[str, Any]], hedged: list[dict[str, Any]]) -> li
         if h["slide"] is not None:
             out[h["slide"] - 1].update(h["plain"]["fields"])
     return out
+
+
+# Lane D cycle 4 (lander ruling, cycle 3 whole-deck refusals, item b): the slide-drop fallback. A content slide whose
+# heading or body the figure gate leaves with nothing readable (gate_deck would refuse the whole deck) is dropped from
+# the deck instead, recorded, when the deck stays coherent: its cover and its closing slide kept (neither is ever
+# dropped), at least CAROUSEL_MIN_SLIDES slides left (the cover, four content slides and the closing question: the
+# Facebook copy's five-photo collage, FACEBOOK_PHOTOS, still fills). Otherwise nothing is dropped and gate_deck refuses
+# the deck as before (fail closed). Decided on the copy as drawn (spoken units, the hedge a figure may be drawn with).
+CAROUSEL_MIN_SLIDES = 6
+SLIDE_DROP_RULE = "carousel.slide_drop"
+
+
+def emptied_slides(cards: list[dict[str, Any]], script_payload: dict[str, Any], surface: str,
+                   fields: tuple[str, ...] = ("heading", "body"), title: tuple[str, ...] = ("heading",),
+                   label: str = "slide") -> list[dict[str, Any]]:
+    """The slides (1-based "slide", "emptied", "rows") the figure gate would leave with nothing readable (gate_deck's
+    refusal), each judged on its drawn form: the hedged form where a figure lacks only its signed hedge. Nothing is
+    recorded on the run's ledger (a probe; gate_deck records)."""
+    from .visual_engine import gate_drawn
+    out = []
+    for i, slide in enumerate(cards, 1):
+        name = f"{surface} {label} {i}"
+        texts = {k: slide[k] for k in fields if isinstance(slide.get(k), str)}
+        order = [k for k in fields if k in texts]
+        gated, rows = gate_drawn(texts, script_payload, name, order)
+        found: list[dict[str, Any]] = []
+        h_gated, h_rows = gate_drawn(texts, script_payload, name, order, hedged=found)
+        if found:
+            gated, rows = h_gated, h_rows
+        why = _deck_emptied(texts, gated, rows, title)
+        if why:
+            out.append({"slide": i, "emptied": why, "rows": rows})
+    return out
+
+
+def slides_to_drop(cards: list[dict[str, Any]], script_payload: dict[str, Any], surface: str,
+                   minimum: int = CAROUSEL_MIN_SLIDES) -> list[dict[str, Any]]:
+    """The slide-drop fallback's decision: the emptied slides (emptied_slides) to drop, or [] when the deck would not
+    stay coherent without them (an emptied cover or closing slide, or fewer than `minimum` slides left): the deck is
+    then refused by gate_deck as before."""
+    empty = emptied_slides(cards, script_payload, surface)
+    n = len(cards)
+    if not empty or any(e["slide"] in (1, n) for e in empty) or n - len(empty) < minimum:
+        return []
+    return empty
+
+
+def record_dropped(script_payload: dict[str, Any], surface: str, dropped: list[dict[str, Any]],
+                   cards: list[dict[str, Any]], kept: int) -> list[dict[str, Any]]:
+    """Each dropped slide on the run's ledger (payload["layout_holds"], as record_withheld writes a drawn-without row:
+    the review card and the release gate name it) and on the open omissions ledger (refusal.omit, when one is open:
+    the evidence board's surfaces.json). One row per surface and slide. Returns the rows."""
+    from . import refusal
+    from .visual_engine import FIGURE_GATE_RULE
+    holds = script_payload.setdefault("layout_holds", [])
+    seen = {(h.get("surface"), h.get("omitted")) for h in holds if isinstance(h, dict)}
+    out = []
+    for e in dropped:
+        heading = str(cards[e["slide"] - 1].get("heading") or "")
+        omitted = f"slide {e['slide']} ({heading})"
+        figures = "; ".join(f"{r['drawn']}: {r['reason']}" for r in e["rows"])
+        reason = (f"drawn without {omitted!r}: {e['emptied']} has nothing readable once its unsigned figures are "
+                  f"withheld ({figures}); the slide is dropped and the deck keeps {kept} slides (at least "
+                  f"{CAROUSEL_MIN_SLIDES}, cover and closing slide kept) (rule: {FIGURE_GATE_RULE}, "
+                  f"{SLIDE_DROP_RULE})")
+        row = {"surface": surface, "omitted": omitted, "rule": SLIDE_DROP_RULE, "drawn": True, "reason": reason,
+               "slide": e["slide"]}
+        out.append(row)
+        if (surface, omitted) not in seen:
+            seen.add((surface, omitted))
+            holds.append(row)
+            log.warning("%s: %s", surface, reason)
+        with contextlib.suppress(refusal.Declined):   # no ledger open: the run's own ledger above holds the record
+            refusal.omit(surface, omitted, SLIDE_DROP_RULE, reason)
+    return out
+
+
+def prune_stale_slides(out_dir: Path, total: int) -> list[str]:
+    """Slides numbered past `total` left in `out_dir` by an earlier, longer drawing of the deck (a dropped slide makes
+    the deck shorter), removed with their layout records: every reader takes the folder's carousel_slide_*.jpg."""
+    from . import still_layout
+    gone = []
+    for p in sorted(Path(out_dir).glob("carousel_slide_*.jpg")):
+        m = re.fullmatch(r"carousel_slide_(\d+)\.jpg", p.name)
+        if m and int(m.group(1)) > total:
+            with contextlib.suppress(OSError):
+                p.unlink()
+                gone.append(p.name)
+    if gone:
+        side = still_layout.sidecar(Path(out_dir) / "carousel_slide_01.jpg")
+        with contextlib.suppress(OSError, ValueError):
+            data = json.loads(side.read_text(encoding="utf-8")) if side.is_file() else {}
+            if any(k in data for k in gone):
+                side.write_text(json.dumps({k: v for k, v in data.items() if k not in gone}, indent=1,
+                                           ensure_ascii=False), encoding="utf-8", newline="\n")
+    return gone
 
 
 def _hedged_fits(got: Any) -> bool:
@@ -937,6 +1034,91 @@ SHARE_WEIGHT = 700   # the closing slide's share-and-follow line: Montserrat Bol
 _render_state = threading.local()   # the slide being drawn on this thread: its subject
 
 
+# Lane D cycle 4 (AD-04 + PL-ri3-wedge, converging: the Richat slide 3 showed the Apollo 9 photograph's black window
+# wedge down its left edge, 3 px wide at y 100 and 139 px at y 900). A source's own FRAME is a region of DIGITAL black
+# touching the picture's edge, of at least FRAME_MIN_AREA of it: dark (FRAME_LUMA) and even (FRAME_STD) and, as a
+# whole, at the format's black (mean FRAME_MEAN or under): a spacecraft window's masked edge, a scan border. Measured on
+# the dev pool (541 photos): those frames sit at a mean of 0.1-0.8; a photographed dark (a black cloth, a museum case,
+# a doorway, a mine's shadow) at 4-12, never under 3, so no photographed dark is taken for a frame. A window (a slide's or a Story
+# frame's photo crop) showing FRAME_SHOWN of its area or more of one takes the least zoom, up to FRAME_ZOOM_MAX, and
+# the position nearest its own, that shows none (FRAME_CLEAR) while holding the picture's centre (the deck window
+# rule); where none does (black space filling an orbital photograph's sky, a night scene), the window is kept and the
+# frame is recorded as kept. Generic: no topic, no photo list; never an enlargement past the plain fit's.
+FRAME_LUMA = 12
+FRAME_STD = 2.5
+FRAME_MEAN = 2.0
+FRAME_MIN_AREA = 0.003
+FRAME_SHOWN = 0.002
+FRAME_CLEAR = 0.0005
+FRAME_ZOOM_MAX = 1.25
+FRAME_ZOOM_STEP = 0.025
+FRAME_STEPS = 9
+FRAME_ANALYSIS = 400
+
+
+def frame_mask(im: Image.Image):
+    """(mask, scale): the picture's frame pixels (see FRAME_LUMA) at FRAME_ANALYSIS px on the longer side."""
+    import cv2
+    import numpy as np
+    w, h = im.size
+    scale = min(1.0, FRAME_ANALYSIS / max(w, h))
+    a = np.asarray(im.convert("L").resize((max(1, round(w * scale)), max(1, round(h * scale))),
+                                          Image.Resampling.BOX), np.float32)
+    n, lab, st, _ = cv2.connectedComponentsWithStats((a <= FRAME_LUMA).astype(np.uint8), connectivity=8)
+    mask = np.zeros(a.shape, bool)
+    ah, aw = a.shape
+    for i in range(1, n):
+        x, y, bw, bh, area = (int(v) for v in st[i])
+        if area < FRAME_MIN_AREA * ah * aw or not (x == 0 or y == 0 or x + bw == aw or y + bh == ah):
+            continue
+        comp = lab == i
+        if float(a[comp].std()) <= FRAME_STD and float(a[comp].mean()) <= FRAME_MEAN:
+            mask |= comp
+    return mask, scale
+
+
+def _mask_share(mask, scale: float, box) -> float:
+    x0, y0, x1, y1 = (int(round(v * scale)) for v in box)
+    win = mask[max(0, y0):max(y0 + 1, y1), max(0, x0):max(x0 + 1, x1)]
+    return float(win.mean()) if win.size else 0.0
+
+
+def frame_window(clean: Image.Image, size: tuple[int, int], centering=(0.5, 0.5)) -> dict[str, Any] | None:
+    """None when the window `clean` cropped to `size` at `centering` (ImageOps.fit's) shows no frame (FRAME_SHOWN);
+    else {"box": the crop box (clean px) that shows none, or None to keep the window, "record": what was found}."""
+    import numpy as np
+    mask, scale = frame_mask(clean)
+    if not mask.any():
+        return None
+    W, H = clean.size
+    ow, oh = size
+    bw, bh = (H * ow / oh, float(H)) if W / H > ow / oh else (float(W), W * oh / ow)
+    x0, y0 = (W - bw) * centering[0], (H - bh) * centering[1]
+    shown = _mask_share(mask, scale, (x0, y0, x0 + bw, y0 + bh))
+    if shown < FRAME_SHOWN:
+        return None
+    mid = (x0 + bw / 2, y0 + bh / 2)
+    least = min(bw, float(ow))                      # never narrower than the output where the fit was not
+    z = 1.0
+    while z <= FRAME_ZOOM_MAX + 1e-9:
+        w, h = bw / z, bh / z
+        if w + 1e-6 < least:
+            break
+        found = []
+        for x in np.linspace(max(0.0, W / 2 - w), min(W - w, W / 2), FRAME_STEPS):
+            for y in np.linspace(max(0.0, H / 2 - h), min(H - h, H / 2), FRAME_STEPS):
+                box = (x, y, x + w, y + h)
+                if _mask_share(mask, scale, box) <= FRAME_CLEAR:
+                    found.append((abs(x + w / 2 - mid[0]) + abs(y + h / 2 - mid[1]), box))
+        if found:
+            box = tuple(int(round(v)) for v in min(found, key=lambda f: f[0])[1])
+            return {"box": box, "record": {"shown": round(shown, 4), "zoom": round(z, 3), "box": list(box),
+                                           "cleared": True}}
+        z += FRAME_ZOOM_STEP
+    return {"box": None, "record": {"shown": round(shown, 4), "zoom": None, "cleared": False,
+                                    "kept": f"no window within {FRAME_ZOOM_MAX}x holding the centre clears it"}}
+
+
 class PhotoMatchFailed(RuntimeError):
     """The carousel's photos could not be matched to its slides (MultiFormatGenerator._match_photos, strict)."""
 
@@ -1384,7 +1566,10 @@ class MultiFormatGenerator:
             y += 96
             # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
             # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
-            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, brand.BONE, font_p.size * 0.11, 0))
+            # Lane D cycle 4 (PL r1 + r2, converging): the pointer names the tap target every Story has, the account
+            # header that opens the profile where the Reel posted first (main posts a Story only once its Reel is
+            # published); "IN OUR NEW REEL" promised a link no sticker carried (the Story API posts none)
+            rows.append(("reel_pointer", y, STORY_POINTER, font_p, brand.BONE, font_p.size * 0.11, 0))
         bottom = max([d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _, _ in rows]
                      + ([sticker_at + sticker] if sticker else []))
         block = bottom
@@ -1499,18 +1684,31 @@ class MultiFormatGenerator:
         mbox = getattr(_render_state, "masthead_box", None) if top else None
         centering = (0.5, 0.5)
         from .image_presentation import full_image
-        if (k or mbox) and not full_image(photo):
+        if full_image(photo):
+            return cover_crop(photo, size, centering).convert("RGB")
+        from .photo_hygiene import without_caption_strip
+        with Image.open(photo) as im:
+            clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGB"))
+        entry: dict[str, Any] = {}
+        if k or mbox:
             from .hero_window import deck_window
-            from .photo_hygiene import without_caption_strip
-            with Image.open(photo) as im:
-                clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGB"))
             win = deck_window(clean.size, size, k, mbox, clean)
             centering = win["centering"]
-            rec = getattr(_render_state, "window_rec", None)
+            entry = {"photo": Path(photo).name, "size": list(size), "showing": k,
+                     "centering": [round(v, 3) for v in centering], "overlap": win["overlap"],
+                     "masthead_clear": win["masthead_clear"]}
+        # lane D cycle 4 (AD-04 / PL-ri3-wedge, Richat s3): a source's own black frame (a spacecraft window's wedge, a
+        # scan border) never shows in the window where a window within FRAME_ZOOM_MAX keeping the centre clears it
+        framed = frame_window(clean, size, centering)
+        rec = getattr(_render_state, "window_rec", None)
+        if framed is not None:
             if isinstance(rec, list):
-                rec.append({"photo": Path(photo).name, "size": list(size), "showing": k,
-                            "centering": [round(v, 3) for v in centering], "overlap": win["overlap"],
-                            "masthead_clear": win["masthead_clear"]})
+                rec.append({**(entry or {"photo": Path(photo).name, "size": list(size), "showing": k}),
+                            "frame": framed["record"]})
+            if framed["box"] is not None:
+                return clean.crop(framed["box"]).resize(size, Image.LANCZOS).convert("RGB")
+        elif entry and isinstance(rec, list):
+            rec.append(entry)
         return cover_crop(photo, size, centering).convert("RGB")
 
     @classmethod
@@ -1568,19 +1766,26 @@ class MultiFormatGenerator:
             chosen = [Path(x) for x in kept.get("photos") or []]
             if (kept.get("key") == key and len(chosen) == len(cards) and all(x.is_file() for x in chosen)
                     and not any(is_ai_picture(x) for x in chosen)):
-                return chosen
-            recorded = _recorded_photos(output_dir, cards)
-            if any(is_ai_picture(x) for x in recorded):
-                recorded = []
-            chosen = recorded or (self._match_photos(cards, stills, strict=True) if strict
-                                  else self._match_photos(cards, stills))
+                matched = [Path(x) for x in kept.get("matched") or chosen]
+                guarded, choice = deck_photo_guard(cards, matched, stills)   # lane D cycle 4: every path
+                if guarded == chosen and kept.get("choice") == choice:
+                    return chosen
+            else:
+                recorded = _recorded_photos(output_dir, cards)
+                if any(is_ai_picture(x) for x in recorded):
+                    recorded = []
+                matched = recorded or (self._match_photos(cards, stills, strict=True) if strict
+                                       else self._match_photos(cards, stills))
+                guarded, choice = deck_photo_guard(cards, matched, stills)
             try:
                 output_dir.mkdir(parents=True, exist_ok=True)
-                record.write_text(json.dumps({"key": key, "photos": [str(x) for x in chosen]}, indent=1,
-                                             ensure_ascii=False), encoding="utf-8", newline="\n")
+                record.write_text(json.dumps({"key": key, "photos": [str(x) for x in guarded],
+                                              "matched": [str(x) for x in matched], "choice": choice,
+                                              "rule": PHOTO_CHOICE_RULE}, indent=1, ensure_ascii=False),
+                                  encoding="utf-8", newline="\n")
             except OSError as e:  # the record is a convenience; the slides are still drawn
                 log.warning("Carousel photo match not recorded (%s).", e)
-            return chosen
+            return guarded
 
     @staticmethod
     def route_carousel_archetype(card: dict[str, Any], index: int, total: int) -> str:
@@ -2745,6 +2950,22 @@ class MultiFormatGenerator:
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
         narration = script_payload.get("narration_script") or ""
         subject = standalone_subject(script_payload)   # both copies (2026-11-02): one rule for IG and FB
+        gate_surface = "Facebook carousel" if facebook else "carousel"
+        # Lane D cycle 4 (the slide-drop fallback, cycle 3 ruling b): a content slide the figure gate would leave with
+        # nothing readable is dropped, recorded, when the deck stays coherent (slides_to_drop); otherwise gate_deck
+        # refuses the deck below, as before. Decided on the copy as drawn, the same on both copies.
+        from .figures import deck_lead
+        lead0 = deck_lead(script_payload)
+        drop = slides_to_drop([dict(card, **{k: spoken_units(card[k], narration, lead0) for k in ("heading", "body")
+                                             if isinstance(card.get(k), str)}) for card in cards],
+                              script_payload, gate_surface)
+        dropped_rows: list[dict[str, Any]] = []
+        if drop:
+            gone = {e["slide"] - 1 for e in drop}
+            dropped_rows = record_dropped(script_payload, gate_surface, drop, cards, len(cards) - len(gone))
+            cards = [c for i, c in enumerate(cards) if i not in gone]
+            photos = [p for i, p in enumerate(photos) if i not in gone]
+            total = len(cards)
 
         slides = []
         archetypes = self.sequence_archetypes(cards)
@@ -2769,6 +2990,15 @@ class MultiFormatGenerator:
                 diagram = None
         if diagram:
             archetypes = [("diagram" if i == diagram[0] else a) for i, a in enumerate(archetypes)]
+        # Lane D cycle 4 (AD-P5-01, lander-verified: the Aswan scale slide drew the Statue of Liberty and no sentence on
+        # the slide named it): a diagram slide whose copy does not name the comparator its drawing draws says it, after
+        # its own signed body (diagram_comparator: the reference file's name, no figure); the drawing keeps its labels
+        comparator: dict[str, Any] | None = None
+        if diagram:
+            comparator = diagram_comparator(cards[diagram[0]], diagram[1], script_payload)
+            if comparator:
+                comparator["slide"] = diagram[0] + 1
+                cards = [dict(c, body=comparator["body"]) if i == diagram[0] else c for i, c in enumerate(cards)]
         # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match; cycle 0
         # round 8: the signed scale fact's unit decides a length's lead for the whole deck (the diagram slide leads
         # in it, so every other slide states it first: figures.deck_lead).
@@ -2778,7 +3008,6 @@ class MultiFormatGenerator:
                                if isinstance(card.get(k), str)}) for card in cards]
         # Lane B c3b: every slide's heading and body (the colossal stat's figure row is read from the body) and the
         # closing slide's poll question through the one pre-draw figure gate (visual_engine.gate_drawn), as drawn
-        gate_surface = "Facebook carousel" if facebook else "carousel"
         # Lane B c3c: a figure that lacks only its signed hedge is drawn with it ("RESTING PLACE OF ABOUT 7,000")
         # where the slide holds it at the deck's own size rules: the deck's heading tier and both copies' heading
         # frames unchanged (else every hedged slide takes the plain form), and the slide drawn without a problem or a
@@ -2885,6 +3114,23 @@ class MultiFormatGenerator:
             layouts[facebook] = copy_layout(facebook)
             frame, _strips, order = layouts[facebook]
             drawn_deck, deck_step = plan_deck()
+        if comparator:
+            j = comparator["slide"] - 1
+            lay_j = drawn_deck[j][1]
+            if lay_j.problems() or "body" in list(getattr(lay_j, "shortened", None) or []):
+                # the comparator line does not fit the slide whole: the slide keeps its own body; the omission recorded
+                tail = " " + comparator["line"]
+                cards = [dict(c, body=c["body"][:-len(tail)] if c["body"].endswith(tail) else c["body"])
+                         if i == j else c for i, c in enumerate(cards)]
+                comparator = {**comparator, "drawn": False,
+                              "reason": "the slide's body does not hold the comparator line whole"}
+                record_comparator_omitted(script_payload, gate_surface, comparator)
+                layouts.clear()
+                layouts[facebook] = copy_layout(facebook)
+                frame, _strips, order = layouts[facebook]
+                drawn_deck, deck_step = plan_deck()
+            else:
+                comparator = {**comparator, "drawn": True}
         from .visual_engine import record_hedged
         record_hedged(script_payload, gate_hedged)
         for i in order:
@@ -2913,9 +3159,13 @@ class MultiFormatGenerator:
                                              if lay.meta.get("figure_withheld") else {}),
                                           **({"figure_hedged": lay.meta["figure_hedged"]}
                                              if lay.meta.get("figure_hedged") else {}),
+                                          **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                          **({"comparator": comparator} if comparator and i == comparator["slide"] - 1
+                                             else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
             drawn_paths[i] = path
         slides = [drawn_paths[i] for i in range(total)]
+        prune_stale_slides(out_dir, total)   # lane D cycle 4: a shorter deck leaves no older slide behind
 
         if facebook:
             # lane D cycle 3 (lander ruling 2 of the second review): in the 5-photo collage the cover and the second
@@ -2953,6 +3203,9 @@ class MultiFormatGenerator:
                                                   "subject": subject, "heading_frame": frame, "heading_tier": tier,
                                                   "lead": lead, "window": showing[j], "heading_px": size,
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
+                                                  **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                                  **({"comparator": comparator}
+                                                     if comparator and j == comparator["slide"] - 1 else {}),
                                                   **({"figure_withheld": lay.meta["figure_withheld"]}
                                                      if lay.meta.get("figure_withheld") else {}),
                                                   **({"figure_hedged": lay.meta["figure_hedged"]}
@@ -3150,6 +3403,53 @@ def carousel_diagram(output_dir: Path, cards: list[dict[str, Any]],
         return chosen
 
 
+COMPARATOR_RULE = "carousel.diagram_comparator"
+
+
+def diagram_comparator(card: dict[str, Any], poster: Path, script_payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Lane D cycle 4 (AD-P5-01): the sentence a scale diagram slide adds after its own body when neither its heading
+    nor its body names the landmark the drawing sets the subject against ({"body", "line", "landmark", "from"}), or
+    None (not a scale drawing, no sourced landmark, or the copy names it). The landmark is the one render_scale draws
+    (graphics.pick_reference on the signed scale_fact) in its sentence form (the line of meaning's), and the line
+    states no figure: the drawing's own labels carry the figures (the 9:16 graphic's line of meaning is not drawn on
+    the slide). Generic: any subject, any landmark of the reference file."""
+    if Path(poster).stem.replace("graphic_", "", 1) != "scale":
+        return None
+    from . import graphics
+    fact = script_payload.get("scale_fact") or {}
+    try:
+        feet = float(fact["value"]) * (3.28084 if fact.get("unit") == "m" else 1.0)
+    except (KeyError, TypeError, ValueError):
+        return None
+    ref = graphics.pick_reference(feet) if feet > 0 else None
+    if not ref:
+        return None
+    name = graphics._landmark_name(ref[0])
+    said = set(re.findall(r"[a-z]+", f"{card.get('heading', '')} {card.get('body', '')}".lower()))
+    core = [w for w in re.findall(r"[a-z]+", name.lower()) if w not in ("the", "of", "a", "an")]
+    if core and all(w in said for w in core):
+        return None
+    line = f"Drawn to scale beside {name}."
+    body = str(card.get("body") or "").rstrip()
+    return {"body": f"{body} {line}".strip(), "line": line, "landmark": name, "from": body}
+
+
+def record_comparator_omitted(script_payload: dict[str, Any], surface: str, comparator: dict[str, Any]) -> None:
+    """The comparator line left off its diagram slide (it did not fit whole) on the run's ledger, as a drawn-without
+    row (payload["layout_holds"]) and on the open omissions ledger when one is open."""
+    from . import refusal
+    name = f"{surface} slide {comparator['slide']}"
+    reason = (f"drawn without {comparator['line']!r}: {comparator.get('reason', '')}; the drawing still sets the "
+              f"subject against {comparator['landmark']} (rule: {COMPARATOR_RULE})")
+    holds = script_payload.setdefault("layout_holds", [])
+    if not any(h.get("surface") == name and h.get("omitted") == comparator["line"] for h in holds if isinstance(h, dict)):
+        holds.append({"surface": name, "omitted": comparator["line"], "rule": COMPARATOR_RULE, "drawn": True,
+                      "reason": reason})
+        log.warning("%s: %s", name, reason)
+    with contextlib.suppress(refusal.Declined):
+        refusal.omit(name, comparator["line"], COMPARATOR_RULE, reason)
+
+
 REDRAWN_DIR = "graphics_redrawn"   # <run>/graphics_redrawn/<brand+code key>/graphic_<kind>.jpg (cycle 0 round 8)
 # The signed field each diagram kind draws (graphics.make_all), and its renderer's name.
 _DIAGRAM_FIELDS = {"scale": ("scale_fact", "render_scale"), "section": ("cross_section", "render_cross_section"),
@@ -3290,6 +3590,106 @@ def _recorded_photos(output_dir: Path, cards: list[dict[str, Any]]) -> list[Path
         if same and all(str(x) not in ("", ".") and x.is_file() for x in photos):
             return photos
     return []
+
+
+# Lane D cycle 4 (CD r2, carousel photo matching): the deck's photo choice is held to three rules after the match, on
+# every path (a fresh match, a kept one, an older run's recorded one), and each slide's reason is kept in
+# carousel_photos.json ("choice"):
+# - no repeat: a photograph (picture_id: a crop or an upscale is its original) is shown on one slide only while the pool
+#   has one unused (scene_planner.no_repeats, the Reel's rule); with fewer photos than slides a repeat stays, said so;
+# - presence: a slide whose line is not about the subject today (PRESENT_WORDS: its visitors, its present state) never
+#   shows a photo whose review saw visitors or modern fittings in it (vision_review.people_prominent, or MODERN_WORDS in
+#   what the review saw: they stand between the reader and the subject the line is about, and on a line about the past
+#   they contradict it) while the pool has an unused photo the review did not flag; the replacement is the unused photo
+#   whose archive caption shares the most distinctive words with the slide (scene_planner.caption_order's measure),
+#   pool order on a tie;
+# - otherwise the match stands ("matched").
+# Generic: words of the present and of modern presence, never a topic or a photo list.
+PRESENT_WORDS = re.compile(
+    r"\b(?:today|nowadays|now|currently|still|modern|visitors?|tourists?|tourism|crowds?|people|travell?ers|museum|"
+    r"visit|visited|visiting|this year|recently)\b", re.IGNORECASE)
+MODERN_WORDS = re.compile(
+    r"\b(?:visitors?|tourists?|crowds?|sightseers|pedestrians|modern|scaffold\w*|vehicles?|cars|parking|signage|"
+    r"souvenir\w*)\b", re.IGNORECASE)   # never fabric a site of any age has (a walkway, stairs, a railing)
+PEOPLE_WORDS = re.compile(r"visitors?|tourists?|crowds?|sightseers|pedestrians", re.IGNORECASE)
+PHOTO_CHOICE_RULE = "carousel.photo_choice"
+
+
+def present_line(card: dict[str, Any]) -> bool:
+    """Whether a slide's line speaks of the subject today (PRESENT_WORDS): its photo may then show its visitors."""
+    return bool(PRESENT_WORDS.search(f"{card.get('heading', '')} {card.get('body', '')}"))
+
+
+def modern_presence(photo: Path) -> str:
+    """What the photo's review saw that is modern ("" when nothing): visitors (people_prominent) or MODERN_WORDS in its
+    reason."""
+    from .scene_planner import _photo_entry
+    entry = _photo_entry(Path(photo)) or {}
+    review = entry.get("vision_review") or {}
+    if review.get("people_prominent"):
+        return "prominent visitors"
+    for m in MODERN_WORDS.finditer(str(review.get("reason") or "")):
+        word = m.group(0).lower()
+        if review.get("people_prominent") is False and PEOPLE_WORDS.fullmatch(word):
+            continue   # the review judged the people in it not prominent
+        return word
+    return ""
+
+
+def deck_photo_guard(cards: list[dict[str, Any]], chosen: list[Path], stills: list[Path]
+                     ) -> tuple[list[Path], list[dict[str, Any]]]:
+    """(photos, choice): `chosen` held to the deck's photo rules above, and each slide's reason ({"slide", "photo",
+    "reason"}, with "replaced" naming the photo the rule took out)."""
+    from collections import Counter
+
+    from . import graphic_match
+    from .scene_planner import _id_memo, _photo_caption
+    pid = _id_memo()
+    chosen = [Path(p) for p in chosen]
+    stills = [Path(s) for s in stills]
+    caps = {pid(s): graphic_match.tokens(_photo_caption(s)) for s in stills}
+    df = Counter(t for c in caps.values() for t in c)
+    modern = {pid(s): modern_presence(s) for s in stills}
+    out = list(chosen)
+    reasons = ["matched"] * len(out)
+
+    def spare_for(k: int, flagged_ok: bool) -> Path | None:
+        """The unused photo for slide k whose caption matches its line best (pool order on a tie); one the review saw
+        modern presence in only when `flagged_ok`."""
+        used = {pid(p) for j, p in enumerate(out) if j != k}
+        spare = [s for s in stills if pid(s) not in used and pid(s) != pid(out[k])
+                 and (flagged_ok or not modern.get(pid(s)))]
+        if not spare:
+            return None
+        said = graphic_match.tokens(f"{cards[k].get('heading', '')} {cards[k].get('body', '')}") if k < len(cards) \
+            else set()
+        return max(spare, key=lambda s: (sum(1 / df[t] for t in caps.get(pid(s), set()) & said), -stills.index(s)))
+
+    for k in range(len(out)):
+        allow = k >= len(cards) or present_line(cards[k])
+        if any(pid(q) == pid(out[k]) for q in out[:k]):          # a repeat: the unused photo that fits best
+            pick = spare_for(k, flagged_ok=allow) or spare_for(k, flagged_ok=True)
+            if pick is None:
+                reasons[k] = "repeat kept: the pool has no unused photo"
+                continue
+            reasons[k] = f"no repeat: {out[k].name} is already on an earlier slide; {pick.name} fits the line best"
+            out[k] = pick
+        seen = "" if allow else modern_presence(out[k])
+        if not seen:
+            continue
+        pick = spare_for(k, flagged_ok=False)
+        if pick is None:
+            reasons[k] = (f"kept: the photo shows {seen} and the line is not about the subject today; no unused "
+                          "photo without it")
+            continue
+        reasons[k] = (f"presence: {out[k].name} shows {seen} and the line is not about the subject today; "
+                      f"{pick.name} is the unused photo whose caption matches the line best")
+        out[k] = pick
+    choice = [{"slide": k + 1, "photo": p.name, "reason": r} for k, (p, r) in enumerate(zip(out, reasons))]
+    for c, a in zip(choice, chosen):
+        if Path(a).name != c["photo"]:
+            c["replaced"] = Path(a).name
+    return out, choice
 
 
 # ---------------------------------------------------------------- what a posted slide shows

@@ -1587,6 +1587,8 @@ DRAWN_FIGURE_PATHS = (
     ("route", "src.graphics:render_route", "evidence", "route"),
     ("timeline", "src.graphics:render_timeline", "evidence", "timeline; gap labels derived and re-checked"),
     ("map", "src.graphics:render_map", "derived", "the scale bar"),
+    ("carousel scale slide comparator line", "src.multi_format:diagram_comparator", "derived",
+     "the reference file's landmark name the drawing sets the subject against (lane D c4); no figure"),
     ("captions' figure bursts", "src.video_composer:VideoComposer.build_subtitles", "evidence",
      "the narration's own words (narration_script is evidence)"),
     ("then-and-now", "src.then_now:make", "derived", "capture years from each photo's own record"),

@@ -87,8 +87,13 @@ def story_copy(payload: Dict[str, Any], index: int) -> str:
     return words
 
 
-def carousel_copy(payload: Dict[str, Any], index: int) -> str:
-    """The words on carousel slide `index` (0-based)."""
+def carousel_copy(payload: Dict[str, Any], index: int, slide: Path | None = None) -> str:
+    """The words on carousel slide `index` (0-based): with `slide`, the card its own layout record drew (a deck that
+    dropped a slide, lane D cycle 4, numbers its slides past the drop differently from the script's cards)."""
+    if slide is not None:
+        card = ((still_layout.load(Path(slide)) or {}).get("recipe") or {}).get("card") or {}
+        if card:
+            return " / ".join(str(card.get(k, "")) for k in ("heading", "body") if card.get(k))
     slides = (payload or {}).get("carousel_slides") or []
     if index >= len(slides):
         return ""

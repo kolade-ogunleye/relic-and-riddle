@@ -28,7 +28,7 @@ LIBRARIES = ("libass", "libharfbuzz", "libfribidi", "libfreetype", "fontconfig",
 FILTERS = (
     "adelay", "aeval", "afade", "aformat", "alimiter", "alphamerge", "amerge", "amix", "amultiply", "anullsink",
     "apad", "aresample", "asetpts", "asplit", "astats", "atrim", "blend", "boxblur", "color", "colorspace",
-    "compand", "concat", "copy", "crop", "cue", "curves", "ebur128", "eq", "equalizer", "exposure", "field",
+    "compand", "concat", "copy", "crop", "cue", "curves", "ebur128", "eq", "equalizer", "exposure", "fade", "field",
     "format", "fps", "geq", "highpass", "hstack", "hue", "identity", "life", "loop", "lowpass", "metadata",
     "null", "overlay", "pad", "pan", "phase", "scale", "scroll", "segment", "select", "setparams", "setpts",
     "setsar", "settb", "sidechaincompress", "signature", "silencedetect", "split", "subtitles", "thumbnail",

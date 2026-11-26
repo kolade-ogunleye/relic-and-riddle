@@ -21,6 +21,9 @@ from PIL import Image, ImageDraw
 
 from src import brand, geo, graphics
 from src.reference_facts import reference_note
+from omission_ledger import assert_timeline_drops_recorded
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
+from src.refusal import omissions as refusal_rows
 
 DERINKUYU = [{"year": -700, "approximate": True, "label": "Possibly Phrygian tunnels"},
              {"year": 780, "approximate": True, "label": "Expanded against raiders"},
@@ -34,6 +37,9 @@ HEIGHT = {"value": 107.0, "unit": "ft", "dimension": "height", "subject": "Kaila
 CARDS = [{"value": "about 1,200,000 tons", "label": "Rock removed by hand"},
          {"value": "94-104M years ago", "label": "Carbonatite rock cooling age"}]
 LIBERTY = "Statue of Liberty (total)"
+
+
+LAST_OMITTED: list = []   # the ledger rows of the last _render, refused or drawn (freeze lane A cycle 4)
 
 
 def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any]:
@@ -57,7 +63,10 @@ def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any
     # graphics.make_all opens it; the rows ride along for the tests that read them
     from src.refusal import collecting
     with collecting() as omitted:
-        assert job() is not None
+        try:
+            assert job() is not None
+        finally:   # lane A c4: a refused render's rows stay readable (LAST_OMITTED) for the refusal's checks
+            LAST_OMITTED[:] = omitted
     state["omitted"] = list(omitted)
     side = Path(str(state["path"]) + graphics.CONTRAST_SIDECAR)
     state["record"] = json.loads(side.read_text(encoding="utf-8")) if side.exists() else {}
@@ -281,8 +290,28 @@ def test_two_cards_step_the_first_back(tmp_path, monkeypatch) -> None:
     # cycle 0 round 7 (F13, operator ruling 3): a stated quantity stays gold when its card steps back; the first card's
     # words step back to stone (its figure was STONE before)
     assert len(figs) == 2 and tuple(figs[0].fill) == tuple(figs[1].fill) == brand.GOLD
-    assert any(tuple(p.fill) == brand.STONE_LT for n, p in rows if n == "label")
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in rows)
+    # freeze lane A cycle 4 (deliberate, STAT_RESTORE): the first card's words step back to stone while the second
+    # card lands and holds, and come back to full for the held last frame, as the timeline's dates do (the poster and
+    # the contrast record drew one label role in two colours before). The step-back is visible during the hold: the
+    # first card is fully back from its step before the restore begins, and a frame in that window draws its label
+    # darker than the last frame does, the second card's at full
+    stepped = graphics.count_start(1) + 0.4
+    restore = graphics.STAT_RESTORE * graphics.CLIP_SECONDS
+    assert stepped < restore < graphics.CLIP_SECONDS - 0.5
+    labels = [p for n, p in rows if n == "label"]
+    assert labels and all(tuple(p.fill) == brand.BONE for p in labels)                # the held frame: all full
+    frames = st["frames"]
+    mid = frames[round((stepped + restore) / 2 * 4)]                                  # _render runs at 4 fps
+
+    def bright(im, box):
+        x0, y0, x1, y1 = (int(round(v)) for v in box)
+        return float(np.percentile(np.asarray(im.convert("L"))[y0:y1, x0:x1], 97))
+    # each card's label rows (a label may wrap): the first card's sit above the second card's figure
+    first = [p for p in labels if p.box[1] < figs[1].box[1]][0]
+    second = [p for p in labels if p.box[1] > figs[1].box[1]][0]
+    assert bright(mid, first.box) < bright(frames[-1], first.box) - 20               # stepped back in the hold
+    assert abs(bright(mid, second.box) - bright(frames[-1], second.box)) <= 12       # the landing card at full
 
 
 def test_spoken_scale() -> None:
@@ -452,9 +481,13 @@ def test_scale_bar_second_label_sits_on_its_own_tick_not_the_bars_end() -> None:
         im = Image.new("RGB", (900, 200), brand.INK)
         rows = dict(graphics._scale_bar_plates(im, bar, 50, 100))
         main, other = rows["scale"].box, rows["scale_secondary"].box
-        # round 7 (deliberate, R2): the secondary is a shorter tick on the bar; a label wider than its run starts at
-        # the zero end instead of passing it (as test_scale_bar_2026_11_03 allows)
-        assert abs(other[2] - (50 + sec["px"])) <= 1 or abs(other[0] - 50) <= 1, (bar["label"], sec["label"], other)
+        # round 7 (R2): the secondary is a shorter tick on the bar. Freeze lane A cycle 4 (deliberate, TY MG-1: the
+        # 9:16 map's "30 MI" started at the zero end and read as "100 KM = 30 MI"): every label names its own tick,
+        # its ink's right edge on it, or (a label wider than its run) centred on it; never at the bar's zero end
+        tick = 50 + sec["px"]
+        on_tick = abs(other[2] - tick) <= 1
+        centred = other[2] - other[0] > sec["px"] and abs((other[0] + other[2]) / 2 - tick) <= 1
+        assert on_tick or centred, (bar["label"], sec["label"], other, tick)
         assert abs(main[2] - (50 + bar["px"])) <= 1
         assert other[0] >= 50 - 1 and main[0] >= 50 - 1              # never left of the bar's zero end
 
@@ -683,7 +716,7 @@ def _refused_tall(monkeypatch: pytest.MonkeyPatch, case: str, job) -> bool:
     it is refused, checked here."""
     if f"tl/{case}-9x16" not in QF23_REFUSED:
         return False
-    assert _refused_or_render(monkeypatch, f"tl/{case}-9x16", job) is None
+    assert _refused_or_render(monkeypatch, f"tl/{case}-9x16", job, TALL_CASES[case], "t.mp4") is None
     return True
 
 
@@ -970,14 +1003,21 @@ def _render_fast(monkeypatch: pytest.MonkeyPatch, job) -> dict[str, Any]:
     return _render(monkeypatch, job, fps=1)
 
 
-def _refused_or_render(monkeypatch: pytest.MonkeyPatch, key: str, job) -> dict[str, Any] | None:
+def _refused_or_render(monkeypatch: pytest.MonkeyPatch, key: str, job, events=None, out=None) -> dict[str, Any] | None:
     """QF-23: a timeline set in QF23_REFUSED (`key`: "<family>/<set>-<9x16|16x9>") raises the checked-copy refusal
-    and encodes nothing (None); any other set renders (_render_fast) and must not be refused."""
+    and encodes nothing (None); any other set renders (_render_fast) and must not be refused. Freeze lane A cycle 4:
+    the render runs with the omission ledger open (the module's autouse omission_ledger, as make_all opens it), and
+    with `events` and `out` every event the timeline leaves out is on it by name, drawn or refused."""
     if key not in QF23_REFUSED:
-        return _render_fast(monkeypatch, job)
+        st = _render_fast(monkeypatch, job)
+        if events is not None:
+            assert_timeline_drops_recorded(st["omitted"], events, out)
+        return st
     monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail(f"{key}: a refused timeline was encoded"))
     with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the "):
         job()
+    if events is not None:
+        assert_timeline_drops_recorded(refusal_rows(), events, out)
     return None
 
 
@@ -1624,7 +1664,10 @@ def _render_checked(monkeypatch, caplog, tmp_path, events, size, refusal_ok: boo
             raise
         assert str(e).startswith("Checked copy does not fit the ") and "timeline" in str(e), e
         assert not list(tmp_path.glob("t.mp4*")), "a refused timeline writes nothing"
+        # freeze lane A cycle 4: an event left out before the refusal is still recorded, by name
+        assert_timeline_drops_recorded(LAST_OMITTED, events, tmp_path / "t.mp4")
         return {"refused": str(e)}
+    assert_timeline_drops_recorded(got["omitted"], events, tmp_path / "t.mp4")   # lane A c4: drops on the ledger
     got["spine"] = st.get("spine")
     return {**got, "checks": _timeline_checks(got, events, size, caplog.text)}
 
@@ -1958,7 +2001,7 @@ def test_tall_years_drop_to_their_floor_before_a_label_is_cut(tmp_path, monkeypa
     events = FUZZ_FAMILIES["nz"][case]
     with caplog.at_level("INFO"):
         st = _refused_or_render(monkeypatch, f"nz/{case}-9x16",
-                                lambda: graphics.render_timeline(events, tmp_path / "t.mp4"))
+                                lambda: graphics.render_timeline(events, tmp_path / "t.mp4"), events, tmp_path / "t.mp4")
     if st is None:   # QF-23: refused rather than drawn with its cut labels (each case here was cut)
         return
     years = [p for n, p in st["plates"] if n.startswith("year") and not n.endswith("circa")]

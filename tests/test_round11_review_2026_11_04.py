@@ -15,6 +15,7 @@ import pytest
 
 from src import geo, graphics
 from tests.test_r4_graphics_2026_11_02 import _render
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 needs_marine = pytest.mark.skipif(not geo.MARINE_FILE.is_file(), reason="marine polygons not fetched")
 needs_geo = pytest.mark.skipif(not geo.available(), reason="country outlines not fetched")

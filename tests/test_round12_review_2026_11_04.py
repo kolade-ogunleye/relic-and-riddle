@@ -16,6 +16,7 @@ import pytest
 from src import geo, graphics
 from tests.test_r4_graphics_2026_11_02 import _render
 from tests.test_round11_review_2026_11_04 import _labels_at, _shp_zip
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 needs_geo = pytest.mark.skipif(not geo.available(), reason="country outlines not fetched")
 needs_10m = pytest.mark.skipif(not geo.COUNTRIES_10M_FILE.is_file(), reason="1:10m map subunits not fetched")

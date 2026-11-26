@@ -25,6 +25,7 @@ from typing import Any
 import pytest
 
 from src import brand, brand_system, figures, graphics, typography
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 ROOT = Path(__file__).resolve().parents[1]
 TALL, WIDE = (1080, 1920), (1920, 1080)
@@ -62,7 +63,11 @@ def plan_only(monkeypatch):
         init(self, *a, **k)
         made.append(self)
     monkeypatch.setattr(typography.TextPlate, "__init__", recording)
-    return made
+    # freeze lane A cycle 4: a part the drawing leaves out is recorded on the omission ledger, opened round each
+    # render as graphics.make_all opens it (with none open the surface is refused)
+    from src.refusal import collecting
+    with collecting():
+        yield made
 
 
 def _record(out: Path) -> dict:

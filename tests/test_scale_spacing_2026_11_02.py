@@ -8,6 +8,7 @@ import pytest
 from PIL import Image
 
 from src import graphics
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 FFMPEG = shutil.which("ffmpeg")
 DEPTH = {"value": 280.0, "unit": "ft", "dimension": "depth", "subject": "Derinkuyu underground city depth",

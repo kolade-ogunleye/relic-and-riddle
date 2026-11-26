@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from src import graphics
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 needs_ffmpeg = pytest.mark.skipif(not __import__("shutil").which("ffmpeg"), reason="ffmpeg not installed")
 

@@ -4,6 +4,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from src import typography
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 @pytest.mark.parametrize("text", [

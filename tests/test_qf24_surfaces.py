@@ -26,6 +26,7 @@ from src import callouts, end_card, graphics, then_now
 from src import design_cards as dc
 from tests import test_freeze_cards_2026_11_04 as fc
 from tests.test_callouts_v4_2026_11_03 import REF_DOOR, REF_WALL
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 W, H = 1080, 1920
 REEL_RECT = (113, 288, 848, 1370)
@@ -128,5 +129,8 @@ def test_the_five_close_stress_timeline_is_a_declared_refusal(tmp_path, monkeypa
     from tests.test_r4_graphics_2026_11_02 import FIVE_CLOSE
     monkeypatch.setattr(graphics, "VIDEO_FPS", 1)
     monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("a refused timeline was encoded"))
-    with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the "):
+    # freeze lane A cycle 4: the five-to-four fallback's dropped event goes on the omission ledger (opened as
+    # graphics.make_all opens it); the four left are still refused whole
+    from src.refusal import collecting
+    with collecting(), pytest.raises(graphics.TextFitError, match="Checked copy does not fit the "):
         graphics.render_timeline(FIVE_CLOSE, tmp_path / "t.mp4")

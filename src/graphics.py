@@ -787,10 +787,16 @@ def scale_bar_label_specs(bar: ScaleBar, x: float, y: float, font: FreeTypeFont,
         rel = ink_box((0.0, 0.0), part.label, font, "ls", track)
         if rel is None:
             continue
-        lx = tick - rel[2]                     # its ink's right edge on the tick
-        if direction > 0:                      # never left of the zero end (a label wider than its run starts there)
-            lx = max(lx, x - rel[0])
-        if direction < 0:                      # mirrored: the label stays inside the bar's run (right of its tick)
+        ink_w = rel[2] - rel[0]
+        if ink_w > part.px + 0.5:
+            # freeze lane A cycle 4 (TY MG-1: the 9:16 map's "30 MI" started at the zero end, under the bar's start,
+            # and read as "100 KM = 30 MI"): a label wider than its own run is centred on its tick, so it still
+            # names that tick (scale_bar keeps a run at least SCALE_LABEL_HOLD of its label, so the centred ink
+            # stays clear of the zero end)
+            lx = tick - (rel[0] + rel[2]) / 2
+        elif direction > 0:
+            lx = tick - rel[2]                 # its ink's right edge on the tick
+        else:                                  # mirrored: the label stays inside the bar's run (right of its tick)
             lx = tick - rel[0]
         out.append((name, part.label, (lx, base)))
     return out
@@ -810,13 +816,28 @@ def scale_bar_box(bar: ScaleBar, x: float, y: float, font: FreeTypeFont, directi
 
 def _scale_bar_plates(rest: Image.Image, bar: ScaleBar, x: float, y: float, px: int | None = None,
                       direction: int = 1) -> list[tuple[str, TextPlate]]:
-    """The bar's labels as measured knockout plates (Montserrat 600, SCALE_LINE on a SCALE_LABEL_HALO ink halo,
-    raised while the ratio is short of the target)."""
+    """The bar's labels as measured plates. Freeze lane A cycle 4 (TY-S2-map-halo: a 0.75 halo floor drew a dark
+    cloud about twice the labels' box on flat gold land): both labels ONE overlay label on the one overlay-label rule
+    (typography.plan_label, operator ruling 2, 2026-11-17, as the map's place labels): SCALE_LINE on a halo no deeper
+    than place.halo_max, else INK type (the country name's treatment on a light fill), else a held INK plate; the
+    halo floor is retired. Only where no step holds, the old knockout (halo raised to the gate), so a bar's figures
+    are never dropped."""
+    from .brand_system import tok
+    from .typography import plan_label
     font = data_font(px if px is not None else SCALE_LABEL_PX, SCALE_LABEL_WEIGHT)
     track = font.size * SCALE_LABEL_TRACK
+    specs = scale_bar_label_specs(bar, x, y, font, direction)
+    if not specs:
+        return []
+    plates, rec = plan_label(rest, [(xy, text, font, "ls", track) for _n, text, xy in specs], (brand.SCALE_LINE,),
+                             target=GATES["contrast.place"], halo_px=SCALE_LABEL_HALO_PX,
+                             halo_max=tok("place.halo_max"))
+    if rec.get("shown") and len(plates) == len(specs):
+        return [(name, pl) for (name, _t, _xy), pl in zip(specs, plates)]
+    log.warning("Scale bar labels: no overlay-label step holds (%s); set as knockouts.", rec.get("reason"))
     return [(name, plan_text(rest, xy, text, font, brand.SCALE_LINE, "ls", track=track,
                              halo_px=SCALE_LABEL_HALO_PX, min_halo=SCALE_LABEL_HALO))
-            for name, text, xy in scale_bar_label_specs(bar, x, y, font, direction)]
+            for name, text, xy in specs]
 
 
 def _draw_scale_bar(im: Image.Image, bar: ScaleBar, x: float, y: float, ab: float, direction: int = 1) -> None:
@@ -1124,14 +1145,38 @@ def scale_bar_record(fb: FurnitureBar | None) -> dict[str, Any]:
 def omit_neighbour_name(surface: str, name: str, reason: str) -> None:
     """A neighbour's name left out, recorded on the omission ledger (refusal.omit; with none open the surface is
     refused): freeze lane A cycle 3, it was a log line only (the Morocco route's ALGERIA)."""
-    from .refusal import omit
-    omit(surface, f"the neighbour's name {name.upper()}", "a map names its home's neighbours (round 11)", reason)
+    record_drop(surface, f"the neighbour's name {name.upper()}", "a map names its home's neighbours (round 11)", reason)
+
+
+NAME_ELEMENT = {"home": "the home's name", "neighbour": "the neighbour's name", "water": "the sea's name"}
+
+
+def record_name_check(surface: str, check: Any) -> None:
+    """A name the name check left off the map (round 13: over a third country's ground, mostly off its own, a sea's
+    name on land) recorded on the omission ledger (lane A cycle 4), in the words the other map omissions use."""
+    record_drop(surface, f"{NAME_ELEMENT.get(check.kind, f'the {check.kind} name')} {check.text.upper()}",
+                "a map's names pass the name check (round 13)", f"its place is {check.fault}")
+
+
+def record_drop(surface: str, element: str, rule: str, reason: str) -> None:
+    """Freeze lane A cycle 4 (the dropped 1523 event, panel 5, 4 runs): every fit fallback or check that leaves a part
+    of a lane A surface out records it on the omission ledger (refusal.omit: surface, the part, the rule, the reason;
+    with no ledger open the surface is refused), never a log line alone. A surface drawn again (a map re-framed, a
+    stack re-planned) records the same part once: a row already on the ledger for this surface and part is kept."""
+    from .refusal import omissions, omit
+    if any(r.get("surface") == surface and r.get("omitted") == element for r in omissions()):
+        return
+    omit(surface, element, rule, reason)
+
+
+def surface_of(kind: str, out: Path | str | None) -> str:
+    """The ledger's name for a lane A surface: its kind and its file ("timeline graphic_timeline.mp4")."""
+    return f"{kind} {Path(out).name}" if out else kind
 
 
 def omit_scale_bar(surface: str, reason: str) -> None:
     """The bar left out, recorded on the omission ledger (refusal.omit; with none open the surface is refused)."""
-    from .refusal import omit
-    omit(surface, "the scale bar", "scale bar is furniture: never on data (lane A cycle 3 ruling)", reason)
+    record_drop(surface, "the scale bar", "scale bar is furniture: never on data (lane A cycle 3 ruling)", reason)
 
 
 # ---------------------------------------------------------------------- map
@@ -2488,12 +2533,13 @@ def place_plates(rest: Image.Image, rows: Sequence[tuple[tuple[float, float], st
 
 
 def place_plate_set(rest: Image.Image, labels: Sequence[Sequence[tuple[tuple[float, float], str, Any, str]]],
-                    track: float = 0) -> list[list[TextPlate]]:
+                    track: float = 0, surface: str | None = None) -> list[list[TextPlate]]:
     """A map's place labels (each a list of rows, as place_plates takes) planned as ONE set (SYS-R8 integration,
     lander ruling 4; operator ruling 2 applied per set, as the then-and-now pair and the end screen: typography.
     plan_label_set): every label on one treatment, the least intrusive step that holds on every label's ground, each
     on its own step only where no one step holds for all (the gates are never traded). Returns each label's plates,
-    in order; a label no step carries is returned empty (nothing drawn) and logged."""
+    in order; a label no step carries is returned empty (nothing drawn) and logged, and with `surface` (the drawn
+    surface's, not a planning trial's) recorded on the omission ledger (lane A cycle 4, record_drop)."""
     from .brand_system import tok
     from .typography import plan_label_set
     target = GATES["contrast.place"]
@@ -2508,10 +2554,22 @@ def place_plate_set(rest: Image.Image, labels: Sequence[Sequence[tuple[tuple[flo
     for rows, (plates, rec) in zip(labels, planned):
         if not rec["shown"]:
             log.warning("Place label %r not drawn: %s.", " ".join(text for _xy, text, _f, _a in rows), rec["reason"])
+            if surface is not None:
+                record_drop(surface, f"the place name {' '.join(text for _xy, text, _f, _a in rows).upper()}",
+                            "a place label is drawn at its gate on the one overlay-label rule (ruling 2)",
+                            str(rec["reason"]))
             plates = [TextPlate(text, font, brand.BONE, xy, anchor, track, 0, brand.INK, 0, False, (0, 0))
                       for xy, text, font, anchor in rows]   # empty plates (zero canvas): callers draw nothing
         out.append(plates)
     return out
+
+
+def label_footprint_pad(px: float) -> int:
+    """The px an overlay label's drawn footprint may reach past its ink on any side: the held INK plate's pad
+    (plate.label_pad x the label's size, typography.plan_label's held plate), the widest step of the one rule (the
+    halo steps are capped under it). Lane A cycle 4: a label is placed by this footprint, not its ink alone."""
+    from .brand_system import tok
+    return math.ceil(float(tok("plate.label_pad")) * float(px)) + 1
 
 
 def place_plate(rest: Image.Image, xy: tuple[float, float], text: str, font, anchor: str = "la",
@@ -5656,9 +5714,8 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             log.warning("Map: name check: the home's name %r %s in any form; not named.", c_text, home_drop)
             # lander ruling (cycle 3): a home name no place holds, on one row or two, is recorded on the ledger; the
             # home-unnamed rule decides whether the map stands
-            from .refusal import omit
-            omit(f"map {Path(out).name}" if out else "map", f"the home's name {c_text}",
-                 "a locator names its home (QF-20)", home_drop)
+            record_drop(f"map {Path(out).name}" if out else "map", f"the home's name {c_text.upper()}",
+                        "a locator names its home (QF-20)", home_drop)
         if spot is not None:
             words.append(spot.box)
             cname = CountryName(c_text, spot.xy, spot.px, brand.INK, spot.box, spot.inside, 0.0, 0.0, spot.rows)
@@ -5934,6 +5991,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         if not c_.ok:
             log.warning("Map: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
                         c_.box[0], c_.box[1], c_.fault)
+            record_name_check(surface_of("map", out), c_)
     LAST_NAME_CHECKS[:] = checks
     # freeze lane A cycle 3 (lander ruling): the scale bar now, in the room every name leaves: the lower-left corner
     # of the content box first (furniture_scale_bar), never on a word, the pin, the home's outline or a coast; a thin
@@ -7322,19 +7380,39 @@ def year_ink_boxes(x: float, baseline: float, year: int, approximate: bool, f_ye
 TIMELINE_MAX_EVENTS = 5   # preserve five-event supplied histories, including close adjacent dates
 
 
-def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVENTS) -> list[dict[str, Any]]:
+TIMELINE_DROP_RULE = "a timeline draws at most five events, the first and the last always (timeline_events)"
+
+
+def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVENTS,
+                    surface: str | None = None) -> list[dict[str, Any]]:
     """The events a timeline draws, oldest first (round 4 review 4, 2026-11-02: `sorted(events)[:4]` kept the four
     earliest, so six events lost 1923 and 1963, the most recent and often the climax). Over `limit`, the first and
     the last are always kept and the middle ones are chosen by a numeric `significance` where any event has one
-    (the highest, ties to the earlier), else evenly spaced through the run; the dropped years are logged."""
-    events = sorted(events, key=lambda e: e["year"])
+    (the highest, ties to the earlier), else evenly spaced through the run. Freeze lane A cycle 4: with `surface`
+    (the renderer's), every event left out, over the limit or by the five-to-four fit fallback, is recorded on the
+    omission ledger (record_drop: the year and label, the rule, why), never logged alone."""
+    ordered = sorted(events, key=lambda e: e["year"])
+    kept, why = _timeline_keep(ordered, limit)
+    if surface is not None and len(kept) < len(ordered):
+        ids = {id(e) for e in kept}
+        for e in ordered:
+            if id(e) not in ids:
+                record_drop(surface, f"the event {year_text(int(e['year']), bool(e.get('approximate')))} "
+                                     f"{' '.join(str(e.get('label') or '').split()).upper()}", TIMELINE_DROP_RULE, why)
+    return kept
+
+
+def _timeline_keep(events: list[dict[str, Any]], limit: int) -> tuple[list[dict[str, Any]], str]:
+    """timeline_events' choice on sorted `events`: (the kept, the reason any were left out)."""
     if len(events) <= limit:
         if len(events) == limit == 5:
             from .timeline_dense import fits_both_formats
             if not fits_both_formats(events):
                 log.info("Timeline: five entries exceed readable capacity; applying the four-event significance policy.")
-                return timeline_events(events, limit=4)
-        return events
+                return (_timeline_keep(events, 4)[0],
+                        ("five entries do not hold their label, span and year floors in both formats; the four-event "
+                         "significance policy applies"))
+        return events, ""
     n, inner = len(events), limit - 2
     middle = list(range(1, n - 1))
     if inner <= 0:
@@ -7348,11 +7426,12 @@ def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVEN
         from .timeline_dense import fits_both_formats
         if not fits_both_formats([events[i] for i in keep]):
             log.info("Timeline: five entries exceed readable capacity; applying the four-event significance policy.")
-            return timeline_events(events, limit=4)
+            return (_timeline_keep(events, 4)[0],
+                    f"{n} events, over the {limit} a timeline draws, and five do not hold their floors in both formats")
     dropped = [events[i] for i in range(n) if i not in keep]
     log.warning("Timeline: %d events, %d drawn; dropped %s.", n, len(keep),
                 ", ".join(year_text(int(e["year"]), bool(e.get("approximate"))) for e in dropped))
-    return [events[i] for i in keep]
+    return [events[i] for i in keep], f"{n} events, over the {limit} a timeline draws"
 
 
 def tall_label_measure(width: int, height: int) -> float:
@@ -7434,7 +7513,7 @@ def render_timeline(events: list[dict[str, Any]], out: Path, width: int = VIDEO_
     (timeline_positions), any gap too long to draw to scale cut with a break mark; the elapsed time (gap_text) on
     each gap; the topic's photo, blurred, desaturated and dark, as the ground (`photo`; plain ink without one).
     9:16: a vertical spine on the shared inset edge (INSET_X0) inside the Reel box; 16:9: across the frame."""
-    events = timeline_events(events)
+    events = timeline_events(events, surface=surface_of("timeline", out))   # lane A c4: drops recorded
     if len(events) < 2:
         return None
     if width > height:
@@ -10108,6 +10187,9 @@ REFERENT_TICK, REFERENT_TICK_SHORT = 26, 8   # px of the hairline tick from the 
 REFERENT_TICK_AIR = 8                         # px from the tick's end to the figure's ink
 
 
+SCALE_DROP_RULE = "a scale drawing's stated quantities and notes are drawn whole or recorded (lane A cycle 4)"
+
+
 def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, note: str, note_px: int,
                    tick_r: float, tick_l: float, tick_y: float, scale: float,
                    clear: Callable[[Box], bool], note_track: float = 1.0) -> tuple[Any, list, tuple | None, dict]:
@@ -10127,6 +10209,7 @@ def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, 
              ("tick form", "r", tick_r, REFERENT_TICK_SHORT)]
     font_n = get_font(brand.TEXT_FONT, note_px, weight=600) if note else None
     first_fig = None
+    widowed = None
     tried = []
     for name, way, x_t, tick in forms:
         sgn = 1 if way == "r" else -1
@@ -10163,13 +10246,28 @@ def referent_block(ground: Image.Image, fig_text: str, f_fig, fig_track: float, 
         if not all(bx is not None and clear(bx) for bx in boxes):
             tried.append(f"{name}: the note is not clear")
             continue
-        return fig, rows, (x_t, tick_y, x_end), {"note": note, "shown": True, "form": name, "px": note_px,
-                                                  "rows": len(rows), "figure_box": list(fig.box),
-                                                  "note_boxes": [list(bx) for bx in boxes]}
+        got = (fig, rows, (x_t, tick_y, x_end), {"note": note, "shown": True, "form": name, "px": note_px,
+                                                 "rows": len(rows), "figure_box": list(fig.box),
+                                                 "note_boxes": [list(bx) for bx in boxes]})
+        if referent_widow(lines):
+            # freeze lane A cycle 4 (TY-S2, Aswan 16:9 "GROUND / TO TORCH / TIP"): a form that leaves one word alone
+            # on the note's last row is kept only where no later form sets the note without one
+            tried.append(f"{name}: the note's last row is one word ({lines[-1]!r})")
+            widowed = widowed or got
+            continue
+        return got
+    if widowed is not None:
+        widowed[3]["widow"] = True
+        return widowed
     rec = {"note": note, "shown": False, "reason": "; ".join(tried) or "no form"}
     if first_fig is not None:
         return first_fig[0], [], first_fig[1], rec
     return None, [], None, rec
+
+
+def referent_widow(lines: Sequence[str]) -> bool:
+    """A referent note set on two rows or more whose last row is one word (a widow: "... / TO TORCH / TIP")."""
+    return len(lines) > 1 and len(lines[-1].split()) == 1
 
 
 REFERENT_GAP = 0.5     # x the note's cap height: its first row's air under the figure's ink (within one row gap)
@@ -10387,6 +10485,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             plates.append(("bracket", quantity_plate(ground, (note_x, note_y), note, f_gap, "ls", track=2)))
         elif bracket[2] - bracket[1] >= 6:
             log.warning("Scale: the gap note %r has no place beside its bracket on its own ground; not drawn.", note)
+            record_drop(surface_of("scale", out), f"the gap note {note}", SCALE_DROP_RULE,
+                        "no place beside its bracket on its own ground")
         datum = line_y - 0.5                                # the 3 px ground line's centre (line_y - 2 .. line_y + 1)
         for ft, text, is_floor in _depth_ruler(feet, hedge, unit, fact):
             yy = line_y + ft * px_ft
@@ -10499,6 +10599,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                        for k, (ln, xy, f) in enumerate(rows_n)]
         if note and not rows_n:
             log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))
+            record_drop(surface_of("scale", out), f"the referent note {note.upper()}", SCALE_DROP_RULE,
+                        str(rec_n.get("reason") or "no form holds it"))
     line_spans = datum_spans(x0, x1, zero_boxes, 8)          # the ground line yields round its zero label (F11)
     ruler_rows = [ruler_record(f"ruler{j}", pl, round(ft * per_ft(unit), 6), at, line_spans if ft == 0 else ())
                   for j, (ft, at, pl) in enumerate(ruler_marks)]
@@ -10766,6 +10868,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         elif bracket[2] - bracket[1] >= 6:
             log.warning("Scale: the gap note %r has no place beside its bracket on its own ground; not drawn.",
                         gap_text)
+            record_drop(surface_of("scale", out), f"the gap note {gap_text}", SCALE_DROP_RULE,
+                        "no place beside its bracket on its own ground")
         for j, (ft, text, is_floor) in enumerate(_depth_ruler(feet, hedge, unit, fact)):
             # F11: "0 FT" on the ground line's centre (it sat 1.5 caps under it, about 20 px off its datum)
             ann.append((f"ruler{j}", text, f_rule, brand.GOLD if is_floor else brand.STONE_LT, shaft[0] - 30,
@@ -10857,9 +10961,14 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             plate = quantity_plate(final, (X(x), Y(yb)), text, font, anchor, track=S(1))
         else:
             plate = plan_text(final, (X(x), Y(yb)), text, font, colour, anchor, track=S(1))
-        if plate.box[0] < X(WIDE_TITLE_SAFE[0]) or plate.box[2] > X(cx0 - 20):
-            continue                                                 # never into the margin or the column
-        if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, 6) for _, q in plates):
+        why_out = ("it would cross the margin or the copy column"
+                   if plate.box[0] < X(WIDE_TITLE_SAFE[0]) or plate.box[2] > X(cx0 - 20) else
+                   "it would sit on another word" if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, 6)
+                                                         for _, q in plates) else "")
+        if why_out:                                                  # never into the margin, the column or a word
+            if anchor != "ruler":   # lane A c4: a stated quantity left out is recorded (an axis figure thins)
+                record_drop(surface_of("scale", out), f"the {name.replace('_', ' ')} {text}", SCALE_DROP_RULE,
+                            why_out)
             continue
         plates.append((name, plate))
         if anchor == "ruler":
@@ -10893,6 +11002,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             shown.update(f"ref_note{k}" for k in range(len(rows_n)))
         if note and not rows_n:
             log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))
+            record_drop(surface_of("scale", out), f"the referent note {note.upper()}", SCALE_DROP_RULE,
+                        str(rec_n.get("reason") or "no form holds it"))
     shown.intersection_update(name for name, _ in plates)
     if "ruler0" not in shown:
         zero_boxes.clear()                                           # no zero drawn: the line runs whole
@@ -11478,6 +11589,9 @@ def _lerp(c0, c1, f: float) -> tuple[int, int, int]:
     return tuple(round(a + (b - a) * f) for a, b in zip(c0, c1))
 
 
+STAT_RESTORE = 0.76   # lane A c4: the stepped-back card back to full at this share of the clip (reveal_schedule's)
+
+
 def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Image.Image, out: Path, n: int,
                width: int, height: int) -> Path | None:
     """The number cards' clip (both orientations): each line planned on the resting frame at a measured contrast
@@ -11485,7 +11599,9 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
     frame shows a figure the fact sheet does not (the quantised count drew "800,000 TONS" and a false "63–70" on
     the way to "94–104"): the figure fades up at its final value and settles from FIGURE_SETTLE_FROM, a range
     tracking in; its en dash a gold rule (_figure_cells). With two cards the first steps back to its stone twins
-    as the second lands (the timeline's grammar), and those twins are what the contrast record measures."""
+    as the second lands (the timeline's grammar) and, as on the timeline, comes back to full for the held last
+    frame (STAT_RESTORE; freeze lane A cycle 4: the held frame and poster set one label role in two colours, STONE_LT
+    beside BONE), so the contrast record measures the cards as the last frame draws them."""
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     rest = _pushed_in(bg, push_in((n - 1) / VIDEO_FPS, CLIP_SECONDS))
     plates: list[tuple[str, Any]] = []
@@ -11534,7 +11650,7 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                     x += probe.textlength(run, font=r["font"])
                 r["dim_fill"] = r["fill"]
                 r["twins"] = [_twin(rest, pl, f) for pl, f in zip(r["plates"], dims)] if p["dims"] else []
-                plates.append((r["name"], _JoinedPlate(r["twins"] or r["plates"], rest, r["text"])))
+                plates.append((r["name"], _JoinedPlate(r["plates"], rest, r["text"])))   # c4: restored at rest
                 continue
             else:
                 fill = r["fill"]
@@ -11547,7 +11663,7 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                 # twin cards' number and unit, MG-4)
                 r["dim_fill"] = r["fill"] if r["kind"] in ("count", "unit") and fill != brand.BONE else brand.STONE_LT
             r["twins"] = [_twin(rest, pl, r["dim_fill"]) for pl in r["plates"]] if p["dims"] else []
-            shown = r["twins"] or r["plates"]
+            shown = r["plates"]       # lane A c4: the held last frame draws every card at full (STAT_RESTORE)
             if r["kind"] == "figure":
                 plates.append((r["name"], _JoinedPlate(shown, rest, r["text"])))
             else:
@@ -11564,7 +11680,8 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                 if a <= 0:
                     continue
                 settle = _ease((t - start) / FIGURE_SETTLE)
-                dim = _ease((t - count_start(k + 1)) / 0.4) if p["dims"] else 0.0
+                dim = (_ease((t - count_start(k + 1)) / 0.4) * (1 - _ease((t - STAT_RESTORE * CLIP_SECONDS) / 0.5))
+                       if p["dims"] else 0.0)
                 dy = round(14 * (1 - a))
                 for r in p["rows"]:
                     yy = p["y0"] + r["y"] + dy
@@ -11668,6 +11785,19 @@ def _render_stat_cards_landscape(cards: list[dict[str, Any]], out: Path, photo: 
             p["y0"] = round(max(top - p["top"], min(bottom - p["bottom"], height * 0.34 - cap_line)))
         else:
             p["y0"] = round((top + bottom) / 2 - tallest / 2 - min(q["top"] for q in plans))
+    if len(plans) > 1:
+        # freeze lane A cycle 4 (TY-G1: "36" sat 61 px above "13,000", whose card carries a kicker): the cards'
+        # figures on ONE baseline, as the one figure size intends; the shared baseline is the lowest the blocks
+        # need, then the pair is moved, whole, back inside the text box
+        need_up = max(p["num_y"] - p["top"] for p in plans)       # the union's height above and below the baseline
+        need_down = max(p["bottom"] - p["num_y"] for p in plans)
+        if need_up + need_down <= bottom - top:
+            base = min(bottom - need_down, max(top + need_up, (top + bottom) / 2 + (need_up - need_down) / 2))
+            for p in plans:
+                p["y0"] = round(base - p["num_y"])
+        else:
+            log.warning("Number cards (16:9): the two figures share no baseline inside the text box; each block "
+                        "centred.")
     return _stat_clip(cards, plans, bg, out, n, width, height)
 
 
@@ -12608,14 +12738,24 @@ def even_keep(n: int, limit: int) -> list[int]:
     return [0, *sorted({round(j * (n - 1) / (limit - 1)) for j in range(1, limit - 1)}), n - 1]
 
 
-def route_stops(located: list[dict[str, Any]], limit: int = ROUTE_MAX_STOPS) -> list[dict[str, Any]]:
+ROUTE_DROP_RULE = "a route draws at most its stop limit, the first and the last always (route_stops)"
+
+
+def route_stops(located: list[dict[str, Any]], limit: int = ROUTE_MAX_STOPS,
+                surface: str | None = None) -> list[dict[str, Any]]:
     """The located stops a route draws, in order (round 4 review 5, 2026-11-02: `stops[:5]` silently dropped a
     sixth stop, which can be the destination): over `limit`, the first and the last always and the middle ones
-    evenly spaced (even_keep); the dropped are logged."""
+    evenly spaced (even_keep); the dropped are logged, and with `surface` recorded on the omission ledger (freeze
+    lane A cycle 4, record_drop)."""
     keep = even_keep(len(located), limit)
     if len(keep) < len(located):
         log.warning("Route: %d stops, %d drawn; dropped %s.", len(located), len(keep),
                     ", ".join(str(located[i].get("label")) for i in range(len(located)) if i not in keep))
+        if surface is not None:
+            for i in range(len(located)):
+                if i not in keep:
+                    record_drop(surface, f"the stop {str(located[i].get('label') or '').upper()}", ROUTE_DROP_RULE,
+                                f"{len(located)} stops, over the {limit} a route draws")
     return [located[i] for i in keep]
 
 
@@ -12807,13 +12947,20 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     if not geo.available():
         return None
     located = []
+    unplaced = []
     for s in stops:
         p = geo.locate({"location": {"name": s["place"], "country": s["country"]}})
         if p:
             located.append({**p, "label": s["label"]})
-    located = route_stops(located)
+        else:
+            unplaced.append(s)
+    located = route_stops(located, surface=surface_of("route", out))
     if len(located) < 2:
         return None
+    for s in unplaced:   # lane A c4: a stop the gazetteer cannot place inside its country is recorded, not skipped
+        record_drop(surface_of("route", out), f"the stop {str(s.get('label') or '').upper()}",
+                    "a route's stop is located like the topic itself, inside its stated country, or left out",
+                    f"{s.get('place')!r} is not found inside {s.get('country')!r}")
     lats, lons = [p["lat"] for p in located], [p["lon"] for p in located]
     lat0 = (min(lats) + max(lats)) / 2
     # Unwrap relative to the first stop so a route across 180 degrees stays local.
@@ -12952,6 +13099,10 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                         at_px.append((lines, f_px, max_lines, tier))
             settings += at_px
         for lines, f_fit, max_lines, tier in settings:
+            # freeze lane A cycle 4 (PL-route916-edge: KHOLAT SYAKHL's ink ended 6 px inside the box and its held
+            # plate 6 px past it): the box a place is judged against is the label's whole footprint, its ink grown by
+            # the held plate's pad (label_footprint_pad), so no step of the overlay-label rule leaves the safe box
+            fp = label_footprint_pad(f_fit.size)
             size_drop = f_lab.size - f_fit.size
             step = round(f_fit.size * 1.22)
             cap = cap_height(f_fit)
@@ -12994,7 +13145,17 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 if not boxes:
                     continue
                 u = _union(boxes)
-                if not (sx0 <= u[0] and u[2] <= sx1 and sy0 <= u[1] and u[3] <= sy1):
+                # freeze lane A cycle 4 (CI rr4/rr8 9:16: the footprint rule cost the far stops their names): a place
+                # whose ink is inside the box and only its footprint past an edge is the same place slid in by that
+                # deficit (at most fp px), then judged like any other; the search's grid never loses it to the pad
+                if sx0 <= u[0] and u[2] <= sx1 and sy0 <= u[1] and u[3] <= sy1:
+                    dx = math.ceil(max(0.0, sx0 + fp - u[0])) - math.ceil(max(0.0, u[2] - (sx1 - fp)))
+                    dy = math.ceil(max(0.0, sy0 + fp - u[1])) - math.ceil(max(0.0, u[3] - (sy1 - fp)))
+                    if dx or dy:
+                        tx, base = tx + dx, base + dy
+                        boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in boxes]
+                        u = _union(boxes)
+                if not (sx0 + fp <= u[0] and u[2] <= sx1 - fp and sy0 + fp <= u[1] and u[3] <= sy1 - fp):
                     continue          # review 5: rejected on its box before anything is measured
                 dist = box_distance((x, y), u)
                 lead = dist > ROUTE_LEADER_AT
@@ -13228,6 +13389,9 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     for k in unlabelled:                              # review 8: a last resort, so a WARNING
         log.warning("Route: no clear place for the label of stop %d (%s); the stop is drawn unlabelled.", k,
                     located[k]["label"])
+        record_drop(surface_of("route", out), f"the stop's name {str(located[k]['label'] or '').upper()}",
+                    "a route names its stops (round 4 review 8: a last resort)",
+                    "no clear place in the safe box, off the stops, the legs and the other names")
     for k in vague:
         if k in hero:                                 # review 9: the destination's last resort
             log.warning("Route: the destination's name, stop %d (%s), set on a leader: every place nearer its own "
@@ -13409,6 +13573,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
         if not c_.ok:
             log.warning("Route: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
                         c_.box[0], c_.box[1], c_.fault)
+            record_name_check(surface_of("route", out), c_)
     LAST_NAME_CHECKS[:] = r_checks
     # freeze lane A cycle 3 (lander ruling: a bar never displaces a name): the route's scale bar now, after every
     # name (the stops', the leaders, the base's and the close-up's neighbours, the country's, the seas'), in the room
@@ -13532,7 +13697,7 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     # ruling 4: place_plate_set)
     names = list(by_name)
     sets = place_plate_set(ground_last, [[(sp[0], sp[1], sp[2], sp[3]) for sp in by_name[nm]] for nm in names],
-                           track=2)
+                           track=2, surface=surface_of("route", out))
     planned = {name: iter(pls) for name, pls in zip(names, sets)}
     plates = [(name, next(planned[name])) for name, _sp in plates]
     stop_of = {id(pl): int(name[4:]) for name, pl in plates}

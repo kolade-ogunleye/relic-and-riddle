@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 from src import brand, end_card, graphics, multi_format, safe_zones, still_layout, typography, video_qa
 from src.font_evidence import font_rights
 from src.multi_format import MultiFormatGenerator, POLL_STICKER_ROOM
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 ROOT = Path(__file__).resolve().parent.parent
 needs_ffmpeg = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")

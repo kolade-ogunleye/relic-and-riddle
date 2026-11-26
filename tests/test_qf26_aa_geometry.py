@@ -10,6 +10,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from src import brand, geo, graphics
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 def _raster():

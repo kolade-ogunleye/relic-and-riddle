@@ -12,6 +12,7 @@ from src import graphics, safe_zones
 from src.config import CAPTION_MARGIN_V, VIDEO_HEIGHT, VIDEO_WIDTH
 from src.video_composer import MAX_CAPTION_WIDTH, VideoComposer, reel_caption_span
 from src.video_qa import QualityAuditor, caption_pills
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 

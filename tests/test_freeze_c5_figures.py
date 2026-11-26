@@ -1,0 +1,151 @@
+"""Design freeze cycle 5, FIGURES stream: the class measures of docs/reviews/freeze-system-2026-11-15/corpus run on
+committed fixtures, so no class reopens silently (the corpus scripts run the same measures over every dev run).
+
+Invariants, never pinned pixels: one figure rule on every stated quantity (rulings 3 and R8-8); no label on another;
+the cross-section's blocks as groups with each leader on its own figure; a derived figure only with its recorded
+derivation (lander ruling 2026-11-26); the 9:16 scale drawing's share of the graphics box; the then-and-now divider
+drawn hard and its markers' fade short and clear of the divider.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pytest
+
+from src import figure_gate, figures, graphics, then_now
+
+CORPUS = Path(__file__).resolve().parents[1] / "docs" / "reviews" / "freeze-system-2026-11-15" / "corpus"
+sys.path.insert(0, str(CORPUS))
+import figures_corpus as fc  # noqa: E402
+import figures_measures as fm  # noqa: E402
+
+# the three signed scale facts of the dev corpus (a metre depth, a foot length, an exact foot height) and stress facts
+FACTS = [
+    {"value": 327.0, "unit": "m", "dimension": "depth", "subject": "Wieliczka Salt Mine", "approximate": True},
+    {"value": 138.0, "unit": "ft", "dimension": "length", "subject": "Unfinished obelisk", "approximate": True},
+    {"value": 60.0, "unit": "ft", "dimension": "height", "subject": "Colossi of Memnon", "approximate": False},
+    fc.SCALE_FIXTURES[0], fc.SCALE_FIXTURES[2], fc.SCALE_FIXTURES[8],
+]
+SECTIONS = [fc.SECTION_FIXTURES[0], fc.SECTION_FIXTURES[2]]
+
+
+@pytest.fixture(scope="module")
+def records(tmp_path_factory):
+    work = tmp_path_factory.mktemp("c5_figures")
+    jobs = [{"run": f"fact{k}", "kind": "scale", "input": f, "palette": None, "narration": "", "source": "FIXTURE"}
+            for k, f in enumerate(FACTS)]
+    jobs += [{"run": f"section{k}", "kind": "section", "input": s, "palette": None, "narration": "",
+              "source": "FIXTURE"} for k, s in enumerate(SECTIONS)]
+    return [fc.capture_one(job, fmt, work) for job in jobs for fmt in fc.FORMATS]
+
+
+def _fails(rows):
+    return [r for r in rows if r[4] == "FAIL"]
+
+
+def test_every_graphic_is_drawn_or_refused_on_the_record(records):
+    assert not [r["error"] for r in records if r.get("error")]
+    assert all(r.get("drawn") or r.get("refused") for r in records)
+
+
+def test_stated_quantities_take_the_one_figure_rule(records):
+    tok = fm.tokens(graphics, None)
+    rows = [row for r in records for row in fm.quantity_rows(r, tok)]
+    assert not _fails(rows), _fails(rows)
+    # the floor of a depth is the fact itself: drawn as a stated quantity (never on the ruler path) or recorded
+    for r in records:
+        if r["kind"] == "scale" and r["input"]["dimension"] == "depth" and r.get("drawn"):
+            names = {e["name"] for e in r["elements"]}
+            dropped = [o for o in r["omissions"] if "floor figure" in str(o.get("omitted"))]
+            assert "floor_figure" in names or dropped, (r["run"], r["format"])
+
+
+def test_no_label_stands_on_another(records):
+    rows = [row for r in records for row in fm.collision_rows(r)]
+    assert not _fails(rows), _fails(rows)
+
+
+def test_section_blocks_are_groups_and_leaders_end_on_their_own_figures(records):
+    secs = [r for r in records if r["kind"] == "section"]
+    rows = [row for r in secs for row in fm.section_rows(r)]
+    assert not _fails(rows), _fails(rows)
+    for r in secs:
+        assert r["layout"] and not graphics.section_layout_faults(r["layout"]), (r["run"], r["format"])
+        assert len(r["layout"]["leaders"]) == len(r["input"]["levels"])
+
+
+def test_derived_figures_carry_their_derivation_or_are_withheld(records):
+    rows = [row for r in records for row in fm.derived_rows(r)]
+    assert not _fails(rows), _fails(rows)
+    for r in records:
+        if r["kind"] != "scale" or not r.get("drawn"):
+            continue
+        lay = r["layout"]
+        if lay["derived"] is not None:
+            assert not figures.derivation_faults(lay["derived"], lay["labelled"])
+            assert not figure_gate.derived_faults("meaning1", "", lay["derived"], {"scale_fact": r["input"]})
+        else:
+            assert lay["derived_withheld"] and any("derived figure" in str(o.get("omitted")) for o in r["omissions"])
+
+
+def test_tall_scale_drawing_takes_its_share_of_the_graphics_box(records):
+    rows = [row for r in records for row in fm.share_rows(r)]
+    assert rows and not _fails(rows), _fails(rows)
+
+
+def test_derivation_rule():
+    a = figures.operand("subject", "Mine", "327 M", 327, "M", True, "scale_fact")
+    b = figures.operand("reference", "Pyramid", "146 M", 146, "M", True, "https://example.org/pyramid")
+    rec = figures.derivation("difference", [a, b], "181", "ABOUT 181 M")
+    assert rec["result"] == 181 and rec["hedged"] and not figures.derivation_faults(rec, ["subject", "reference"])
+    assert figures.derivation_faults(dict(rec, text="181 M"))                      # hedged unless exact
+    assert figures.derivation_faults(dict(rec, shown="183"))                       # the arithmetic, as drawn
+    assert figures.derivation_faults(rec, ["subject"])                             # an operand not labelled
+    assert figures.derivation_faults(dict(rec, rule="product"))                    # difference, ratio or sum only
+    assert figures.derivation_faults(dict(rec, operands=[a, dict(b, source="")]))  # every operand sourced
+    assert figures.derivation_faults(None)
+    exact = figures.derivation("difference", [dict(a, approximate=False), dict(b, approximate=False)], "181", "181 M")
+    assert not exact["hedged"] and not figures.derivation_faults(exact)
+    with pytest.raises(ValueError):
+        figures.derivation("product", [a, b], "1", "x")
+
+
+def test_gate_recomputes_a_derived_comparison():
+    fact = FACTS[0]
+    feet = fact["value"] * 3.28084
+    ref = graphics.pick_reference(feet)
+    st = graphics.scale_statement(fact, feet, ref[0], ref[1], True)
+    rec = st["derivation"]
+    assert st["note"] == rec["text"] and rec["rule"] == "difference"
+    assert not figure_gate.derived_faults("bracket", st["note"], rec, {"scale_fact": fact})
+    assert figure_gate.derived_faults("bracket", st["note"], rec, {"scale_fact": dict(fact, value=300.0)})
+    assert figure_gate.derived_faults("bracket", "ABOUT 999 M", rec, {"scale_fact": fact})
+    assert figure_gate.derived_faults("bracket", st["note"], None, {"scale_fact": fact})    # fail closed
+    bare = graphics.scale_statement(fact, feet, ref[0], ref[1], True, derive=False)
+    assert bare["derivation"] is None and not any(str(round(rec["result"])) in ln for ln in bare["lines"])
+
+
+def test_label_stack_holds_its_gap_or_says_it_cannot():
+    assert graphics.label_stack([0.0, 0.0, 0.0], [50.0] * 3, 0.0, 160.0, 20.0, hold=True) is None
+    tops = graphics.label_stack([0.0, 0.0, 0.0], [50.0] * 3, 0.0, 200.0, 20.0, hold=True)
+    assert tops is not None and all(b - a >= 70.0 - 1e-6 for a, b in zip(tops, tops[1:]))
+
+
+def test_then_now_divider_is_hard_and_the_fade_is_short_and_clear():
+    from PIL import Image
+    w, h = 320, 180
+    a, b = Image.new("RGB", (w, h), (150, 40, 40)), Image.new("RGB", (w, h), (40, 40, 150))
+    out = then_now.join_blurred(a, b, 160.0, -40.0)
+    rule = out.getpixel((160, 90))
+    from src import brand
+    assert max(abs(rule[k] - brand.BONE[k]) for k in range(3)) <= 2      # a hard bone rule at the divider's place
+    px = [out.getpixel((x, 90)) for x in range(166, 180)]                # the join behind it blends the two photos
+    assert all(p[1] <= 45 for p in px)                                   # never bone or ink mixed over them
+    assert then_now.GROUP_RAMP <= 4
+    box = (20, 20, 120, 60)
+    lead = then_now.GROUP_LEAD * w
+    assert not then_now.group_clear(box, "then", 120 + lead - 2, w, h)   # hidden before the divider is that near
+    assert then_now.group_clear(box, "then", 120 + lead + 2, w, h)
+    sched = then_now.group_alpha([True] * 10 + [False] * 4 + [True] * 10)
+    assert max(len(run) for run in "".join("p" if 0 < v < 1 else " " for v in sched).split()) <= then_now.GROUP_RAMP

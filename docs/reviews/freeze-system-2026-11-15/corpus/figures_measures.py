@@ -321,6 +321,38 @@ def share_rows(rec: dict[str, Any], floor_h: float = 0.45) -> list[tuple]:
              f"({bx1 - bx0} x {by1 - by0})", "PASS" if hs >= floor_h else "FAIL")]
 
 
+# --------------------------------------------------------------------------------------------- FIG-06
+DELIVERED_PT = 390.0      # the width, in points, a frame of either format is delivered at on a phone (16:9 inline)
+MIN_LABEL_PT = 10.0       # RUBRIC PL2: the least label size at the delivered size
+
+
+def delivered_floor_px(width: int) -> int:
+    """The least font px on a frame `width` px wide that is MIN_LABEL_PT at the delivered size."""
+    return math.ceil(MIN_LABEL_PT * width / DELIVERED_PT - 1e-6)
+
+
+def floor_rows(rec: dict[str, Any]) -> list[tuple]:
+    """Every label of a data graphic at or over the delivered-size floor of its format (one row per element role
+    and size: the count of labels, their px and their size in delivered points)."""
+    st = _status(rec)
+    if st:
+        return [st]
+    import collections
+    w = rec["size"][0]
+    need = delivered_floor_px(w)
+    seen: dict[tuple, int] = collections.Counter()
+    for e in rec["elements"]:
+        role = re.sub(r"neighbour_.*", "neighbour", re.sub(r"water_.*", "water", re.sub(r"\d+", "#", e["name"])))
+        for r in e["runs"]:
+            if r["px"]:
+                seen[(role, r["px"])] += 1
+    rows = []
+    for (role, px), n in sorted(seen.items()):
+        rows.append((rec["run"], surface(rec), f"{role} x{n}", f"{px} px = {px * DELIVERED_PT / w:.1f} pt delivered "
+                     f"(floor {need} px)", "PASS" if px >= need else "FAIL"))
+    return rows
+
+
 def run(doc: str, kinds, measure, need_tokens: bool = False) -> int:
     """A class script's main: capture (cached), measure, print the table and the counts; 1 when any row FAILs."""
     import collections

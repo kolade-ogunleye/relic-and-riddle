@@ -189,14 +189,14 @@ def capture_one(job: dict[str, Any], fmt: tuple[int, int, str], work: Path) -> d
     out = work / f"{job['kind']}_{job['run']}_{tag}.mp4"
     real_rc, real_nt, real_graded = graphics.record_contrast, graphics.record_nontext, graphics.graded_frame
 
-    def rc(out_, frame, plates, rulers=None):
+    def rc(out_, frame, plates, rulers=None, **kw):
         for name, plate in plates:
             row = _plate_row(name, plate)
             if row:
                 rec["elements"].append(row)
         rec["rulers"] = [dict(r) for r in (rulers or [])]
         rec["frame_size"] = list(frame.size)
-        return real_rc(out_, frame, plates, rulers)
+        return real_rc(out_, frame, plates, rulers, **kw)
 
     def nt(out_, frame, marks, ground=None):
         for name, mask in marks:

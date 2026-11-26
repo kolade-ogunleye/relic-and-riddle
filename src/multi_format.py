@@ -560,8 +560,10 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     band = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))] / 255.0
     p = float(np.percentile(band, pct)) if band.size else 0.0
     strength = float(np.clip(1 - target / max(p, 1e-3), floor, cap))
-    up = band_edge.feather(lum, y0, "up", colour, strength, feather) if y0 > 0 else feather
-    down = band_edge.feather(lum, y1, "down", colour, strength, feather) if y1 < H - 1 else feather
+    # freeze cycle 5 (PLATES): a band with the photograph above AND below it is a floating band (the lower ceiling)
+    floating = y0 > 0 and y1 < H - 1
+    up = band_edge.feather(lum, y0, "up", colour, strength, feather, floating=floating) if y0 > 0 else feather
+    down = band_edge.feather(lum, y1, "down", colour, strength, feather, floating=floating) if y1 < H - 1 else feather
     v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))

@@ -455,6 +455,9 @@ def configure(config: BrandConfig | None, validate: bool = True) -> BrandConfig:
         from .brand_system import validate_display
         fails = (validate_display(config) + map_fill_problems(config)   # SYS batch 2: and the map fills
                  + handoff_problems(config))                         # SYS-E-3: and the hand-off line
+        if not fails:   # freeze cycle 5 (PLATES-06): and the palette's masthead roles on bright and dark grounds
+            from .masthead import palette_problems
+            fails = palette_problems(config)
         if fails:
             raise BrandRefused(config.name, fails)
     previous, _active = _active, config or DEFAULT_BRAND

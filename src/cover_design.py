@@ -89,6 +89,21 @@ def _scrim(im, box, strength=0.55, feather=120):
     from scipy.ndimage import gaussian_filter
     w, h = im.size
     sigma = max(1.0, feather / SCRIM_SIGMAS)
+    # freeze cycle 5 (stream PLATES): the one band-edge limit (band_edge.slope_limit, a floating shade: the photograph
+    # goes on round it). A Gaussian edge's steepest point is strength x step / (sigma x sqrt(2 pi)); the step is the
+    # bright end of the ground the falloff crosses, the limit that ground's own (flat or bright: a longer falloff)
+    from . import band_edge
+    lum = band_edge.luma_rows(im)
+    xa, xb = max(0, int(box[0])), min(w, int(box[2]))
+    ya, yb = max(0, int(box[1])), min(h, int(box[3]))
+    need = 0.0
+    for ground, a, b in ((lum[:, xa:xb], box[1] - feather, box[1]), (lum[:, xa:xb], box[3], box[3] + feather),
+                         (lum[ya:yb].T, box[0] - feather, box[0]), (lum[ya:yb].T, box[2], box[2] + feather)):
+        a, b = max(0.0, float(a)), min(float(ground.shape[0] - 1), float(b))   # each side's own falloff zone
+        if b - a > 2 and ground.shape[1] > 2:
+            limit = band_edge.slope_limit(ground, a, b, w, floating=True) * 1080 / max(1, w)
+            need = max(need, band_edge.step_across(ground, a, b, brand.INK, strength) / (limit * 2.5066))
+    sigma = max(sigma, need)
     k = SCRIM_DOWNSAMPLE
     x0, y0, x1, y1 = (v / k for v in box)
     pad = SCRIM_GROW * sigma / k

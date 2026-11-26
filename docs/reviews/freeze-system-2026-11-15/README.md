@@ -312,7 +312,10 @@ both clips with the per-frame difference. Row sheets are listed and paired only 
   board gives the run's own `carousel_photos.json` as the kept match and blocks the matcher (`board_decks.no_vision`),
   so nothing paid and nothing on the network runs. Surface names and record keys are the same as before
   (`photo_choice`, `masthead_records`, `rerouted`, `surface_omissions`); `photo_choice[<surface>].drawn_through` says
-  which path drew the slide.
+  which path drew the slide, `.archetype` the archetype it is drawn with (`rerouted` is still the recorded archetype
+  against today's routing of the card; a drawing may then take the slide) and, on a Facebook slide,
+  `.facebook_post` its place in the multi-photo post (`facebook_pick` over the copy as drawn; the feed collage uses
+  it). A drawing's omission rows go to the deck's diagram slide in both copies; the rest stay with the job.
 - A run whose saved data cannot drive that entry (no `carousel_photos.json`, a photograph gone from disk, another
   slide count, an AI-made picture in the match) is redrawn from its saved recipe as before, and every such tile says
   `REPLAY, not production's draw` with the missing input. A copy production would hold (a refusal) is a REFUSED tile.

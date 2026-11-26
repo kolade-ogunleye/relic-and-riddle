@@ -522,7 +522,8 @@ def story_window(photo: Path, text_box: tuple[float, float, float, float]) -> tu
         win = deck_window(clean.size, size, 0, tuple(text_box), clean)
         rec = {"centering": [round(v, 3) for v in win["centering"]], "text_clear": win["masthead_clear"]}
         fit = pf.place(photo, pf.Window(size, name="story"), tuple(rec["centering"]), image=clean,
-                       analysis=pf.analysis_of(Path(photo), clean))
+                       analysis=pf.analysis_of(Path(photo), clean),
+                       fixed=bool(getattr(_render_state, "asked_only", False)))
         rec["fit"] = {k: v for k, v in fit.items() if k != "window"}
         if fit["moved"]:
             return pf.crop(clean, fit["box"], size).convert("RGB"), rec
@@ -1040,6 +1041,68 @@ SHARE_WEIGHT = 700   # the closing slide's share-and-follow line: Montserrat Bol
 _render_state = threading.local()   # the slide being drawn on this thread: its subject
 
 
+def _platform_text_contrast(im: Image.Image, lay) -> dict[str, float]:
+    """Each text element's lowest ratio on `im` as delivered: saved as the slide is (CAROUSEL_JPEG), then the
+    platform's re-encode (platform_encode); {element name: ratio}."""
+    import io
+    plates = getattr(lay, "plates", None) or {}
+    buf = io.BytesIO()
+    im.convert("RGB").save(buf, "JPEG", **MultiFormatGenerator.CAROUSEL_JPEG)
+    buf.seek(0)
+    with Image.open(buf) as back:
+        delivered = platform_encode(back.convert("RGB"))
+    out: dict[str, float] = {}
+    for name, ps in plates.items():
+        vals = [v for v in (q.measure(delivered) for q in ps if not q.empty) if v is not None]
+        if vals:
+            out[name] = round(min(vals), 2)
+    return out
+
+
+def _moved_windows(lay) -> list[dict[str, Any]]:
+    """The photo-window records of a drawn slide or Story frame whose window was moved (photo_fitness.place)."""
+    meta = getattr(lay, "meta", None) or {}
+    recs = [w.get("fit") or {} for w in (meta.get("windows") or [])]
+    if isinstance(meta.get("window"), dict):
+        recs.append(meta["window"].get("fit") or {})
+    return [r for r in recs if r.get("moved")]
+
+
+def keep_text_contrast(draw, im: Image.Image, lay):
+    """Review of cycle 5, B3: a window moved by the photo-fitness rule may not cost the text its legibility. `draw()`
+    draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again with
+    every window as asked (_render_state.asked_only), and each text element is measured on both as delivered
+    (_platform_text_contrast). The moved drawing stands only when no element is lower than on the asked drawing and
+    none falls under brand.TEXT_CONTRAST where the asked one did not; otherwise the asked drawing is taken (the
+    order of the brief: legibility before subject visibility) and its window records say why ("move_refused")."""
+    moved = _moved_windows(lay)
+    if not moved or getattr(_render_state, "asked_only", False):
+        return im, lay
+    _render_state.asked_only = True
+    try:
+        im0, lay0 = draw()
+    finally:
+        _render_state.asked_only = False
+    now, asked = _platform_text_contrast(im, lay), _platform_text_contrast(im0, lay0)
+    lower = sorted(n for n in now if n in asked and (now[n] < asked[n] - 0.005
+                                                     or (now[n] < brand.TEXT_CONTRAST <= asked[n])))
+    check = {"moved": {n: now[n] for n in sorted(now)}, "asked": {n: asked[n] for n in sorted(asked)}}
+    if not lower:
+        for r in moved:
+            r["text_contrast"] = check
+        return im, lay
+    why = (f"the moved window lowered the text's contrast after the platform re-encode ({', '.join(lower)}): the "
+           f"window is drawn as asked (rule: a moved window keeps the text's contrast, src/multi_format.py)")
+    meta0 = getattr(lay0, "meta", None) or {}
+    recs0 = [w.get("fit") for w in (meta0.get("windows") or []) if isinstance(w.get("fit"), dict)]
+    if isinstance(meta0.get("window"), dict) and isinstance(meta0["window"].get("fit"), dict):
+        recs0.append(meta0["window"]["fit"])
+    for r in recs0:
+        r["move_refused"] = why
+        r["text_contrast"] = check
+    return im0, lay0
+
+
 # Lane D cycle 4 (AD-04 + PL-ri3-wedge: the Richat slide 3 showed the Apollo 9 photograph's black window wedge down its
 # left edge) found a source's own FRAME (digital black touching the picture's edge) and moved the window off it. Freeze
 # cycle 5: the frame is one measure of the photo-fitness rule (src/photo_fitness.py: matte_mask, MATTE_*), judged
@@ -1231,8 +1294,14 @@ class MultiFormatGenerator:
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides
 
-    def _render_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
-                            tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
+    def _render_story_frame(self, *args, **kw):
+        """One Story frame (_draw_story_frame), its moved photo window held to the text's contrast
+        (keep_text_contrast)."""
+        im, lay = self._draw_story_frame(*args, **kw)
+        return keep_text_contrast(lambda: self._draw_story_frame(*args, **kw), im, lay)
+
+    def _draw_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
+                          tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
         """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
         at STORY_MARGIN, a kicker (gold bar, tracked gold capitals), a two-tone Anton title (bone, then gold), the
         Montserrat body in balanced lines, and on the first frame the pointer to the Reel. Every block is measured
@@ -1682,7 +1751,7 @@ class MultiFormatGenerator:
                            protected=((mbox[0], 0, mbox[2], mbox[3]),) if mbox else ())
         analysis = pf.analysis_of(Path(photo), clean)
         fit = pf.place(photo, window, centering, image=clean, analysis=analysis, fixed=True)
-        if not fit["fit"]:
+        if not fit["fit"] and not getattr(_render_state, "asked_only", False):
             from .hero_window import DECK_OVERLAP_MAX
             fit = pf.place(photo, window, centering, earlier=earlier, overlap_max=DECK_OVERLAP_MAX if earlier else None,
                            image=clean, analysis=analysis)
@@ -2789,11 +2858,17 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
-    def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
-                               total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
-                               lead: str | None = None, window: int = 0, heading_tier: int = 0,
-                               heading_px: float | None = None):
+    def _render_carousel_slide(self, *args, **kw):
+        """One carousel slide (_draw_carousel_slide), its moved photo window held to the text's contrast
+        (keep_text_contrast)."""
+        im, lay = self._draw_carousel_slide(*args, **kw)
+        return keep_text_contrast(lambda: self._draw_carousel_slide(*args, **kw), im, lay)
+
+    def _draw_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
+                             total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
+                             subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
+                             lead: str | None = None, window: int = 0, heading_tier: int = 0,
+                             heading_px: float | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing

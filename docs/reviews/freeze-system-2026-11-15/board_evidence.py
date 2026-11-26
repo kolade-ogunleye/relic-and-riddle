@@ -203,8 +203,14 @@ def pairing(name: str) -> tuple[str, str]:
         return STAND_IN, "the tests' cross-section spec (no run carries one)"
     if n.startswith(("cover_badge__", "thumbnail_badge__")):
         return FORCED, "illustration flag forced on a real photo (no run had an illustrated hero)"
-    if "antikythera" in n:
-        return STAND_IN, "the Antikythera photo with the Aswan run's copy (no Antikythera run)"
+    for topic, ground in STRESS_GROUNDS.items():   # cycle 4: a stress ground's tile says why it is one, read
+        if topic in n:                             # from the dev checkout, never assumed
+            runs = len(topic_runs(topic))
+            if runs:
+                return STAND_IN, (f"STAND-IN NO LONGER NEEDED: {runs} run(s) of {topic} now exist in the dev checkout; "
+                                  "draw this ground with its own run's copy (board_extras)")
+            return STAND_IN, (f"stress case ({ground} ground): the {topic} photo with the bright ground's run copy; no "
+                              f"run of {topic} exists in the dev checkout")
     m = re.match(r"(endscreen|endcard|bridge|bridge_follow)__(\d+)_", n)
     if m and m.group(1) == "endscreen" and int(m.group(2)) in WIDE_GROUNDS:   # cycle 3: what the ground really is
         return WIDE_GROUNDS[int(m.group(2))]
@@ -216,6 +222,17 @@ def pairing(name: str) -> tuple[str, str]:
     if n.startswith(PROBE_PREFIXES):
         return "UNCLASSIFIED", "a probe kind with no pairing rule"
     return REAL, ""
+
+
+# cycle 4: grounds the board draws with another run's copy because their topic has no run (a stress case by
+# construction): topic -> what the ground probes
+STRESS_GROUNDS = {"antikythera_mechanism": "near-white"}
+
+
+def topic_runs(topic: str) -> list[str]:
+    """The dev checkout's run folders of `topic` (RR_FIXTURE_REPO/output/run_<topic>_<id>[_suffix])."""
+    dev = Path(os.environ.get("RR_FIXTURE_REPO") or ".")
+    return sorted(p.name for p in (dev / "output").glob(f"run_{topic}_*") if p.is_dir() and run_topic(p.name) == topic)
 
 
 def label(name: str, text: str = "") -> str:
@@ -433,8 +450,45 @@ def refusals(surfaces: dict[str, Any] | None, manifest: dict[str, Any], extra: l
         if str(lab).startswith("REFUSED:"):
             rows.append((name, "refused (recorded)", str(lab)[len("REFUSED:"):].strip()))
     rows += [r for r in REFUSED if r not in rows]
+    rows += omission_table_rows(surfaces)
     rows += extra
     return rows
+
+
+# ---------------------------------------------------------------------------------------------- recorded omissions
+OMISSION_WHAT = "drawn without a part (recorded omission)"
+
+
+def surface_omissions(surfaces: dict[str, Any] | None) -> dict[str, list[dict[str, Any]]]:
+    """Cycle 4 (carry-in 6): surface stem -> the omission ledger's rows render_surfaces.py attributed to it (each row
+    recorded while that surface was drawn: a map without a neighbour's name, a timeline without an event)."""
+    return {k: list(v) for k, v in ((surfaces or {}).get("surface_omissions") or {}).items() if v}
+
+
+def omission_note(stem: str, surfaces: dict[str, Any] | None) -> str:
+    """The tile's record note for a surface drawn without a part ("" when nothing was left out): every omitted
+    element with its rule, so a reviewer sees a recorded drop on the tile itself, not only in the table."""
+    rows = surface_omissions(surfaces).get(stem) or []
+    if not rows:
+        return ""
+    return "RECORDED OMISSION: " + "; ".join(f"drawn without {r.get('omitted')!r} (rule: {r.get('rule')})"
+                                               for r in rows)
+
+
+def omission_table_rows(surfaces: dict[str, Any] | None) -> list[tuple[str, str, str]]:
+    """The refusal table's rows for recorded omissions: one per row attributed to a surface, and one per job-level
+    row no surface took (a tree whose render_surfaces.py records per job only, or a row recorded after the job's last
+    surface), named by the job."""
+    out, placed = [], []
+    for stem, rows in sorted(surface_omissions(surfaces).items()):
+        for r in rows:
+            out.append((stem, OMISSION_WHAT, str(r.get("reason") or r.get("omitted"))[:400]))
+            placed.append(r)
+    for job, rows in sorted(((surfaces or {}).get("omissions") or {}).items()):
+        for r in rows:
+            if r not in placed:
+                out.append((f"{job} (job)", OMISSION_WHAT, str(r.get("reason") or r.get("omitted"))[:400]))
+    return out
 
 
 # ---------------------------------------------------------------------------------------------- peer feed
@@ -501,12 +555,30 @@ def fb_collage_boxes(w: int) -> list[tuple[int, int, int, int]]:
     return boxes
 
 
+def tree_collage_boxes(n: int, w: int) -> list[tuple[int, int, int, int]] | None:
+    """The boxes of an `n`-photo post `w` px wide from the tree's own collage model (multi_format.FACEBOOK_COLLAGE:
+    tiles in shares of the width), or None when the tree has no model for `n` (a post of 4 photos is a deck of 4
+    slides or fewer, where facebook_pick posts them all: no real run has one yet, cycle 4)."""
+    try:
+        from src.multi_format import FACEBOOK_COLLAGE
+    except ImportError:
+        return None
+    tiles = FACEBOOK_COLLAGE.get(n)
+    if not tiles:
+        return None
+    return [(round(x * w), round(y * w), round((x + tw) * w), round((y + th) * w)) for x, y, tw, th in tiles]
+
+
 def fb_collage(photos: list, w: int = 1137):
     """`photos` (a deck's Facebook slides, in order) as Facebook's feed draws a multi-photo post: the first 5 each
     centre-cropped into its box (fb_collage_boxes), "+N" over the 5th when there are N more."""
     from PIL import Image, ImageDraw, ImageFont, ImageOps
     boxes = fb_collage_boxes(w)
-    out = Image.new("RGB", (w, boxes[-1][3]), (39, 39, 39))   # the gap colour of the capture (dark mode)
+    if len(photos) < FB_COLLAGE_PHOTOS:   # cycle 4: a smaller post as the tree's own collage model lays it out
+        model = tree_collage_boxes(len(photos), w)
+        if model:
+            boxes = model
+    out = Image.new("RGB", (w, max(b[3] for b in boxes)), (39, 39, 39))   # the gap colour of the capture (dark mode)
     for box, im in zip(boxes, photos[:FB_COLLAGE_PHOTOS]):
         size = (box[2] - box[0], box[3] - box[1])
         out.paste(ImageOps.fit(im.convert("RGB"), size, Image.LANCZOS), box[:2])

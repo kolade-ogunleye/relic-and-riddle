@@ -36,7 +36,9 @@ ASWAN_COVER_RUN = "run_unfinished_obelisk_aswan_1792985912"
 ASWAN_DECK_RUN = "run_unfinished_obelisk_aswan_1792993374"
 BRIGHT_HERO = Path("assets") / "unfinished_obelisk_aswan" / "01_commons.jpg"
 NEAR_WHITE_HERO = Path("assets") / "antikythera_mechanism" / "01_commons.jpg"
-STAND_IN = "STAND-IN: antikythera photo, Aswan run copy (no antikythera run)"
+# the near-white ground's tile note (cycle 4, 2026-11-19 ruling: the label said STAND-IN twice): the pairing class and
+# its evidence come first from board_evidence.pairing, so the item says only which ground it is
+STAND_IN = "near-white stress ground"
 CAPTION_TOPICS = ("amber_room_heist", "richat_structure_sahara_eye")
 
 _cache: dict[str, Any] = {}
@@ -487,37 +489,86 @@ def hook_frames() -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------------------------- badges (row 11)
-def callout_held(work: Path) -> list[dict[str, Any]]:
+CALLOUT_REVEAL = [0.6, 2.2]   # render_surfaces.py's callout job: each label's cue
+
+
+def callout_held(work: Path, clips: Path | None = None) -> list[dict[str, Any]]:
     """The photo callout (render_surfaces.py's case: the operator's reference pair on the Amber Room hero, 9:16) at
     the frame its labels are fully on: the clip ends after its exit fade, so its last frame (the surface QF-35a keeps)
-    shows the bare photo. The held frame is the one farthest from frame 0 (the photo before the first marker)."""
+    shows the bare photo. The held frame is the one farthest from frame 0 (the photo before the first marker).
+    Cycle 4 (panel 5 MO, carry-in 2): the same draw is also encoded by the renderer's own clip encode (callouts._encode,
+    graphics._encode: the delivery encoder) into <clips>/callouts__reference_pair__916.mp4, with the renderer's own
+    per-frame record (callouts.render record=: each label's marker, plate and text alpha) as its timing record; the
+    held frame is the drawn frame, as before. Cached per process."""
+    if "callout" in _cache:
+        return _cache["callout"]
+    import hashlib
+    import shutil
+    import time
+
     import fixtures as fx
     import numpy as np
 
     from src import callouts
     from tests.test_callouts_v4_2026_11_03 import REF_DOOR, REF_WALL
+    t0 = time.perf_counter()
     hero = next(fx.path(hh["photo"]) for hh in fx.section("cards")["hero_photos"] if hh["topic"] == "amber_room_heist")
     w, h = 1080, 1920
     kept = callouts.declutter(callouts.clear_of_captions([REF_DOOR, REF_WALL], w, h), w, h)
     frames: list = []
     real = callouts._encode
 
-    def keep(fr, out, *_a, **_k):
-        frames.extend(im.convert("RGB") for im in fr)
-        return Path(out)
+    def tee(fr):
+        for im in fr:
+            frames.append(im.convert("RGB"))
+            yield im
+
+    def keep(fr, out, *a, **k):
+        if clips is None:   # the held frame only (as before cycle 4)
+            frames.extend(im.convert("RGB") for im in fr)
+            return Path(out)
+        return real(tee(fr), out, *a, **k)
     callouts._encode = keep
     import board_evidence as be
+    rec: dict[str, Any] = {}
+    out = work / "callouts__reference_pair__916.mp4"
     try:
-        be.guarded("callouts__reference_pair__916 (held frame)", callouts.render, hero, kept,
-                   work / "callout_916.mp4", width=w, height=h, reveal=[0.6, 2.2])
+        got = be.guarded("callouts__reference_pair__916 (held frame)", callouts.render, hero, kept, out,
+                         width=w, height=h, reveal=list(CALLOUT_REVEAL), **({"record": rec} if clips is not None else {}))
     finally:
         callouts._encode = real
     if not frames:
+        _cache["callout"] = []
         return []
     f0 = np.asarray(frames[0].resize((108, 192)), np.float32)
     k = int(np.argmax([np.abs(np.asarray(f.resize((108, 192)), np.float32) - f0).mean() for f in frames]))
-    return [{"name": f"callouts__reference_pair__916__f{k:03d}", "image": frames[k],
-             "label": f"labels held: frame {k} of {len(frames)} (the reference pair, as render_surfaces.py)"}]
+    item = {"name": f"callouts__reference_pair__916__f{k:03d}", "image": frames[k],
+            "label": f"labels held: frame {k} of {len(frames)} (the reference pair, as render_surfaces.py)"}
+    if clips is not None and got is not None and Path(out).is_file():
+        path = Path(clips) / Path(out).name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out, path)
+        item["clip"] = {"path": path, "frames": len(frames), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                        "encoder": "callouts._encode (graphics._encode: the delivery encoder, as production writes the "
+                                   "callout clip)"}
+        item["record"] = callout_record(rec, kept)
+        item["seconds"] = round(time.perf_counter() - t0, 1)
+    _cache["callout"] = [item]
+    return [item]
+
+
+def callout_record(rec: dict[str, Any], points: list) -> dict[str, Any]:
+    """The timing part of callouts.render's record (each frame's per-label marker, plate and text alpha; the masks
+    left out) and the renderer's timing constants, picklable for a worker."""
+    from src import callouts
+    keys = ("plate_a", "text_a", "plate", "lead", "g")
+    return {"frames": [{"i": f["i"], "t": f["t"], "labels": {k: {x: float(d[x]) for x in keys if x in d}
+                                                          for k, d in (f.get("labels") or {}).items()}}
+                       for f in rec.get("frames") or []],
+            "exit_frame": rec.get("exit_frame"), "reveal": list(CALLOUT_REVEAL),
+            "texts": {str(k): str(p[0]) for k, p in enumerate(points or [])},   # each point's label, in render order
+            "clip_seconds": getattr(callouts, "CLIP_SECONDS", None), "dot_lead": getattr(callouts, "DOT_LEAD", None),
+            "exit_lead": getattr(callouts, "EXIT_LEAD", None), "exit_time": getattr(callouts, "EXIT_TIME", None)}
 
 
 @contextlib.contextmanager

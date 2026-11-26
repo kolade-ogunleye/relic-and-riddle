@@ -190,11 +190,12 @@ def test_number_card_label_steps_down_only_for_a_hard_fault():
     # the real case: COOLING OF / CARBONATITE ROCKS on a measure where the clean break needs a smaller size
     text = "COOLING OF CARBONATITE ROCKS"
     need = graphics._tracked_w("OF CARBONATITE ROCKS", font, 3)
-    got, f2 = graphics.stat_label_policy(text, ["COOLING OF", "CARBONATITE ROCKS"], font, need - 30, 3, 34)
+    steps = [get_font(brand.TEXT_FONT, px, weight=800) for px in range(44, 33, -graphics.STAT_LABEL_STEP)]
+    got, f2 = graphics.stat_label_policy(text, ["COOLING OF", "CARBONATITE ROCKS"], font, need - 30, 3, 34, steps)
     assert got == ["COOLING", "OF CARBONATITE ROCKS"] and 34 <= f2.size < 46
     assert graphics._tracked_w(got[1], f2, 3) <= need - 30
     # and where no size down to the floor clears it, the rows stay as fitted (logged), never under the floor
-    kept, f3 = graphics.stat_label_policy(text, ["COOLING OF", "CARBONATITE ROCKS"], font, need - 30, 3, 46)
+    kept, f3 = graphics.stat_label_policy(text, ["COOLING OF", "CARBONATITE ROCKS"], font, need - 30, 3, 46, steps)
     assert (kept, f3) == (["COOLING OF", "CARBONATITE ROCKS"], font)
 
 

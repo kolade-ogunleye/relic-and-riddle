@@ -2141,35 +2141,19 @@ class MultiFormatGenerator:
         return 1
 
     def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float, trial: bool = False):
-        """The body as the slide draws it: (lines, font, shortened). The measured setting (_body_measured: balanced
-        lines of at most BODY_MEASURE characters) stands wherever it holds the ONE line policy (src/line_policy.py):
-        no pixel moves there. Where it leaves a violation (a figure parted from its unit, a range cut, a line ending
-        on a function word, a proper name parted, a line over the measure), or takes a line more than a setting as
-        clean needs (review D8), the body is set again in one search over
-        every break that fits the slide's width and `max_lines` (line_policy.set_lines), so the policy holds in the
-        path production draws (freeze cycle 5, review D1: the measure was narrowed first and the policy saw only the
-        narrow trial; "nearly 1,090 / tonnes" stayed). A line may pass the character measure where that is the only
-        way to hold the policy; _stack records it with every violation that stays (lay.meta["line_faults"])."""
-        got = self._body_measured(d, px, body, width, max_lines, size, floor, trial)
-        lines, font, short = got
-        from . import line_policy
-        if short or len(lines) < 2:
-            return got
-        s = getattr(px, "s", 1.0)
-        design = get_font(brand.TEXT_FONT, round(font.size / s))       # planned on the design canvas, like _fit_text
-        better = line_policy.set_lines(" ".join(body.split()), lambda t: d.textlength(t, font=design),
-                                       round(width / s), max_lines, self.BODY_MEASURE)
-        if (better and " ".join(better).split() == " ".join(lines).split()
-                and line_policy.form_key(better, self.BODY_MEASURE) < line_policy.form_key(lines, self.BODY_MEASURE)):
-            return better, font, short
-        return got
+        """The body as the slide draws it: (lines, font, shortened). Planned on the design canvas like every fit.
+        `trial`: a shortened result is returned as is (not refitted and logged), for a caller that tries again.
 
-    def _body_measured(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float,
-                       trial: bool = False):
-        """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
-        narrower measure avoids it: (lines, font, shortened). Planned on the design canvas like every fit. `trial`:
-        a shortened result is returned as is (not refitted and logged), for a caller that tries again."""
-        first = fallback = None
+        First the measured setting: balanced lines of at most BODY_MEASURE characters, not ending on a one-word line
+        where a narrower measure avoids it. It stands wherever it holds the ONE line policy (src/line_policy.py): no
+        pixel moves there. Where it leaves a violation (a figure parted from its unit, a range cut, a line ending on
+        a function word, a proper name parted, a line over the measure), or takes a line more than a setting as
+        clean needs (review D8), the body is set again in one search over every break that fits the slide's width
+        and `max_lines` (line_policy.set_lines), so the policy holds in the path production draws (freeze cycle 5,
+        review D1: the measure was narrowed first and the policy saw only the narrow trial; "nearly 1,090 / tonnes"
+        stayed). A line may pass the character measure where that is the only way to hold the policy; _stack
+        records it with every violation that stays (lay.meta["line_faults"])."""
+        first = fallback = chosen = None
         w = width
         while w >= px(420):
             got = self._fit_text(d, body, brand.TEXT_FONT, int(size), w, max_lines, int(min(floor, size)), px=px,
@@ -2179,12 +2163,24 @@ class MultiFormatGenerator:
             measure_ok = all(len(ln) <= self.BODY_MEASURE for ln in lines)
             if not short and measure_ok:
                 if not (len(lines) > 1 and len(lines[-1].split()) == 1):
-                    return (even_rag(d, lines, got[1], width, self.BODY_MEASURE), got[1], got[2])
+                    chosen = (even_rag(d, lines, got[1], width, self.BODY_MEASURE), got[1], got[2])
+                    break
                 fallback = fallback or got
             w -= px(16)
-        chosen = fallback or first
+        chosen = chosen or fallback or first
         if chosen[2] and not trial:   # shortened even so: fitted once more at the full measure, logged
             return self._fit_text(d, body, brand.TEXT_FONT, int(size), width, max_lines, int(min(floor, size)), px=px)
+        lines, font, short = chosen
+        if short or len(lines) < 2:
+            return chosen
+        from . import line_policy
+        s = getattr(px, "s", 1.0)
+        design = get_font(brand.TEXT_FONT, int(size))                 # planned on the design canvas, like _fit_text
+        better = line_policy.set_lines(" ".join(body.split()), lambda t: d.textlength(t, font=design),
+                                       round(width / s), max_lines, self.BODY_MEASURE)
+        if (better and " ".join(better).split() == " ".join(lines).split()
+                and line_policy.form_key(better, self.BODY_MEASURE) < line_policy.form_key(lines, self.BODY_MEASURE)):
+            return better, font, short
         return chosen
 
     def _set_heading(self, d, px, heading: str, width: int, two_tone, scale: float, h_spec, content: bool):

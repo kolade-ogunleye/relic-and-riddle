@@ -317,61 +317,65 @@ def graphic_rows(run: Path, j: dict) -> list[dict]:
     graphics._encode, graphics.record_contrast, graphics.VIDEO_FPS = encode, record, 1
     work = Path(tempfile.mkdtemp(prefix="text-c5-g-"))
     try:
-        jobs = []
-        if j.get("timeline"):
-            jobs.append(("timeline", lambda o, w, h: graphics.render_timeline(copy.deepcopy(j["timeline"]), o,
-                                                                              width=w, height=h)))
-        if j.get("stat_cards"):
-            jobs.append(("numbers", lambda o, w, h: graphics.render_stat_cards(
-                copy.deepcopy(j["stat_cards"]), o, None, width=w, height=h,
-                narration=j.get("narration_script") or "")))
-        if j.get("scale_fact"):
-            jobs.append(("scale", lambda o, w, h: graphics.render_scale(copy.deepcopy(j["scale_fact"]), o,
-                                                                        width=w, height=h)))
-        for kind, make in jobs:
-            for tag, w, h in FORMATS:
-                surface = f"graphic_{kind}_{tag}"
-                del got[:]
+        # the renders run inside an open omission ledger, as graphics.make_all runs them: without one the first
+        # omitted part (a refused referent note, a scale bar) refuses the whole surface (SYS-S1-3)
+        from src.refusal import collecting
+        with collecting():
+            jobs = []
+            if j.get("timeline"):
+                jobs.append(("timeline", lambda o, w, h: graphics.render_timeline(copy.deepcopy(j["timeline"]), o,
+                                                                                  width=w, height=h)))
+            if j.get("stat_cards"):
+                jobs.append(("numbers", lambda o, w, h: graphics.render_stat_cards(
+                    copy.deepcopy(j["stat_cards"]), o, None, width=w, height=h,
+                    narration=j.get("narration_script") or "")))
+            if j.get("scale_fact"):
+                jobs.append(("scale", lambda o, w, h: graphics.render_scale(copy.deepcopy(j["scale_fact"]), o,
+                                                                            width=w, height=h)))
+            for kind, make in jobs:
+                for tag, w, h in FORMATS:
+                    surface = f"graphic_{kind}_{tag}"
+                    del got[:]
+                    try:
+                        made = make(work / f"{kind}_{tag}.mp4", w, h)
+                    except Exception as ex:   # noqa: BLE001
+                        rows.append({"surface": surface, "text": kind, "refused": True, "reason": str(ex)[:200]}
+                                    if _refusal(ex) else _err(surface, ex))
+                        continue
+                    if made is None:
+                        rows.append({"surface": surface, "text": kind, "refused": True,
+                                     "reason": "the renderer drew nothing"})
+                        continue
+                    for k, (name, lines) in enumerate(_plate_groups(got)):
+                        if re.match(r"^(label|note|caption|title|heading|name|referent|subject|event|kicker)", name):
+                            rows.append({"surface": f"{surface}_{name}", "text": " ".join(lines), "lines": lines,
+                                         "size": None, "label": True, "record": None, "at": k})
+            # place names: the map's site and the route's stops, through the marker label's own line setter
+            places = []
+            lineage = run / "graphics" / "graphic_map.mp4.lineage.json"
+            if lineage.is_file():
                 try:
-                    made = make(work / f"{kind}_{tag}.mp4", w, h)
-                except Exception as ex:   # noqa: BLE001
-                    rows.append({"surface": surface, "text": kind, "refused": True, "reason": str(ex)[:200]}
-                                if _refusal(ex) else _err(surface, ex))
-                    continue
-                if made is None:
-                    rows.append({"surface": surface, "text": kind, "refused": True,
-                                 "reason": "the renderer drew nothing"})
-                    continue
-                for k, (name, lines) in enumerate(_plate_groups(got)):
-                    if re.match(r"^(label|note|caption|title|heading|name|referent|subject|event|kicker)", name):
-                        rows.append({"surface": f"{surface}_{name}", "text": " ".join(lines), "lines": lines,
-                                     "size": None, "label": True, "record": None, "at": k})
-        # place names: the map's site and the route's stops, through the marker label's own line setter
-        places = []
-        lineage = run / "graphics" / "graphic_map.mp4.lineage.json"
-        if lineage.is_file():
-            try:
-                inp = (json.loads(lineage.read_text(encoding="utf-8")).get("settings") or {}).get("inputs") or {}
-                place = inp.get("place") or {}
-                for key in ("label", "name", "place"):
-                    if isinstance(place, dict) and place.get(key):
-                        places.append(("map_site", str(place[key])))
-                        break
-            except (OSError, ValueError):
-                pass
-        for k, stop in enumerate(j.get("route") or [], 1):
-            if isinstance(stop, dict) and stop.get("place"):
-                places.append((f"route_stop{k}", str(stop["place"])))
-        for name, text in places:
-            for tag, w, h in FORMATS:
-                surface = f"graphic_{name}_{tag}"
-                try:
-                    lines, font = graphics.marker_label_lines(text, w, h)
-                    rows.append({"surface": surface, "text": _clean(text).upper(), "lines": [str(x) for x in lines],
-                                 "size": getattr(font, "size", None), "label": True, "record": None})
-                except Exception as ex:   # noqa: BLE001
-                    rows.append({"surface": surface, "text": _clean(text), "refused": True, "reason": str(ex)[:200]}
-                                if _refusal(ex) else _err(surface, ex))
+                    inp = (json.loads(lineage.read_text(encoding="utf-8")).get("settings") or {}).get("inputs") or {}
+                    place = inp.get("place") or {}
+                    for key in ("label", "name", "place"):
+                        if isinstance(place, dict) and place.get(key):
+                            places.append(("map_site", str(place[key])))
+                            break
+                except (OSError, ValueError):
+                    pass
+            for k, stop in enumerate(j.get("route") or [], 1):
+                if isinstance(stop, dict) and stop.get("place"):
+                    places.append((f"route_stop{k}", str(stop["place"])))
+            for name, text in places:
+                for tag, w, h in FORMATS:
+                    surface = f"graphic_{name}_{tag}"
+                    try:
+                        lines, font = graphics.marker_label_lines(text, w, h)
+                        rows.append({"surface": surface, "text": _clean(text).upper(), "lines": [str(x) for x in lines],
+                                     "size": getattr(font, "size", None), "label": True, "record": None})
+                    except Exception as ex:   # noqa: BLE001
+                        rows.append({"surface": surface, "text": _clean(text), "refused": True, "reason": str(ex)[:200]}
+                                    if _refusal(ex) else _err(surface, ex))
     finally:
         for k, v in real.items():
             setattr(graphics, k, v)

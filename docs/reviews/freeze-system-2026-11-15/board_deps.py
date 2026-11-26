@@ -13,7 +13,8 @@ job's. The process records (Recorder; a record only, the pixels are untouched):
   reads       every file opened for reading, handed to a child process (in an argument or inside one, as ffmpeg's
               filter strings carry them) or opened by sqlite, anywhere outside the interpreter's own folders, with
               its sha256; a .py file read as data (not imported) counts as data;
-  probes      every path asked for existence or metadata (os.stat and its family), with what was there;
+  probes      every path asked for existence or metadata (os.stat and its family), with what was there; a yes / no
+              question (exists, is_file, resolve) is told from a question about the file itself (os.stat, getsize);
   listed      every folder listed (os.listdir, os.scandir, glob), with its names;
   env         every environment variable looked up by name, with its value's sha256 (a secret-like name: set or not);
   built       every file the process created that outlives it (a cache), with the stack that created it and what
@@ -30,7 +31,8 @@ KEY (job_key; at any commit, from git objects only):
   - every tree .py file an import the job asked for could resolve to (a new module that shadows one);
   - every tracked file that is not Python outside tests/ and docs/ (data/, fonts/, assets/, src/, tools/, the root:
     readers outside Python exist, so a read cannot be ruled out): its blob, in EVERY job's key;
-  - every tree path the job read, probed or listed (tests/, docs/ and the rest): blob, presence, names;
+  - every tree path the job read, probed or listed (tests/, docs/ and the rest): its blob when it was read or
+    its metadata asked, its presence when only its existence was, its names when it was listed;
   - "whole" jobs (an artefact whose build nobody observed): every module of the code roots, whole.
 What is not in git is not in the key and is checked by board_reuse.plan against the disk: files outside the tree,
 probes, listings, environment, toolchain, tools/ data, artefacts.
@@ -76,6 +78,22 @@ HARNESS = f"{RENDER}::main."
 
 def _harness(fn: str) -> bool:
     return fn.startswith(HARNESS)
+
+
+# the standard library's yes / no questions about a path: a probe through one of these is "is it there", any other
+# os.stat is "what is it" (size, time), which the file's bytes answer
+ASKS_PRESENCE = {
+    "genericpath.py": {"exists", "isfile", "isdir"},
+    "ntpath.py": {"lexists", "islink", "isdir", "ismount", "realpath", "exists", "isfile"},
+    "posixpath.py": {"lexists", "islink", "ismount", "realpath"},
+    "pathlib.py": {"exists", "is_file", "is_dir", "is_symlink", "is_mount", "resolve", "expanduser", "is_junction",
+                   "_scandir", "_select_from", "_iterate_directories", "mkdir", "touch"},
+    "shutil.py": {"which", "_access_check", "rmtree", "_rmtree_unsafe", "_rmtree_islink"},
+    "os.py": {"makedirs", "walk", "_walk", "removedirs"},
+    "glob.py": {"_glob0", "_glob1", "_glob2", "_iglob", "_rlistdir", "_iterdir", "_lexists", "_isdir", "glob1"},
+    "tempfile.py": {"mkdtemp", "_mkstemp_inner", "_get_default_tempdir", "_candidate_tempdir_list"},
+    "zipfile.py": {"is_zipfile"},
+}
 
 
 # tracked paths whose files count for a job only when it read, probed or listed them; every other tracked file that
@@ -354,9 +372,12 @@ def job_key(tree: Tree, rec: dict[str, Any]) -> dict[str, Any]:
     for rel in rec.get("tree_reads") or {}:
         real = tree.real(rel)
         rows[f"read:{rel}"] = tree.blobs[real] if real else "absent"
-    for rel in rec.get("tree_probes") or {}:
+    for rel, state in (rec.get("tree_probes") or {}).items():
         real = tree.real(rel)
-        rows[f"probe:{rel}"] = "file" if real else "dir" if rel.strip("/").lower() in tree.dirs() else "absent"
+        if real and state == "file:stat":   # its size or time was asked: its bytes
+            rows[f"probe:{rel}"] = tree.blobs[real]
+        else:
+            rows[f"probe:{rel}"] = "file" if real else "dir" if rel.strip("/").lower() in tree.dirs() else "absent"
     for rel in rec.get("tree_listed") or {}:
         rows[f"listing:{rel}"] = tree.listing(rel)
     listed = sorted(rows.items())
@@ -401,6 +422,14 @@ def _norm(p: str) -> str:
     return os.path.normcase(os.path.abspath(p))
 
 
+def _source(code) -> str:
+    """The file name of a code object, a frozen standard-library module (os, genericpath, ntpath) as its .py."""
+    fn = code.co_filename
+    if fn.startswith("<frozen ") and fn.endswith(">"):
+        return fn[8:-1].rsplit(".", 1)[-1] + ".py"
+    return os.path.basename(fn)
+
+
 def env_name(key: str) -> str:
     return key.upper() if os.name == "nt" else key
 
@@ -429,6 +458,7 @@ class Recorder:
         self._paths: dict[str, str | None] = {}
         self.reads: set[str] = set()
         self.probes: dict[str, str] = {}
+        self.stats: dict[str, list[int]] = {}     # a file whose metadata was asked: [size, mtime_ns]
         self.listed: dict[str, str] = {}
         self.wrote: dict[str, list[str]] = {}     # path -> the stack that first wrote it
         self.made: set[str] = set()               # folders this process created
@@ -570,16 +600,36 @@ class Recorder:
                     self.never.append(f"a folder of more than 5000 files handed to a child process: {p}")
                     break
 
-    def _probe(self, path: Any, found: Any) -> None:
+    def _probe(self, path: Any, found: Any, presence: bool = True) -> None:
         p = self._path(path)
-        if p is None or p in self.probes or self._own(p):
+        if p is None or self._own(p):
             return
         if found is None:
-            self.missing.setdefault(p, self._stack())
-            self.probes[p] = "absent"
-        else:
-            import stat as _stat
-            self.probes[p] = "dir" if _stat.S_ISDIR(found.st_mode) else "file"
+            if p not in self.probes:
+                self.missing.setdefault(p, self._stack())
+                self.probes[p] = "absent"
+            return
+        import stat as _stat
+        if _stat.S_ISDIR(found.st_mode):
+            self.probes.setdefault(p, "dir")
+        elif presence:
+            self.probes.setdefault(p, "file")
+        elif self.probes.get(p) != "absent":   # the file itself was asked about: size and time, so its bytes
+            self.probes[p] = "file:stat"
+            self.stats.setdefault(p, [found.st_size, found.st_mtime_ns])
+
+    @staticmethod
+    def _asks_presence(depth: int) -> bool:
+        f = sys._getframe(depth)
+        for _ in range(3):   # pathlib's exists -> stat -> os.stat: up to who put the question
+            if f is None:
+                return False
+            file, name = _source(f.f_code), f.f_code.co_name
+            if file == "pathlib.py" and name in ("stat", "lstat"):
+                f = f.f_back
+                continue
+            return name in ASKS_PRESENCE.get(file, ())
+        return False
 
     # -- the hooks
     def _audit(self, event: str, args: tuple) -> None:
@@ -612,11 +662,11 @@ class Recorder:
                         if f is None:
                             break
                         who = f.f_code.co_filename
-                        if os.path.basename(who) not in ("pathlib.py", "io.py", "_pyio.py", "codecs.py",
-                                                         "genericpath.py", "shutil.py"):
+                        if _source(f.f_code) not in ("pathlib.py", "io.py", "_pyio.py", "codecs.py",
+                                                     "genericpath.py", "shutil.py"):
                             break
                         f = f.f_back
-                    if who.startswith("<frozen") or os.path.basename(who) in (
+                    if who.startswith("<frozen importlib") or os.path.basename(who) in (
                             "linecache.py", "tokenize.py", "render_surfaces.py", "board_deps.py", "runpy.py",
                             "pkgutil.py", "traceback.py", "inspect.py"):
                         return
@@ -688,7 +738,7 @@ class Recorder:
     def _patch(self) -> None:
         rec = self
 
-        def wrap(mod, name):
+        def wrap(mod, name, presence=None):
             orig = getattr(mod, name)
 
             def probe(path, *a, **k):
@@ -707,10 +757,10 @@ class Recorder:
                     rec.busy.on = True
                     try:
                         if hasattr(r, "st_mode"):
-                            rec._probe(path, r)
+                            rec._probe(path, r, rec._asks_presence(2) if presence is None else presence)
                         else:   # a yes / no answer (os.access, a C isdir): ask what is there
                             try:
-                                rec._probe(path, orig_stat(path))
+                                rec._probe(path, orig_stat(path), True)
                             except OSError:
                                 rec._probe(path, None)
                     finally:
@@ -833,6 +883,8 @@ class Recorder:
             kind, name = split(p)
             if name not in rec[kind + "reads"]:
                 rec[kind + "probes"][name] = state
+                if state == "file:stat" and not kind:
+                    rec.setdefault("stats", {})[name] = self.stats.get(p)
         for p, sha in sorted(self.listed.items()):
             kind, name = split(p)
             rec[kind + "listed"][name] = sha
@@ -1003,7 +1055,7 @@ def resolve(deps: dict[str, Any], tree: Tree, before: dict[str, str] | None = No
             if tree.real(rel) is None and not rel.startswith(TOOLS):
                 touched["T:" + rel] = sha
         for rel, state in (r.get("tree_probes") or {}).items():
-            if state == "file" and tree.real(rel) is None and not rel.startswith(TOOLS):
+            if state in ("file", "file:stat") and tree.real(rel) is None and not rel.startswith(TOOLS):
                 first = next((e["sha256"] for _k, e in built.get("T:" + rel, [])), None)
                 touched["T:" + rel] = before.get(rel) or first or disk(rel)
         for d in r.get("tree_listed") or {}:   # a listed folder: every untracked file directly in it

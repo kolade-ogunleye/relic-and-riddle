@@ -235,6 +235,13 @@ class Disk:
     def state(self, p: str) -> str:
         return "dir" if os.path.isdir(p) else "file" if os.path.exists(p) else "absent"
 
+    def stat(self, p: str) -> list[int] | None:
+        try:
+            st = os.stat(p)
+        except OSError:
+            return None
+        return [st.st_size, st.st_mtime_ns]
+
     def names(self, p: str) -> str | None:
         try:
             return hashlib.sha256(json.dumps([n.lower() for n in sorted(os.listdir(p))]).encode()).hexdigest()
@@ -262,8 +269,10 @@ def inputs_now(rec: dict[str, Any], disk: Disk, tracked: board_deps.Tree, before
             bad.append(f"read, now other bytes: {p}")
     for p, state in (rec.get("probes") or {}).items():
         now = disk.state(p)
-        if now != state and not (p in built and now == "file" and disk.sha(p) == built[p]["sha256"]):
+        if now != state.split(":")[0] and not (p in built and now == "file" and disk.sha(p) == built[p]["sha256"]):
             bad.append(f"probed {state}, now {now}: {p}")
+        elif state == "file:stat" and disk.stat(p) != (rec.get("stats") or {}).get(p):
+            bad.append(f"its size or time was asked and is another now: {p}")
     for p, sha in (rec.get("listed") or {}).items():
         if disk.names(p) != sha:
             bad.append(f"listed, now other names: {p}")
@@ -278,6 +287,7 @@ def inputs_now(rec: dict[str, Any], disk: Disk, tracked: board_deps.Tree, before
             p = str(disk.tree / rel)
             now = disk.state(p)
             mine = built.get("T:" + rel)
+            state = state.split(":")[0]
             if now != state and not (mine and now == "file" and disk.sha(p) == mine["sha256"]) \
                     and not (state == "file" and now == "absent"):   # a cache that is gone is built again
                 bad.append(f"tree path probed {state}, now {now}: {rel}")
@@ -610,7 +620,7 @@ def membership(rec: dict[str, Any], diff: list[str], tp: board_deps.Tree, tn: bo
         units.setdefault(a.lower(), set()).add(b)
     loaded = {m.lower() for m in rec.get("modules") or ()} | ran
     reads = {r.lower() for r in rec.get("tree_reads") or {}}
-    probes = {r.strip("/").lower() for r in rec.get("tree_probes") or {}}
+    probes = {r.strip("/").lower(): s for r, s in (rec.get("tree_probes") or {}).items()}
     listed = {r.strip("/").lower() for r in rec.get("tree_listed") or {}}
     asked = set(rec.get("imports") or ())
     syspath = rec.get("syspath") or [""]
@@ -623,7 +633,9 @@ def membership(rec: dict[str, Any], diff: list[str], tp: board_deps.Tree, tn: bo
         if kind == "global":
             bad.append(f"tracked data changed: {n}")
             continue
-        if low in reads or low in probes or os.path.dirname(low) in listed \
+        came_or_went = (tp.real(n) is None) != (tn.real(n) is None)
+        if low in reads or probes.get(low) == "file:stat" \
+                or (came_or_went and (low in probes or os.path.dirname(low) in listed)) \
                 or any(low.startswith(p + "/") for p in probes if (p in tp.dirs()) != (p in tn.dirs())):
             bad.append(f"a path the job read, probed or listed changed: {n}")
         if kind != "code":

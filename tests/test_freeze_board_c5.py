@@ -163,6 +163,8 @@ FILES = {
     "tests/spec.py": 'SECTION = {"label": "Living quarters"}\n\n\ndef test_spec():\n    assert SECTION\n',
     "tests/data.json": "{}",
     "tests/unread.json": "{}",
+    "tests/sized.json": "{}",
+    "tests/there.json": "{}",
     "tests/fixtures/one.json": "{}",
     "data/focus.json": '{"box": [0.2, 0.3]}',
     "data/geo/land.geojson": "{}",
@@ -197,7 +199,7 @@ def _records(dev: Path, br) -> dict:
     cards = rec(["src/cards.py::card", "src/heading.py::set_heading", f"{RS}::main.cards", f"{RS}::main.job",
                  f"{RS}::main.<body>", f"{SPEED}::install"], [],
                 imports=["src", "src.cards", "src.shared", "src.heading", "board_speed", "json", "local_settings"],
-                tree_reads={"tests/data.json": "x", "src/font_assets.py": "x"}, tree_probes={"tests/absent.json": "absent"},
+                tree_reads={"tests/data.json": "x", "src/font_assets.py": "x"}, tree_probes={"tests/absent.json": "absent", "tests/sized.json": "file:stat", "tests/there.json": "file"},
                 tree_listed={"tests/fixtures": "x"}, reads={str(run): br.sha256_file(run)},
                 probes={str(dev / "later.json"): "absent"}, listed={str(dev): br.Disk(dev).names(str(dev))},
                 env={"RR_BOARD_TEST_FLAG": "unset"})
@@ -309,6 +311,9 @@ PLANTS = {
     "a tests fixture the job read": ({"tests/data.json": '{"read": 1}'}, CARDS),
     "a tests fixture the job read, deleted": ({"tests/data.json": None}, CARDS),
     "a tests fixture no job read": ({"tests/unread.json": '{"a": 1}'}, NONE),
+    "a tests file whose size or time the job asked for": ({"tests/sized.json": '{"longer": 1}'}, CARDS),
+    "a tests file the job only asked the presence of, changed": ({"tests/there.json": '{"a": 1}'}, NONE),
+    "a tests file the job only asked the presence of, deleted": ({"tests/there.json": None}, CARDS),
     "a new file in a folder the job listed": ({"tests/fixtures/two.json": "{}"}, CARDS),
     "a file the job looked for and did not find": ({"tests/absent.json": "{}"}, CARDS),
     "a new module an import the job asked for can now find": ({"local_settings.py": "X = 1\n"}, CARDS),
@@ -526,6 +531,8 @@ def run():
     data = json.loads((ROOT / "data" / "x.json").read_text(encoding="utf-8"))
     (ROOT / "data" / "none.json").exists()
     names = sorted(os.listdir(ROOT / "data"))
+    size = (ROOT / "data" / "y.json").stat().st_size + os.path.getsize(ROOT / "data" / "z.json")
+    there = (ROOT / "data" / "w.json").is_file() and os.path.exists(ROOT / "data" / "w.json")
     flag = os.environ.get("RR_BOARD_TEST_FLAG")
     os.environ["RR_BOARD_TEST_OWN"] = "1"
     own = os.environ.get("RR_BOARD_TEST_OWN")
@@ -537,7 +544,7 @@ def run():
     t.start()
     t.join()
     face = builder.derived()
-    return data, names, flag, own, face, spec.SECTION, PICK(1)
+    return data, names, flag, own, face, spec.SECTION, PICK(1), size, there
 
 
 def threaded():
@@ -581,6 +588,8 @@ def _replace(path, data):
     "tests/spec.py": 'SECTION = {"label": "Living quarters"}\n',
     "data/x.json": "{}",
     "data/y.json": "{}",
+    "data/z.json": "{}",
+    "data/w.json": "{}",
 }
 DRIVER = '''import json, subprocess, sys
 from pathlib import Path
@@ -631,6 +640,9 @@ def test_the_recorder_sees_every_kind_of_input_of_its_process(mods, tmp_path):
     assert {"src.mod", "tests.spec", "local_settings"} <= set(rec["imports"]) and "" in rec["syspath"]
     assert set(rec["tree_reads"]) == {"data/x.json", "src/builder.py"}, rec["tree_reads"]
     assert rec["tree_probes"].get("data/none.json") == "absent"
+    assert rec["tree_probes"].get("data/y.json") == "file:stat" and rec["tree_probes"].get("data/z.json") == "file:stat"
+    assert rec["tree_probes"].get("data/w.json") == "file"      # is_file / exists: only its presence was asked
+    assert rec["tree_probes"].get("src/mod.py") in ("file", None)   # Path(__file__).resolve() is a presence question
     assert "data" in rec["tree_listed"]
     assert rec["env"] == {"RR_BOARD_TEST_FLAG": bd.env_state("RR_BOARD_TEST_FLAG", "on")}   # not the name it set itself
     built = {k: v for k, v in rec["built"].items() if k.endswith("face.bin")}
@@ -850,6 +862,8 @@ def test_the_gate_reads_the_diff_itself_and_does_not_take_the_plans_word(mods, b
                                         ("3 a module-level import re-pointed at a new function", "module-level code"),
                                         ("a function the job ran", "a module the job ran code of"),
                                         ("a tests fixture the job read", "read, probed or listed"),
+                                        ("a tests file whose size or time the job asked for", "read, probed or listed"),
+                                        ("a tests file the job only asked the presence of, deleted", "read, probed or listed"),
                                         ("a new file in a folder the job listed", "read, probed or listed"),
                                         ("a new module an import the job asked for can now find", "came or went"),
                                         ("the harness: the closure one job ran", "harness code the job ran")]):

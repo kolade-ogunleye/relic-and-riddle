@@ -215,7 +215,11 @@ byte (`board_reuse.py`). The rule since the review of 2026-11-26 (FIX FIRST: the
 
 - One render process per job (`board.py run_jobs`, on by default; `--no-deps` goes back to shards and writes no
   record). What a job reads, imports or leaves in a module is then its own: the record does not depend on which
-  jobs shared a process. Cost: each process loads the tree and picks its runs again.
+  jobs shared a process. Cost: each process loads the tree and picks its runs again (measured under load on a
+  12-job board: 70-91 s per job, +22 % on the job seconds; the queue is dynamic, longest job first).
+- Precision, by design: a change inside a module renders every job that ran ANY function of it; a change to
+  module-level code renders every job that loaded it; a change to tracked data outside tests/ and docs/ renders
+  everything. Reused: jobs that only loaded a module whose function bodies changed, or never loaded it.
 - The record (`board_deps.Recorder`, `<out>/DEPS.json`, schema board-deps/2), per job: the functions that ran (every
   thread), every tree module loaded, every import asked for, every file read (in Python, by sqlite, or named to a
   child process, inside an ffmpeg filter string too), every path probed (os.stat and its family), every folder

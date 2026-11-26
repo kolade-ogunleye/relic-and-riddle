@@ -134,6 +134,8 @@ def _hex(c) -> str:
 
 
 def _face(font) -> str:
+    if font is None:
+        return "(drawn mask)"
     try:
         fam, style = font.getname()
         return f"{fam} {style}".strip()
@@ -145,8 +147,8 @@ def _plate_row(name: str, plate: Any) -> dict[str, Any] | None:
     if plate is None or getattr(plate, "empty", True):
         return None
     parts = getattr(plate, "plates", None) or [plate]
-    runs = [{"text": p.text, "face": _face(p.font), "px": int(getattr(p.font, "size", 0)), "fill": _hex(p.fill),
-             "box": [int(v) for v in p.box]} for p in parts if not getattr(p, "empty", False)]
+    runs = [{"text": p.text, "face": _face(getattr(p, "font", None)), "px": int(getattr(getattr(p, "font", None), "size", 0)),
+             "fill": _hex(p.fill), "box": [int(v) for v in p.box]} for p in parts if not getattr(p, "empty", False)]
     row = {"name": name, "text": plate.text, "box": [int(v) for v in plate.box], "planned": plate.contrast,
            "halo": getattr(plate, "halo", None), "runs": runs}
     for key in ("derived", "role"):
@@ -237,6 +239,9 @@ def capture_one(job: dict[str, Any], fmt: tuple[int, int, str], work: Path) -> d
                 raise ValueError(kind)
             rec["drawn"] = made is not None
         rec["omissions"] = hold_rows(omitted)
+        if job["kind"] in ("map", "route"):    # every name the map drew and checked (the base's own included)
+            rec["name_checks"] = [{"kind": c.kind, "text": c.text, "box": [round(float(v), 1) for v in c.box],
+                                   "ok": c.ok} for c in getattr(graphics, "LAST_NAME_CHECKS", [])]
     except Exception as e:   # noqa: BLE001  a refusal is a result (recorded), anything else is an error row
         rec["drawn"] = False
         rec["refused"] = {"class": type(e).__name__, "code": getattr(e, "code", None), "text": str(e)[:300]}
@@ -268,29 +273,46 @@ def tree_sha(tree: Path) -> str:
 
 
 def capture(tree: Path, dev: Path, cache: Path, kinds=KINDS, fixtures_only: bool = False,
-            quiet: bool = False) -> dict[str, Any]:
-    """Every record of `kinds`, from `cache` when it was made by this tree's src/ (its sha), else captured now."""
+            quiet: bool = False, shard: tuple[int, int] | None = None) -> dict[str, Any]:
+    """Every record of `kinds`, from `cache` when it was made by this tree's src/ (its sha), else captured now.
+    `shard` (i, n): only every n-th missing record from the i-th, written to <cache>.shard<i> (several processes
+    share the work; a later call without a shard merges the shard files of the same src sha)."""
     tree = Path(tree).resolve()
     sha = tree_sha(tree)
     have = _json(cache) if cache.is_file() else None
     if not (isinstance(have, dict) and have.get("src_sha") == sha):
         have = {"src_sha": sha, "tree": tree.name, "records": {}}
+    for part in sorted(cache.parent.glob(cache.name + ".shard*")):
+        got = _json(part)
+        if isinstance(got, dict) and got.get("src_sha") == sha:
+            have["records"].update(got.get("records") or {})
+    if shard is not None:
+        mine: dict[str, Any] = {"src_sha": sha, "tree": tree.name, "records": {}}
+        target = cache.with_name(cache.name + f".shard{shard[0]}")
+        old = _json(target) if target.is_file() else None
+        if isinstance(old, dict) and old.get("src_sha") == sha:
+            mine["records"].update(old.get("records") or {})
+    else:
+        mine, target = have, cache
     sys.path.insert(0, str(tree))
     os.environ.setdefault("RR_FIXTURE_REPO", str(dev))
     work = cache.parent / f"_work_{sha}"
     work.mkdir(parents=True, exist_ok=True)
     jobs = [j for j in run_inputs(dev) if j["kind"] in kinds and (not fixtures_only or j["source"] == "FIXTURE")]
-    for job in jobs:
-        for fmt in FORMATS:
-            key = f"{job['kind']}|{job['run']}|{fmt[2]}"
-            if key in have["records"]:
-                continue
-            rec = capture_one(job, fmt, work)
-            have["records"][key] = rec
-            if not quiet:
-                print(f"captured {key} drawn={rec.get('drawn')} {rec['seconds']} s"
-                      + (f" REFUSED {rec['refused']['class']}" if rec.get("refused") else ""), flush=True)
-            cache.write_text(json.dumps(have, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
+    todo = [(job, fmt) for job in jobs for fmt in FORMATS
+            if f"{job['kind']}|{job['run']}|{fmt[2]}" not in have["records"]]
+    if shard is not None:
+        todo = todo[shard[0]::shard[1]]
+    for job, fmt in todo:
+        key = f"{job['kind']}|{job['run']}|{fmt[2]}"
+        rec = capture_one(job, fmt, work)
+        have["records"][key] = mine["records"][key] = rec
+        if not quiet:
+            print(f"captured {key} drawn={rec.get('drawn')} {rec['seconds']} s"
+                  + (f" REFUSED {rec['refused']['class']}" if rec.get("refused") else ""), flush=True)
+        target.write_text(json.dumps(mine, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
+    if shard is None:
+        cache.write_text(json.dumps(have, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
     keys = {f"{j['kind']}|{j['run']}|{f[2]}" for j in jobs for f in FORMATS}
     return {"src_sha": sha, "records": {k: v for k, v in have["records"].items() if k in keys}}
 
@@ -318,6 +340,8 @@ if __name__ == "__main__":
     ap.add_argument("cache", type=Path)
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--fixtures-only", action="store_true")
+    ap.add_argument("--shard", default="", help="i/n: capture only every n-th missing record from the i-th")
     a = ap.parse_args()
-    got = capture(a.tree, a.dev, a.cache, tuple(a.kinds.split(",")), a.fixtures_only)
+    sh = tuple(int(v) for v in a.shard.split("/")) if a.shard else None
+    got = capture(a.tree, a.dev, a.cache, tuple(a.kinds.split(",")), a.fixtures_only, shard=sh)
     print(f"{len(got['records'])} records, src {got['src_sha']}")

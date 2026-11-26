@@ -950,6 +950,7 @@ def compose(a: Image.Image, b: Image.Image, pos: float, divider: bool = True) ->
 # its own profile box-averaged over that width (the same bone and keyline energy, spread); slower frames take the
 # hard join, byte for byte.
 MOTION_BLUR = True
+DIVIDER_BLUR = False                # cycle 5: the divider is never averaged over the shutter (a hard rule on a soft join)
 BLUR_MIN_STEP = 8.0
 SHUTTER = 0.5
 
@@ -994,7 +995,12 @@ def join_blurred(then_im: Image.Image, now_im: Image.Image, pos: float, dpos: fl
     axis = 0 if width > height else 1
     edge = (width, height)[axis]
     m = seam_weights(edge, pos, dpos)
-    fb, fk = divider_profile(edge, pos, dpos)
+    # Freeze cycle 5 (FIGURES, panel 6 MOTION-02: the moving divider read as a soft grey strip about 35 px tall):
+    # the bone rule and its INK keylines box-averaged over the shutter mixed to a grey band over both photos. The
+    # shutter stays on the JOIN (the two photos ramp into each other, which is a blend of the photos, never an
+    # overlay); the divider itself is drawn hard at its position (draw_divider), as on every slow frame.
+    fb, fk = (divider_profile(edge, pos, dpos) if DIVIDER_BLUR else
+              (np.zeros(edge, np.float32), np.zeros(edge, np.float32)))
     # Review round 2 (T6c): only the band where the join ramps or the divider draws is mixed in float; before it the
     # THEN layer shows whole (weight 1) and after it the NOW layer (weight 0), pasted as they are, which is the
     # same result byte for byte at a fraction of the cost.
@@ -1021,7 +1027,7 @@ def join_blurred(then_im: Image.Image, now_im: Image.Image, pos: float, dpos: fl
         out = (out * (1.0 - bb - kb * ka) + np.asarray(brand.BONE, np.float32) * bb
                + np.asarray(brand.INK, np.float32) * (ka * kb))
         out_im.paste(Image.fromarray(np.clip(np.round(out), 0, 255).astype(np.uint8), "RGB"), box[:2])
-    return out_im
+    return out_im if DIVIDER_BLUR else draw_divider(out_im, pos)
 
 
 def marker_xy(which: str, width: int, height: int, side: str = "left", word: str | None = None) -> tuple[int, int, str]:
@@ -1470,7 +1476,10 @@ def on_paper(boxes: list, frames: list) -> bool:
 # clear: its lines (each padded by its own halo spread) wholly inside its photo and at least DIVIDER_W / 2 + 2 px
 # from the divider. It fades out over GROUP_RAMP frames before it would be cut and back in over GROUP_RAMP frames
 # after, so the divider never slices a label and nothing blinks.
-GROUP_RAMP = 6
+GROUP_RAMP = 3     # freeze cycle 5 (panel 6 MOTION-01): 6 frames held a part-transparent plate (a pale ghost box)
+#                    for about 5 frames beside the arriving divider; the fade is done in 3 (0.1 s), still eased, and
+#                    is over GROUP_LEAD px before the divider reaches the group (group_clear)
+GROUP_LEAD = 0.02  # of the wipe axis: the divider's least distance from a group that is still shown
 
 
 def group_clear(box: tuple[int, int, int, int], which: str, pos: float, width: int, height: int) -> bool:
@@ -1487,7 +1496,7 @@ def group_clear(box: tuple[int, int, int, int], which: str, pos: float, width: i
         return True
     lo, hi = (bx0, bx1) if axis == 0 else (by0, by1)
     gap = (p - hi) if which == "then" else (lo - p)
-    return gap >= DIVIDER_W / 2 + 2
+    return gap >= max(DIVIDER_W / 2 + 2, GROUP_LEAD * edge)
 
 
 def group_alpha(clear: list) -> list:

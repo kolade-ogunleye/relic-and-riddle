@@ -13869,7 +13869,12 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                            label_bottom_fraction=bottom / height,
                            reserved=corridor + words,   # no name under the route, a stop's name, the globe or the bar
                            final_safe=(sx0 * scale, sy0 * scale, sx1 * scale, sy1 * scale),
-                           name_home=True, name_px=round(map_name_px(width, height) * scale),
+                           # freeze cycle 5 (FIGURES, panel 6 FIG-10: route 16:9 "RUSSIA" in the neighbours' light
+                           # stone on an ink halo over its own lit fill, 2.3-2.7:1 and never measured): the base
+                           # never names the home. Its name is always the locator's (country_spot, country_name
+                           # below): INK in its own fill solved to the text target, else outside on a leader; one
+                           # measured, recorded style per ground on every map
+                           name_home=False, name_px=round(map_name_px(width, height) * scale),
                            named=named, skip=skip_, named_boxes=named_bx,
                            polar=project).resize((width, height), Image.LANCZOS)
     gave_way_r: set[str] = set()        # the far names that gave way (round 13): not set again below

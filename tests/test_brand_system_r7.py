@@ -36,9 +36,10 @@ def test_on_a_near_white_ground_the_ink_variant_is_drawn(v):
     assert rec["contrast"] >= GATE and rec["light_lift"] <= PEAK + 1e-9 and rec["mark_contrast"] >= 3.0
 
 
-def test_a_bright_sky_with_a_dark_mass_takes_a_lift_not_the_halo_exception():
+def test_a_bright_sky_with_a_dark_mass_takes_a_lift_not_the_halo_exception(monkeypatch):
     """The round-6 exception case (a 230 sky with a dark mass under some letters): INK on a lift now reads, so the
     exception is not needed; the lift is the least that reaches the target (or the gate)."""
+    monkeypatch.setattr(masthead, "MARGIN_REACH", ())   # freeze cycle 5: the ruled order at the surface's own reach
     _ground, p, rec = masthead.plan(_sky(230, 40), X, BASE, SIZE, reach=BASE + 400)
     assert rec["shown"] and rec["variant"] == "light" and rec["halo_exception"] is False
     assert 0.0 < rec["light_lift"] <= PEAK + 1e-9 and rec["contrast"] >= GATE

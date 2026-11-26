@@ -308,3 +308,70 @@ def test_the_delivered_phrasing_adds_only_legal_recorded_cuts_to_the_builders(na
     assert not [raw[k] for k in new if vc.never_end_end(raw[k])]
     assert not new or [e for e in recut if e.get("recut") or e.get("into")]
     assert len(ends(before) - ends(after)) >= len(new)       # the merge joins more than it cuts
+
+
+# ------------------------------------------------------ round 3: capacity-aware bursts, no plate-height pumping
+def _heights(name: str, capacity: bool, monkeypatch) -> tuple[list, list, dict, list]:
+    """The delivered bursts of a fixture clip with the capacity pass on or off: (bursts, their line counts at the clip's
+    size, the clip record, the recut record)."""
+    monkeypatch.setattr(vc, "CAPTION_CAPACITY_AWARE", capacity)
+    words = _words(name)
+    recut: list = []
+    phrases = vc.caption_phrases(words, CLIPS[name]["emphasis_words"], recut=recut)
+    clip = dict(vc._clip_state() or {})
+    lines = [2 if vc.reel_caption_lines([w["word"] for w in p]) else 1 for p in phrases]
+    return phrases, lines, clip, recut
+
+
+def _height_changes(phrases, lines) -> int:
+    timing = vc.burst_timings(phrases, dwell=True)
+    return sum(a != b for (a, b), (t0, t1) in zip(zip(lines, lines[1:]), zip(timing, timing[1:]))
+               if abs(t0[1] - t1[0]) < 1e-3)
+
+
+@pytest.mark.parametrize("name", sorted(CLIPS))
+def test_capacity_aware_bursts_pump_the_plate_less_and_break_no_rule(name, monkeypatch):
+    before, lines0, clip0, _ = _heights(name, False, monkeypatch)
+    after, lines1, clip1, recut = _heights(name, True, monkeypatch)
+    words = _words(name)
+    assert [w["word"] for p in after for w in p] == [w["word"] for w in words]      # every word, in order
+    assert clip1["px"] >= clip0["px"]                                                # never a smaller size for it
+    assert _height_changes(after, lines1) < _height_changes(before, lines0)          # the plate pumps less
+    raw = [w["word"] for w in words]
+
+    def ends(phrases) -> set[int]:
+        out, at = set(), -1
+        for p in phrases[:-1]:
+            at += len(p)
+            out.add(at)
+        return out
+    new = ends(after) - ends(before)
+    assert not [(raw[k], raw[k + 1]) for k in new if vc.noun_phrase_cut(raw, k)]      # no phrase unit parted anew
+    assert not [raw[k] for k in new if vc.never_end_end(raw[k])]
+    olds = {tuple(w["word"] for w in p) for p in before}
+    timing = vc.burst_timings(after, dwell=True)
+    for p, (show, hide, _) in zip(after, timing):
+        key = tuple(w["word"] for w in p)
+        if key not in olds:                                                          # a burst the pass made
+            assert len(p) > 1 and hide - show >= vc.CAPTION_SPLIT_MIN_S - 1e-6, (key, hide - show)
+    assert not new or [e for e in recut if e.get("height_run")]                      # every re-cut run recorded
+
+
+@pytest.mark.parametrize("name", sorted(CLIPS))
+def test_every_two_line_burst_names_the_rule_that_keeps_it_on_two_lines(name, monkeypatch):
+    after, lines, clip, _ = _heights(name, True, monkeypatch)
+    named = {e["text"] for e in clip.get("two_line") or []} | {
+        e["text"].replace(" / ", " ") for e in clip.get("no_legal_form") or []}
+    for p, n in zip(after, lines):
+        if n == 2:
+            assert " ".join(w["word"] for w in p) in named, [w["word"] for w in p]
+    for e in clip.get("two_line") or []:
+        assert e["why"] and set(e["why"]) <= {"one_word_part", "cut_parts_a_bond_or_ends_on_a_never_end_word",
+                                              "under_min_on_screen", "run_height", "phrase_unit",
+                                              "part_not_one_line"}, e
+
+
+def test_a_new_cut_never_parts_a_noun_phrase_over_two_modifiers():
+    raw = "Near Ouadane a subsurface igneous intrusion deformed overlying rock".split()
+    assert vc.noun_phrase_cut(raw, raw.index("igneous")) is not None
+    assert vc.noun_phrase_cut(raw, raw.index("intrusion")) is None                    # subject | verb is a boundary

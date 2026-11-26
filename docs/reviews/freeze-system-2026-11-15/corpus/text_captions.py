@@ -254,6 +254,12 @@ def judge_production(data: dict, cut: dict | None = None) -> tuple[list[tuple], 
         under = {_key(e.get("text", "")) for e in clip.get("under") or []}
         tot["bursts under the clip's size (recorded)"] += len(clip.get("under") or [])
         tot["bursts with no legal form at any size (recorded)"] += len(clip.get("no_legal_form") or [])
+        # round 3 (capacity-aware bursts): every two-line burst names the rule that keeps it on two lines
+        named = {_key(e.get("text", "")) for e in clip.get("two_line") or []} | {
+            _key(e.get("text", "").replace(" / ", " ")) for e in clip.get("no_legal_form") or []}
+        for e in clip.get("two_line") or []:
+            for why in e.get("why") or []:
+                tot[f"two-line reason: {why}"] += 1
         for i, b in enumerate(bursts):
             raw = b.get("raw") or " ".join(b["lines"]).split()
             dur = b["hide"] - b["show"]
@@ -280,6 +286,11 @@ def judge_production(data: dict, cut: dict | None = None) -> tuple[list[tuple], 
             tot["bursts straddling a clause"] += straddles_clause(raw)
             if len(b["lines"]) == 2:
                 tot["two-line bursts"] += 1
+                if clip.get("two_line") is not None or clip.get("no_legal_form") is not None:
+                    ok2 = _key(" ".join(raw)) in named
+                    tot[f"two-line bursts {'with a named reason' if ok2 else 'UNRECORDED'}"] += 1
+                    if not ok2:
+                        table.append((run, "captions_916", f"two lines, no reason: {' / '.join(b['lines'])}", "FAIL"))
                 k = len(b["lines"][0].split())
                 l1, l2 = raw[:k], raw[k:]
                 if l1 and l2:

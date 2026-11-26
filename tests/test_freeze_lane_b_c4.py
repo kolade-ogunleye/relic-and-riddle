@@ -5,7 +5,7 @@ import pytest
 from PIL import Image, ImageDraw
 
 from src import brand
-from src.cover_design import PLATE_SQUARE, render_cover
+from src.cover_design import render_cover
 from src.still_layout import Layout
 
 COPY = {"eyebrow": "ANCIENT ACOUSTICS", "line1": "THE DOME", "line2": "THAT WHISPERS", "tagline": "BUILT WITHOUT RINGS"}
@@ -22,24 +22,24 @@ def _ground(kind):
 
 @pytest.mark.parametrize("kind", ["bright", "dark", "busy"])
 @pytest.mark.parametrize("style", ["badge", "lower_third", "minimal"])
-def test_framed_window_bands_end_in_the_plate_value_no_gutter(kind, style) -> None:
+def test_a_framed_window_stands_on_one_ink_field_no_gutter_no_band(kind, style) -> None:
     """Panel 5 (CD r1, PL r1/r2): the photo bands above and below the INK plate faded to black, then stepped UP to the
-    plate at y 420 and 1500: a dark gutter line, and a lid on bright heroes. Every row of the join is at least the
-    plate's own value (one field), whatever the ground."""
+    plate at y 420 and 1500: a dark gutter line, and a lid on bright heroes. Lane B cycle 4 ended the bands in the
+    plate's value; freeze cycle 5 (PHOTO-07: one photograph three times in a tile) drew the bands out: a contained
+    window stands on ONE INK field, and a photograph that fills the cover has no window at all."""
     photo = _ground(kind)
     lay = Layout("cover", (1080, 1920), (60, 440, 1020, 1480))
     im = render_cover(photo.resize((1080, 1920)).convert("RGBA"), COPY, style, lay=lay, source=photo.convert("RGBA"))
     rgb = np.asarray(im.convert("RGB"), dtype=np.float32)
     plate = np.array(brand.INK, dtype=np.float32)
-    _, top, _, foot = PLATE_SQUARE
-    assert np.abs(rgb[top + 2, 4:40] - plate).max() <= 1          # the plate is the INK plate
-    for y in list(range(top - 60, top)) + list(range(foot + 1, foot + 61)):
-        row = rgb[y].mean(axis=0)
-        assert (row >= plate - 1.5).all(), (y, row.tolist())       # never darker than the plate: no gutter
-    # and the join is a ramp: no row-to-row step larger than a soft fade's
-    lum = rgb.mean(axis=(1, 2))
-    assert np.abs(np.diff(lum[top - 60:top + 4])).max() < 6
-    assert np.abs(np.diff(lum[foot - 4:foot + 61])).max() < 6
+    comp = lay.meta["composition"]
+    if comp["mode"] == "contain":
+        x0, y0, x1, y1 = comp["image_box"]
+        assert np.abs(rgb[:y0 - 1] - plate).max() <= 1.5           # INK from the canvas top to the window: one field
+        assert np.abs(rgb[1900:] - plate).max() <= 1.5
+    else:
+        assert style == "badge" and comp["mode"] in ("full_bleed", "photo_over_ink")
+        assert comp["image_box"][:3] == [0, 0, 1080] and comp["source_coverage"] == 1.0
 
 
 @pytest.mark.parametrize("copy", [{"title": "THE EYE OF THE SAHARA"}, {"line1": "A CITY", "line2": "UNDER A FIELD"}])

@@ -30,11 +30,13 @@ numbers):
   is relative to what the photograph itself offers this window: "keep" is the salience in the crop's view over the
   most any crop of the same shape holds in its view (SUBJECT_KEEP). A crop that keeps the photograph's emptiest half
   fails it whatever the subject is.
-- flat: the share of the view with no detail (FLAT_DETAIL: sand, sky, a wall, out-of-focus ground), against FLAT_MAX.
+- flat: the share of the view whose blocks have no spread of luma (FLAT_STD over FLAT_BLOCK: sand, sky, a wall,
+  out-of-focus ground; the panel's own block measure), against FLAT_MAX.
 - tone: "extreme", the share of the view that is near-white or near-black (TONE_WHITE, TONE_BLACK), against TONE_MAX;
   asked only of a hero (hero_photo.pick: Window.checks names it), where another photograph of the run can lead.
 - protected: per protected box, "foreign" (hero_window.foreign_object: a saturated, straight-edged man-made shape)
-  and "busy" (the share of strong edges, against BUSY_MAX): type is not set on a solar array, a wing or a crowd.
+  "line" (the longest straight strong edge, against LINE_MAX) and "step" (two tonal masses, against STEP_MAX):
+  type is not set on a wing, a solar array or across a roofline; "busy" (the share of strong edges) is recorded.
 
 The ladder when a crop is unfit (the brief's order; never a blur pad, a feather or a dim):
 1. another photograph the run already has that is fit: `rank()` orders candidates, the pickers call it;
@@ -70,24 +72,35 @@ GRID = 9                  # candidate positions along each free axis
 
 # the frame (matte): digital black touching the picture's edge. Lane D cycle 4 measured it on the dev pool (541
 # photos): a source's own frame sits at a mean luma of 0.1-0.8, a photographed dark (a black cloth, a museum case, a
-# doorway, a mine's shadow) at 4-12 and never under 3. A video frame's matte (an end screen's ground) carries the
-# encoder's noise: MATTE_VIDEO_* are end_card's measured levels for it.
+# doorway, a mine's shadow) at 4-12 and never under 3. Lane D took every pixel at 12 or under and asked the region to
+# be even; a dark subject that touches the frame then merges with it and the whole region is no longer even (the
+# Richat 16:9 master's last frame: one 38 % region at 12, its four black corners at 4). This rule takes digital black
+# itself. A video frame's black carries the encoder's noise (matte_mask(video=True): twice the levels).
 MATTE_LUMA = 4            # digital black: a frame pixel (a photographed dark is lighter and uneven)
 MATTE_STD = 2.5
 MATTE_MEAN = 2.0
 MATTE_MIN_AREA = 0.003    # of the picture: a smaller dark corner is not a frame
 MATTE_MAX = 0.002         # of a crop: more than this of frame in it shows as an edge
 
-FLAT_DETAIL = 2.0         # mean luma gradient (0-255 per analysis px, 9 px box): under this a patch has no detail
-FLAT_MAX = 0.80           # of the view
-SUBJECT_KEEP = 0.75       # of the best any crop of this size keeps
-DENSITY_MIN = 0.60        # the view's salience over its share of the content: under 1 the view is emptier
-                          # than the picture as a whole
-FOCUS_KEEP = 0.90         # of a reviewed subject's box in view
-BUSY_EDGE = 24.0          # luma gradient: a strong edge
+# The soft measures' thresholds are the corpus' own 5 % tail: over the 353 pool photographs of the dev runs in every
+# photo window (5289 asked crops; corpus/photo_fitness.py --distribution prints it), the 5th percentile of "keep" is
+# 0.701 and of "density" 0.732, the 95th of "flat" 0.739, of "extreme" 0.536, of "step" 142.5 and of "line" 0.600
+# ("line" is also bimodal: 2160 boxes at 0, 1136 between 0.2 and 0.5, 146 at 0.8 and over, 51 between 0.6 and 0.8:
+# the threshold lies in the valley). None is set from a board topic: the asked crop of a photograph is unfit on a
+# measure when it is among the worst twentieth of what the runs' own photographs give that measure.
+FLAT_BLOCK = 5            # analysis px: the block a patch's luma spread is taken over (about 48 px of a 1440 px slide)
+FLAT_STD = 4.0            # luma std: at or under this a block is flat (the rubric's CD1 measure)
+FLAT_MAX = 0.74           # of the view
+SUBJECT_KEEP = 0.70       # of the best any crop of this size keeps
+DENSITY_MIN = 0.73        # the view's salience over its share of the content: under 1 the view is emptier than the
+                          # picture as a whole
+FOCUS_KEEP = 0.995        # of a reviewed subject's box in view: all of it (type is never set on it)
+BUSY_EDGE = 24.0          # luma gradient: a strong edge (recorded as "busy"; half the boxes are over 0.19: no gate)
 TONE_WHITE, TONE_BLACK = 232, 22   # luma: near-white, near-black (a tile of either reads flat grey or murky in a feed)
-TONE_MAX = 0.45           # of the view: only a window that asks for it ("tone" in Window.checks: the hero's)
+TONE_MAX = 0.54           # of the view: only a window that asks for it ("tone" in Window.checks: the hero's)
 LINE_CANNY = (100, 220)   # a strong edge for the straight-line read under type
+STEP_SHARE = 0.10         # each tonal mass of a protected box, at least (a speck is not a mass)
+STEP_MAX = 142.0          # luma between the two masses: type set across a boundary this hard
 LINE_MAX = 0.60           # of a protected box's width: a straight strong edge this long is a foreign structure
 
 
@@ -134,12 +147,21 @@ class Analysis:
                 lum = self.rgb.astype(np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
                 src = ((lum >= TONE_WHITE) | (lum <= TONE_BLACK)) & ~self.matte
             else:
-                src = {"matte": self.matte, "flat": (self.detail < FLAT_DETAIL) & ~self.matte,
+                src = {"matte": self.matte, "flat": self._flat() & ~self.matte,
                        "salience": self.salience, "edge": self.detail >= BUSY_EDGE}[name]
             a = np.zeros((src.shape[0] + 1, src.shape[1] + 1), np.float64)
             a[1:, 1:] = np.cumsum(np.cumsum(src.astype(np.float64), axis=0), axis=1)
             self._sat[name] = a
         return self._sat[name]
+
+    def _flat(self) -> np.ndarray:
+        """Where the picture is flat: the luma's spread (std) over FLAT_BLOCK px is FLAT_STD or under (the panel's
+        own measure: blocks of the window with std <= 4)."""
+        import cv2
+        lum = self.rgb.astype(np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        mean = cv2.blur(lum, (FLAT_BLOCK, FLAT_BLOCK))
+        var = cv2.blur(lum * lum, (FLAT_BLOCK, FLAT_BLOCK)) - mean * mean
+        return np.sqrt(np.maximum(var, 0.0)) <= FLAT_STD
 
     def total(self, name: str, box: Box) -> float:
         """The sum of a map over `box` (picture px), bilinear at the box's edges."""
@@ -350,7 +372,7 @@ def protected_measure(a: Analysis, pb: Box) -> dict[str, Any]:
     """What lies under type set on the box `pb` (picture px): "foreign" (hero_window.foreign_object: a saturated,
     straight-edged shape), "line" (the longest straight strong edge, as a share of the box's width: a wing's, an
     array's, a mast's) and "busy" (the share of strong edges, recorded)."""
-    rec: dict[str, Any] = {"busy": round(a.share("edge", pb), 3), "foreign": False, "line": 0.0}
+    rec: dict[str, Any] = {"busy": round(a.share("edge", pb), 3), "foreign": False, "line": 0.0, "step": 0.0}
     if a.thumb is None:
         return rec
     import cv2
@@ -362,6 +384,12 @@ def protected_measure(a: Analysis, pb: Box) -> dict[str, Any]:
         return rec
     rec["foreign"] = bool(foreign_object(part))
     g = np.asarray(part.convert("L"), np.uint8)
+    # "step": the box split between two tonal masses (Otsu's two classes, each at least STEP_SHARE of it): the luma
+    # between their means. A wing's white skin over dark ground, a roofline against the sky, a horizon.
+    cut, _ = cv2.threshold(g, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    hi = g > cut
+    share = float(hi.mean())
+    rec["step"] = (round(float(g[hi].mean() - g[~hi].mean()), 1) if STEP_SHARE <= share <= 1 - STEP_SHARE else 0.0)
     edges = cv2.Canny(g, LINE_CANNY[0], LINE_CANNY[1])
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=20, minLineLength=max(8, int(0.2 * g.shape[1])),
                             maxLineGap=3)
@@ -410,12 +438,12 @@ def problems(rec: dict[str, Any], window: Window) -> list[str]:
             out.append("subject")
     elif rec.get("keep", 1.0) < SUBJECT_KEEP or rec["density"] < DENSITY_MIN:
         out.append("subject")
-    if rec["flat"] > FLAT_MAX:
+    if rec["flat"] > FLAT_MAX and "focus" not in rec:   # a reviewed subject in view is not an empty view
         out.append("flat")
     if rec.get("extreme", 0.0) > TONE_MAX:
         out.append("tone")
     for p in rec.get("protected", ()):
-        if p.get("foreign") or p.get("line", 0.0) >= LINE_MAX:
+        if p.get("foreign") or p.get("line", 0.0) >= LINE_MAX or p.get("step", 0.0) >= STEP_MAX:
             out.append("protected")
             break
     return [p for p in out if p in window.checks]

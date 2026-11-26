@@ -226,7 +226,7 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     ink = np.array(brand.INK, np.int16)
     # a wide photograph with a reviewed feature: full width down to the type, INK under it
     wide = Image.fromarray(np.clip(with_subject(ground(3000, 1900), 0.55, 0.5, 0.3), 0, 255).astype(np.uint8))
-    focus = {"focus_box": [0.55 - 0.2, 0.2, 0.55 + 0.2, 0.8], "sha256": "x", "reviewed": "test"}
+    focus = {"focus_box": [0.55 - 0.2, 0.3, 0.55 + 0.2, 0.7], "sha256": "x", "reviewed": "test"}
     im, lay = _cover(wide, focus)
     comp = lay.meta["composition"]
     assert comp["mode"] in ("full_bleed", "photo_over_ink") and comp["source_coverage"] == 1.0
@@ -280,8 +280,8 @@ def test_the_end_screen_takes_the_field_only_ground_over_a_framed_last_frame():
 
 def test_an_unregistered_then_and_now_pair_takes_a_crop_per_pane(tmp_path):
     from src import then_now
-    old = save(tmp_path, "then.png", with_subject(ground(1800, 1400, level=190), 0.3, 0.7, 0.18))
-    new = save(tmp_path, "now.png", with_subject(ground(2200, 1500, seed=5), 0.7, 0.25, 0.2))
+    old = save(tmp_path, "then.png", with_subject(ground(1800, 1400, level=190), 0.3, 0.45, 0.12))
+    new = save(tmp_path, "now.png", with_subject(ground(2200, 1500, seed=5), 0.7, 0.5, 0.15))
     for w, h in ((1080, 1920), (1920, 1080)):
         a, b, info = then_now.frame_pair(old, new, w, h)
         assert info["registered"] is False and "not registered" in info["window"]
@@ -319,7 +319,7 @@ def test_the_corpus_script_judges_with_the_trees_measure(tmp_path):
     p = save(tmp_path, "wedge.png", wedge(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13)))
     an = corpus.Photos(None).get(p)
     surfaces = corpus.windows()
-    assert {kind for _s, kind, _w in surfaces} == {"carousel", "story", "ground"} and len(surfaces) >= 12
+    assert {kind for _s, kind, _w in surfaces} == {"carousel", "story", "ground", "hook"} and len(surfaces) >= 13
     base_bad = tip_bad = 0
     for _surface, kind, window in surfaces:
         base_bad += bool(corpus.crop_base(an, window, kind)["problems"])

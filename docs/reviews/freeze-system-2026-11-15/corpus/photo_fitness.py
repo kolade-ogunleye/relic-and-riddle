@@ -69,7 +69,7 @@ class Photos:
             st = path.stat()
         except OSError:
             return None
-        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}".encode()).hexdigest()[:24]
+        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|9".encode()).hexdigest()[:24]
         f = self.cache / f"{tag}.pkl" if self.cache else None
         a = None
         if f is not None and f.is_file():
@@ -149,6 +149,8 @@ def judged(a: pf.Analysis, box, window: pf.Window) -> dict:
 def crop_base(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
     """What integration 4 drew for (photograph, window): its crop, judged."""
     cen = deck_centering(a, window, k) if kind in ("carousel", "story") else (0.5, 0.5)
+    if kind == "hook" and max(window.size[0] / a.size[0], window.size[1] / a.size[1]) > pf.UPSCALE_MAX:
+        return {"problems": [], "outcome": "refused"}          # the hook card's refusal (since QF-39)
     box = pf.fit_box(a.size, window.size, cen)
     moved = None
     if kind == "carousel":
@@ -162,7 +164,12 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
     """What the tree draws: the surface's asked crop held to photo_fitness.place, as _fill / story_window /
     typography.cover_crop call it."""
     cen = deck_centering(a, window, k) if kind in ("carousel", "story") else (0.5, 0.5)
-    if kind == "ground":   # typography.cover_crop: the frame only
+    if kind == "hook":     # design_cards._plan_hook: refused past the enlargement limit, else placed (not with a focus)
+        if max(window.size[0] / a.size[0], window.size[1] / a.size[1]) > pf.UPSCALE_MAX:
+            return {"problems": [], "outcome": "refused", "upscale": round(max(window.size[0] / a.size[0],
+                                                                                  window.size[1] / a.size[1]), 3)}
+        rec = pf.place(None, window, cen, analysis=a, fixed=a.focus is not None)
+    elif kind == "ground":   # typography.cover_crop: the frame only
         frame_only = pf.Window(window.size, checks=("matte",), name=window.name)
         got = pf.place(None, frame_only, cen, analysis=a) if a.matte_share > 0 else None
         box = got["box"] if got and got["fit"] and got["moved"] else pf.fit_box(a.size, window.size, cen)
@@ -177,7 +184,7 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
 
 # ---------------------------------------------------------------- the windows
 def windows() -> list[tuple[str, str, pf.Window]]:
-    """(surface, kind, Window) for every photo window of every surface (kind: carousel | story | ground | cover)."""
+    """(surface, kind, Window) for every photo window of every surface (kind: carousel | story | ground | hook)."""
     from src.multi_format import MultiFormatGenerator as G
     out = []
     if hasattr(G, "photo_window"):
@@ -186,8 +193,12 @@ def windows() -> list[tuple[str, str, pf.Window]]:
                 out.append((f"{'fb' if fb else 'ig'} carousel {arch}", "carousel", G.photo_window(arch, fb)))
         out.append(("carousel comparison lower", "carousel", G.photo_window("comparison", False, second=True)))
     out.append(("story frame", "story", pf.Window((1080, 1920), name="story")))
-    out.append(("16:9 ground / youtube", "ground", pf.Window((1920, 1080), name="wide ground")))
-    out.append(("9:16 ground / hook", "ground", pf.Window((1080, 1920), name="tall ground")))
+    # the grounds under cards and data graphics are blurred or dimmed fields (typography.cover_crop): what can show
+    # through is the source's own frame, so that is what is asked of them; the hook's ground is in full view
+    out.append(("16:9 ground (cover_crop)", "ground", pf.Window((1920, 1080), checks=("matte",), name="wide ground")))
+    out.append(("9:16 ground (cover_crop)", "ground", pf.Window((1080, 1920), checks=("matte",), name="tall ground")))
+    out.append(("hook ground", "hook", pf.Window((1080, 1920), checks=("matte", "subject", "flat"),
+                                                 name="hook ground")))
     return out
 
 
@@ -288,6 +299,7 @@ def main() -> int:
                      **{k: rec.get(k) for k in ("upscale", "matte", "flat", "subject", "density", "keep", "focus",
                                                 "zoom", "layout", "pad", "in_view", "registered", "extreme") if k in rec},
                      **({"busy": rec["protected"][0].get("busy"), "line": rec["protected"][0].get("line"),
+                         "step": rec["protected"][0].get("step"),
                          "foreign": rec["protected"][0].get("foreign")} if rec.get("protected") else {})})
 
     for run in runs:
@@ -301,7 +313,8 @@ def main() -> int:
                 key = (str(p), surface)
                 if key not in memo:
                     memo[key] = crop(an, window, kind)
-                add(run.name, "POOL", surface, p.name, memo[key], recorded=a.rule == "tip")
+                # a blurred ground records nothing: a frame left in it is a violation, never an excused one
+                add(run.name, "POOL", surface, p.name, memo[key], recorded=a.rule == "tip" and kind != "ground")
             if (str(p), "cover") not in memo:
                 memo[(str(p), "cover")] = cover(an)
             add(run.name, "POOL", "reel cover + grid", p.name, memo[(str(p), "cover")], recorded=a.rule == "tip")
@@ -445,7 +458,7 @@ def main() -> int:
         for surface in dict.fromkeys(r["surface"] for r in rows if r["group"] == "POOL"):
             rs = [r for r in rows if r["group"] == "POOL" and r["surface"] == surface]
             print(f"  {surface} ({len(rs)})")
-            for m in ("upscale", "matte", "flat", "density", "keep", "extreme", "line", "busy"):
+            for m in ("upscale", "matte", "flat", "density", "keep", "extreme", "line", "step", "busy"):
                 v = np.array([r[m] for r in rs if r.get(m) is not None], float)
                 if len(v):
                     print(f"    {m:8s} " + " ".join(f"p{q} {np.percentile(v, q):.3f}" for q in (1, 5, 10, 25, 50, 75, 90,

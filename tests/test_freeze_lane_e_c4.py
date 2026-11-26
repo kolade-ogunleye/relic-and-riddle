@@ -94,29 +94,6 @@ def test_an_object_on_black_is_not_a_matte():
     assert end_card.matte_window(im) is None
 
 
-def test_the_matte_field_eases_at_the_band_edge_slope():
-    from src.brand_system import edge_feather
-    ground = _pillarbox()
-    dist, _ = end_card.matte_window(ground)
-    field, feather = end_card.matte_field(dist, ground, W)
-    assert field[dist == 0].min() == pytest.approx(1.0)
-    assert field[dist >= feather].max() == pytest.approx(0.0, abs=1e-6)
-    ink = np.asarray(end_card.brand.INK, np.float32)
-    out = np.asarray(ground, np.float32) * (1 - field[..., None]) + ink * field[..., None]
-    picture = float(np.percentile((np.asarray(ground, np.float32) @ LUMA)[dist > 0], 95))
-    step = picture - float(ink @ LUMA)
-    assert feather >= edge_feather(step, W) - 1
-    # the field's own steepest point across the edge, times the step it crosses: the band-edge gate
-    assert float(np.abs(np.diff(field[540])).max()) * step <= tok("edge.slope_max") * 1080 / W * 1.05
-    # and as drawn: the rows' mean profile (the system's measure, band_edge.steepest) never steps harder than the
-    # picture's own texture does away from the edge
-    from src.band_edge import steepest
-    prof = (out @ LUMA)[200:880].mean(axis=0)
-    inner = prof[(dist[540] > feather + 4)]
-    assert steepest(prof[np.abs(dist[540] - feather / 2) <= feather / 2 + 1]) <= max(
-        steepest(inner), tok("edge.slope_max") * 1080 / W * 1.25)
-
-
 def _end_screen(ground, monkeypatch, n=None):
     monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 2.0)
     stats: dict = {}
@@ -125,25 +102,22 @@ def _end_screen(ground, monkeypatch, n=None):
     return frames, stats
 
 
-def test_the_end_screen_inks_a_matte_from_the_last_frame(monkeypatch):
+def test_the_end_screen_takes_the_field_only_ground_over_a_matte(monkeypatch):
+    # freeze cycle 5 (PHOTO-02): lane E cycle 4 extended an INK field over the matte with a feathered edge, and the
+    # edge still showed (the Richat oval). A last frame inside a frame of its own is no ground: the whole frame eases
+    # to INK with the dim (the field-only ground), recorded with its reason.
     ground = _pillarbox()
     frames, stats = _end_screen(ground, monkeypatch)
     rec = stats["matte"]
-    assert rec and rec["window"] == "rectangle" and rec["feather_px"] > 0
+    assert rec and rec["window"] == "rectangle" and rec["ground"] == "field only" and "rule:" in rec["reason"]
     # frame 0 is the narration's last frame as it is: the field comes in with the dim
     assert float(np.abs(np.asarray(frames[0], np.float32) - np.asarray(ground, np.float32)).mean()) < 0.5
     rest = np.asarray(frames[-1], np.float32)
-    # at rest, the right pillar (under no type) is the INK field, and the window's edge under it is soft
-    dist, _ = end_card.matte_window(ground)
-    right = (dist == 0) & (np.arange(W)[None, :] > W // 2)
-    right[:, :1650] = False   # clear of the slots' columns' inner part, on the pad
-    assert np.abs(rest[right].mean(axis=0) - np.asarray(end_card.brand.INK, np.float32)).max() < 6
+    ink = np.asarray(end_card.brand.INK, np.float32)
+    # at rest the right side (under no type) is INK edge to edge: no window, no edge of the source
+    assert np.abs(rest[:, 1500:] - ink).max() < 6
     from src.band_edge import steepest
-    x_edge = int(np.argmax(dist[540, W // 2:] == 0)) + W // 2   # the pad's first column on the right
-    prof = (rest @ LUMA)[100:250].mean(axis=0)                     # rows above the video slot
-    edge = prof[x_edge - rec["feather_px"] - 20: x_edge + 20]
-    inner = prof[x_edge - rec["feather_px"] - 220: x_edge - rec["feather_px"] - 20]
-    assert steepest(edge) <= max(steepest(inner), tok("edge.slope_max") * 1080 / W * 1.25)
+    assert steepest((rest @ LUMA)[100:250, 1300:].mean(axis=0)) <= tok("edge.slope_max") * 1080 / W * 1.25
 
 
 def test_a_ground_without_a_matte_records_none(monkeypatch):

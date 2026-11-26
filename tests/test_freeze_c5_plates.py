@@ -341,3 +341,21 @@ def test_with_a_tap_target_the_pointer_is_drawn_and_recorded(tmp_path, monkeypat
     _, lay = _story_frame(tmp_path)
     assert "reel_pointer" in [e["name"] for e in lay.elements]
     assert lay.meta["pointer"] == {"shown": True, "text": multi_format.STORY_POINTER}
+
+
+# ------------------------------------------------------------------------------------------------ MOTION-05
+
+def test_the_wide_dim_takes_as_long_as_its_luma_drop_needs():
+    """Panel 6 MO: on the brightest ground the 16:9 dim fell 111 mean luma in DIM_IN (0.45 s), 12.3-12.5 a frame at
+    its steepest. A shallow dim keeps DIM_IN; a deep one takes the frames that hold its steepest frame at
+    DIM_STEP_MAX, never past DIM_IN_MAX."""
+    from src import end_card
+    assert end_card.dim_seconds(30.0) == pytest.approx(round(end_card.DIM_IN * end_card.FPS) / end_card.FPS)
+    for drop in (60.0, 111.0, 140.0):
+        n = round(end_card.dim_seconds(drop) * end_card.FPS)
+        steepest = max(end_card.ease_io((i + 1) / n) - end_card.ease_io(i / n) for i in range(n)) * drop
+        assert steepest <= end_card.DIM_STEP_MAX + 1e-6 or n == round(end_card.DIM_IN_MAX * end_card.FPS)
+    assert end_card.dim_seconds(111.0) > end_card.DIM_IN
+    old = max(end_card.ease_io((i + 1) / 13.5) - end_card.ease_io(i / 13.5) for i in range(13)) * 111.0
+    assert old > end_card.DIM_STEP_MAX                      # the measured case fails the rule at DIM_IN
+    assert end_card.dim_seconds(500.0) == pytest.approx(end_card.DIM_IN_MAX)

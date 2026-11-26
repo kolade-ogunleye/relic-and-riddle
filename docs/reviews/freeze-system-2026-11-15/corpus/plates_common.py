@@ -63,7 +63,7 @@ def corpus_photos(dev: Path, per_topic: int = 0) -> list[tuple[str, int, Path]]:
             count[t] = count.get(t, 0) + 1
     out = []
     for t, n in sorted(count.items()):
-        photos = sorted((dev / "assets" / t).glob("*.jpg"))
+        photos = sorted(p for p in (dev / "assets" / t).glob("*.jpg") if "contact_sheet" not in p.name)   # photographs only
         for p in (photos[:per_topic] if per_topic else photos):
             out.append((t, n, p))
     return out

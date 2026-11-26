@@ -936,7 +936,7 @@ def even_rag(d, lines: list[str], font, width: float, measure: int) -> list[str]
         return widths[(a, b)]
 
     from . import line_policy
-    bonds = line_policy.keep_together(words)
+    bonds, seams, names = line_policy.keep_together(words), line_policy.range_seams(words), line_policy.name_bonds(words)
 
     def cost(cand):
         ws = [w(a, b) for a, b in cand]
@@ -946,8 +946,12 @@ def even_rag(d, lines: list[str], font, width: float, measure: int) -> list[str]
         # freeze cycle 5 (TEXT stream): the one policy before the rag: an even rag never buys its evenness with a
         # number parted from its unit or a line ending on a function word (it re-broke glued figures: the lines come
         # back with ordinary spaces)
-        hard = line_policy.break_cost(words, [b for _, b in cand[:-1]], bonds)[:3]
-        return (16 * hard[0] + 4 * hard[1] + hard[2]) * (4 * width) ** 2 + sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle
+        # Review D1: a range seam is a last resort like a function-word end, never the equal of a number parted from
+        # its unit (the rag chose "nearly 1,090 / tonnes" over "tonnes / to 1,168"); a proper name is not parted to
+        # avoid a function-word end (line_policy.line_cost: unit split > never end > name split > last resort).
+        hard = line_policy.line_cost(words, [b for _, b in cand[:-1]], bonds, seams, names)
+        return ((64 * hard[0] + 16 * hard[1] + 4 * hard[2] + hard[3]) * (4 * width) ** 2
+                + sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle)
     best, best_cost = None, None
     for cuts in combinations(range(1, len(words)), n - 1):
         bounds = list(zip((0,) + cuts, cuts + (len(words),)))
@@ -1628,10 +1632,14 @@ class MultiFormatGenerator:
                 credit["contrast"] = round(min(measured), 2)
         base = im.convert("RGB")
         kickers = (getattr(lay, "meta", None) or {}).get("kickers") if isinstance(getattr(lay, "meta", None), dict) else None
+        from . import line_policy as _lp
+        _story_faults = _lp.drawn_record(body_lines, role="body")
         lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "photo_credit": credit,
                     **({"kickers": kickers} if kickers else {}),
                     "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
                     "body_px": font_b.size, "body_lines": len(body_lines),
+                    # freeze cycle 5 (review D2): the line-break violations left in the body lines this frame drew
+                    **({"line_faults": _story_faults} if _story_faults else {}),
                     "title_px": size, "story_title_px": story_px, "window": window, "title_measure": title_w[0], "story_size_off": size != t_size,
                     "text_box": [min(ux0, x), uy0, max(ux1, x + max_w), max(uy1, int(y_end))],
                     "safe_box": [sx0, sy0, sx1, sy1],
@@ -2131,6 +2139,31 @@ class MultiFormatGenerator:
         return 1
 
     def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float, trial: bool = False):
+        """The body as the slide draws it: (lines, font, shortened). The measured setting (_body_measured: balanced
+        lines of at most BODY_MEASURE characters) stands wherever it holds the ONE line policy (src/line_policy.py):
+        no pixel moves there. Where it leaves a violation (a figure parted from its unit, a range cut, a line ending
+        on a function word, a proper name parted, a line over the measure), or takes a line more than a setting as
+        clean needs (review D8), the body is set again in one search over
+        every break that fits the slide's width and `max_lines` (line_policy.set_lines), so the policy holds in the
+        path production draws (freeze cycle 5, review D1: the measure was narrowed first and the policy saw only the
+        narrow trial; "nearly 1,090 / tonnes" stayed). A line may pass the character measure where that is the only
+        way to hold the policy; _stack records it with every violation that stays (lay.meta["line_faults"])."""
+        got = self._body_measured(d, px, body, width, max_lines, size, floor, trial)
+        lines, font, short = got
+        from . import line_policy
+        if short or len(lines) < 2:
+            return got
+        s = getattr(px, "s", 1.0)
+        design = get_font(brand.TEXT_FONT, round(font.size / s))       # planned on the design canvas, like _fit_text
+        better = line_policy.set_lines(" ".join(body.split()), lambda t: d.textlength(t, font=design),
+                                       round(width / s), max_lines, self.BODY_MEASURE)
+        if (better and " ".join(better).split() == " ".join(lines).split()
+                and line_policy.form_key(better, self.BODY_MEASURE) < line_policy.form_key(lines, self.BODY_MEASURE)):
+            return better, font, short
+        return got
+
+    def _body_measured(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float,
+                       trial: bool = False):
         """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
         narrower measure avoids it: (lines, font, shortened). Planned on the design canvas like every fit. `trial`:
         a shortened result is returned as is (not refitted and logged), for a caller that tries again."""
@@ -2450,22 +2483,25 @@ class MultiFormatGenerator:
             lay.shortened += short
             # Freeze cycle 5 (TEXT stream; panel 6: the IG cover body at 45.3 px instead of 48 was recorded nowhere):
             # every size fallback of the stack is recorded per slide: the body's tier (TYPE / TYPE_FALLBACK carousel
-            # body, design px x 4/3) and why; and every line-break violation the one policy could not remove
-            # (line_policy.note: no legal break at this size and width).
+            # body, design px x 4/3) and why; and every line-break violation left in the body lines THIS stack draws
+            # (line_policy.drawn_record of the drawn rows: never a trial fit's, never another surface's; review D2),
+            # with every line over the character measure. still_layout.save writes both beside the still.
             body_rows = [r for r in rows if r.get("name") == "body" and r.get("text")]
             if body_rows:
                 drawn_px = float(body_rows[0]["font"].size)
                 design_px = float(px.exact(self.BODY_SPEC[0])) if hasattr(px, "exact") else float(self.BODY_SPEC[0])
                 if abs(drawn_px - design_px) > 0.01:
-                    lay.meta.setdefault("type_fallbacks", []).append({
+                    lay.meta["type_fallbacks"] = [f for f in lay.meta.get("type_fallbacks", [])
+                                                  if f.get("role") != "body"]
+                    lay.meta["type_fallbacks"].append({
                         "role": "body", "px": round(drawn_px, 2), "design_px": round(design_px, 2),
                         "tier": "TYPE_FALLBACK carousel body",
                         "reason": "the slide's stack did not clear the key area at scale 1.0: the body takes its one "
                                   "fallback tier, never a continuous scale"})
             from . import line_policy as _lp
-            notes = _lp.take_notes()
-            if notes:
-                lay.meta.setdefault("line_faults", []).extend(notes)
+            faults = _lp.drawn_record([r["text"] for r in body_rows], self.BODY_MEASURE, role="body")
+            if faults:
+                lay.meta["line_faults"] = [f for f in lay.meta.get("line_faults", []) if f.get("role") != "body"] + faults
         drawn = [r for r in rows if r.get("text")]
         form = getattr(_render_state, "heading_form", None)
         stack_bottom = bottom

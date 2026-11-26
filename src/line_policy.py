@@ -42,7 +42,9 @@ FUNCTION_END = "function_word_end"            # ... on a LINE_END_LAST_RESORT wo
 UNIT_SPLIT = "unit_split"                     # a line break inside a keep-together group
 LONE_LAST = "lone_last_row"                   # a one-word last row (three words or more) under the balance minimum
 WEAK_END = "weak_end"                         # a line ends on a copula or auxiliary: counted apart, no violation
-VIOLATIONS = (NEVER_END, FUNCTION_END, UNIT_SPLIT, LONE_LAST)
+NAME_SPLIT = "name_split"                     # a line break inside a proper name (MOHAMMAD ADIL / SHAH'S), mixed case
+MEASURE_OVER = "measure_over"                 # a body line over its character measure: recorded, no line-break fault
+VIOLATIONS = (NEVER_END, FUNCTION_END, UNIT_SPLIT, LONE_LAST, NAME_SPLIT)
 
 
 def bare(word: str) -> str:
@@ -197,6 +199,37 @@ def range_seams(words: Sequence[str]) -> set[int]:
             and k in keep_together(ws)}
 
 
+_REGNAL = re.compile(r"(?=[IVX]{2,5}$)X{0,2}(IX|IV|V?I{0,3})")
+
+
+def name_bonds(words: Sequence[str]) -> set[int]:
+    """The break positions inside a proper name in mixed-case copy: two capitalised words in a row with nothing
+    closing the first ("Mohammad Adil Shah's", "Army Group North", "Soviet Union"). Word shapes only: a capital
+    followed by lower case, no closed-class word ("The", "In"), no numeral. Copy set in capitals or in title case
+    (most of its words capitalised) names nothing this way: the set is empty there, so headings, kickers and captions
+    are untouched. A name is parted only where no other break fits (the breakers weigh it above a function-word end:
+    a name is never split to avoid one), and the split is recorded (NAME_SPLIT)."""
+    ws = [str(w).replace(NBSP, " ").strip() for w in words]
+    n = len(ws)
+    if n < 3:
+        return set()
+
+    def cap(w: str) -> bool:
+        s = w.strip(_QUOTES + _OPEN)
+        return (len(s) > 1 and s[0].isupper() and any(c.islower() for c in s[1:]) and not is_function(w)
+                and bare(w) not in brand_system.LINE_END_WEAK)
+
+    caps = [cap(w) for w in ws]
+    initial = sum(1 for w in ws if w.strip(_QUOTES + _OPEN)[:1].isupper())
+    if initial * 5 > n * 3:                       # capitals or title case: no name can be told from its shape
+        return set()
+    out = {k for k in range(1, n) if caps[k - 1] and caps[k] and not closes(ws[k - 1])}
+    # a regnal numeral stays with its name: Amenhotep | III, Louis | XIV
+    out |= {k for k in range(1, n) if caps[k - 1] and not closes(ws[k - 1])
+            and _REGNAL.fullmatch(ws[k].strip(_QUOTES).rstrip(_CLOSE).removesuffix("'s").removesuffix("’s"))}
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ phrase unit
 _NOT_ADVERBS = frozenset(("only", "early", "family", "italy", "july", "supply", "reply", "holy", "assembly", "rally",
                           "fly", "ally", "belly", "bully", "daily", "likely", "lonely", "ugly", "friendly", "elderly",
@@ -243,30 +276,33 @@ def phrase_unit(before: Sequence[str], w1: str, w2: str) -> str | None:
 
 
 # ------------------------------------------------------------------------------------------------- the record
-# Every violation a breaker could not remove (no legal break at that size and width) is noted here, so it is RECORDED
-# and never silent: a renderer drains the notes into its layout record (take_notes), and the corpus proof reads them
-# through the same hook. Thread-local: renders run in worker threads.
+# A breaker's own trace: every violation a wrap could not remove (no legal break at that size and width) is noted
+# here. It is a TRACE of fits, trial fits included, not a record of what was drawn (freeze cycle 5, review D2: drained
+# into a slide's record it named lines the slide never drew and carried other surfaces' notes into the next slide).
+# The RECORD of a drawn surface is `drawn_record` of the lines it drew, written by its renderer and kept beside the
+# still (still_layout.save: "line_faults"). The trace keeps the last NOTE_LIMIT notes of its thread, for a probe or a
+# test that asks what one call left (take_notes before and after it).
+import collections as _collections
 import threading as _threading
 
 _notes = _threading.local()
-NOTE_LIMIT = 400
+NOTE_LIMIT = 64
 
 
 def note(lines: Sequence[str], left: Sequence[dict], **where) -> None:
-    """Record violations that stay in drawn `lines` (the fallback order found no legal break)."""
+    """Trace the violations that stay in one wrap's `lines` (the fallback order found no legal break)."""
     box = getattr(_notes, "items", None)
     if box is None:
-        box = _notes.items = []
-    if len(box) < NOTE_LIMIT:
-        box.append({"lines": [str(ln).replace(NBSP, " ") for ln in lines],
-                    "faults": [dict(f) for f in left], "reason": "no legal break at this size and width", **where})
+        box = _notes.items = _collections.deque(maxlen=NOTE_LIMIT)
+    box.append({"lines": [str(ln).replace(NBSP, " ") for ln in lines],
+                "faults": [dict(f) for f in left], "reason": "no legal break at this size and width", **where})
 
 
 def take_notes() -> list[dict]:
     """The notes since the last call (this thread), cleared."""
-    box = getattr(_notes, "items", None) or []
-    _notes.items = []
-    return list(box)
+    box = list(getattr(_notes, "items", None) or [])
+    _notes.items = _collections.deque(maxlen=NOTE_LIMIT)
+    return box
 
 
 # ----------------------------------------------------------------------------------------------------- the judge
@@ -295,6 +331,7 @@ def faults(lines: Sequence[str], widths: Sequence[float] | None = None, heading:
     words = [w for r in rows for w in r]
     bonds = keep_together(words)
     seams = range_seams(words)
+    names = set() if heading else name_bonds(words) - bonds
     at = 0
     for i, row in enumerate(rows[:-1]):
         at += len(row)
@@ -307,6 +344,8 @@ def faults(lines: Sequence[str], widths: Sequence[float] | None = None, heading:
                         # before a range's joiner (BETWEEN 94 / AND 104 MILLION YEARS): the one break a range too
                         # long for its line may take, as a recorded last resort
                         "seam": at in seams})
+        elif at in names:
+            out.append({"fault": NAME_SPLIT, "line": i, "word": f"{row[-1]} | {rows[i + 1][0]}"})
     if heading and len(words) >= 3 and len(rows[-1]) == 1:
         floor = brand_system.SPEC["heading.balance_min"] if balance_min is None else balance_min
         ws = list(widths[-2:]) if widths is not None and len(widths) >= 2 else [len(" ".join(rows[-2])),
@@ -357,13 +396,155 @@ def ellipsis_drop(drawn: str, source: str) -> list[str]:
 
 
 # ------------------------------------------------------------------------------------------- the paragraph breaker
-def break_cost(words: Sequence[str], cuts: Sequence[int], bonds: set[int] | None = None) -> tuple[int, int, int, int]:
-    """(unit splits, never ends, last-resort ends, weak ends) of the lines `cuts` make of `words`: the order every
-    breaker minimises before it looks at the rag."""
+def line_cost(words: Sequence[str], cuts: Sequence[int], bonds: set[int] | None = None, seams: set[int] | None = None,
+              names: set[int] | None = None) -> tuple[int, int, int, int]:
+    """(unit splits, never ends, name splits, last-resort breaks) of the lines `cuts` make of `words`: the policy's
+    whole order of violations, worst first, which every breaker minimises before it looks at the rag. A break before
+    a range's joiner (`range_seams`: "1,090 tonnes / to 1,168 tonnes") is the range's recorded last resort: it
+    weighs with the last-resort ends, never as a unit split, so no breaker trades it for a number parted from its
+    unit at the same cost (freeze cycle 5, review D1: the rag then chose "nearly 1,090 / tonnes")."""
     bonds = keep_together(words) if bonds is None else bonds
+    seams = range_seams(words) if seams is None else seams
+    names = name_bonds(words) if names is None else names
     classes = [end_class(words[k - 1]) for k in cuts]
-    return (sum(k in bonds for k in cuts), classes.count("never"), classes.count("last_resort"),
-            classes.count("weak"))
+    return (sum(k in bonds and k not in seams for k in cuts), classes.count("never"),
+            sum(k in names and k not in bonds for k in cuts),
+            classes.count("last_resort") + sum(k in seams for k in cuts))
+
+
+def _cuts_of(lines: Sequence[str]) -> tuple[list[str], list[int]]:
+    rows = [r for r in (_split(ln) for ln in lines) if r]
+    words = [w for r in rows for w in r]
+    cuts, at = [], 0
+    for r in rows[:-1]:
+        at += len(r)
+        cuts.append(at)
+    return words, cuts
+
+
+SET_LINES_MAX_FORMS = 250_000     # break sets one body may enumerate (a 40-word body on five lines is ~82,000)
+MEASURE_STRETCH = 1.2             # a line may run this far over its character measure to hold the policy (34 -> 41)
+
+
+def _need(words: Sequence[str], chars: int | None) -> int:
+    """The fewest lines `words` take within the character measure `chars` (greedy): the body's own line count."""
+    if not chars:
+        return 1
+    need, used = 1, 0
+    for x in words:
+        used = len(x) if not used else used + 1 + len(x)
+        if used > chars and used != len(x):
+            need, used = need + 1, len(x)
+    return need
+
+
+def _form_key(words, cuts, chars, need, bonds, seams, names, classes) -> tuple[int, ...]:
+    """The order `set_lines` minimises, worst first (see its text); the rag is the caller's."""
+    n = len(words)
+    spans = list(itertools.pairwise((0, *cuts, n)))
+    cl = [classes[k] for k in cuts]
+    lens = [len(" ".join(words[a:b])) for a, b in spans]
+    stretch = round(chars * MEASURE_STRETCH) if chars else 0
+    far = sum(max(0, x - stretch) for x in lens) if chars else 0
+    near = sum(max(0, min(x, stretch) - chars) for x in lens) if chars else 0
+    m = len(spans)
+    lone = int(m > 1 and n >= 3 and spans[-1][1] - spans[-1][0] == 1) + (
+        sum(1 for a, b in spans[:-1] if b - a == 1) if m > 1 and n >= 4 else 0)
+    return (sum(k in bonds and k not in seams for k in cuts), cl.count("never"),
+            sum(k in names and k not in bonds for k in cuts), far,
+            cl.count("last_resort") + sum(k in seams for k in cuts), lone, max(0, m - need), near, cl.count("weak"))
+
+
+def set_lines(text: str, measure: Callable[[str], float], width: float, max_lines: int, chars: int | None = None,
+              min_lines: int = 1) -> list[str] | None:
+    """Body copy set under the whole policy in ONE search (freeze cycle 5, review D1 / D8): every break of `text`
+    into `min_lines` .. `max_lines` lines no wider than `width` (measure(line) -> px), the best by, in order:
+
+    1. no number parted from its unit, scale word, hedge or range end (`keep_together`);
+    2. the fewest never ends; 3. no proper name parted (`name_bonds`: never to avoid a function-word end);
+    4. no line further over the character measure `chars` than MEASURE_STRETCH allows;
+    5. the fewest last-resort breaks (a function-word end, a range seam);
+    6. no one-word line; 7. no line more than the body needs at its measure (fewer lines are preferred to a line
+       slightly over the measure: an extra line moves the whole stack);
+    8. the least overrun of the measure within the stretch (legal while the line fits `width`, and RECORDED:
+       `drawn_record`), so a line of 40 characters is taken before a figure is parted from its unit;
+    9. the fewest weak ends; 10. the evenest rag (a last line longer than the one above it counted again, half).
+
+    None when nothing fits (the caller steps its ladder or refuses; never a dropped word)."""
+    words = [w for w in str(text or "").replace(NBSP, " ").split() if w]
+    n = len(words)
+    if not n:
+        return []
+    bonds, seams, names = keep_together(words), range_seams(words), name_bonds(words)
+    cache: dict[tuple[int, int], float] = {}
+
+    def w(a: int, b: int) -> float:
+        if (a, b) not in cache:
+            cache[(a, b)] = measure(" ".join(words[a:b]))
+        return cache[(a, b)]
+
+    if any(w(i, i + 1) > width for i in range(n)):
+        return None
+    classes = {k: end_class(words[k - 1]) for k in range(1, n)}
+    need = _need(words, chars)
+    best = None
+    forms = 0
+    for m in range(max(1, min_lines), min(max_lines, n) + 1):
+        for cuts in itertools.combinations(range(1, n), m - 1):
+            forms += 1
+            if forms > SET_LINES_MAX_FORMS:
+                break
+            ws = [w(a, b) for a, b in itertools.pairwise((0, *cuts, n))]
+            if max(ws) > width:
+                continue
+            mean = sum(ws) / m
+            rag = sum((x - mean) ** 2 for x in ws) + (0.5 * max(0.0, ws[-1] - ws[-2]) ** 2 if m > 1 else 0.0)
+            key = (*_form_key(words, cuts, chars, need, bonds, seams, names, classes), abs(m - need), round(rag, 3))
+            if best is None or key < best[0]:
+                best = (key, cuts)
+    if best is None:
+        return None
+    return [" ".join(words[a:b]) for a, b in itertools.pairwise((0, *best[1], n))]
+
+
+def form_key(lines: Sequence[str], chars: int | None = None) -> tuple[int, ...]:
+    """What `set_lines` minimises before the rag, for drawn `lines`: (unit splits, never ends, name splits, characters
+    beyond the measure's stretch, last-resort breaks, one-word lines, lines more than the measure needs, characters
+    over the measure within the stretch, weak ends). A setting no worse by this key than the search's best stands as
+    it is (its own rag; no pixel moves)."""
+    words, cuts = _cuts_of(lines)
+    classes = {k: end_class(words[k - 1]) for k in range(1, len(words))}
+    return _form_key(words, cuts, chars, _need(words, chars), keep_together(words), range_seams(words),
+                     name_bonds(words), classes)
+
+
+def policy_key(lines: Sequence[str], chars: int | None = None) -> tuple[int, int, int, int, int]:
+    """(unit splits, never ends, name splits, characters beyond the measure's stretch, last-resort breaks) of drawn
+    `lines`: the policy's violations, worst first (`form_key`'s head)."""
+    return form_key(lines, chars)[:5]
+
+
+def legal_alternative(text: str, measure: Callable[[str], float], width: float, max_lines: int,
+                      lines: Sequence[str], chars: int | None = None) -> list[str] | None:
+    """A breaking of `text` that fits `width` on at most `max_lines` lines and is strictly better under the policy
+    than the drawn `lines` (`policy_key`), else None: the corpus proof's test that a violation left in drawn body
+    copy had no legal alternative."""
+    got = set_lines(text, measure, width, max_lines, chars)
+    if got is None or policy_key(got, chars) >= policy_key(lines, chars):
+        return None
+    return got
+
+
+def drawn_record(lines: Sequence[str], chars: int | None = None, **where) -> list[dict]:
+    """The record a renderer persists for the body lines it DREW (never a trial fit): every policy violation left in
+    them and every line over the character measure `chars`, each {"fault", "line", "text" (the drawn line), "word" |
+    "chars"}; [] when the lines are clean. Computed from the drawn lines themselves, so the record names what is on the picture."""
+    rows = [" ".join(_split(ln)) for ln in lines]
+    out = [dict(f, text=rows[f["line"]], **where) for f in violations(rows)]
+    if chars:
+        out += [{"fault": MEASURE_OVER, "line": i, "text": ln, "chars": len(ln), "measure": chars, **where}
+                for i, ln in enumerate(rows) if len(ln) > chars]
+    return out
 
 
 def wrap(text: str, measure: Callable[[str], float], width: float, max_lines: int | None = None,
@@ -395,6 +576,8 @@ def wrap(text: str, measure: Callable[[str], float], width: float, max_lines: in
     for j, o in enumerate(owner):
         first.setdefault(o, j)
     bonds = {k for k in range(1, n) if first[k] in bonds_flat}
+    seams_flat, names_flat = range_seams(flat), name_bonds(flat) - bonds_flat
+    soft = {k: (int(first[k] in seams_flat), int(first[k] in names_flat)) for k in range(1, n)}
     cache: dict[tuple[int, int], float] = {}
 
     def w(a: int, b: int) -> float:
@@ -415,12 +598,12 @@ def wrap(text: str, measure: Callable[[str], float], width: float, max_lines: in
     best = None
     tries = [need] + ([need + 1] if (max_lines is None or need + 1 <= max_lines) and need + 1 <= n else [])
     for m in tries:
-        found = _best_breaks(words, m, w, width, bonds, widow)
+        found = _best_breaks(words, m, w, width, bonds, widow, soft)
         if found is None:
             continue
-        if best is None or found[0][:3] < best[0][:3]:   # one more line only to remove a violation
+        if best is None or found[0][:4] < best[0][:4]:   # one more line only to remove a violation
             best = found
-        if best[0][:3] == (0, 0, 0):
+        if best[0][:4] == (0, 0, 0, 0):
             break
     if best is None:
         return None
@@ -432,17 +615,21 @@ def wrap(text: str, measure: Callable[[str], float], width: float, max_lines: in
     return lines
 
 
-def _best_breaks(words, m, w, width, bonds, widow):
-    """The best cuts of `words` into exactly `m` lines within `width`: dynamic programme over (lines, end)."""
+def _best_breaks(words, m, w, width, bonds, widow, soft=None):
+    """The best cuts of `words` into exactly `m` lines within `width`: dynamic programme over (lines, end). The key:
+    (unit splits, never ends, name splits, last-resort breaks, lone last line, weak ends, rag); `soft[k]` = (range
+    seam, name bond) at k: a seam is the range's last resort, never a unit split."""
     n = len(words)
     if m > n:
         return None
     if m == 1:
-        return ((0, 0, 0, 0, 0, 0.0), ()) if w(0, n) <= width else None
+        return ((0, 0, 0, 0, 0, 0, 0.0), ()) if w(0, n) <= width else None
     pen = {}
     for k in range(1, n):
         cls = end_class(words[k - 1].replace(NBSP, " ").split()[-1])
-        pen[k] = (int(k in bonds), int(cls == "never"), int(cls == "last_resort"), int(cls == "weak"))
+        seam, name = (soft or {}).get(k, (0, 0))
+        pen[k] = (int(k in bonds and not seam), int(cls == "never"), int(bool(name) and k not in bonds),
+                  int(cls == "last_resort") + int(bool(seam) and k in bonds), int(cls == "weak"))
     # enumerate when small (exact rag), else a DP on the additive key with a greedy rag
     if n <= 18 and m <= 6:
         best = None
@@ -451,17 +638,17 @@ def _best_breaks(words, m, w, width, bonds, widow):
             ws = [w(a, b) for a, b in spans]
             if max(ws) > width:
                 continue
-            p = [sum(pen[k][i] for k in cuts) for i in range(4)]
+            p = [sum(pen[k][i] for k in cuts) for i in range(5)]
             lone = int(widow and spans[-1][1] - spans[-1][0] == 1 and n >= 3)
             mean = sum(ws) / len(ws)
             rag = sum((x - mean) ** 2 for x in ws[:-1]) + max(0.0, ws[-1] - max(ws[:-1])) ** 2
-            key = (p[0], p[1], p[2], lone, p[3], round(rag, 3))
+            key = (p[0], p[1], p[2], p[3], lone, p[4], round(rag, 3))
             if best is None or key < best[0]:
                 best = (key, cuts)
         return best
     INF = None
     table: list[dict[int, tuple]] = [dict() for _ in range(m + 1)]
-    table[0][0] = ((0, 0, 0, 0, 0, 0.0), ())
+    table[0][0] = ((0, 0, 0, 0, 0, 0, 0.0), ())
     for line in range(1, m + 1):
         for end in range(line, n - (m - line) + 1):
             if line == m and end != n:
@@ -469,10 +656,11 @@ def _best_breaks(words, m, w, width, bonds, widow):
             for start, (key, cuts) in table[line - 1].items():
                 if start >= end or w(start, end) > width:
                     continue
-                p = pen[end] if end < n else (0, 0, 0, 0)
+                p = pen[end] if end < n else (0, 0, 0, 0, 0)
                 lone = int(widow and line == m and end - start == 1 and n >= 3)
                 slack = (width - w(start, end)) ** 2 if line < m else 0.0
-                cand = ((key[0] + p[0], key[1] + p[1], key[2] + p[2], key[3] + lone, key[4] + p[3], key[5] + slack),
+                cand = ((key[0] + p[0], key[1] + p[1], key[2] + p[2], key[3] + p[3], key[4] + lone, key[5] + p[4],
+                         key[6] + slack),
                         cuts + ((end,) if end < n else ()))
                 if end not in table[line] or cand[0] < table[line][end][0]:
                     table[line][end] = cand

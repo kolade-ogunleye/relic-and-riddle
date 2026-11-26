@@ -227,8 +227,8 @@ def policy_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeF
     Lines with no violation are returned as they are (no pixel moves where the policy already held). Otherwise the
     text is re-broken by line_policy.wrap at the same size: on the same number of lines, or one more where the box
     allows it (`max_lines`) and that removes a violation (reflow at the same size comes before any smaller size). A
-    violation no break removes stays and is RECORDED (line_policy.note: the renderer's layout record and the corpus
-    proof read it); a word is never dropped."""
+    violation no break removes stays (traced: line_policy.note; the RECORD is the renderer's own, of the lines it
+    draws: line_policy.drawn_record); a word is never dropped."""
     from . import line_policy
     if len(lines) < 2 or not line_policy.violations(lines):
         return lines

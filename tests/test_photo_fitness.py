@@ -195,6 +195,25 @@ def test_a_foreign_structure_under_the_masthead_moves_the_window(tmp_path):
     assert "protected" not in pf.place(plain, window, fixed=True)["problems"]
 
 
+def test_a_move_does_not_set_the_type_on_a_busier_ground(tmp_path):
+    """No-regression guard of a move (a slide moved off black space set its masthead on a spacecraft's module): the
+    window that clears the frame also keeps the ground under the type no busier than BUSY_MOVE_MAX."""
+    rng = np.random.default_rng(3)
+    a = ground(2400, 1600, grain=2)
+    a[:, :1300] = np.where(rng.random((1600, 1300, 1)) > 0.5, 230.0, 30.0)      # the left of the picture: hard clutter
+    a[:, :1300] = np.repeat(np.repeat(a[::8, :1300:8], 8, axis=0), 8, axis=1)[:1600, :1300]
+    a[:420] = 0                                                                  # digital black across the top
+    p = save(tmp_path, "clutter.png", a)
+    window = pf.Window((1440, 1100), protected=((60, 0, 520, 150),), name="split")
+    asked = pf.place(p, window, fixed=True)
+    assert "matte" in asked["problems"]
+    rec = pf.place(p, window)
+    assert rec["moved"] and rec["matte"] <= pf.MATTE_MAX
+    assert rec["protected"][0]["busy"] <= max(pf.BUSY_MOVE_MAX, asked["protected"][0]["busy"]) or not rec["fit"]
+    if rec["fit"]:
+        assert rec["box"][0] > 1300 * 0.6                          # the masthead's box is off the clutter
+
+
 # ---------------------------------------------------------------- the surfaces ask it
 def test_every_cover_crop_stays_inside_the_photographs_content(tmp_path):
     from src.typography import cover_crop

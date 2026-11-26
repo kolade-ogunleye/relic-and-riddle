@@ -40,7 +40,9 @@ numbers):
   asked only of a hero (hero_photo.pick: Window.checks names it), where another photograph of the run can lead.
 - protected: per protected box, "foreign" (hero_window.foreign_object: a saturated, straight-edged man-made shape)
   "line" (the longest straight strong edge, against LINE_MAX) and "step" (two tonal masses, against STEP_MAX):
-  type is not set on a wing, a solar array or across a roofline; "busy" (the share of strong edges) is recorded.
+  type is not set on a wing, a solar array or across a roofline; "busy" (the share of strong edges) is recorded, and
+  a MOVED window may not raise it past BUSY_MOVE_MAX (the asked window is not judged on it: the masthead's own
+  plan answers a busy ground).
 
 The ladder when a crop is unfit (the brief's order; never a blur pad, a feather or a dim):
 1. another photograph the run already has that is fit: `rank()` orders candidates, the pickers call it;
@@ -102,6 +104,9 @@ DENSITY_MIN = 0.73        # the view's salience over its share of the content: u
                           # picture as a whole
 FOCUS_KEEP = 0.995        # of a reviewed subject's box in view: all of it (type is never set on it)
 BUSY_EDGE = 24.0          # luma gradient: a strong edge (recorded as "busy"; half the boxes are over 0.19: no gate)
+BUSY_MOVE_MAX = 0.44      # of a protected box: a MOVED window sets type on no busier ground than this (the corpus'
+                          # upper quartile, 0.441 over 8560 boxes) unless the asked window's was busier still: a move
+                          # off black space set a masthead on a spacecraft's module (0.09 -> 0.83)
 TONE_WHITE, TONE_BLACK = 232, 22   # luma: near-white, near-black (a tile of either reads flat grey or murky in a feed)
 TONE_MAX = 0.54           # of the view: only a window that asks for it ("tone" in Window.checks: the hero's)
 LINE_CANNY = (100, 220)   # a strong edge for the straight-line read under type
@@ -528,9 +533,13 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     def held(b: Box) -> float:
         return a.total("salience", _sub(b, window.size, view))
 
-    def judged(b: Box, zoom: float, best: float) -> dict[str, Any]:
+    def judged(b: Box, zoom: float, best: float, was: dict[str, Any] | None = None) -> dict[str, Any]:
         rec = measure(a, b, window, best)
         rec["problems"] = problems(rec, window)
+        if was is not None and "protected" in window.checks and "protected" not in rec["problems"] and any(
+                p["busy"] > max(BUSY_MOVE_MAX, q["busy"]) + 1e-9
+                for p, q in zip(rec.get("protected", ()), was.get("protected", ()))):
+            rec["problems"].append("protected")   # a move does not trade its cause for a busier ground under the type
         if earlier:
             rec["overlap"] = round(max(_overlap(b, e) for e in earlier), 3)
         rec["zoom"] = zoom
@@ -564,7 +573,7 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         if window.size[0] / max(1e-6, boxes[0][2] - boxes[0][0]) > window.upscale_max + 1e-6:
             break
         best = best1 if zoom == 1.0 else max(held(b) for b in boxes)
-        recs = [judged(b, zoom, best) for b in boxes]
+        recs = [judged(b, zoom, best, base) for b in boxes]
         ok = sorted((r for r in recs if not r["problems"]),
                     key=lambda r: (crowded(r), round(r.get("overlap", 0.0), 2) if crowded(r) else 0.0,
                                    -round(r.get("focus", 0.0), 2), -round(r["subject"], 3), near(r)))

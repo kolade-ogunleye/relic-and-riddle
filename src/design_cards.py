@@ -4439,13 +4439,18 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
     # window is held to the photo-fitness rule (the source's frame out of it, its subject in it, not a flat field).
     # A fit window is the centred crop, as before; an unfit one gives way to the fit crop that changes least, unless
     # the photograph has a reviewed focus (the claim was placed against it above: the window stands). Recorded.
-    ground_fit = _photo_fitness.place(Path(photo), _photo_fitness.Window(
-        (int(size[0]), int(size[1])), checks=("matte", "subject", "flat"), name="hook ground"), fixed=bool(focus))
+    # The record is the crop that is DRAWN (review of cycle 5, D1): when the measured move is not taken, the ground
+    # is cover_crop's, which may itself clear a frame; that crop is measured and recorded in its place.
+    ground_window = _photo_fitness.Window((int(size[0]), int(size[1])), checks=("matte", "subject", "flat"),
+                                          name="hook ground")
+    ground_fit = _photo_fitness.place(Path(photo), ground_window, fixed=bool(focus))
     if ground_fit["moved"] and ground_fit["fit"]:
         clean, _ = _photo_fitness.load(Path(photo))
         bg = _photo_fitness.crop(clean, ground_fit["box"], (int(size[0]), int(size[1]))).convert("RGB")
     else:
-        bg = cover_crop(photo, size).convert("RGB")
+        drew: dict[str, Any] = {}
+        bg = cover_crop(photo, size, record=drew).convert("RGB")
+        ground_fit = _photo_fitness.drawn_record(Path(photo), ground_window, ground_fit, drew)
     if spec.photo_kind != "generated" and is_photograph(Path(photo)):
         bg = grade(bg)
     # Lane F cycle 3 (panel 4 BC r1, CD r2: the alignment and band changed with the ground): ONE rule on every ground.
@@ -4754,6 +4759,8 @@ def _design_record(plan: CardPlan, poster: str) -> dict[str, Any]:
     if plan.kind == "hook":
         rec["caption_clear_until_s"] = m["caption_clear_until_s"]
         rec["grid_proof"] = m["grid_proof"]
+        if m.get("photo_fit") is not None:   # the ground's window as drawn, with its measures (freeze cycle 5)
+            rec["photo_fit"] = m["photo_fit"]
         if m.get("withheld"):
             rec["withheld"] = m["withheld"]
     if m.get("provenance"):

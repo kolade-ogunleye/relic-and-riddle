@@ -13,22 +13,31 @@ Table: run or topic, frame, shown, variant, worst-glyph contrast, halo, exceptio
 distribution (min, 5th percentile, median), the count under MARGIN (6.0), the count at the gate floor (< 5.7), the
 halo exceptions, the withheld, the frames without a record. A drawn masthead under MARGIN is a violation unless its
 record says no ruled step reaches it (`margin_short`, with the best ratio any step reached: the recorded ceiling).
+--brand second | second-colours: the same under the panel's second palettes (PLATES-07's case: boards B and C).
 --keep <dir>: also save each deck frame's ground before the masthead (PNG) and the call's arguments (JSON).
 """
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import plates_common as pc
 
 a, tree, dev = pc.setup(__doc__, lambda ap: (ap.add_argument("--keep", type=Path),
                                              ap.add_argument("--no-decks", action="store_true"),
-                                             ap.add_argument("--no-grounds", action="store_true")))
+                                             ap.add_argument("--no-grounds", action="store_true"),
+                                             ap.add_argument("--brand", default="default",
+                                                             choices=("default", "second", "second-colours"))))
 
 import numpy as np  # noqa: E402
 
-from src import masthead, refusal  # noqa: E402
+from src import brand, masthead, refusal  # noqa: E402
+
+if a.brand != "default":   # PLATES-07 on the panel's palettes B / C (render_surfaces' second brand)
+    sys.path.insert(0, str(tree / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
+    import render_surfaces  # noqa: E402
+    brand.configure(render_surfaces.second_brand(brand, "Montserrat" if a.brand == "second" else None), validate=False)
 from src.brand_system import type_px  # noqa: E402
 from src.multi_format import MultiFormatGenerator  # noqa: E402
 from src.photo_grade import cover  # noqa: E402

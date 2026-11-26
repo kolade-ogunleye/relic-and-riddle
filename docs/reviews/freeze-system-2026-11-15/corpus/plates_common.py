@@ -93,7 +93,8 @@ def band_edges(before, after, toward, floating: bool, width: int | None = None, 
     """Every edge of a band read back from the pixels: the band's alpha per row (the median over the columns of
     (before - after) / (before - toward)), and per eased run of rows the steepest luma change the band itself puts in
     (|d alpha| x (the row's 95th percentile ground luma - the band's), luma per px at 1080 wide) against the limit
-    the rule gives that ground: gain x texture, between the field gate and the ceiling (ground band, floating band).
+    the rule gives that ground: gain x texture, between the field gate and the ceiling (ground band, floating band);
+    a row passes at the limit itself, no read-back allowance.
     `width`: the canvas width the crop came from (the slope is stated at 1080 wide)."""
     lb, la = luma(before), luma(after)
     if isinstance(toward, Image.Image):
@@ -132,7 +133,7 @@ def band_edges(before, after, toward, floating: bool, width: int | None = None, 
             y = i + int(slope[i:j + 1].argmax())
             limit = min(ceiling[1 if floating else 0], max(gate, gain * texture(lb, i, j + 1, width)))
             out.append({"rows": [i, j], "slope": round(float(slope[y]), 2), "at": y, "limit": round(limit, 2),
-                        "ok": bool(slope[y] <= limit * 1.25 + 0.1)})
+                        "ok": bool(slope[y] <= limit)})   # the rule's own limit (review of the c5 fix, D6)
         i = j + 1
     return out
 

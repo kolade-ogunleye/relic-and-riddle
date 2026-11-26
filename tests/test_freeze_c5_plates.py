@@ -434,3 +434,111 @@ def test_the_wide_dim_takes_as_long_as_its_luma_drop_needs():
     old = max(end_card.ease_io((i + 1) / 13.5) - end_card.ease_io(i / 13.5) for i in range(13)) * 111.0
     assert old > end_card.DIM_STEP_MAX                      # the measured case fails the rule at DIM_IN
     assert end_card.dim_seconds(500.0) == pytest.approx(end_card.DIM_IN_MAX)
+
+
+# ------------------------------------------------------------------------------- second builder: PLATES-03/12/13/14/15
+def _worst_ground(tmp_path, name="worst.jpg") -> Path:
+    """A synthetic worst case for light type: a near-white ground with brighter specks and a saturated warm cast in
+    patches (the bright percentile is white wherever a line falls)."""
+    rng = np.random.default_rng(11)
+    h, w = 1800, 1440
+    base = np.full((h, w, 3), (232, 226, 214), np.float32)
+    base[rng.random((h, w)) < 0.04] = (255, 255, 255)
+    yy, xx = np.mgrid[0:h, 0:w]
+    warm = ((xx // 240 + yy // 240) % 2 == 0)[..., None]
+    base = np.where(warm, base * np.array([1.0, 0.86, 0.45]), base)
+    p = tmp_path / name
+    Image.fromarray(np.clip(base, 0, 255).astype(np.uint8)).save(p, quality=95)
+    return p
+
+
+def test_text_on_a_photo_band_reads_at_seven_to_one_on_the_worst_ground(tmp_path):
+    """PLATES-15 (and the PHOTO hand-back's Richat closing-slide body, 7.04 -> 6.76 once its window moved): a band
+    behind light type over a photograph is as deep as its LINES need on their own ground (band_edge.text_strength),
+    so every line reads at contrast.high (7:1) wherever the band's cap allows, on any ground; the record says so.
+    The worst-case ground here is near-white with white specks: the old band (solved for the band's own 95th
+    percentile pixel) left the lines at the 4.8 placement target."""
+    gen = multi_format.MultiFormatGenerator()
+    photo = _worst_ground(tmp_path)
+    card = {"heading": "Rings of quartzite", "body": "Erosion exposed the dome's rings over millions of years."}
+    share = "Send this to someone who loves geology, and follow for more."
+    for arch in ("immersive", "cover", "debate"):
+        _, lay = gen._render_carousel_slide(arch, photo, photo, card, 0 if arch == "cover" else (6 if arch == "debate"
+                                                                                                  else 2), 7, {}, share,
+                                            False)
+        band = lay.meta.get("text_band")
+        assert band and band["target"] == brand_system.tok("contrast.high"), (arch, lay.meta.keys())
+        for e in lay.elements:
+            if e["name"] in ("kicker", "header_brand") or e.get("masthead") or e.get("contrast") is None:
+                continue
+            assert e["contrast"] >= 7.0 or (band["short"] and e["contrast"] >= 4.8), (arch, e["name"], e["contrast"])
+
+
+def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_path):
+    """PLATES-15 on the Story (the gold title line 4.92-5.18:1 at the bright percentile) and PLATES-14 (the text
+    column 19 px inside the safe box, a plated kicker 5, the photo credit's foot 12): every line reads at 7:1 on the
+    worst ground (or its band records the cap), and every text and plate box keeps safe_zones.TEXT_INSET to the Story
+    safe box."""
+    from src import safe_zones
+    gen = multi_format.MultiFormatGenerator()
+    photo = _worst_ground(tmp_path)
+    slide = {"kicker": "ANCIENT MARVEL", "line1": "THE ACOUSTIC DOME", "line2": "OF GOL GUMBAZ",
+             "body": "Sound circles this vast chamber along its curved wall."}
+    _, lay = gen._render_story_frame(photo, slide, 0, 2, {})
+    sx0, sy0, sx1, sy1 = safe_zones.safe_box("story")
+    inset = safe_zones.TEXT_INSET
+    for e in lay.elements:
+        boxes = [e["box"]] + ([e["plate"]["box"]] if isinstance(e.get("plate"), dict) else [])
+        for b in boxes:
+            assert min(b[0] - sx0, b[1] - sy0, sx1 - b[2], sy1 - b[3]) >= inset, (e["name"], b)
+        if e["name"] not in ("kicker",) and e.get("contrast") is not None:
+            band = (lay.ground or {}).get("text_band") or {}
+            assert e["contrast"] >= 7.0 or band.get("short"), (e["name"], e["contrast"], band)
+    # the column itself: the safe box, the token, and the held label plate's pad
+    pad = round(brand_system.tok("plate.label_pad") * brand_system.type_px("kicker", "tall"))
+    assert multi_format.STORY_MARGIN == sx0 + inset + pad
+
+
+def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():
+    """PLATES-03: a text band that never goes opaque grades the photograph (band_edge.graded) where a neutral INK
+    alpha left a grey-brown veil: on a saturated warm ground the band's interior keeps the ground's hue (<= 2 degrees)
+    and >= 0.95 of its saturation, at the plain alpha's luma; an opaque panel (cap 1) stays its colour."""
+    ground = Image.new("RGB", (400, 600), (226, 150, 52))
+    graded = multi_format.scrim(ground, 300, 600, feather=100, target=0.26)
+    plain = multi_format.scrim(ground, 300, 600, feather=100, target=0.26, grade=False)
+    a = np.asarray(ground, np.float32)[500:560, 100:300]
+    g = np.asarray(graded, np.float32)[500:560, 100:300]
+    p = np.asarray(plain, np.float32)[500:560, 100:300]
+    hb, sb = pc._hue_sat(a)
+    hg, sg = pc._hue_sat(g)
+    hp, sp = pc._hue_sat(p)
+    assert np.abs(hg - hb).max() <= 2.0 and (sg / sb).min() >= 0.95
+    assert (sp / sb).mean() < (sg / sb).mean()                       # the plain alpha loses saturation
+    assert np.abs(pc.luma(Image.fromarray(g.astype(np.uint8))) - pc.luma(Image.fromarray(p.astype(np.uint8)))).max() <= 2
+    panel = multi_format.scrim(ground, 300, 600, feather=40, target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
+    assert tuple(np.asarray(panel)[590, 200]) == tuple(brand.INK2)
+
+
+def test_a_deck_reserves_its_longest_body_so_its_band_stands_at_one_position(tmp_path):
+    """PLATES-12 (panel 6: one deck's copy band at three heights; the dev Odessa decks 918 / 973 / 1152): the deck
+    frame reserves the copy's longest content body (_deck_body_frame), so a long body no longer lifts its own slide's
+    band: two slides of one frame, a two-line heading over a short and over a long body, start at the same cap line."""
+    gen = multi_format.MultiFormatGenerator()
+    photo = _worst_ground(tmp_path)
+    short = {"heading": "Partisan resistance", "body": "Fighters hid in the tunnels."}
+    long_ = {"heading": "Partisan resistance", "body": "Fighters hid in the tunnels for months, moving supplies, "
+                                                    "printing leaflets and slipping out at night to strike the "
+                                                    "occupiers before vanishing back below the city streets."}
+    frame = gen._deck_body_frame([short, long_], ["immersive", "immersive"], False)
+    assert frame >= 4, frame
+    tops = []
+    for card in (short, long_):
+        _, lay = gen._render_carousel_slide("immersive", photo, photo, card, 2, 7, {}, "", False, heading_frame=2,
+                                            body_frame=frame)
+        tops.append(next(e["box"][1] for e in lay.elements if e["name"] == "heading"))
+    assert abs(tops[0] - tops[1]) <= 3, tops
+
+
+def test_the_swipe_strip_clears_slide_ones_text_by_the_ledgers_margin():
+    """PLATES-13: slide 1's part of the swipe strip clears its text by 24 half px (48 at 1440) or is not drawn."""
+    assert multi_format.SWIPE_CLEAR * 1440 / 1080 >= 48

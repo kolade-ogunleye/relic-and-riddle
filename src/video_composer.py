@@ -29,6 +29,7 @@ import subprocess
 import unicodedata
 from functools import lru_cache
 from pathlib import Path
+from collections import Counter
 from collections.abc import Callable
 from typing import Any, Dict, List, Optional, Set, Tuple
 from PIL import Image, ImageFilter
@@ -1891,6 +1892,16 @@ def _line_break_defect(shown: list[str], k: int) -> bool:
     return never_end_end(shown[k - 1]) or unit_link(shown[k - 1], shown[k])
 
 
+def _policy_name_split(raw: list[str], k: int) -> bool:
+    """Whether a line break before word k of a burst parts a proper name as the ONE line policy reads names
+    (line_policy: a run of capitalised words in mixed-case copy, THE INTERNATIONAL / UNION OF GEOLOGICAL, where
+    name_bonds, which needs the whole name in view, sees none)."""
+    name = getattr(_line_policy, "NAME_SPLIT", None)
+    if name is None or not 0 < k < len(raw):
+        return False
+    return any(f.get("fault") == name for f in _line_policy.faults([" ".join(raw[:k]), " ".join(raw[k:])]))
+
+
 def reel_name_split(phrase: Any) -> bool:
     """Lane C cycle 2 (lander ruling 2): whether the 9:16 burst draws on two lines broken inside a proper name."""
     layout = reel_caption_lines(phrase)
@@ -1898,7 +1909,8 @@ def reel_name_split(phrase: Any) -> bool:
         return False
     words = phrase.split() if isinstance(phrase, str) else phrase
     shown = _phrase_words(list(words))
-    return (layout[0] - 1) in name_bonds(list(shown))
+    raw = [w if isinstance(w, str) else str(w.get("word", "")) for w in words]
+    return (layout[0] - 1) in name_bonds(list(shown)) or _policy_name_split(raw, layout[0])
 
 
 def name_split_bursts(phrases) -> list[str]:
@@ -2081,7 +2093,11 @@ def reel_floor_line(phrase: Any) -> bool:
     return bool(form) and form[0] == "floor"
 
 
-_joined = threading.local()   # .raws: the bursts the current clip's readable merge joined (word tuple -> (k, size))
+# The current clip's forms (freeze cycle 5, lander ruling on D4 / D5): .raws: each burst of the clip the last
+# caption_phrases call built (word tuple -> ("one" | "two", k, size)), set at the clip's ONE size by _clip_fit; .clip:
+# the clip's size record. Thread-local, cleared when the next clip's bursts are built, so the phrase builder itself
+# only ever reads the pure forms (_reel_form_pure). clip_forms() is the public reader.
+_joined = threading.local()
 
 
 def _joined_raws() -> dict:
@@ -2091,12 +2107,135 @@ def _joined_raws() -> dict:
     return box
 
 
+def _clip_state() -> dict | None:
+    """The size record of the clip the last 9:16 caption_phrases call built on this thread (None: no clip fit)."""
+    return getattr(_joined, "clip", None)
+
+
+def clip_forms() -> dict:
+    """A copy of the current clip's forms: {burst words: (form, k, size px)} (form "one": one line; "two": two lines,
+    line 1 the first k words). Empty before any clip is built and after _reel_caches_clear."""
+    return dict(_joined_raws())
+
+
 def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
-    """_reel_form_pure, or the joined two-line form the current clip's readable merge gave this burst (a burst within
-    the bond extra, which the phrase builder would set on one line at the bond floor: the merge's form is the clip's
-    own, registered per clip and cleared when the next clip's bursts are built, so the builder never sees it)."""
+    """The form the current clip gave this burst (_clip_fit: one line, or two lines at the clip's one size), else
+    _reel_form_pure (a burst that is not one of the clip's own: the phrase builder's trials, any other reader)."""
     got = _joined_raws().get(raw)
-    return ("two", *got) if got else _reel_form_pure(raw)
+    if got:
+        return None if got[0] == "one" else got
+    return _reel_form_pure(raw)
+
+
+# Lander ruling on D4 / D5 (2026-11-26, after the independent review of the first cycle-5 build): caption size stays
+# ONE size per clip (no pumping), but the clip's size is the largest ladder rung at which the large majority of its
+# bursts set on their legal lines; a burst that does not is split into consecutive bursts (the recorded split), never
+# allowed to pull the whole clip down a rung. A burst that fits ONE line at the clip's size is set on one line.
+# The majority: over the 35 dev runs a clip has 69 % to 100 % of its bursts on legal lines at 80 px (median 94 %; 28
+# clips at nine in ten or more), so nine in ten puts the clips whose misfits are the exception at 80 px and takes a
+# clip a rung down only where more than a tenth of its bursts would have to be split or stand at another size.
+CAPTION_TWO_LINE_H_SNAP = 2   # px: two-line plates of one size this close in height share one height (build_subtitles)
+CAPTION_CLIP_MAJORITY = 0.9
+# What a burst does that has no legal lines at the clip's size and no legal split (the ruling names the split only).
+# True (decision by the trade-off order, one system before rhythm): it STAYS, as an unsplit burst always has, on its
+# legal lines at the largest lower rung that sets them, alone and recorded ("under"): ON THE NORTHWESTERN on one line
+# at 74 px in an 80 px clip. False: every burst at the clip's size to the letter; such a burst then takes its least
+# bad break there against the line rule (ON / THE NORTHWESTERN), recorded ("no_legal_form").
+CAPTION_MISFIT_OWN_SIZE = True
+CLIP_RULE = ("one caption size per clip (lander ruling 2026-11-26): the largest ladder size at which at least "
+             "nine in ten of its bursts set on their legal lines; a burst that fits one line at that size is one "
+             "line; a burst that does not set at it is split into consecutive bursts")
+
+
+def _break_faults(shown: list[str], k: int) -> list[str]:
+    """Why a two-line break before shown word k breaks LINE_RULE (line_rule_faults' names), [] for a legal break."""
+    out = []
+    if _hedge_break(shown, k):
+        out.append("qualifier_line")
+    elif never_end_end(shown[k - 1]):
+        out.append("function_word_line_end")
+    if unit_link(shown[k - 1], shown[k]):
+        out.append("unit_line")
+    if _lone_function_line(shown, k) and "function_word_line_end" not in out:
+        out.append("one_word_line")
+    return out
+
+
+@lru_cache(maxsize=32768)
+def _clip_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
+    """How a 9:16 burst sets at the clip's size `size` on legal lines: ("one", 0) where its ink fits one line there
+    (a burst that fits one line is never broken for its own sake); else ("two", k): the best legal break that sets at
+    `size`: both lines inside the ink budget, the plate inside the caption band, line 1 never ending on a function
+    word, no name, unit or qualifier parted, no line of one function word; the burst's own break (_reel_form_pure)
+    where it is legal, any other with each line within one burst's caps (MAX_BURST_WORDS, MAX_BURST_CHARS) and no
+    bond or atomic pair parted. Best at clause punctuation, then outside a phrase unit (line_policy.phrase_unit),
+    then not after a dangling word, then the burst's own break, then without a one-word line, then the evener lines.
+    None where no such form exists at `size`: the burst is split (_clip_fit)."""
+    words = list(raw)
+    shown = _phrase_words(words)
+    n = len(shown)
+    if not n:
+        return None
+    budget = _ink_budget()
+    if _caption_ink_width(shown, size) <= budget:
+        return ("one", 0)
+    if n < 2 or not _two_line_clears_graphics(size):
+        return None
+    band = _caption_band_height()
+
+    def widths(k: int) -> tuple[float, float] | None:
+        a, b = shown[:k], shown[k:]
+        wa, wb = _caption_ink_width(a, size), _caption_ink_width(b, size)
+        if max(wa, wb) > budget or _caption_two_line_geometry([a, b], size)[1] > band:
+            return None
+        return wa, wb
+
+    named = name_bonds(list(shown))
+    pure = _reel_form_pure(raw)
+    own = pure[1] if pure and pure[0] == "two" and 0 < pure[1] < n else 0
+    held = caption_bonds(words) | name_bonds(words) | named | _figure_bonds(list(shown))
+    best = None
+    for k in range(1, n):
+        a, b = shown[:k], shown[k:]
+        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k):
+            continue
+        # the burst's own break (the builder's form: a figure group's seam, a line past the caps) stands where legal;
+        # any other break keeps each line within one burst's caps and parts no bond
+        if k != own and (
+                max(len(a), len(b)) > MAX_BURST_WORDS or max(len(" ".join(a)), len(" ".join(b))) > MAX_BURST_CHARS
+                or (k - 1) in held or _is_atomic_boundary(shown[k - 1], shown[k]) or _bare(shown[k - 1]) in _ARTICLES
+                or any(TERMINAL_PUNCT.search(w) for w in shown[:k - 1] + shown[k:-1])):
+            continue
+        got = widths(k)
+        if got is None:
+            continue
+        # D6: at clause punctuation first, then outside a phrase unit (the burst's own break yields to a legal one
+        # that parts none), then not after a dangling word, then the burst's own break, no one-word line, the rag
+        rank = (not CLAUSE_PUNCT.search(shown[k - 1]),
+                _line_policy.phrase_unit(shown[:k - 1], shown[k - 1], shown[k]) is not None,
+                bool(_dangles(shown[k - 1]) or _open_phrase_end(list(shown), 0, k - 1, False)),
+                k != own, k == 1 or k == n - 1, round(abs(got[0] - got[1])))
+        if best is None or rank < best[0]:
+            best = (rank, k)
+    return ("two", best[1]) if best else None
+
+
+def _clip_fallback(raw: tuple[str, ...], size: int) -> int | None:
+    """The least bad two-line break (line 1 the first k words) of a burst with no legal form at `size` and no legal
+    split: _two_line_options' order (a name whole, no line defect, no rule fault first), among the breaks that set at
+    `size`. Recorded by the caller. None where no break sets (the burst then draws at its own smaller size, alone)."""
+    return next((k for _, k, rung, _ in _two_line_options(raw) if rung >= size), None)
+
+
+def caption_clip_rung(raws: list[tuple[str, ...]]) -> tuple[int, dict[int, float]]:
+    """(size, {rung: share}) of a clip's 9:16 bursts (their words): the largest CAPTION_LADDER rung at which at least
+    CAPTION_CLIP_MAJORITY of the bursts of two words or more set on their legal lines (_clip_form); the ladder's floor
+    where none does. A single word too long for the line sets no clip size (its own recorded shrink)."""
+    multi = [r for r in raws if len(r) > 1]
+    shares = {rung: (sum(_clip_form(r, rung) is not None for r in multi) / len(multi) if multi else 1.0)
+              for rung in CAPTION_LADDER}
+    size = next((rung for rung in CAPTION_LADDER if shares[rung] >= CAPTION_CLIP_MAJORITY - 1e-9), min(CAPTION_LADDER))
+    return size, shares
 
 
 @lru_cache(maxsize=8192)
@@ -2119,7 +2258,9 @@ def _reel_form_pure(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
 
 def _reel_caches_clear() -> None:
     _reel_form_pure.cache_clear()
+    _clip_form.cache_clear()
     _joined_raws().clear()
+    _joined.clip = None
 
 
 # the caches' handles, where the two readers were lru_cache functions themselves (tests and the brand switch clear them)
@@ -3396,7 +3537,8 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         phrases = _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
         return _never_end_repair(phrases, words, lambda ph: (
             2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
-    _joined_raws().clear()   # freeze cycle 5: the last clip's joined forms never reach this clip's phrase builder
+    _joined_raws().clear()   # freeze cycle 5: the last clip's forms never reach this clip's phrase builder
+    _joined.clip = None
     base = round4_burst_cuts(words, emphasis)
     units = unit_links(words)   # lane C cycle 1 (N2): MORE THAN 590 SQUARE FEET is one value, never cut
     # lane C cycle 3 (lander ruling): a figure group is a bond: one the Reel can set (one line, or two lines each
@@ -3450,6 +3592,25 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         bond_extra=bond_extra, range_cuts=range_joiner_cuts(words), ranged=lambda ph: strict(ph) or relaxed(ph))
     out = _line_split(out, words, emphasis, line_split)
     out = _readable_merge(out, words, emphasis, recut)   # freeze cycle 5: its own record (reading_rates "recut")
+    if line_split is not None and _clip_state() is not None:
+        # D5 (review of the first cycle-5 build): "into": None says no legal break exists. It is true only of a burst
+        # that is DRAWN with the fault at the clip's size: a burst the clip sets on one line (OVER 590 SQUARE FEET at
+        # 66 px) or re-cut since carries no such record, and every burst drawn with a fault carries one.
+        def drawn(p: list[dict[str, Any]]) -> str:
+            ws = [w["word"] for w in p]
+            lay = reel_caption_lines(ws)
+            return " ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]) if lay else " ".join(ws)
+        faulty = {drawn(p): line_rule_faults(p) for p in out if line_rule_faults(p)}
+        line_split[:] = [e for e in line_split if e.get("into") is not None or e.get("text") in faulty]
+        have = {e.get("text") for e in line_split if e.get("into") is None}
+        clip = _clip_state()
+        for p in out:
+            t = drawn(p)
+            if t in faulty and t not in have:
+                have.add(t)
+                line_split.append({"at": round(float(p[0].get("start", 0.0)), 2), "text": t, "removed": faulty[t],
+                                   "rule": LINE_RULE, "into": None, "clip_px": clip["px"],
+                                   "why": "no legal form at the clip's size and no legal split"})
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
@@ -3655,21 +3816,11 @@ def line_rule_faults(phrase: Any) -> list[str]:
     layout = reel_caption_lines(raw)
     if layout is None:
         return []
-    k, shown = layout[0], _phrase_words(raw)
-    out = []
-    if _hedge_break(shown, k):
-        out.append("qualifier_line")
-    elif never_end_end(shown[k - 1]):
-        out.append("function_word_line_end")
-    if unit_link(shown[k - 1], shown[k]):
-        out.append("unit_line")
-    if _lone_function_line(shown, k) and "function_word_line_end" not in out:
-        out.append("one_word_line")
-    return out
+    return _break_faults(_phrase_words(raw), layout[0])
 
 
 def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None,
-                record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+                record: list[dict[str, Any]] | None = None, clip_px: int | None = None) -> list[list[dict[str, Any]]]:
     """Lane C cycle 4 (lander ruling 2026-11-25): the last pass of the 9:16 path. Each burst whose two-line break
     breaks LINE_RULE (line_rule_faults) is split into two (else three) consecutive bursts at the best legal cuts: no
     cut inside a bond (caption_bonds, name_bonds, unit_links, a figure group's closing word, a key term:
@@ -3680,7 +3831,10 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
     sentence around it are re-cut with it under the same rule. Best: no clause punctuation inside a burst, then the
     fewest one-word bursts, the fewest soft ends (_dangles), the fewest two-line bursts, the most even parts. Every word keeps its order and its own timing (burst_timings times each part on its words; no voice
     stretch; the reading rate is recorded as before). Each split is recorded (`record`: the burst, its parts, the
-    faults it removed, LINE_RULE); a burst with no legal split stays and is recorded with "into": None."""
+    faults it removed, LINE_RULE); a burst with no legal split stays and is recorded with "into": None.
+    With `clip_px` (freeze cycle 5, ruling on D4 / D5: _clip_fit) the same split serves the clip's one size: the burst
+    to split is one with no legal form at `clip_px` (_clip_form), every part sets at it, and the record names
+    "over_clip_size" and CLIP_RULE."""
     out = [list(p) for p in phrases if p]
     if not out:
         return out
@@ -3694,7 +3848,22 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
                 and not _is_atomic_boundary(a[-1]["word"], b[0]["word"])
                 and phrase_unit_cut(words, pos[id(a[-1])]) is None)
 
+    def form_at(part: list[dict[str, Any]]) -> tuple[str, int] | None:
+        return _clip_form(tuple(str(w.get("word", "")) for w in part), clip_px)
+
+    def two_lines(part: list[dict[str, Any]]) -> bool:
+        if clip_px is None:
+            return reel_caption_lines([w["word"] for w in part]) is not None
+        return (form_at(part) or ("one", 0))[0] == "two"
+
+    def need(part: list[dict[str, Any]]) -> list[str]:
+        if clip_px is None:
+            return line_rule_faults(part)
+        return [] if len(part) == 1 or form_at(part) is not None else ["over_clip_size"]
+
     def clean(part: list[dict[str, Any]]) -> bool:
+        if clip_px is not None:
+            return form_at(part) is not None and not (len(part) > 1 and _function_only(part))
         return len(part) == 1 or (_fits_caption_burst(part) and not line_rule_faults(part))
 
     def brief(trial: list[list[dict[str, Any]]], timing, lo: int, hi: int) -> bool:
@@ -3704,6 +3873,9 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
     def text(p: list[dict[str, Any]]) -> str:
         ws = [w["word"] for w in p]
         layout = reel_caption_lines(ws)
+        if clip_px is not None:
+            form = form_at(p)
+            layout = (form[1], clip_px) if form and form[0] == "two" else None if form else layout
         return " ".join(ws[:layout[0]]) + " / " + " ".join(ws[layout[0]:]) if layout else " ".join(ws)
 
     def slow_at(trial: list[list[dict[str, Any]]], timing, q: int) -> int:
@@ -3714,6 +3886,10 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
         return sum(bool(CLAUSE_PUNCT.search(w["word"])) for q in parts for w in q[:-1])
 
     def joinable(q: list[dict[str, Any]]) -> bool:   # a part joined to its neighbour: the burst caps, LINE_RULE clean
+        if clip_px is not None:
+            return (len(q) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(q))) <= MAX_BURST_CHARS
+                    and not _function_only(q) and form_at(q) is not None
+                    and not any(CLAUSE_PUNCT.search(w["word"]) for w in q[1:-1]))
         return (len(q) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(q))) <= MAX_BURST_CHARS
                 and not _function_only(q) and _fits_caption_burst(q) and not line_rule_faults(q))
 
@@ -3721,7 +3897,7 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
     i = 0
     while i < len(out):
         p = out[i]
-        faults = line_rule_faults(p)
+        faults = need(p)
         if not faults:
             result.append(p)
             i += 1
@@ -3766,13 +3942,14 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
                         formed = trial[lo:hi]
                         score = (crossings(formed), sum(len(q) == 1 for q in formed),
                                  sum(_dangles(q[-1]["word"]) for q in formed[:-1]),
-                                 sum(reel_caption_lines([w["word"] for w in q]) is not None for q in formed),
+                                 sum(two_lines(q) for q in formed),
                                  max(len(q) for q in parts) - min(len(q) for q in parts), head + tail)
                         if best is None or score < best[0]:
                             best = (score, head, mid, tail, formed)
             if best is not None:
                 break
-        entry = {"at": round(float(p[0].get("start", 0.0)), 2), "text": text(p), "removed": faults, "rule": LINE_RULE}
+        entry = {"at": round(float(p[0].get("start", 0.0)), 2), "text": text(p), "removed": faults,
+                 "rule": LINE_RULE if clip_px is None else CLIP_RULE}
         window = None
         if best is None:
             # no split of the burst alone holds (a part would be up for under CAPTION_MIN_ON_SCREEN_S): the bursts of
@@ -3799,7 +3976,7 @@ def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]]
                             continue
                         score = (crossings(parts), sum(len(q) == 1 for q in parts),
                                  sum(_dangles(q[-1]["word"]) for q in parts[:-1]),
-                                 sum(reel_caption_lines([w["word"] for w in q]) is not None for q in parts), m - k)
+                                 sum(two_lines(q) for q in parts), m - k)
                         if found is None or score < found[0]:
                             found = (score, parts)
                     if found is not None:
@@ -3869,21 +4046,28 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
         lay = reel_caption_lines(ws)
         return " ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]) if lay else " ".join(ws)
 
+    # Ruling on D4 / D5: the merge forms bursts that set at the clip's size (the size the builder's bursts give the
+    # clip: caption_clip_rung), so no join is made that the clip's one size would have to split again
+    size0 = caption_clip_rung([tuple(raw_of(p)) for p in out])[0]
+
     @lru_cache(maxsize=None)
     def sets_raw(raw: tuple[str, ...]) -> bool:
+        """A burst the re-cut FORMS: one line within one burst's caps, or two legal lines, at the clip's size; and
+        (D6) it never straddles a clause: no clause punctuation inside it but after a one-word lead-in (TODAY, A
+        COMPLETED / RECONSTRUCTION: the one word cannot stand as a burst of its own)."""
         if len(raw) == 1:
             return True
         ws = list(raw)
         if _function_only([{"word": w} for w in ws]):
             return False
-        form = _reel_form(raw)
+        if any(CLAUSE_PUNCT.search(w) or TERMINAL_PUNCT.search(w) for w in ws[1:-1]):
+            return False
+        form = _clip_form(raw, size0)
         if form is None:
-            if not over_caps(ws):
-                return _caption_ink_width(_phrase_words(ws), CAPTION_BURST_MIN_SIZE) <= _ink_budget()
-            return _joined_form(raw) is not None       # within the bond extra: the merge's own joined form
-        if form[0] == "floor":
+            return False
+        if form[0] == "one":
             return not over_caps(ws)
-        return not line_rule_faults(ws) and not reel_name_split(ws)
+        return (form[1] - 1) not in name_bonds(_phrase_words(ws))
 
     def cut_ok(k: int) -> bool:   # a cut after word k of `words`
         return (k not in protected and not never_end_end(raw_all[k])
@@ -3897,13 +4081,20 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
             units += phrase_unit_cut(words, pos[id(span[-1][-1])]) is not None
         short = sum(hide - show < CAPTION_SPLIT_MIN_S - 1e-6 for show, hide, _ in timing)
         cross = sum(bool(CLAUSE_PUNCT.search(w["word"])) for p in span for w in p[:-1])
-        return units, short, cross, sum(len(p) == 1 for p in span)
+        # D6: a burst that straddles a clause (clause punctuation inside it, other than after a one-word lead-in: BY
+        # ONE ESTIMATE, FOLLOWING) is a defect the re-cut may cure, and never adds
+        straddle = sum(any(CLAUSE_PUNCT.search(w["word"]) for w in p[1:-1]) for p in span)
+        return units, short, cross, sum(len(p) == 1 for p in span), straddle
 
-    i = 0
+    # D9: the hook burst a 9:16 render shows whole on frame 0 (burst_timings first_frame_whole) stays the builder's:
+    # a join into it put words on screen up to 2 s before they are spoken
+    hook = int(bool(out) and float(out[0][0].get("start", 0.0)) - CAPTION_LEAD_FRAMES / VIDEO_FPS
+               <= CAPTION_FIRST_FRAME_WHOLE_S + 1e-9)
+    i = hook
     guard = 0
     while i < len(out) and guard < 4 * len(words) + 16:
         guard += 1
-        lo = i - 1 if i > 0 and not _ends_sentence(out[i - 1]) else i
+        lo = i - 1 if i > hook and not _ends_sentence(out[i - 1]) else i
         hi = i
         while hi + 1 < len(out) and hi - i < 2 and not _ends_sentence(out[hi]):
             hi += 1
@@ -3912,7 +4103,7 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
         before = out[lo - 1] if lo > 0 else None
         after = out[hi + 1] if hi + 1 < len(out) else None
         now = measure(span, before, after)
-        if (now[0] == 0 and now[1] == 0) or len(span) < 2 or len(flat) > 16:
+        if (now[0] == 0 and now[1] == 0 and now[4] == 0) or len(span) < 2 or len(flat) > 16:
             i += 1
             continue
         n, k = len(flat), len(span)
@@ -3932,7 +4123,7 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
                     continue
                 bounds = (0, *cuts, n)
                 parts = [flat[a:b] for a, b in zip(bounds, bounds[1:])]
-                if not all(sets_raw(tuple(raw_of(q))) for q in parts):
+                if not all((id(q[0]), len(q)) in stood or sets_raw(tuple(raw_of(q))) for q in parts):
                     continue
                 got = measure(parts, before, after)
                 if got[2] > now[2]:
@@ -3944,24 +4135,25 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
                 if any((len(q) == 1 or hide - show < CAPTION_SPLIT_MIN_S - 1e-6) and (
                         id(q[0]), len(q)) not in stood for q, (show, hide, _) in zip(parts, tm)):
                     continue
-                score = (got[0], got[1], got[3], len(set(cuts) ^ old), m)
+                # D5: among the re-cuts that cure as much, the one with the fewest two-line bursts (the plate keeps
+                # its height where a one-line re-cut exists), then the fewest moved cuts
+                twos = sum((_clip_form(tuple(raw_of(q)), size0) or ("two", 0))[0] == "two" for q in parts)
+                score = (got[0], got[1], got[4], got[3], twos, len(set(cuts) ^ old), m)
                 if best is None or score < best[0]:
                     best = (score, parts, got)
-        if best is not None and best[2][:2] < now[:2] and best[2][0] <= now[0] and best[2][1] <= now[1]:
+        if best is not None and (best[2][0], best[2][1], best[2][4]) < (now[0], now[1], now[4]) and all(
+                best[2][q] <= now[q] for q in (0, 1, 4)):
             if record is not None:
-                why = [w for w, a, b in (("phrase_unit", now[0], best[2][0]), ("short_burst", now[1], best[2][1]))
-                       if b < a]
+                why = [w for w, a, b in (("phrase_unit", now[0], best[2][0]), ("short_burst", now[1], best[2][1]),
+                                         ("clause_straddle", now[4], best[2][4])) if b < a]
                 record.append({"at": round(float(flat[0].get("start", 0.0)), 2),
                                "recut": " | ".join(text(q) for q in best[1]),
                                "was": " | ".join(text(q) for q in span), "why": why, "rule": LINE_RULE})
-            for q in best[1]:   # a joined burst within the bond extra takes its joined form for this clip
-                key = tuple(raw_of(q))
-                if len(key) > 1 and over_caps(q) and _reel_form_pure(key) is None and _joined_form(key):
-                    _joined_raws()[key] = _joined_form(key)
             out[lo:hi + 1] = best[1]
             i = lo
             continue
         i += 1
+    out = _clip_fit(out, words, emphasis, record)   # the clip's one size, every burst's form at it (D4 / D5)
     if record is not None:
         timing = burst_timings(out, dwell=True)
         for p, (show, hide, _) in zip(out, timing):
@@ -3971,6 +4163,71 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
                                "why": "no legal re-cut of its sentence holds it longer (caption line rule)"})
     if [w for p in out for w in p] != [w for p in phrases for w in p]:
         raise RuntimeError("caption merge lost or reordered a word")
+    return out
+
+
+def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None = None,
+              record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+    """Lander ruling on D4 / D5 (2026-11-26): the clip's ONE caption size and every burst's form at it. The size is
+    caption_clip_rung's: the largest ladder rung at which at least CAPTION_CLIP_MAJORITY of the bursts set on their
+    legal lines. Each burst then sets at that size (_clip_form): on ONE line where it fits one, else on its legal two
+    lines. A burst with no legal form at the size is split into consecutive bursts that set at it (_line_split's
+    recorded split: no bond, name, unit or phrase unit parted, no burst ending on a never-end word, no part up for
+    less than CAPTION_SPLIT_MIN_S); it never pulls the clip down a rung. Where no legal split holds either, the burst
+    stays, as an unsplit burst does under the split rule: on its legal lines at the largest lower rung that sets them,
+    alone (recorded: "under", with the reason; decision by the trade-off order: a legal line one rung down before a
+    line the rule forbids at the clip's size); a burst with no legal lines at any rung takes its least bad two-line
+    break at the clip's size (recorded: "no_legal_form"; its line fault is in the line records), and a single word
+    too long for the line shrinks alone as before (recorded: "under"). The forms are the clip's own (clip_forms), read by reel_caption_lines until the next
+    clip is built."""
+    out = [list(p) for p in phrases if p]
+    forms = _joined_raws()
+    forms.clear()
+    _joined.clip = None
+    if not out:
+        return out
+
+    def raw_of(p: list[dict[str, Any]]) -> tuple[str, ...]:
+        return tuple(str(w.get("word", "")) for w in p)
+
+    size, shares = caption_clip_rung([raw_of(p) for p in out])
+    out = _line_split(out, words, emphasis, record, clip_px=size)
+    under: list[dict[str, Any]] = []
+    forced: list[dict[str, Any]] = []
+    for p in out:
+        raw = raw_of(p)
+        form = _clip_form(raw, size)
+        if form is not None:
+            forms[raw] = (form[0], form[1], size)
+            continue
+        lower = next(((r, f) for r in CAPTION_LADDER if r < size for f in [_clip_form(raw, r)] if f is not None
+                      and len(raw) > 1 and CAPTION_MISFIT_OWN_SIZE), None)
+        if lower is not None:
+            # no legal form at the clip's size and no legal split: the burst STAYS (the split's own recorded
+            # fallback) on its legal lines at the largest rung that sets them, alone, rather than take a line the
+            # rule forbids at the clip's size (ON / THE NORTHWESTERN): recorded "under" with the reason
+            forms[raw] = (lower[1][0], lower[1][1], lower[0])
+            under.append({"text": " ".join(_phrase_words(list(raw))), "px": lower[0],
+                          "why": "no legal lines at the clip's size and no legal split; legal at this size"})
+            continue
+        k = _clip_fallback(raw, size) if len(raw) > 1 else None
+        if k is not None:
+            forms[raw] = ("two", k, size)
+            forced.append({"text": " ".join(raw[:k]) + " / " + " ".join(raw[k:]),
+                           "faults": _break_faults(_phrase_words(list(raw)), k)
+                           + (["name_split"] if (k - 1) in name_bonds(_phrase_words(list(raw)))
+                              or _policy_name_split(list(raw), k) else [])})
+            continue
+        pure = _reel_form_pure(raw)
+        if pure is not None and pure[0] == "two":
+            forms[raw] = pure
+            px = pure[2]
+        else:
+            px = min(size - 1, _caption_fit_size(list(raw)))
+            forms[raw] = ("one", 0, px)
+        under.append({"text": " ".join(_phrase_words(list(raw))), "px": px})
+    _joined.clip = {"px": size, "shares": {str(k): round(v, 3) for k, v in shares.items()},
+                    "majority": CAPTION_CLIP_MAJORITY, "under": under, "no_legal_form": forced, "rule": CLIP_RULE}
     return out
 
 
@@ -4081,6 +4338,10 @@ def snap_to_cuts(
             show, hide, rev = cand[j]
             old = timings[j][1] - timings[j][0]
             if show < 0 or hide - show < min(reading_need(phrases[j]), old) - 1e-9 or hide < rev[-1] + 0.02 - 1e-9:
+                return False
+            # freeze cycle 5 (D7): a snap never takes a burst under CAPTION_SPLIT_MIN_S that was not under it (the
+            # 0.8 s floor of the 2026-11-26 ruling was checked before the snap only: FROM SPACE 0.74 s on a cut)
+            if hide - show < min(CAPTION_SPLIT_MIN_S, old) - 1e-9:
                 return False
             old_dwell = timings[j][1] - timings[j][2][-1]
             if hide - rev[-1] < min(CAPTION_DWELL_AFTER_LAST_S, old_dwell) - 1e-9:
@@ -5638,6 +5899,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
         self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen,
                                                        bond_extra=bond_extra, line_split=line_split)
+        if not is_widescreen:
+            # D7: the short bursts are recorded from the DELIVERED timing (first frame whole, cut snap), not the
+            # builder's own: one entry per burst on screen under CAPTION_SPLIT_MIN_S, none for a burst that is not
+            was = {e["kept_short"]: e for e in recut if e.get("kept_short")}
+            recut[:] = [e for e in recut if not e.get("kept_short")]
+            for p, (show, hide, _) in zip(phrases, timings):
+                if hide - show < CAPTION_SPLIT_MIN_S - 1e-6:
+                    ws = [str(w.get("word", "")) for w in p]
+                    lay = reel_caption_lines(ws)
+                    t = " ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]) if lay else " ".join(ws)
+                    recut.append({"at": round(float(p[0].get("start", 0.0)), 2), "kept_short": t,
+                                  "on_screen_s": round(hide - show, 2),
+                                  "why": was.get(t, {}).get("why") or (
+                                      "no legal re-cut of its sentence holds it longer (caption line rule)"),
+                                  "after_cut_snap": bool(cuts)})
         rates["recut"] = recut
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
@@ -5673,17 +5949,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 fits.append(lines[1] if lines else _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0,
                                                                       max_width=max_caption_width))
                 kb += len(phrase)
-            # Freeze cycle 5: one size per clip (caption_clip_size), recorded with the bursts that set it
-            clip_px = caption_clip_size(fits)
-            held = [min(f, clip_px) for f in fits]
-            rates["clip_size"] = {
-                "px": clip_px, "ass_px": FONT_SIZE_ASS if clip_px >= FONT_SIZE else round(clip_px / 0.5625),
-                "ladder": list(CAPTION_LADDER),
-                "set_by": [" ".join(_phrase_words(p)) for p, f in zip(phrases, fits)
-                           if clip_px < FONT_SIZE and _rung_at(f) == clip_px][:12],
-                "under": [{"text": " ".join(_phrase_words(p)), "px": f} for p, f in zip(phrases, fits)
-                          if f < clip_px],
-                "rule": "one caption size per clip: the largest ladder rung every burst sets at"}
+            # Freeze cycle 5: one size per clip, recorded. Ruling on D4 / D5: the size and each burst's form at it are
+            # the clip's own (_clip_fit, built with the bursts: the largest rung nine in ten bursts set at on legal
+            # lines; the others split); without it (a caller's own max width) the largest rung every burst sets at
+            clip = _clip_state() if max_caption_width == MAX_CAPTION_WIDTH else None
+            if clip is not None:
+                clip_px = clip["px"]
+                mine = clip_forms()
+                held = [mine.get(tuple(str(w.get("word", "")) for w in p), ("one", 0, clip_px))[2] for p in phrases]
+                up = _rung_above(clip_px)
+                rates["clip_size"] = {
+                    "px": clip_px, "ass_px": FONT_SIZE_ASS if clip_px >= FONT_SIZE else round(clip_px / 0.5625),
+                    "ladder": list(CAPTION_LADDER), "shares": clip["shares"], "majority": clip["majority"],
+                    "set_by": [" ".join(_phrase_words(p)) for p in phrases if clip_px < FONT_SIZE and len(p) > 1
+                               and _clip_form(tuple(str(w.get("word", "")) for w in p), up) is None][:12],
+                    "under": list(clip["under"]), "no_legal_form": list(clip["no_legal_form"]),
+                    "rule": clip["rule"]}
+            else:
+                clip_px = caption_clip_size(fits)
+                held = [min(f, clip_px) for f in fits]
+                rates["clip_size"] = {
+                    "px": clip_px, "ass_px": FONT_SIZE_ASS if clip_px >= FONT_SIZE else round(clip_px / 0.5625),
+                    "ladder": list(CAPTION_LADDER),
+                    "set_by": [" ".join(_phrase_words(p)) for p, f in zip(phrases, fits)
+                               if clip_px < FONT_SIZE and _rung_at(f) == clip_px][:12],
+                    "under": [{"text": " ".join(_phrase_words(p)), "px": f} for p, f in zip(phrases, fits)
+                              if f < clip_px],
+                    "rule": "one caption size per clip: the largest ladder rung every burst sets at"}
         for pi, phrase in enumerate(phrases):
             show, hide, _ = timings[pi]
             lines, two = None, None
@@ -5742,6 +6034,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         "center_y": center_y, "size_tag": size_tag, "base": base, "gold": not in_graphic,
                         "ink_dx": 0.0 if is_widescreen else ink_dx, "two": two})
             base += len(phrase)
+
+        if not is_widescreen:
+            # Freeze cycle 5 (D5, plate height): a two-line plate's height is measured from its lines' ink, so two
+            # two-line bursts of one size stood 1 to 2 px apart (213 / 214 px at 80 px) and the plate's top edge moved
+            # at their hand-over. Two-line plates of one size within CAPTION_TWO_LINE_H_SNAP px of the clip's usual
+            # two-line height take the tallest of them (the bottom edge and every baseline stay; the top gains at most
+            # that many px of padding, inside the caption band); a line that needs more (an accent) keeps its own.
+            for tag in {g["size_tag"] for g in geo if g["two"]}:
+                group = [g for g in geo if g["two"] and g["size_tag"] == tag]
+                usual = Counter(g["box_h"] for g in group).most_common(1)[0][0]
+                near = [g for g in group if abs(g["box_h"] - usual) <= CAPTION_TWO_LINE_H_SNAP]
+                tall = max(g["box_h"] for g in near)
+                if tall <= _caption_band_height(height):
+                    for g in near:
+                        g["box_y"] -= tall - g["box_h"]
+                        g["box_h"] = tall
 
         # Plate continuity (round 3, 9:16; lane C cycle 3, lander cycle-3 ruling 5: 16:9 too, one caption system in
         # both formats): bursts that follow on with no gap form a run until a sentence ends; within a run the plate

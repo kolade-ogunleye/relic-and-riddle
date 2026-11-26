@@ -146,16 +146,24 @@ def _hue_sat(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return h, (mx - mn) / np.maximum(mx, 1e-6)
 
 
-def hue_sat(before, after, alpha: np.ndarray, full: float):
-    """Along a grade-out PATH (pixels where the layer's alpha is between 0.1 and 0.8 of its `full` strength: past
-    the ground, short of the band itself; the composite still lit >= 20 luma; the ground saturated >= 0.25 and lit
-    >= 60): the hue shift (degrees) and the HSV saturation kept (after / before): (median |hue|, 95th percentile
-    |hue|, 5th percentile saturation ratio, pixels); None when the ground has no such pixels."""
+def hue_sat(before, after, alpha: np.ndarray, full: float, upto: float | None = None, low: float = 0.1,
+            chroma: float = 0.0):
+    """Along a grade-out PATH, to the ledger's own bound (PLATES-02: "until luma < 20"; review of the c5 fix, D4: the
+    window 0.1-0.8 of full missed the drift just above it): pixels where the layer's alpha is at least `low` of its
+    `full` strength (and at most `upto` of it, when given), the composite still lit >= 20 luma, the ground saturated
+    >= 0.25 and lit >= 60: the hue shift (degrees) and the HSV saturation kept (after / before): (median |hue|, 95th
+    percentile |hue|, 5th percentile saturation ratio, pixels); None when the ground has no such pixels. `chroma`:
+    only composite pixels whose 8-bit chroma (max - min channel) is at least this (12: an 8-bit pixel with less
+    cannot hold a hue to within the 5 degree rule; its rounding alone moves it 2.5 degrees or more)."""
     b = np.asarray(before.convert("RGB"), np.float32)
     a = np.asarray(after.convert("RGB"), np.float32)
     hb, sb = _hue_sat(b)
     ha, sa = _hue_sat(a)
-    sel = (alpha >= 0.1 * full) & (alpha <= 0.8 * full) & (a @ LUMA >= 20) & (sb >= 0.25) & (b @ LUMA >= 60)
+    sel = (alpha >= low * full) & (a @ LUMA >= 20) & (sb >= 0.25) & (b @ LUMA >= 60)
+    if upto is not None:
+        sel &= alpha <= upto * full
+    if chroma:
+        sel &= (a.max(axis=-1) - a.min(axis=-1)) >= chroma
     if sel.sum() < 500:
         return None
     dh = np.abs((ha - hb + 180.0) % 360.0 - 180.0)[sel]

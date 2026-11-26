@@ -1069,11 +1069,6 @@ def _union_box(boxes):
     return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
 
 
-def brand_system_tok(name):
-    from src import brand_system
-    return brand_system.tok(name)
-
-
 def test_h6_plate_flush_left_and_feathered(photos):
     """H6 (4); lane F cycle 3 (panel 4 BC r1 / CD r2: the alignment and band changed with the ground; operator ruling
     2 of 2026-11-16 removed the masthead the plate's claim was centred under): ONE rule. On the bright plate the
@@ -1093,15 +1088,21 @@ def test_h6_plate_flush_left_and_feathered(photos):
     assert "brand" not in e and "brand_mark" not in e   # QF-87 (was: the masthead centred on AXIS on the plate)
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = np.asarray(dc.frame_at(plan, 0).convert("L"), np.float32)[:, 900:1060].mean(axis=1)
-    for a_, b_ in ((y0 - 70, y0 + 2), (y1 - 2, y1 + 70)):
+    sc = plan.meta["scrim"]
+    crisp = sc.get("crisp_edges") or []
+    # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): an edge whose ground (this flat sky) needs a ramp
+    # past the designed reach keeps the plate's crisp designed edge, recorded with its rule; every other edge ramps
+    # as H6 (4) asks
+    assert not crisp or "band_edge.reach" in sc["crisp_rule"], sc
+    for edge, (a_, b_) in (("top", (y0 - 70, y0 + 2)), ("foot", (y1 - 2, y1 + 70))):
         seg = lum[a_:b_]
-        assert np.abs(np.diff(seg)).max() <= 20, np.abs(np.diff(seg)).max()
-    # freeze cycle 5 (PLATES-01): each edge takes the band-edge rule's feather for its ground (a floating band),
-    # never under the designed one: a ramp, falling all the way, never steeper than the floating ceiling
-    up, down = plan.meta["scrim"]["feathers"]
-    assert min(up, down) >= dc.HOOK_PLATE_FEATHER
-    top = lum[max(0, y0 - up):y0]
-    assert (top[0] - top[-1]) > 0 and np.abs(np.diff(top)).max() <= brand_system_tok("edge.slope_float") + 0.5
+        if edge in crisp:
+            assert np.count_nonzero(np.abs(np.diff(seg)) > 20) == 1, edge          # one deliberate edge, no ramp
+        else:
+            assert np.abs(np.diff(seg)).max() <= 20, np.abs(np.diff(seg)).max()
+    if "top" not in crisp:
+        top = lum[y0 - 64:y0]
+        assert (top[0] - top[-1]) > 0 and np.count_nonzero(np.abs(np.diff(top)) > 0.5) >= 40
 
 
 def test_h6_dissolve(photos):

@@ -5,7 +5,9 @@ and synthetic grounds, so a class cannot silently reopen (CI has no output/).
 - PLATES-01: ONE band-edge limit, measured on the ground (band_edge.slope_limit): the field gate on a flat or blurred
   ground, the band-edge token on a sharp photograph, the floating ceiling for a band with the photograph on both
   sides; the myth panel and the hook plate take it.
-- PLATES-02: a grade-out holds the ground's hue and saturation (band_edge.hold_hue), its luma the plain layer's.
+- PLATES-01 cost (lander ruling 2026-11-26): no ramp past its designed reach; a panel past it keeps its crisp edge.
+- PLATES-02: a grade-out holds the ground's hue and saturation (band_edge.hold_hue) to the ledger's bound (composite
+  under 20 luma), its luma the plain layer's.
 - PLATES-07: a masthead the gate withholds is on the run's ledger, the open omission ledger and the still's record.
 - PLATES-08: the AI badge never stays over a graphic's drawn elements.
 - Story pointer (ruling 2026-11-26): no pointer line without a tap target; recorded; the block laid without it.
@@ -51,6 +53,34 @@ GROUNDS = {
 
 
 # ------------------------------------------------------------------------------------------------ PLATES-01
+
+def test_a_feather_never_runs_past_the_designed_reach_and_a_panel_edge_goes_crisp_past_it():
+    """Lander ruling 2026-11-26 (review of the c5 fix, D1): a ramp is never lengthened past twice the hook's designed
+    128 px (a fixed 256 here, not the token: raising the token fails this), nor past a surface's own longer designed
+    feather; where the rule's limit needs more (a flat bright ground) reach() says so and the panel keeps its crisp
+    edge."""
+    flat = band_edge.luma_rows(Image.new("RGB", (1080, 1920), (240, 236, 228)))
+    length, met = band_edge.reach(flat, 900, "down", brand.INK, 0.96, 128, 1080, floating=True)
+    assert length <= 256 and met is False
+    assert band_edge.feather(flat, 900, "down", brand.INK, 0.96, 128, 1080, floating=True) <= 256
+    # a surface whose designed feather is longer keeps exactly it: never lengthened
+    assert band_edge.feather(flat, 900, "down", brand.INK, 0.96, 400, 1080, floating=True) == 400
+    for name, make in GROUNDS.items():
+        lum = band_edge.luma_rows(make((1080, 1920)))
+        for side in ("up", "down"):
+            assert band_edge.feather(lum, 960, side, brand.INK, 1.0, 24, 1080, floating=True) <= 256, (name, side)
+
+
+def test_a_floating_edge_on_a_flat_ground_is_laid_at_the_field_gate_less_the_headroom():
+    """Independent of band_edge's own arithmetic: on a flat ground a floating edge's feather is the smoothstep's
+    peak (1.5) x the step over the field gate (0.5 luma / px) x the floating headroom (0.85), while that is inside the
+    reach; changing the headroom, the gate or the peak fails this."""
+    import math
+    lum = band_edge.luma_rows(Image.new("RGB", (1080, 1920), (72, 72, 72)))
+    step = 72.0 - float(np.dot(np.asarray(brand.INK, np.float32), band_edge.LUMA))
+    length, met = band_edge.reach(lum, 900, "down", brand.INK, 1.0, 24, 1080, floating=True)
+    assert met and length == math.ceil(1.5 * step / (0.5 * 0.85)), (length, step)
+
 
 def test_the_limit_is_the_field_gate_on_a_flat_ground_and_the_token_on_a_busy_one():
     flat = band_edge.luma_rows(GROUNDS["flat bright"]((1080, 600)))
@@ -156,12 +186,39 @@ def test_the_hook_grade_out_holds_the_grounds_hue_and_saturation(layer):
     assert before[2] < 0.85                                 # the plain INK layer loses saturation along the path
     # held: hue within 5 degrees, saturation >= 0.6 of the ground's (the ledger's check) and above the plain layer's
     assert after[1] <= 5.0 and after[2] >= max(0.6, before[2] + 0.08), (before, after)
-    # the luma is the plain layer's (every slope and luma contrast measured on it stands), and under the block
-    # (alpha at the layer's full strength) the colour is the layer's own, value for value
+    # the luma is the plain layer's at every pixel (every slope and luma contrast measured on it stands), and where
+    # the composite is too dark for hue to read (under HOLD_LUMA - HOLD_SPAN) the colour is the layer's own
     assert np.abs(pc.luma(plain) - pc.luma(held)).max() <= 1.5
-    under = alpha >= full - 1 / 255
-    assert under.any()
-    assert np.abs(np.asarray(plain, np.int16) - np.asarray(held, np.int16))[under].max() <= 1
+    dark = pc.luma(plain) < band_edge.HOLD_LUMA - band_edge.HOLD_SPAN - 1
+    assert np.abs(np.asarray(plain, np.int16) - np.asarray(held, np.int16))[dark].max(initial=0) <= 1
+
+
+def _grade_grounds():
+    """The dev corpus grounds whose hook grade-out drifted (tests/fixtures/plates_c5_grade_grounds.json: 27 x 48
+    colour thumbnails of the 1080 x 1920 cover crop; the c5 review's worst six at ba2750a0 and the six behind it)."""
+    d = json.loads((ROOT / "tests" / "fixtures" / "plates_c5_grade_grounds.json").read_text(encoding="utf-8"))
+    for g in d["grounds"]:
+        w, h = g["size"]
+        yield g["source"], Image.frombytes("RGB", (w, h), bytes.fromhex(g["rgb"])).resize((1080, 1920), Image.BICUBIC)
+
+
+def test_the_hook_grade_out_holds_the_hue_to_the_ledgers_bound_on_the_corpus_grounds():
+    """Review of the c5 fix (D3, D4): the grade-out holds the ground's hue to the ledger's own bound (until the
+    composite is under 20 luma), not only in alpha 0.1-0.8 of full: on every corpus ground that drifted, wash and plate,
+    hue p95 <= 5 degrees and saturation kept >= 0.6 (pixels whose 8-bit chroma can hold a hue: >= 12). The power-law
+    hold (HOLD_POWER 6 or 10) drifted 10-176 degrees here."""
+    measured = 0
+    for source, g in _grade_grounds():
+        for name, lay, full in (("plate", dc._plate_layer(g.size, 715, 1055, 0.96, (256, 256), 901, 360), 0.96),
+                                ("wash", dc._wash_layer(g.size, 736, 1040, 0.70, 901), 0.70)):
+            alpha = np.asarray(lay.getchannel("A"), np.float32) / 255.0
+            held = Image.alpha_composite(g.convert("RGBA"), band_edge.hold_hue(g, lay, full)).convert("RGB")
+            got = pc.hue_sat(g, held, alpha, full, low=0.05, chroma=12)
+            if got is None:
+                continue
+            measured += 1
+            assert got[1] <= 5.0 and got[2] >= 0.6, (source, name, got)
+    assert measured >= 16, measured
 
 
 def test_hold_hue_never_brightens_a_ground_darker_than_the_layer():
@@ -193,6 +250,24 @@ def test_a_masthead_short_of_the_target_takes_a_longer_reach_never_a_higher_peak
     assert rec["halo"] <= (brand_system.HALO_EXCEPTION_CAP if rec["halo_exception"] else brand_system.tok("halo.masthead_max"))
     if rec["shown"] and rec["contrast"] < masthead.MARGIN:
         assert rec["margin_short"] is True and "margin" in rec["margin_note"]
+
+
+def test_a_real_ground_at_the_gate_floor_takes_the_longer_reach_to_the_margin():
+    """Review of the c5 fix (D3): on a real ground the ruled order leaves at the gate floor (the Richat carousel slide
+    4 of run 1793474843, its masthead region kept at half size: tests/fixtures/plates_c5_masthead_ground.jpg), the
+    margin step takes a longer reach of the same ruled scrim (never a higher peak) and the name clears MARGIN.
+    Disabling the margin loop fails this."""
+    with Image.open(ROOT / "tests" / "fixtures" / "plates_c5_masthead_ground.jpg") as im:
+        half = im.convert("RGB")
+    ground = Image.new("RGB", (1440, 1800), (0, 0, 0))
+    ground.paste(half.resize((half.width * 2, half.height * 2), Image.BICUBIC), (0, 0))
+    x0, baseline, size, reach, room = 107, 131, 160 / 3, 531, 960
+    _, _, ruled = masthead.plan_at(ground, x0, baseline, size, reach=reach, max_width=room)
+    _, _, rec = masthead.plan(ground, x0, baseline, size, reach=reach, max_width=room)
+    assert ruled["shown"] and ruled["contrast"] < masthead.MARGIN, ruled
+    assert rec["shown"] and rec.get("margin_step", "").startswith("reach x") and rec["reach"] > reach, rec
+    assert rec["contrast"] >= masthead.MARGIN and not rec.get("margin_short"), rec
+    assert rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9 and not rec["halo_exception"]
 
 
 def test_the_ruled_order_is_untouched_where_it_reaches_the_target():

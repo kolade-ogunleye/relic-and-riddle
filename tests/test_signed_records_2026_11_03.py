@@ -432,23 +432,7 @@ def test_the_long_9x16_myth_sets_at_84_px_or_more_and_the_ground_below_is_the_ph
     # review 2026-11-03 (round 4; changed deliberately from "one rising curve" under the block, which read as a
     # muddy grey field): the photo below the panel is the photo itself under a light veil, as bright as it is
     veiled = (1 - dc.MYTH_OUT_SHADE) * np.array([190, 232, 240]) + dc.MYTH_OUT_SHADE * np.array(dc.INK)
-    # freeze cycle 5 (PLATES-01; changed deliberately from "within 8 of the veiled photo over rows 1500-1900"): the
-    # panel's foot is a floating band edge laid inside the one band-edge limit (band_edge.feather: on this flat
-    # bright ground the field gate, 0.5 luma / px, less the floating headroom), so its ramp is as long as this
-    # ground's step asks and no longer ends by row 1500. What holds is the round-4 statement itself, where the ramp
-    # has ended: the feather the rule gives this ground ends inside the frame, and every row past it is the veiled
-    # photograph, even and as bright as it is (tighter than the old 8: no part of the ramp is inside the measure)
-    from src import band_edge
-    foot = dc.MYTH_PANEL[1]
-    ground = np.zeros((1920, 1080, 3), np.float32) + rest[-10:].mean(axis=(0, 1))
-    reach = band_edge.feather(band_edge.luma_rows(ground), foot, "down",
-                              rest[foot - 12:foot].reshape(-1, 3).mean(axis=0), 1.0, dc.MYTH_EDGE_MIN, 1080,
-                              floating=True)
-    assert foot + reach < 1920 - dc.MYTH_EDGE_MIN, reach                  # the photograph does come back, in frame
-    past = rest[foot + reach:]
-    assert np.abs(past.mean(axis=(0, 1)) - veiled).max() < 4, (past.mean(axis=(0, 1)), veiled)
-    assert np.ptp(past.mean(axis=(1, 2))) < 1, reach                      # even: nothing of the ramp is left in it
-    assert np.diff(rest[foot:].mean(axis=(1, 2))).min() > -0.5            # and one ramp up to it, never a dip
+    assert np.abs(low - veiled).max() < 8, (low, veiled)
 
 
 def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
@@ -473,14 +457,23 @@ def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
             # outward over the band-edge token's feather (at most edge_feather(255) px), never steeper than the token;
             # past the feather the photograph is itself, even, and the panel still stands > 80 luma below it
             from src import band_edge, brand_system
-            # freeze cycle 5 (PLATES-01; panel 6: at the token's 2.0 the foot still read as a slab on the blurred
-            # ground): a floating panel on a ground with no detail of its own eases at the field gate, so its feather
-            # may run to the frame's edge; it opens all the way down and never steeper than the floating ceiling
-            cap = brand_system.tok("edge.slope_float") + 0.5
-            assert rows[-1] - rows[y1 - 2] > 80 and rows[0] - rows[y0 + 2] > 20, rgb
-            assert band_edge.steepest(rows[y1 - 2:]) <= cap, rgb
-            assert band_edge.steepest(rows[:y0 + 2]) <= cap, rgb
-            assert np.diff(rows[y1:]).min() > -0.5 and np.diff(rows[:y0]).max() < 0.5, rgb   # one ramp each way
+            edges = plan.meta.get("panel_edges") or {}
+            if edges.get("crisp"):
+                # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): where the edge rule needs a ramp past the
+                # designed reach (a flat bright ground), the panel keeps its crisp designed edge, recorded, and the
+                # photograph is itself right past it: never a long ramp darkening it
+                assert set(edges["crisp"]) == {"up", "down"} and "band_edge.reach" in edges["rule"], (rgb, edges)
+                assert rows[y1 + 3] - rows[y1 - 2] > 80 and rows[y0 - 3] - rows[y0 + 2] > 80, rgb
+                assert np.ptp(rows[y1 + 3:]) < 4 and np.ptp(rows[:y0 - 3]) < 4, rgb
+            else:
+                reach = brand_system.edge_feather(255, 1080) + 2
+                cap = brand_system.tok("edge.slope_max") + 1.0
+                assert rows[y1 + reach] - rows[y1 - 2] > 80 and rows[y0 - reach] - rows[y0 + 2] > 80, rgb
+                assert band_edge.steepest(rows[y1 - 2:y1 + reach]) <= cap, rgb
+                assert band_edge.steepest(rows[y0 - reach:y0 + 2]) <= cap, rgb
+                assert np.ptp(rows[y1 + reach:]) < 4 and np.ptp(rows[:y0 - reach]) < 4, rgb   # an even photo past it
+            # never past twice the designed 128 px (a fixed reach, not the rule's own): the photograph itself beyond
+            assert np.ptp(rows[y1 + 258:]) < 4 and np.ptp(rows[:max(1, y0 - 258)]) < 4, rgb
         ink = [e.box for e in plan.elements if e.name.split("_")[0] in ("myth", "fact", "source") and e.box]
         top, foot = min(b[1] for b in ink), max(b[3] for b in ink)
         assert y0 < top and foot < y1                                 # the block inside the panel

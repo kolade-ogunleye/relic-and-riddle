@@ -136,17 +136,10 @@ def test_monument_scrim_is_confined_to_the_type_stack() -> None:
     out, lay = _cover({"line1": "THE 144-FOOT", "line2": "DOME"}, "monument", photo=photo)
     _, y0, x1, y1 = lay.meta["scrim"]["box"]
     assert x1 < 1080 - 120
-    # freeze cycle 5 (PLATES-01): the falloff takes the band-edge rule's length for its ground (on this flat ground
-    # the field gate, so longer than the designed feather); confined still: beside and above the stack the shade is
-    # a small share of what it is behind the type
-    photo_rgb = np.array((180, 170, 150), float)
-    behind = np.abs(np.asarray(out.convert("RGB").crop((x1 - 40, (y0 + y1) // 2, x1 - 24, (y0 + y1) // 2 + 16)))
-                    .mean(axis=(0, 1)) - photo_rgb).max()
-    right = np.asarray(out.convert("RGB").crop((1062, (y0 + y1) // 2, 1078, (y0 + y1) // 2 + 16))).mean(axis=(0, 1))
-    above = np.asarray(out.convert("RGB").crop((900, y0 - 200, 916, y0 - 184))).mean(axis=(0, 1))
-    assert behind > 40
-    assert np.max(np.abs(right - photo_rgb)) < 0.25 * behind         # beside the stack: nearly the photo
-    assert np.max(np.abs(above - photo_rgb)) < 0.25 * behind
+    right = np.asarray(out.crop((1062, (y0 + y1) // 2, 1078, (y0 + y1) // 2 + 16))).mean(axis=(0, 1))
+    assert np.max(np.abs(right - (180, 170, 150))) < 6               # beside the stack: the photo, ungraded
+    above = np.asarray(out.crop((900, y0 - 200, 916, y0 - 184))).mean(axis=(0, 1))
+    assert np.max(np.abs(above - (180, 170, 150))) < 6
 
 
 # --- Discovery and the masthead ----------------------------------------------------------------------------------

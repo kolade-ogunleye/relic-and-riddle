@@ -280,6 +280,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # freeze cycle 5 (stream PLATES, panel 6): the one limit is measured on the ground (band_edge.slope_limit)
     "edge.slope_float": 1.0,          # the ceiling for a FLOATING band (photograph above and below: myth panel, hook plate)
     "edge.texture_gain": 2.0,         # limit = gain x the ground's own detail (luma / px), field gate .. the ceiling
+    # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): a ramp never runs past its designed reach. The edge
+    # rule lengthens a feather up to this (2 x the hook plate's designed 128), or the surface's own designed feather
+    # when that is longer, and no further; past it a panel takes its crisp designed edge (band_edge.reach)
+    "edge.reach_max": 256,            # px at 1080 wide
     "halo.label_max": 0.16,           # an overlay label's halo alpha, never above (the masthead's cap)
     "halo.label_spread": 0.33,        # em: an overlay label's one halo spread (21 px at 64 px)
     "plate.gutter": 24,               # design px (1080 wide) of INK between two photographs side by side
@@ -364,6 +368,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "edge.slope_max": (0.5, 3.0),         # luma / px at 1080: never under the field gate, never a lid (6.1 measured)
     "edge.slope_float": (0.5, 3.0),       # the same range; band_edge takes the lower of it and edge.slope_max
     "edge.texture_gain": (0.5, 8.0),      # 0.5: only a very busy ground hides an edge; 8: nearly every photograph does
+    "edge.reach_max": (128, 384),         # px at 1080: the designed 128, at most 3 x it
     "halo.label_max": (0.0, 0.16),        # never above the masthead's ruled cap
     "halo.label_spread": (0.15, 0.60),    # em
     "plate.gutter": (8, 64),              # design px

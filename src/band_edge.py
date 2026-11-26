@@ -86,8 +86,32 @@ def slope_limit(luma: np.ndarray, y0: float, y1: float, width: int | None = None
     return float(min(ceiling, max(gate, tok("edge.texture_gain") * ground_texture(luma, y0, y1, width))))
 
 
+def reach_cap(minimum: float, width: int) -> int:
+    """The longest a feather may run (lander ruling 2026-11-26): tok("edge.reach_max") at 1080 wide, or the
+    surface's own designed `minimum` when that is longer (a ramp is never lengthened past its designed reach)."""
+    return int(max(float(minimum), tok("edge.reach_max") * width / 1080.0))
+
+
+def reach(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
+          width: int | None = None, floating: bool = False) -> tuple[int, bool]:
+    """(the feather, met): the band-edge rule's feather (feather()) held to reach_cap; `met` False when the rule's
+    limit needs a longer one (a flat or bright ground). A PANEL then takes its crisp designed edge (lander ruling
+    2026-11-26 (b): a deliberate edge, recorded; never a longer ramp darkening the photograph); a soft band with no
+    panel form keeps the capped length, recorded by its caller."""
+    w = luma.shape[1]
+    cap = reach_cap(minimum, w if width is None else width)
+    need = _feather(luma, edge, side, colour, strength, minimum, width, floating, cap)
+    return (need, True) if need <= cap else (cap, False)
+
+
 def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
             width: int | None = None, floating: bool = False) -> int:
+    """The feather reach() gives, its length only (never past reach_cap)."""
+    return reach(luma, edge, side, colour, strength, minimum, width, floating)[0]
+
+
+def _feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
+             width: int | None = None, floating: bool = False, cap: float | None = None) -> int:
     """The feather (px) of a band edge at row `edge` easing out toward `side` ("up": the photo above a band, "down":
     the photo below it): the length edge_feather gives for the step measured over the rows it crosses at the limit
     those rows allow (slope_limit; `floating`: the photograph goes on past the band's other edge too), measured
@@ -95,12 +119,15 @@ def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 
     w = luma.shape[1]
     width = w if width is None else width
     length = max(1.0, float(minimum))
-    for _ in range(5):
-        span = (edge - length, edge) if side == "up" else (edge, edge + length)
+    def need_at(n: float) -> int:
+        span = (edge - n, edge) if side == "up" else (edge, edge + n)
         # a floating band is laid FLOAT_HEADROOM inside its limit (its feather is judged where it is steepest)
         limit = slope_limit(luma, *span, width, floating) * (FLOAT_HEADROOM if floating else 1.0)
-        need = edge_feather(step_across(luma, *span, colour, strength, by_row=floating), width, minimum,
-                            slope=limit)
+        return edge_feather(step_across(luma, *span, colour, strength, by_row=floating), width, minimum, slope=limit)
+    for _ in range(5):
+        if cap is not None and length > cap:   # judged once more over the capped reach itself
+            return int(cap) if need_at(cap) <= cap else round(length)
+        need = need_at(length)
         if need <= length:
             break
         length = float(need)
@@ -126,31 +153,35 @@ def steepest(luma_column: np.ndarray) -> float:
     return float(np.abs(np.diff(c)).max()) if c.size > 1 else 0.0
 
 
-# 10 (was 6): over every photograph of every dev topic (361) six plate grade-outs still drifted 5.1-5.6 degrees at
-# the 95th percentile against the 5 degree rule with 6 (the band colour's 26 % share at 0.8 of full); the luma is
-# the same at any power
-HOLD_POWER = 10.0  # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
+# The grade-out holds the ground's hue for as long as the ledger's check reads it (PLATES-02: "until luma < 20"). Review
+# of the c5 fix (D4): with a power of the alpha (HOLD_POWER 6, then 10) the colour snapped back to INK between 0.8 and
+# 0.97 of full, where a bright ground's composite is still 20-60 luma: 64 of 127 grounds drifted over 5 degrees
+# there (47 at worst). The weight is now the composite's own luma: the ground's colour wherever the composite is at
+# least HOLD_LUMA, the layer's own under HOLD_LUMA - HOLD_SPAN (where hue no longer reads), smoothstepped between.
+HOLD_LUMA = 20.0
+HOLD_SPAN = 8.0
 
 
 def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None) -> Image.Image:
     """`layer` (RGBA: a band, wash or scrim in one colour) with the same alpha and a colour that HOLDS THE GROUND'S HUE
-    AND SATURATION where the layer grades out (freeze cycle 5, stream PLATES; panel 6: right of the hook's claim on
-    a saturated amber ground the INK wash lost saturation faster than brightness and its hue drifted toward 45-50
-    degrees, read as dark amber by six reviewers and as an olive cast by three). Where the layer is at `full` alpha or
-    more (default: its own maximum; the text's ground) it stays its own colour, value for value; under that its
-    colour eases, by (alpha / full) ** HOLD_POWER, to the ground's own colour scaled down to the layer colour's luma
-    (a scale changes neither hue nor saturation; a ground darker than the layer is left as it is, never brightened).
-    Composited over `ground` the luma is the plain layer's (so every edge slope and every luma contrast measured on
-    it stands); only the chroma of the graded part follows the ground."""
+    AND SATURATION (freeze cycle 5, stream PLATES; panel 6: right of the hook's claim on a saturated amber ground the
+    INK wash lost saturation faster than brightness and its hue drifted toward 45-50 degrees, read as dark amber by
+    six reviewers and as an olive cast by three): its colour is the ground's own colour scaled down to the layer
+    colour's luma (a scale changes neither hue nor saturation; a ground darker than the layer is left as it is, never
+    brightened) wherever the composite is at least HOLD_LUMA, and the layer's own colour where the composite is under
+    HOLD_LUMA - HOLD_SPAN (smoothstepped between). Composited over `ground` the luma is the plain layer's at every
+    pixel (so every edge slope and every luma contrast measured on it stands); only the chroma follows the ground.
+    `full` is kept for the callers and decides nothing."""
     lay = np.asarray(layer.convert("RGBA"), np.float32)
     g = np.asarray(ground.convert("RGB"), np.float32)
     a = lay[..., 3] / 255.0
-    top = float(a.max()) if full is None else float(full)
-    if top <= 0:
+    if float(a.max()) <= 0:
         return layer
     c = lay[..., :3]
-    scale = np.minimum(1.0, (c @ LUMA) / np.maximum(g @ LUMA, 1.0))
-    w = np.clip(a / top, 0.0, 1.0) ** HOLD_POWER
+    lc, lg = c @ LUMA, g @ LUMA
+    scale = np.minimum(1.0, lc / np.maximum(lg, 1.0))
+    comp = (1.0 - a) * lg + a * lc                  # the composite's luma (the same for either colour)
+    w = smoothstep((HOLD_LUMA - comp) / HOLD_SPAN)  # 0: the ground's colour, 1: the layer's own
     rgb = w[..., None] * c + (1.0 - w[..., None]) * g * scale[..., None]
     out = np.dstack([np.clip(rgb + 0.5, 0, 255), lay[..., 3:4]]).astype(np.uint8)
     return Image.fromarray(out, "RGBA")

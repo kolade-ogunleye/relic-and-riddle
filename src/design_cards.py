@@ -2870,6 +2870,7 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
                             geo=geo, top=y0, feathers=parts[2])
     else:
         drift = _PanelDrift(ground, *parts[:2]) if parts else GroundDrift(ground)
+    drift.edges = parts[3] if parts else None   # the panel's edges as drawn (crisp past the reach: recorded)
     return drift, drift(last_t)
 
 
@@ -2967,13 +2968,26 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
             r = round(y)
             rows = pan[max(0, r):min(H, r + lo)] if side == "up" else pan[max(0, r - lo):min(H, r)]
             colour = rows.reshape(-1, 3).mean(axis=0) if rows.size else np.asarray(brand.INK, np.float32)
-            # freeze cycle 5 (PLATES): a floating panel on a blurred ground; the limit is measured on that ground
-            return band_edge.feather(out_l, y, side, colour, 1.0, lo, W, floating=True)
+            # freeze cycle 5 (PLATES): a floating panel on a blurred ground; the limit is measured on that ground.
+            # Lander ruling 2026-11-26 (D1): never past the designed reach (band_edge.reach); where the limit needs a
+            # longer ramp the panel keeps its crisp designed edge (review 2026-11-03 round 4's panel), recorded
+            length, met = band_edge.reach(out_l, y, side, colour, 1.0, lo, W, floating=True)
+            if not met:
+                crisp.append(side)
+                return 0.0
+            return float(length)
+        crisp: list[str] = []
         feet = [geo.y(y1)] + ([geo.y(foot0)] if foot0 is not None else [])
-        feathers = (at(geo.y(top), "up") if top is not None else 0.0, max(at(f, "down") for f in feet))
+        downs = [at(f, "down") for f in feet]
+        feathers = (at(geo.y(top), "up") if top is not None else 0.0, 0.0 if "down" in crisp else max(downs))
+        edges = {"crisp": sorted(set(crisp)), "feathers": [round(v) for v in feathers],
+                 "reach_cap": band_edge.reach_cap(lo, W),
+                 "rule": "band_edge.reach: past the designed reach a panel keeps its crisp edge"}
+    else:
+        edges = None
     m = _edge_rows(H, geo.y(top) if top is not None else -1.0, geo.y(y1), feathers)
     mask = Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
-    return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask, feathers
+    return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask, feathers, edges
 
 
 def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines: list[str], host: str | None,
@@ -3103,6 +3117,7 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     if not geo.wide:   # cycle 0 round 7 (F19): the margin column, or its one fallback tier (the box's)
         anchors_m["margin"] = "box" if tm.get("column") else "token"
     meta = {"anchors": anchors_m, "provenance": provenance,
+            **({"panel_edges": drift.edges} if getattr(drift, "edges", None) else {}),
             "never_first": True, "min_seconds": round(seconds, 6), "source_omitted": omitted,
             "quality_notes": list(tm.get("notes") or []), "source_host_raw": tm.get("raw_host"),
             "t_s": round(t_s, 6), "t_f": round(t_f, 6), "rest_m": round(tm["rest_m"], 6),
@@ -4099,11 +4114,13 @@ def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float,
     (HOOK_PLATE_SIDE by default)."""
     yy = np.arange(size[1], dtype=np.float32) + 0.5
     up, down = feather if isinstance(feather, (tuple, list)) else (feather, feather)
-    if up > 0 and down > 0:
-        x = np.clip(np.where(yy < y0, 1.0 - (y0 - yy) / up, 1.0 - (yy - y1) / down), 0.0, 1.0)
-        v = np.where((yy >= y0) & (yy <= y1), 1.0, x * x * (3 - 2 * x)).astype(np.float32)
-    else:
-        v = np.clip(np.minimum(yy - y0, y1 - yy) + 0.5, 0, 1)
+
+    def ease(d: np.ndarray, f: float) -> np.ndarray:   # d: px outside the edge (<= 0 inside); f 0: crisp
+        if f > 0:
+            x = np.clip(1.0 - d / f, 0.0, 1.0)
+            return np.where(d <= 0, 1.0, x * x * (3 - 2 * x))
+        return np.clip(0.5 - d, 0.0, 1.0)
+    v = np.minimum(ease(y0 - yy, up), ease(yy - y1, down)).astype(np.float32)   # each edge its own (crisp: 0)
     if x1 is None:
         hx = np.ones(size[0], np.float32)
     else:
@@ -4128,11 +4145,13 @@ def _plate_feathers(bg: Image.Image, y0: float, y1: float, strength: float, feat
     if feather <= 0:
         return (0, 0), HOOK_PLATE_SIDE
     full = lum[:, :max(8, min(w, int(right)))]     # the columns the plate covers at its full strength
-    up = band_edge.feather(full, y0, "up", brand.INK, strength, feather, w, floating=True)
-    down = band_edge.feather(full, y1, "down", brand.INK, strength, feather, w, floating=True)
+    # lander ruling 2026-11-26 (D1): never past the designed reach; an edge whose limit needs a longer ramp is the
+    # plate's crisp designed edge (0: one antialiased pixel), recorded by _hook_scrim
+    up, up_met = band_edge.reach(full, y0, "up", brand.INK, strength, feather, w, floating=True)
+    down, down_met = band_edge.reach(full, y1, "down", brand.INK, strength, feather, w, floating=True)
     across = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))].T          # rows = x: the ease right of the block
     side = band_edge.feather(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True)
-    return (up, down), side
+    return (up if up_met else 0, down if down_met else 0), side
 
 
 def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
@@ -4173,6 +4192,9 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         rec = {"luminance": round(lum, 3), "mode": "plate", "strength": tried[-1]["strength"],
                "halo": tried[-1]["halo"], "tried": tried, "plate": [round(y0), round(y1)],
                "feather": feather, "feathers": [int(v) for v in feathers], "side": int(side),
+               **({"crisp_edges": [n for n, v in zip(("top", "foot"), feathers) if not v],
+                   "crisp_rule": "band_edge.reach: past the designed reach the plate keeps its crisp edge"}
+                  if feather > 0 and not all(feathers) else {}),
                "plate_right": round(right), "above_kept": _above_kept(base, under, box[1])}
         if why:
             rec["plate_reason"] = why

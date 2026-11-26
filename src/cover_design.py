@@ -103,7 +103,9 @@ def _scrim(im, box, strength=0.55, feather=120):
         if b - a > 2 and ground.shape[1] > 2:
             limit = band_edge.slope_limit(ground, a, b, w, floating=True) * 1080 / max(1, w)
             need = max(need, band_edge.step_across(ground, a, b, brand.INK, strength) / (limit * 2.5066))
-    sigma = max(sigma, need)
+    # lander ruling 2026-11-26 (D1): the falloff never runs past its designed reach (band_edge.reach_cap): no longer
+    # Gaussian darkening the photograph round the type on a flat or bright ground
+    sigma = max(sigma, min(need, band_edge.reach_cap(feather, w) / SCRIM_SIGMAS))
     k = SCRIM_DOWNSAMPLE
     x0, y0, x1, y1 = (v / k for v in box)
     pad = SCRIM_GROW * sigma / k

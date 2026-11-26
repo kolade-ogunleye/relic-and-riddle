@@ -158,6 +158,10 @@ def deep(x):
     return x + 1
 
 
+def dispatch(fn):
+    return fn()
+
+
 def other():
     return inner()
 
@@ -194,10 +198,25 @@ def test_the_recorder_follows_a_memo_counts_outside_code_and_sees_threads(mods, 
         rec.begin("C")
         mod.other()
         rec.end("C")
+        # a dispatcher that called an earlier job's code does not hand it to a later job
+        rec.dispatch.add("src/recmod.py::dispatch")
+        rec.begin("D")
+        mod.dispatch(mod.other)
+        rec.end("D")
+        rec.begin("E")
+        mod.dispatch(mod.threaded)
+        rec.end("E")
+        rec.dispatch.clear()
+        rec.begin("F")
+        mod.dispatch(mod.threaded)
+        rec.end("F")
     finally:
         rec.prof.disable()
         threading.setprofile(None)
     got = {j: {f.split("::")[1] for f in fns} for j, fns in rec.record()["jobs"].items()}
+    assert {"dispatch", "other", "inner"} <= got["D"]
+    assert {"dispatch", "threaded"} <= got["E"] and "other" not in got["E"] and "inner" not in got["E"]
+    assert {"other", "inner"} <= got["F"]          # without the rule a later job inherits the earlier one's code
     assert {"entry", "memo", "deep", "outside"} <= got["A"]
     assert {"entry", "deep", "outside", "threaded"} <= got["B"]     # deep through A's recorded call edge
     assert got["C"] >= {"other", "inner", "outside"} and "deep" not in got["C"] and "entry" not in got["C"]
@@ -659,7 +678,7 @@ def test_each_caption_fixture_has_its_whole_run_in_the_expected_cases(mods):
     assert all("refused_as" not in r for r in out)
     # the names the board writes
     bx_src = (BOARD / "board_extras.py").read_text(encoding="utf-8")
-    assert 'name = f"captions_run__{topic}__{tag}"' in bx_src and 'clips / f"{name}.mp4"' in bx_src
+    assert 'name = f"captions_run__{topic}__{tag}"' in bx_src and 'clips / f"{name}.mp4",' in bx_src
     b_src = (BOARD / "board.py").read_text(encoding="utf-8")
     assert "sname = f\"row07_{res['name']}\"" in b_src and 'f"{sname}_bursts.png"' in b_src
     # a palette that refuses the Amber hook is not asked for its clip; a tree before cycle 5 for none of it

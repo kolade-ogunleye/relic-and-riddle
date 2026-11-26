@@ -59,6 +59,11 @@ CODE_ROOTS = ("src", "tests", FIX, HERE, "docs/reviews/quality-fixes-2026-11/QF-
 SPLIT = {RENDER: ("main",)}
 SCHEMA = "board-deps/1"
 SELF = f"{HERE}/board_deps.py"
+# The harness's dispatchers: they call every job's closure in turn and keep no value of their own, so the calls they
+# made for an EARLIER job are not followed into a later one (else every job of a process would inherit the code of
+# all the jobs before it, and a board's reuse would depend on how its jobs were sharded). What ran in a job's own
+# window is recorded for it all the same.
+DISPATCH = (f"{RENDER}::main.job", f"{RENDER}::main.<body>")
 OUTSIDE = ""     # the bucket of code run outside every job's window
 MODULE = "<module>"
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -364,6 +369,7 @@ class Recorder:
         self.tree = os.path.normcase(os.path.abspath(tree)) + os.sep
         self.prof = cProfile.Profile(subcalls=True, builtins=False)
         self.edges: dict[str, set[str]] = {}
+        self.dispatch: set[str] = set(DISPATCH)
         self.ran: dict[str, set[str]] = {OUTSIDE: set()}
         self.jobs: dict[str, list[str]] = {}
         self.current = OUTSIDE
@@ -454,9 +460,12 @@ class Recorder:
         self._harvest()
         self.current = OUTSIDE
         seen = set(self.ran.get(job, ())) | self.ran[OUTSIDE]
-        todo = list(seen)
+        todo = [s for s in seen if s not in self.dispatch]
         while todo:
             for c in self.edges.get(todo.pop(), ()):
+                if c in self.dispatch:
+                    seen.add(c)
+                    continue
                 if c not in seen:
                     seen.add(c)
                     todo.append(c)

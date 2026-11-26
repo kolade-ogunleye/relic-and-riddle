@@ -407,7 +407,7 @@ CAPTION_CLIP_BURSTS = 3     # round 8: each caption clip runs from 0 to the end 
 
 
 def encode_caption_clip(ground, ass: Path, t0: float, seconds: float, size: tuple[int, int], fonts: Path,
-                        clip: Path) -> dict[str, Any]:
+                        clip: Path, timeout: float = 600) -> dict[str, Any]:
     """Round 8 (MO-1): one production-encoder clip of narration time t0 .. t0 + seconds: `ground` held, `ass` burned in
     by the master's picture chain (video_composer.picture_chain: BT.709 in, 16-bit RGB, lens vignette, the
     subtitles filter, BT.709 out) and the delivery encoder. {path, sha256, encoder}."""
@@ -422,12 +422,17 @@ def encode_caption_clip(ground, ass: Path, t0: float, seconds: float, size: tupl
     chain = picture_chain("null", w, h, captions=f"subtitles='{_esc(ass)}':fontsdir='{_esc(fonts)}'")
     graph = (f"[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,setpts=PTS+{t0:.3f}/TB,"
              f"format=yuv420p,{chain},format=yuv420p,{to_bt709('bt709')}[v]")
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(VIDEO_FPS), "-t", f"{seconds:.3f}",
-                    "-i", str(still), "-filter_complex", graph, "-map", "[v]", *delivery_video_encoder(),
-                    "-pix_fmt", "yuv420p", "-color_range", "tv", "-color_primaries", "bt709", "-color_trc", "bt709",
-                    "-colorspace", "bt709", "-r", str(VIDEO_FPS), str(clip)],
-                   check=True, capture_output=True, timeout=600)
-    still.unlink(missing_ok=True)
+    try:
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(VIDEO_FPS), "-t",
+                        f"{seconds:.3f}", "-i", str(still), "-filter_complex", graph, "-map", "[v]",
+                        *delivery_video_encoder(), "-pix_fmt", "yuv420p", "-color_range", "tv", "-color_primaries",
+                        "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-r", str(VIDEO_FPS), str(clip)],
+                       check=True, capture_output=True, timeout=timeout)
+    except BaseException:   # cycle 5: a failed or timed-out encode leaves no half clip and no ground in <out>/clips
+        clip.unlink(missing_ok=True)
+        raise
+    finally:
+        still.unlink(missing_ok=True)
     return {"path": clip, "sha256": hashlib.sha256(clip.read_bytes()).hexdigest(),
             "encoder": "picture_chain + subtitles, " + " ".join(delivery_video_encoder())}
 
@@ -523,7 +528,8 @@ def caption_run(tree: Path, work: Path, clips: Path, topic: str, tag: str) -> di
         return {"name": name, "clip": None, "tiles": [], "rows": [], "record": rates, "topic": topic, "tag": tag}
     ground, note = be.caption_ground(case, bursts[0]["show"] + 0.05, size, work)
     seconds = bursts[-1]["hide"] + 0.2
-    clip = encode_caption_clip(ground, ass, 0.0, seconds, size, Path(tree) / "fonts", clips / f"{name}.mp4")
+    clip = encode_caption_clip(ground, ass, 0.0, seconds, size, Path(tree) / "fonts", clips / f"{name}.mp4",
+                               timeout=max(600.0, seconds * 40))   # a whole narration: minutes of video
     want = {max(0, round((b["hide"] - CAPTION_RUN_LEAD) * bm.FPS)): i for i, b in enumerate(bursts)}
     ys = [ln["y"] for b in bursts for ln in b["lines"] if ln["y"]]
     top = max(0, int(min(ys, default=size[1] * 0.55)) - CAPTION_RUN_PAD)

@@ -29,6 +29,7 @@ from .brand_system import (
     type_px,
 )
 from .config import VIDEO_HEIGHT, VIDEO_WIDTH
+from .safe_zones import STORY as _SAFE_STORY, TEXT_INSET as _TEXT_INSET
 from .font_engine import GlyphRefused, choose_face, surface
 from .heading import (
     GOLD_ROLES,
@@ -504,7 +505,18 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     return max(floor, min(sizes)) if sizes else design
 
 
-STORY_MARGIN = 84       # the Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned)
+def story_inset() -> int:
+    """The Story's margin inside its safe box, every side (PLATES-14; the 9:16 margin token safe_zones.TEXT_INSET):
+    the text column was 19 px inside the box and the photo credit's foot 12 px above it, no margin at feed size."""
+    from .safe_zones import TEXT_INSET
+    return round(TEXT_INSET * VIDEO_WIDTH / 1080)
+
+
+# The Story's text column starts here (PLATES-14): the safe box's 65, the margin token (safe_zones.TEXT_INSET) and
+# the held label plate's pad (plate.label_pad em of the Story kicker), so a kicker on its held plate keeps the token
+# too: 103. It was 84 (2026-10-29 to the freeze cycle 5): the text 19 px inside the box, a plated kicker's plate 5.
+STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET + round(brand_system.tok("plate.label_pad")
+                                                      * brand_system.type_px("kicker", "tall"))
 
 
 def story_body_width() -> int:
@@ -544,13 +556,17 @@ def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, i
 
 
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
-          floor: float = 0.18, colour=None, pct: float = 95) -> Image.Image:
+          floor: float = 0.18, colour=None, pct: float = 95, at_least: float = 0.0,
+          grade: bool | None = None) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
     left bright stone at 3:1 and dark photos darker than they needed). Each line's own halo (place_text) does
     the rest, line by line. `feather` is the designed minimum: each edge's feather grows with the luma step it
-    crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid."""
+    crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid.
+    `at_least`: the strength the band's own lines need (band_edge.text_strength, PLATES-15), still under `cap`.
+    `grade` (default: a band whose cap is under 1, never opaque): the band grades the photograph (band_edge.graded,
+    PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
     import numpy as np
 
     from . import band_edge
@@ -559,17 +575,42 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     lum = band_edge.luma_rows(im)
     band = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))] / 255.0
     p = float(np.percentile(band, pct)) if band.size else 0.0
-    strength = float(np.clip(1 - target / max(p, 1e-3), floor, cap))
+    strength = float(np.clip(max(1 - target / max(p, 1e-3), float(at_least)), floor, cap))
     # freeze cycle 5 (PLATES): a band with the photograph above AND below it is a floating band (the lower ceiling)
     floating = y0 > 0 and y1 < H - 1
     up = band_edge.feather(lum, y0, "up", colour, strength, feather, floating=floating) if y0 > 0 else feather
     down = band_edge.feather(lum, y1, "down", colour, strength, feather, floating=floating) if y1 < H - 1 else feather
     v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
+    if (cap < 1.0) if grade is None else grade:
+        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour)
+        return out.convert("RGBA") if im.mode == "RGBA" else out.convert(im.mode)
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
     layer.putalpha(mask)
     out = Image.alpha_composite(im.convert("RGBA"), layer)
     return out if im.mode == "RGBA" else out.convert(im.mode)
+
+
+def text_band_need(im: Image.Image, d, rows, x: float, bottom: float) -> float:
+    """The strength a carousel stack's band needs for its lines (band_edge.text_strength, PLATES-15): `rows` as
+    _stack sets them (bottom-aligned on `bottom`, at column `x`); kicker rows are labels with their own rule."""
+    from . import band_edge
+    drawn = [r for r in rows if r.get("text")]
+    if not drawn:
+        return 0.0
+    low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+    off = bottom - low
+    boxes = [(d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls"), r["fill"])
+             for r in drawn if not r.get("kicker")]
+    return band_edge.text_strength(im, boxes, brand.INK)
+
+
+def text_band_record(need: float, cap: float) -> dict[str, Any]:
+    """A text band's record (PLATES-15): the target, the strength its lines asked, and whether the cap held it short
+    (its lines then read at what the capped band and each line's halo give: the recorded ceiling)."""
+    from . import band_edge
+    return {"target": band_edge.text_target(), "need": round(float(need), 3), "cap": cap,
+            "short": bool(need > cap)}
 
 
 # Ground-aware legibility (round 4, 2026-11-02), measured and fail-closed. A Story's text band is shaded deeper while
@@ -629,13 +670,18 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float)
         return [d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls") for r in rows
                 if r[2] and ((r[4] == brand.GOLD) if gold else True)]
     every, golds = boxes(False), boxes(True)
+    from . import band_edge
+    # PLATES-15: at least as deep as the lines need to read at 7:1 on their own ground (band_edge.text_strength)
+    need = band_edge.text_strength(base, [(d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls"), r[4])
+                                          for r in rows if r[2]], brand.INK)
     for target in STORY_SCRIM_STEPS:
-        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target)
+        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, at_least=min(need, 0.90))
         energy = max((ground_energy(shaded, b) for b in every), default=0.0)
         clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
             break
-    record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False}
+    record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False,
+              "text_band": text_band_record(need, 0.90)}
     if clash >= GOLD_CLASH_SHARE:
         rows = [(r[0], r[1], r[2], r[3], brand.BONE if r[4] == brand.GOLD else r[4], r[5], r[6]) for r in rows]
         record["gold_to_bone"] = True
@@ -1355,14 +1401,19 @@ class MultiFormatGenerator:
             c_px, font_c, c_drawn = setting["px"], setting["font"], setting["drawn"]
             credit["fits"] = setting["fits"]
             c_lead = _story_credit_lead(c_px)
-            c_bottom = sy1 - 10
+            c_bottom = sy1 - story_inset()   # PLATES-14: the safe-box margin token, as on every side
             c_top = c_bottom - len(c_drawn) * c_lead
             c_w = max(text_size(d, ln, font_c)[0] for ln in c_drawn)
             backing = (x - 16, c_top - 8, x + c_w + 16, c_bottom + 6)
             before = _contrast(base, backing, c_fill)
             # A soft band of ink across the frame, not a box (a feathered rectangle read as a caption bar, 2026-10-29);
             # each line then gets its own halo if the photo still shows through too brightly.
-            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0)
+            from . import band_edge
+            need_c = band_edge.text_strength(base, [(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"),
+                                                     c_fill) for k, ln in enumerate(c_drawn)], brand.INK)
+            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0,
+                         at_least=min(need_c, 0.85))
+            credit["text_band"] = text_band_record(need_c, 0.85)
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
                           contrast=_contrast(base, backing, c_fill),
@@ -2042,6 +2093,8 @@ class MultiFormatGenerator:
         last = px(self.KEY_BOTTOM - self.KEY_GAP) - round(b_size * 0.25)   # the last body line's baseline
         two = heading_lines > 1
         lines = self.BODY_LINES_TWO_LINE_FRAME if two else self.BODY_LINES_ONE_LINE_FRAME
+        # PLATES-12: the deck's longest content body (_deck_body_frame), so every slide of the deck stands where it does
+        lines = max(lines, min(int(getattr(_render_state, "body_frame", 0) or 0), self.BODY_LINES + 1))
         first_body = last - (lines - 1) * step
         top = self._deck_size()   # the deck's one content size (SYS-D-5): its cap and pitch set the frame
         h = get_font(brand.DISPLAY_FONT, fx(top))
@@ -2143,6 +2196,34 @@ class MultiFormatGenerator:
         finally:
             _render_state.facebook = prev
         return 1
+
+    def _deck_body_frame(self, cards: list[dict[str, Any]], archetypes: list[str], facebook: bool) -> int:
+        """PLATES-12 (panel 6: one deck's copy band at three heights): the most body lines any content slide of the
+        copy takes at the deck's body size (as _rows sets a content body: BODY_LINES, one more before it is
+        shortened), so the frame reserves them for EVERY content slide of the deck (_content_frame) and a long body
+        no longer lifts its own band to a third position. 0 when no content slide has a body."""
+        from .script_engine import facebook_photo_caption, neutral_cues
+        clean = facebook_photo_caption if facebook else neutral_cues
+        cw = self.CAROUSEL_SIZE[0]
+        px = self._px(cw)
+        d = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        width = cw - 2 * px(self.MARGIN)
+        b_size = self.BODY_SPEC[0]
+        most = 0
+        for card, archetype in zip(cards, archetypes):
+            if archetype in self.NON_CONTENT_ARCHETYPES:
+                continue
+            body = typeset(clean(card.get("body") or ""))
+            if not body.strip():
+                continue
+            try:
+                lines, _, short = self._body(d, px, body, width, self.BODY_LINES, b_size, b_size, trial=True)
+                if short:
+                    lines, _, _ = self._body(d, px, body, width, self.BODY_LINES + 1, b_size, b_size, trial=True)
+            except TextFitError:
+                continue
+            most = max(most, len(lines))
+        return most
 
     def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float, trial: bool = False):
         """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
@@ -2396,6 +2477,14 @@ class MultiFormatGenerator:
                             heading)
             frame = self._content_frame(px, facebook, max(lines, n_heads))
             shift = frame["heading_last"] - max(r["y"] for r in heads)
+            # PLATES-12 (panel 6: a one-line heading set a step under the deck size stood 14 px under the deck's
+            # one-line cap line, its kicker 44 px above it, not the one gap): a heading under the deck's size keeps
+            # the frame's CAP line, not its baseline, so the deck's band still stands at its two positions
+            deck_cap = cap_height(get_font(brand.DISPLAY_FONT,
+                                           px.exact(getattr(_render_state, "tile_px", None) or self._deck_size())))
+            under = deck_cap - cap_height(heads[0]["font"])
+            if under > 1:
+                shift -= under
             over = max(ink(r, shift, 3) for r in bodies) - bottom
             if over > 0:
                 shift -= over
@@ -2409,6 +2498,8 @@ class MultiFormatGenerator:
                 # the gap is to the heading's highest ink: an accented capital ("ÇATALHÖYÜK") rises above the cap line
                 ink_top = min(ink(r, shift, 1) for r in heads if r["y"] + shift == first)
                 cap_top = first - cap_height(get_font(brand.DISPLAY_FONT, px.exact(spec[0])))
+                if under > 1:   # PLATES-12: the smaller heading's own cap line, now on the frame's (above)
+                    cap_top = first - cap_height(heads[0]["font"])
                 # only a real rise moves it (an accent, 2 px or more): a capital's 1 px antialiasing overshoot keeps
                 # the deck's shared kicker line (_content_frame), so a deck keeps its two kicker positions
                 kb = (min(cap_top, ink_top) if ink_top < cap_top - 1 else cap_top) - kicker_gap(kick["font"].size)
@@ -2470,10 +2561,26 @@ class MultiFormatGenerator:
         if full and drawn:
             low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
             high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+            cap = 0.95 if deep else 0.90
+            need = text_band_need(im, d, drawn, px(margin), stack_bottom)
             im = scrim(im, stack_bottom - (low - high) - px(40), chh, feather=px(300), target=0.08 if deep else 0.26,
-                       cap=0.95 if deep else 0.90)
+                       cap=cap, at_least=min(need, cap))
+            if lay is not None:
+                lay.meta["text_band"] = text_band_record(need, cap)
             if lay is not None and deep:
                 lay.meta["ink_band"] = True
+        elif drawn:
+            # PLATES-15: a split's stack stands on its INK panel, but a line that starts on the photograph's fade into
+            # it (the stat figure on the photo-to-band fade) is under the target there: the band its lines need, and
+            # only that (no band where the panel already holds every line)
+            need = text_band_need(im, d, drawn, px(margin), stack_bottom)
+            if need > 0:
+                low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+                high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+                im = scrim(im, stack_bottom - (low - high) - px(40), chh, feather=px(300), target=1.0, cap=0.90,
+                           floor=0.0, at_least=min(need, 0.90))
+                if lay is not None:
+                    lay.meta["text_band"] = text_band_record(need, 0.90)
         plates = getattr(lay, "plates", None) if lay is not None else None
         if plates is None:
             plates = {}
@@ -2829,6 +2936,7 @@ class MultiFormatGenerator:
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
+                               body_frame: int = 0,
                                lead: str | None = None, window: int = 0, heading_tier: int = 0,
                                heading_px: float | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
@@ -2852,6 +2960,7 @@ class MultiFormatGenerator:
         _render_state.subject = typeset(subject).upper() if i > 0 else ""
         _render_state.facebook = bool(facebook)
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
+        _render_state.body_frame = int(body_frame or 0)   # PLATES-12: the deck's body reserve (_deck_body_frame)
         _render_state.heading_tier = 1 if int(heading_tier or 0) > 0 else 0
         _render_state.lead = lead
         # lane D cycle 3 (lander ruling 2 of the second review): the Facebook collage's second top tile, a headline
@@ -3065,6 +3174,14 @@ class MultiFormatGenerator:
                 strips_[1] = {"side": "left"}
             return frame_, strips_, order_
 
+        body_frames: dict[bool, int] = {}
+
+        def body_frame(fb: bool) -> int:
+            """The copy's body reserve (PLATES-12, _deck_body_frame), measured once per copy and set of cards."""
+            if fb not in body_frames:
+                body_frames[fb] = self._deck_body_frame(cards, archetypes, fb)
+            return body_frames[fb]
+
         layouts = {facebook: copy_layout(facebook)}
         frame, _strips, order = layouts[facebook]
         drawn_paths: dict[int, Path] = {}
@@ -3092,7 +3209,7 @@ class MultiFormatGenerator:
                         photo_next=photo_next, i=i: self._render_carousel_slide(
                             archetype, photo, photo_next, card, i, total, poll, share, fb, tight=tight,
                             subject=subject, heading_frame=frame, strip=strip, lead=lead, window=window,
-                            heading_tier=tier))
+                            heading_tier=tier, body_frame=body_frame(fb)))
                 drew = lay.meta.get("swipe_strip") or {}
                 if i == 1 and drew.get("box"):
                     strips_now[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
@@ -3133,6 +3250,7 @@ class MultiFormatGenerator:
             _render_state.tile_px = None
             tier = self._deck_heading_tier(cards, archetypes)
             layouts.clear()
+            body_frames.clear()
             layouts[facebook] = copy_layout(facebook)
             frame, _strips, order = layouts[facebook]
             drawn_deck, deck_step = plan_deck()
@@ -3148,6 +3266,7 @@ class MultiFormatGenerator:
                               "reason": "the slide's body does not hold the comparator line whole"}
                 record_comparator_omitted(script_payload, gate_surface, comparator)
                 layouts.clear()
+                body_frames.clear()
                 layouts[facebook] = copy_layout(facebook)
                 frame, _strips, order = layouts[facebook]
                 drawn_deck, deck_step = plan_deck()
@@ -3173,7 +3292,7 @@ class MultiFormatGenerator:
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
                                           "subject": subject, "heading_frame": frame, "heading_tier": tier,
-                                          "lead": lead,
+                                          "body_frame": body_frame(facebook), "lead": lead,
                                           "window": showing[i],
                                           **({"kicker_step": list(deck_step)} if deck_step else {}),
                                           **({"diagram_withheld": withheld}
@@ -3205,7 +3324,7 @@ class MultiFormatGenerator:
                         lambda tight: self._render_carousel_slide(
                             archetype, photo, photo_next, card, j, total, poll, share, True, tight=tight,
                             subject=subject, heading_frame=frame, lead=lead, window=showing[j], heading_tier=tier,
-                            heading_px=size))
+                            heading_px=size, body_frame=body_frame(True)))
                 _render_state.tile_px = None   # never left set for the next deck's measuring
                 if not lay.problems():
                     path = drawn_paths[j]
@@ -3225,6 +3344,7 @@ class MultiFormatGenerator:
                                                   "photo_next": str(photo_next), "card": card, "index": j,
                                                   "total": total, "poll": poll, "share": share, "facebook": True,
                                                   "subject": subject, "heading_frame": frame, "heading_tier": tier,
+                                                  "body_frame": body_frame(True),
                                                   "lead": lead, "window": showing[j], "heading_px": size,
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"deck_dropped": dropped_rows} if dropped_rows else {}),
@@ -4565,7 +4685,10 @@ def _redraw_strip(kept: dict[str, Any] | None, path: Path | None = None) -> dict
 # words (operator, 2026-10-28). The Facebook copy is a standalone grid and draws none. Slide 1 draws its part only
 # where nothing of its own text is near; else it draws none and says why (lay.meta["swipe_strip"]).
 SWIPE_STRIP = 72          # design px of the strip on slide 1 (96 at 1440)
-SWIPE_CLEAR = 24          # design px it keeps from any text of slide 1
+# design px it keeps from any text of slide 1: 36 (48 at 1440; was 24, 32): PLATES-13, panel 6 (the Aswan cover's strip
+# ended ~45 px right of the heading at its cap line, a near-collision tick): it meets the heading or clears it by the
+# ledger's 48 canvas px (24 half px), else slide 1 draws no part and says why (lay.meta["swipe_strip"])
+SWIPE_CLEAR = 36
 
 
 def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
@@ -4608,6 +4731,7 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                              bool(recipe.get("facebook")),
                                              tight=tight, subject=recipe.get("subject") or "",
                                              heading_frame=int(recipe.get("heading_frame") or 2), lead=recipe.get("lead"),
+                                             body_frame=int(recipe.get("body_frame") or 0),
                                              heading_tier=int(recipe.get("heading_tier") or 0),
                                              strip=_redraw_strip(recipe.get("strip"), path),
                                              window=int(recipe.get("window") or 0),

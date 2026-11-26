@@ -114,9 +114,8 @@ def _scrim(im, box, strength=0.55, feather=120):
     v = gaussian_filter(inside, sigma / k, mode="nearest", truncate=4.0)
     alpha = Image.fromarray(np.clip(v * strength * 255, 0, 255).astype("uint8")).resize(
         (w, h), Image.Resampling.BICUBIC)
-    layer = Image.new("RGBA", im.size, brand.INK + (255,))
-    layer.putalpha(alpha)
-    return Image.alpha_composite(im.convert("RGBA"), layer)
+    # PLATES-03: the scrim grades the photograph (band_edge.graded: its hue and saturation kept, the INK alpha's luma)
+    return band_edge.graded(im, np.asarray(alpha, np.float32) / 255.0, brand.INK).convert("RGBA")
 
 
 SCRIM_SIGMAS = 3.5      # _scrim: the feather spans this many sigmas past the box (~2% of strength left there)

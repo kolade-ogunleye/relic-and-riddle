@@ -154,3 +154,97 @@ def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None)
     rgb = w[..., None] * c + (1.0 - w[..., None]) * g * scale[..., None]
     out = np.dstack([np.clip(rgb + 0.5, 0, 255), lay[..., 3:4]]).astype(np.uint8)
     return Image.fromarray(out, "RGBA")
+
+
+# Freeze cycle 5 (stream PLATES, PLATES-03; panel 6: the scrim behind the copy on a bright, coloured ground read as a
+# grey-brown veil: Aswan's granite, Richat's sand): a neutral INK alpha over a saturated ground pulls every pixel
+# toward the INK's own grey, so the band's chroma falls faster than its value. ONE rule for a text band that never
+# goes opaque: it GRADES the photograph, each pixel the ground's own colour scaled to the luma the INK alpha would
+# give it (graded()), so hue and saturation stay the ground's and every luma (each edge slope, each contrast measured
+# on luma) is the INK alpha's, value for value. An opaque panel (the split's INK panel) stays its colour.
+def graded(ground: Image.Image, alpha: np.ndarray, colour) -> Image.Image:
+    """`ground` under a `colour` band of per-pixel `alpha` (H x W, 0-1), graded: each pixel scaled by
+    (1 - a) + a x min(1, luma(colour) / luma(pixel)), its luma the plain alpha composite's (a pixel darker than the
+    band colour is left as it is, never brightened). RGB out."""
+    g = np.asarray(ground.convert("RGB"), np.float32)
+    a = np.clip(np.asarray(alpha, np.float32), 0.0, 1.0)
+    lc = float(np.dot(np.asarray(colour[:3], np.float32), LUMA))
+    k = np.minimum(1.0, lc / np.maximum(g @ LUMA, 1e-3))
+    out = g * ((1.0 - a) + a * k)[..., None]
+    return Image.fromarray(np.clip(out + 0.5, 0, 255).astype(np.uint8), "RGB")
+
+
+# Freeze cycle 5 (stream PLATES, PLATES-15; panel 6: Story gold lines at 4.92-5.18:1, carousel headings and bodies at
+# 4.8-5.3 on bright photographs, the Richat closing slide's body under 7:1 once its photograph moved): a text band's
+# depth was solved for the band's own 95th-percentile pixel, while each line is judged on the brightest pixels round
+# ITS glyphs, so a bright patch under one line was answered by that line's halo, raised only to the 4.8 placement
+# target. ONE rule: a band laid behind light text over a photograph is at least as deep as its LINES need to read at
+# tok("contrast.high") (7:1) against the TEXT_PCT percentile of their own ground (the line's ink box and TEXT_RING px
+# round it), as composited; deeper only where the band's own rule asks it; never past the caller's cap (the line
+# is then at the best the band gives, and the caller records the shortfall). Kickers and the masthead keep their own
+# ruled labels (plan_label, masthead.plan); they are not rows here.
+TEXT_PCT = 97.0     # per glyph-wide slice: the line is judged glyph by glyph on its worst 5 % (typography.GLYPH_PCT)
+TEXT_RING = 4       # px round the line's ink box: a glyph's immediate surround (typography.GLYPH_SURROUND)
+TEXT_SLICE = 0.7    # a slice's width, in the line's height: about one glyph
+# the band is planned this much above the target (as placement plans 4.8 for the 4.5 gate): the band's 8-bit alpha,
+# the glyph's antialiased ink and the composed measure read a planned 7.0 at 6.87-6.97 on the dev Story frames
+TEXT_PLAN_MARGIN = 1.04
+
+
+def _lin(v: np.ndarray) -> np.ndarray:
+    return np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
+
+
+def text_target() -> float:
+    """The ratio a line over a photograph is shaded to read at (tok contrast.high)."""
+    return float(GATES["contrast.high"])
+
+
+def text_strength(im: Image.Image, rows, colour, target: float | None = None, pct: float = TEXT_PCT,
+                  ring: int = TEXT_RING, grade: bool = True) -> float:
+    """The band alpha (0-1) at which every row of `rows` ((box, fill): the line's ink box on `im`, canvas px, and
+    its colour) reads at `target` (text_target(): 7:1; planned TEXT_PLAN_MARGIN above it) against its ground once a `colour` band of that alpha is laid
+    over it, composited as the band composites (per channel, in sRGB): the line is cut into glyph-wide slices
+    (TEXT_SLICE of its height) and each slice's ground (its columns and `ring` px round them) is read at its `pct`
+    percentile of relative luminance, as each glyph is judged on the worst of its own surround; `grade`: the band
+    grades the photograph (graded(), PLATES-03), else it is a plain alpha of `colour`. 0 when every row
+    already reads; 1.0 + the shortfall when even an opaque band does not. Rows whose fill is darker than mid-grey
+    (dark type on a light ground) are not rows of a dark band and are skipped."""
+    target = (text_target() if target is None else float(target)) * TEXT_PLAN_MARGIN
+    W, H = im.size
+    rgb = None
+    c = np.asarray(colour[:3], np.float32) / 255.0
+    worst = 0.0
+    for box, fill in rows:
+        lf = float(_lin(np.asarray(fill[:3], np.float32) / 255.0) @ LUMA)
+        if lf < 0.18:
+            continue
+        x0, y0 = max(0, int(box[0]) - ring), max(0, int(box[1]) - ring)
+        x1, y1 = min(W, int(box[2]) + ring), min(H, int(box[3]) + ring)
+        if x1 - x0 < 2 or y1 - y0 < 2:
+            continue
+        if rgb is None:
+            rgb = im.convert("RGB")
+        a = np.asarray(rgb.crop((x0, y0, x1, y1)), np.float32) / 255.0
+        step = max(4, round(TEXT_SLICE * (y1 - y0)))
+        slices = [a[:, i:i + step + 2 * ring].reshape(-1, 3) for i in range(0, max(1, a.shape[1] - 2 * ring), step)]
+        bright = (lf + 0.05) / target - 0.05   # the ground's relative luminance at which the line reads at `target`
+
+        lc = float(c @ LUMA)
+        ks = [np.minimum(1.0, lc / np.maximum(g @ LUMA, 1e-4))[:, None] for g in slices]
+
+        def at(s: float) -> float:
+            if grade:
+                return max(float(np.percentile(_lin(g * ((1.0 - s) + s * k)) @ LUMA, pct)) for g, k in zip(slices, ks))
+            return max(float(np.percentile(_lin(g * (1.0 - s) + c * s) @ LUMA, pct)) for g in slices)
+        if at(0.0) <= bright:
+            continue
+        if at(1.0) > bright:
+            worst = max(worst, 1.0 + (at(1.0) - bright))
+            continue
+        lo, hi = 0.0, 1.0
+        for _ in range(12):
+            mid = (lo + hi) / 2
+            lo, hi = (lo, mid) if at(mid) <= bright else (mid, hi)
+        worst = max(worst, hi)
+    return float(worst)

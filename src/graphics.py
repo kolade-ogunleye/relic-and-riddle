@@ -521,9 +521,24 @@ def _grade_like(ground: Image.Image, frame: Image.Image, graded: Image.Image) ->
     return Image.fromarray(np.clip(g + shift, 0, 255).astype(np.uint8), "RGB")
 
 
+def record_layout(out: Path, layout: Mapping[str, Any]) -> None:
+    """A renderer's own layout record (freeze cycle 5: what the corpus proofs and the critics read: a section's
+    blocks and leaders, a scale's drawing box and derived comparison) added to <clip>.contrast.json as "layout",
+    beside the rows record_contrast wrote. A measurement record: never a reason to lose the graphic."""
+    import json
+    side = Path(str(out) + CONTRAST_SIDECAR)
+    try:
+        if not side.exists():
+            return
+        record = json.loads(side.read_text(encoding="utf-8"))
+        record["layout"] = dict(layout)
+        side.write_text(json.dumps(record, indent=1, ensure_ascii=False, default=str), encoding="utf-8", newline=chr(10))
+    except (OSError, ValueError) as e:
+        log.info("Layout record not written for %s (%s).", Path(out).name, e)
+
+
 def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]],
-                    rulers: Sequence[dict[str, Any]] | None = None,
-                    layout: Mapping[str, Any] | None = None) -> dict[str, Any]:
+                    rulers: Sequence[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each element's ratio on the clip's last frame as drawn and as graded, written beside the clip; with `rulers`
     (ruler_record rows) the ruler labels' datums too, checked by the critic's zero_datum_faults (logged). A plate
     carrying a derivation (`plate.derived`, set by derive_gap: a timeline gap label's rule and operands) writes it on
@@ -543,8 +558,6 @@ def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]]
     vals = [v for v in vals if v is not None]
     record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
               "min": min(vals) if vals else None, "elements": rows}
-    if layout is not None:      # the renderer's own layout record (freeze cycle 5: what the corpus proofs read)
-        record["layout"] = dict(layout)
     if rulers is not None:
         record["rulers"] = list(rulers)
         for fault in zero_datum_faults(record):
@@ -10679,7 +10692,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
         reach_d = max(crown_reach(ref_label) * ref_feet * px_ft, 6)
-        ref_note = reference_note(ref_label)
+        ref_note = ""       # the figure alone: a depth's line of meaning names the landmark (the height drawing's
+        #                     referent note was never part of the depth drawing, so none is dropped here)
         fig_pl, rows_n, tick_d, rec_n = referent_block(ground, _short(ref_feet, unit), f_note, 2, ref_note,
                                                        max(SCALE_RULER_PX - 4, floor), ref_cx + reach_d,
                                                        ref_cx - reach_d, top_y, 1.0, clear_d)
@@ -10909,7 +10923,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                                                                      ref_cx + ref_feet * px_ft * width_per_px / 2, base_y)
         layout = scale_layout_record("depth" if depth else dimension_word(fact).lower(), d_box, own,
                                      (x0, top, box_x1, bottom), statement, labelled, derive)
-        record_contrast(out, last[0], plates, ruler_rows, layout=layout)   # the push ends at 1.0: the planned layout
+        record_contrast(out, last[0], plates, ruler_rows)   # the push ends at 1.0: the last frame is the planned layout
+        record_layout(out, layout)
         size = (width, height)
         if depth:
             marks = [("ground_line", mark_mask(size, lambda d: [d.rectangle([a_, line_y - 2, b_, line_y + 1], fill=255)
@@ -11238,8 +11253,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         foot_y = floor_y if depth else base_y
         c_box = (X(WIDE_TITLE_SAFE[0]), Y(top_d) - S(40), lim, Y(foot_y) - 4)
         lm = landmark_mask((width, height), ref_label, X(ref_cx), Y(foot_y), S(ref_feet * px_ft), round(S(6)))
-        if depth:   # off the shaft's walls, the ground line and the bracket (frame px)
-            note = reference_note(ref_label)
+        if depth:   # off the shaft's walls, the ground line and the bracket (frame px); the figure alone (see 9:16)
+            note = ""
             f_blk = figure_font(g.f(30))
             ref_top = floor_y - ref_feet * px_ft
             hard = [(X(shaft[0]) - S(4), Y(line_y), X(shaft[0]) + S(4), Y(floor_y)),
@@ -11341,7 +11356,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         layout = scale_layout_record("depth" if depth else dimension_word(fact).lower(), d_box, own_boxes,
                                      (X(WIDE_TITLE_SAFE[0]), Y(top_d), X(cx0 - 20), Y(WIDE_TITLE_SAFE[3])),
                                      statement, labelled, derive)
-        record_contrast(out, last[0], plates, ruler_rows, layout=layout)   # the push ends at 1.0 (see the 9:16 one)
+        record_contrast(out, last[0], plates, ruler_rows)   # the push ends at 1.0 (see the 9:16 renderer)
+        record_layout(out, layout)
         size, lw = (width, height), max(1, round(S(3)))
         if depth:
             marks = [("ground_line", mark_mask(size, lambda d: [d.rectangle([a_, Y(line_y) - S(2), b_, Y(line_y) + S(1)],
@@ -12952,7 +12968,8 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         for fault in section_layout_faults(layout):
             log.warning("%s: label layout: %s", Path(out).name, fault)
         record_contrast(out, last[0], [(name, dim if dim is not None else plate) for name, plate, _a, _b, dim in timed],
-                        ruler_rows, layout=layout)
+                        ruler_rows)
+        record_layout(out, layout)
         marks = [("ruler", mark_mask((width, height), lambda d: d.line([(X(ruler_x), ground_px), (X(ruler_x), axis_px)],
                                                                          fill=255, width=max(1, round(S(2))))))]
         for k, sp in enumerate(leaders):

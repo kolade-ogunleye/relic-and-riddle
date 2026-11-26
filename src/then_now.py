@@ -1476,10 +1476,11 @@ def on_paper(boxes: list, frames: list) -> bool:
 # clear: its lines (each padded by its own halo spread) wholly inside its photo and at least DIVIDER_W / 2 + 2 px
 # from the divider. It fades out over GROUP_RAMP frames before it would be cut and back in over GROUP_RAMP frames
 # after, so the divider never slices a label and nothing blinks.
-GROUP_RAMP = 3     # freeze cycle 5 (panel 6 MOTION-01): 6 frames held a part-transparent plate (a pale ghost box)
-#                    for about 5 frames beside the arriving divider; the fade is done in 3 (0.1 s), still eased, and
-#                    is over GROUP_LEAD px before the divider reaches the group (group_clear)
-GROUP_LEAD = 0.02  # of the wipe axis: the divider's least distance from a group that is still shown
+GROUP_RAMP = 6
+# Freeze cycle 5 (panel 6 MOTION-01: a part-transparent plate beside the arriving divider): the fade keeps its six
+# frames (T5: nothing blinks) and is over GROUP_LEAD of the wipe axis before the divider reaches the group, so no
+# part-transparent marker stands next to the divider (group_clear). Under the split's own air at rest (50 px of 1920).
+GROUP_LEAD = 0.02
 
 
 def group_clear(box: tuple[int, int, int, int], which: str, pos: float, width: int, height: int) -> bool:

@@ -612,6 +612,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:_probe_tracked": "A",
     "graphics:_render_cross_section": "A",
     "graphics:_render_cross_section.build": "A",
+    "graphics:_render_cross_section.build_rows": "A",
     "graphics:_render_cross_section.f_conv": "A",
     "graphics:_render_map": "A",
     "graphics:_render_scale_vertical": "A",

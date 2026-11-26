@@ -4,7 +4,7 @@ committed fixtures, so no class reopens silently (the corpus scripts run the sam
 Invariants, never pinned pixels: one figure rule on every stated quantity (rulings 3 and R8-8); no label on another;
 the cross-section's blocks as groups with each leader on its own figure; a derived figure only with its recorded
 derivation (lander ruling 2026-11-26); the 9:16 scale drawing's share of the graphics box; the then-and-now divider
-drawn hard and its markers' fade short and clear of the divider.
+drawn hard and its markers' fade over before the divider is near.
 """
 from __future__ import annotations
 
@@ -142,10 +142,9 @@ def test_then_now_divider_is_hard_and_the_fade_is_short_and_clear():
     assert max(abs(rule[k] - brand.BONE[k]) for k in range(3)) <= 2      # a hard bone rule at the divider's place
     px = [out.getpixel((x, 90)) for x in range(166, 180)]                # the join behind it blends the two photos
     assert all(p[1] <= 45 for p in px)                                   # never bone or ink mixed over them
-    assert then_now.GROUP_RAMP <= 4
     box = (20, 20, 120, 60)
     lead = then_now.GROUP_LEAD * w
     assert not then_now.group_clear(box, "then", 120 + lead - 2, w, h)   # hidden before the divider is that near
     assert then_now.group_clear(box, "then", 120 + lead + 2, w, h)
     sched = then_now.group_alpha([True] * 10 + [False] * 4 + [True] * 10)
-    assert max(len(run) for run in "".join("p" if 0 < v < 1 else " " for v in sched).split()) <= then_now.GROUP_RAMP
+    assert all(v == 0 for v in sched[10:14])                             # gone while the divider is within the lead

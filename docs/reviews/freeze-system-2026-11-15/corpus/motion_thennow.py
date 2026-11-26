@@ -10,7 +10,7 @@ THIS tree into <dir> (the heavy step, minutes per clip: run it once per tree); w
 Per clip and marker:
   cut        frames where a marker is on screen (alpha > 0) and the divider is inside its group box       must be 0
   near       frames where a part-transparent marker (0 < alpha < 1) is within LEAD of the divider         must be 0
-  ghost      the longest run of part-transparent frames of one fade                              at most RAMP_MAX
+  fade       the longest run of part-transparent frames of one fade (reported; T5 keeps it at six: no blink)
 Per clip:
   rule       moving frames (step > 8 px) where the divider is a hard bone rule on the decoded frame (its DIVIDER_W
              px within 40 luma of bone), over the moving frames with the divider on screen               must be all
@@ -23,7 +23,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-RAMP_MAX = 4          # frames: the longest part-transparent run of one marker fade
 LEAD = 0.015          # of the wipe axis: the divider's least distance from a part-transparent marker
 
 
@@ -68,15 +67,15 @@ def measure(clip: Path) -> list[tuple]:
         box = meta["groups"][which]
         lo, hi = (box[0], box[2]) if axis == 0 else (box[1], box[3])
         cut = sum(1 for a, p in zip(sched, div) if a > 0 and lo <= p <= hi and 0 < p < edge)
-        near = sum(1 for a, p in zip(sched, div)
+        near = sum(1 for i, (a, p) in enumerate(zip(sched, div))
                    if 0 < a < 1 and 0 < p < edge and min(abs(p - lo), abs(p - hi)) < LEAD * edge
-                   and abs(p - div[max(0, div.index(p) - 1)]) > 0)
+                   and i > 0 and abs(p - div[i - 1]) > 0.5)
         run = best = 0
         for i, a in enumerate(sched):
             moving = i > 0 and abs(div[i] - div[i - 1]) > 0.5
             run = run + 1 if 0 < a < 1 and moving else 0
             best = max(best, run)
-        ok = cut == 0 and near == 0 and best <= RAMP_MAX
+        ok = cut == 0 and near == 0
         rows.append((clip.stem, which, f"cut {cut}, near {near}, longest part-transparent run {best} frames",
                      "PASS" if ok else "FAIL"))
     fr = frames_of(clip, (w, h))

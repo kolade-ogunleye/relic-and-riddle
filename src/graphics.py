@@ -12689,6 +12689,10 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                                "text_x": label_x})
         return out_blocks
 
+    # a label in at most two rows of a column (the row form's fit, at this function's own size site)
+    two_rows = lambda text, px, measure: probe_text(probe, text, brand.TEXT_FONT, px, measure, 2, px,   # noqa: E731
+                                                    weight=600, quiet=True)
+
     def build_rows(f, lab_px: int, line_step: float, labcol: float) -> tuple[list[dict[str, Any]], float] | None:
         """The ROW form (freeze cycle 5): a level's figure and its label side by side, the label's rows centred on
         the figure's cap band, in a label column `labcol` design px wide; the city gives the width up (never under
@@ -12699,8 +12703,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         lx = L.right - figcol - SECTION_ROW_GUTTER - labcol
         if lx - (L.label_x - L.rooms_x1) - shaft_x < SECTION_ROW_CITY_MIN * (L.rooms_x1 - L.shaft_x):
             return None
-        fits = [probe_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(S(labcol)), 2, g.f(lab_px),
-                           weight=600, quiet=True) for lv in levels]
+        fits = [two_rows(lv["label"], g.f(lab_px), int(S(labcol))) for lv in levels]
         if any(over for _l, _f, over in fits):
             return [], lx
         out_blocks = []

@@ -1,0 +1,69 @@
+[
+ {
+  "name": "richat06",
+  "size": [
+   5568,
+   3712
+  ],
+  "centering": [
+   0.625,
+   0.5
+  ],
+  "surface": "story_03_question",
+  "run": "run_richat_structure_sahara_eye_1793272675",
+  "credit": "NASA (public domain), via Wikimedia Commons; 06_commons.jpg",
+  "at_9be36d71": {
+   "matte_share": 0.2672,
+   "moved_to": [
+    566,
+    1607,
+    1750,
+    3712
+   ]
+  },
+  "note": "the Eye at lower left of the asked window; the move took the Soyuz instead (review B1)"
+ },
+ {
+  "name": "richat10",
+  "size": [
+   5568,
+   3712
+  ],
+  "centering": [
+   0.5,
+   0.5
+  ],
+  "surface": "story_03_question",
+  "run": "run_richat_structure_sahara_eye_1793474843",
+  "credit": "NASA (public domain), via Wikimedia Commons; 10_commons.jpg",
+  "at_9be36d71": {
+   "matte_share": 0.0739,
+   "moved_to": [
+    2775,
+    391,
+    4643,
+    3712
+   ]
+  },
+  "note": "the Eye at left centre under the limb; the move cut it at the left edge (review B1)"
+ },
+ {
+  "name": "glass",
+  "size": [
+   1665,
+   5992
+  ],
+  "centering": [
+   0.5,
+   0.5
+  ],
+  "surface": "story",
+  "run": null,
+  "credit": "silhouette of the digital black of a Wikimedia Commons photograph of a stained-glass window (the artwork itself is not kept)",
+  "at_9be36d71": {
+   "matte_share": 0.1583,
+   "moved_to": null
+  },
+  "note": "a tall window whose Story crop moved down to the lower panel and cut the figure's head (review B1)"
+ }
+]

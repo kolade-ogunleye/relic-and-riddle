@@ -84,6 +84,9 @@ def fills_cover(path: Path) -> bool:
     from . import photo_fitness as pf
     from .cover_design import cover_windows
     try:
+        a = pf.analysis_of(Path(path))
+        if a.focus is None and a.size[1] > a.size[0]:   # cover_design._filled: an unreviewed portrait stays whole
+            return False
         return any(pf.place(Path(path), window)["fit"] for _mode, window in cover_windows())
     except (OSError, ValueError):
         return True

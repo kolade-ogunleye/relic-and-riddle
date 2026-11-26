@@ -1,20 +1,21 @@
 """The photo-fitness rule (design-freeze cycle 5, PHOTO stream; src/photo_fitness.py): one measure of whether a
 photograph is fit for the window it is put in, asked by every picker and cropper.
 
-Fixtures are drawn here (no run file, no workstation path): a textured ground with one salient subject, and the
-frames a source can carry (a black wedge, an oval surround, a letterbox). Each test holds one class of the panel-6
-ledger closed: PHOTO-01 (no pad), PHOTO-02 (no frame in a crop), PHOTO-03 (the subject stays in the window),
-PHOTO-04 (nothing foreign under the masthead), PHOTO-06 (an unregistered pair is recorded), PHOTO-07 (no repeated
-photograph).
+Fixtures are drawn here (no run file, no workstation path): a textured ground with one salient subject, the frames
+a source can carry (a scan border, a letterbox, a mount's corners) and the scene black that is not one (space above a
+limb, a black ground, a window's wedge, an oval). Each test holds one class of the panel-6 ledger closed: PHOTO-01
+(no pad), PHOTO-02 (no frame in a crop), PHOTO-03 (the subject stays in the window), PHOTO-04 (nothing foreign under
+the masthead), PHOTO-06 (an unregistered pair is recorded), PHOTO-07 (no repeated photograph).
 """
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from src import brand
 from src import photo_fitness as pf
@@ -64,6 +65,26 @@ def wedge(a: np.ndarray) -> np.ndarray:
     return out
 
 
+def border(a: np.ndarray, left: float = 0.075, bottom: float = 0.10) -> np.ndarray:
+    """A scan's or plate's border: straight digital-black bands down the left side and across the foot, the picture's
+    content stopping at a hard straight edge (the source's FRAME)."""
+    h, w = a.shape[:2]
+    out = a.copy()
+    out[:, :int(left * w)] = 0
+    out[int((1 - bottom) * h):] = 0
+    return out
+
+
+def limb(a: np.ndarray) -> np.ndarray:
+    """Black space above a planet's curved limb (an orbital photograph): digital black along the top whose inner edge
+    is a curve the picture's content meets: the photograph's SCENE, not its frame."""
+    h, w = a.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    out = a.copy()
+    out[yy < 0.22 * h + 0.25 * h * ((xx - w / 2) / (w / 2)) ** 2] = 0
+    return out
+
+
 def oval(a: np.ndarray) -> np.ndarray:
     """A black oval surround: the picture inside an ellipse that cuts every corner."""
     h, w = a.shape[:2]
@@ -85,15 +106,14 @@ def test_a_plain_photograph_is_fit_and_its_crop_is_the_one_asked(tmp_path):
 
 
 def test_the_frame_is_found_and_the_content_box_is_a_whole_rectangle_of_picture(tmp_path):
-    for name, framed in (("wedge", wedge), ("oval", oval)):
-        a = framed(with_subject(ground(1600, 1200), 0.5, 0.5, 0.2))
-        im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
-        an = pf.analyse(im)
-        assert an.matte_share > 0.02, name
-        x0, y0, x1, y1 = an.content_box
-        inner = np.asarray(im.crop((x0 + 8, y0 + 8, x1 - 8, y1 - 8)).convert("L"))
-        assert (inner <= pf.MATTE_LUMA).mean() < 0.002, name     # no frame inside the content box
-        assert (x1 - x0) * (y1 - y0) > 0.35 * 1600 * 1200, name   # and it is the large rectangle, not a sliver
+    a = border(with_subject(ground(1600, 1200), 0.5, 0.5, 0.2))
+    im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+    an = pf.analyse(im)
+    assert an.matte_share > 0.1
+    x0, y0, x1, y1 = an.content_box
+    inner = np.asarray(im.crop((x0 + 8, y0 + 8, x1 - 8, y1 - 8)).convert("L"))
+    assert (inner <= pf.MATTE_LUMA).mean() < 0.002                 # no frame inside the content box
+    assert abs(x0 - 120) <= 8 and abs(y1 - 1080) <= 8 and y0 == 0 and x1 == 1600
     letter = np.zeros((1200, 1600, 3), np.float32)
     letter[200:1000] = with_subject(ground(1600, 800), 0.5, 0.5, 0.3)
     an = pf.analyse(Image.fromarray(letter.astype(np.uint8)))
@@ -103,15 +123,97 @@ def test_the_frame_is_found_and_the_content_box_is_a_whole_rectangle_of_picture(
     assert pf.analyse(Image.fromarray(dark.astype(np.uint8))).matte_share == 0
 
 
+def test_scene_black_is_not_a_frame():
+    """Review of cycle 5, B1: digital black the picture's content runs into, or whose inner edge is not a straight
+    full-length band, is the photograph's SCENE (space above the Earth's limb, a specimen on a black ground, a
+    spacecraft window's curved wedge, an oval surround, the black round an arched window): no window moves for it."""
+    subject = with_subject(ground(1600, 1200), 0.5, 0.6, 0.2)
+    h, w = 1200, 1600
+    yy, xx = np.mgrid[0:h, 0:w]
+    studio = subject.copy()
+    studio[np.hypot((xx - w / 2) / (0.42 * w), (yy - h / 2) / (0.40 * h)) > 1] = 0   # a specimen on a black ground
+    arch = subject.copy()
+    arch[(yy < 0.3 * h) & (np.hypot(xx - w / 2, yy - 0.3 * h) > w / 2)] = 0          # an arched window's spandrels
+    for name, a in (("limb", limb(subject)), ("wedge", wedge(subject)), ("oval", oval(subject)),
+                    ("studio", studio), ("arch", arch)):
+        an = pf.analyse(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)))
+        assert an.matte_share == 0, name
+    # a mount's rounded corners are a frame
+    corners = subject.copy()
+    r = 60
+    for cx, cy in ((r, r), (w - r, r), (r, h - r), (w - r, h - r)):
+        q = ((xx < r) if cx == r else (xx >= w - r)) & ((yy < r) if cy == r else (yy >= h - r))
+        corners[q & (np.hypot(xx - cx, yy - cy) > r)] = 0
+    assert pf.analyse(Image.fromarray(np.clip(corners, 0, 255).astype(np.uint8))).matte_share > 0
+
+
+def test_a_story_window_over_black_space_keeps_its_subject(tmp_path):
+    """B1 on a Story frame (the Richat Eye under black space and a spacecraft): the window asked is drawn, and no
+    move without a reviewed subject box leaves the asked window's centre."""
+    a = with_subject(ground(2150, 1856, grain=3), 0.36, 0.72, 0.12)      # the crater, low and left of centre
+    h, w = a.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    space = yy < 0.28 * h + 0.2 * h * ((xx - w / 2) / (w / 2)) ** 2
+    lit = a.copy()
+    a[space] = 0                                                             # space above the limb
+    a[(xx < 0.35 * w) & (yy < 0.30 * h)] = (200, 200, 210)                  # a spacecraft in it, bright and hard
+    p = save(tmp_path, "orbit.png", a)
+    rec = pf.place(p, pf.Window((1080, 1920), name="story"), (0.5, 0.5))
+    asked = pf.fit_box((w, h), (1080, 1920))
+    assert not rec["moved"] and rec["box"] == [round(v, 1) for v in asked] and rec["matte"] == 0
+    # with a real frame (a straight border down the right), the move is taken and holds the asked centre
+    lit[:, int(0.93 * w):] = 0
+    p2 = save(tmp_path, "framed.png", lit)
+    got = pf.place(p2, pf.Window((1080, 1920), name="story"), (1.0, 0.5))
+    ask = pf.fit_box((w, h), (1080, 1920), (1.0, 0.5))
+    cx, cy = (ask[0] + ask[2]) / 2, (ask[1] + ask[3]) / 2
+    hw, hh = (ask[2] - ask[0]) * pf.MOVE_HOLD / 2, (ask[3] - ask[1]) * pf.MOVE_HOLD / 2
+    assert got["moved"] and got["matte"] <= pf.MATTE_MAX and got["basis"] == "asked centre held"
+    b = got["box"]
+    assert b[0] <= cx - hw + 1 and b[2] >= min(cx + hw, int(0.93 * w)) - 2 and b[1] <= cy - hh + 1
+    assert b[3] >= cy + hh - 1
+    if got["fit"]:
+        assert got["kept_asked"] >= pf.MOVE_KEEP
+
+
+@pytest.mark.parametrize("case", json.loads((ROOT / "tests/fixtures/photo_fitness_c5/cases.json").read_text(
+    encoding="utf-8")), ids=lambda c: c["name"])
+def test_the_reviews_story_frames_keep_their_subject(case):
+    """Review of cycle 5, B1, on the real photographs (kept at the measure's own 256 px; the stained glass as the
+    silhouette of its digital black only): the two Richat Story 03 frames moved off black space, the Eye left the
+    picture and the record said fit; the stained-glass window's crop moved down and cut the figure's head. The Richat
+    photographs hold no frame and are drawn as asked; the window's straight border is a frame, and the crop that
+    clears it holds the asked window's centre."""
+    rgb = np.asarray(Image.open(ROOT / "tests/fixtures/photo_fitness_c5" / f"{case['name']}.png").convert("RGB"))
+    an = pf.analyse_maps(rgb, tuple(case["size"]))
+    window = pf.Window((1080, 1920), name="story")
+    rec = pf.place(None, window, tuple(case["centering"]), analysis=an)
+    asked = pf.fit_box(an.size, window.size, tuple(case["centering"]))
+    if case["name"].startswith("richat"):
+        assert an.matte_share == 0 and not rec["moved"] and rec["box"] == [round(v, 1) for v in asked]
+        return
+    assert an.matte_share > 0
+    if not rec["moved"]:     # no crop clears the border and keeps the asked view: the asked one, recorded unfit
+        assert rec["box"] == [round(v, 1) for v in asked] and not rec["fit"] and rec["problems"] == ["matte"]
+        return
+    assert rec["basis"] == "asked centre held" and rec["fit"]
+    cx, cy = (asked[0] + asked[2]) / 2, (asked[1] + asked[3]) / 2
+    hw, hh = (asked[2] - asked[0]) * pf.MOVE_HOLD / 2, (asked[3] - asked[1]) * pf.MOVE_HOLD / 2
+    x0, y0, x1, y1 = an.content_box
+    b = rec["box"]
+    assert b[0] <= max(cx - hw, x0) + 1 and b[2] >= min(cx + hw, x1) - 1
+    assert b[1] <= max(cy - hh, y0) + 1 and b[3] >= min(cy + hh, y1) - 1
+
+
 def test_the_crop_that_clears_a_frame_keeps_the_subject_in_view(tmp_path):
     """PHOTO-03, the regression this stream exists for: lane D cycle 4 moved a slide's window off a black wedge and
     onto bare sand, and nothing measured the subject. The subject sits low and left, beside the wedge."""
-    a = wedge(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13))
-    p = save(tmp_path, "wedge.png", a)
+    a = border(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13))
+    p = save(tmp_path, "border.png", a)
     window = pf.Window((1440, 1100), name="split")
     an = pf.analysis_of(p)
     asked = pf.place(p, window, fixed=True)
-    assert "matte" in asked["problems"]                          # the centred window shows the wedge
+    assert "matte" in asked["problems"]                          # the centred window shows the border
     rec = pf.place(p, window)
     assert rec["fit"] and rec["moved"] and rec["matte"] <= pf.MATTE_MAX
     assert rec["keep"] >= pf.SUBJECT_KEEP and rec["density"] >= pf.DENSITY_MIN
@@ -137,6 +239,21 @@ def test_a_flat_view_and_an_empty_view_are_unfit(tmp_path):
     assert set(rec["problems"]) <= set(pf.SOFT) and "rule: a photograph is fit" in pf.reason(rec, "the slide")
     other = save(tmp_path, "mid.png", with_subject(ground(1200, 2000, seed=3), 0.5, 0.3, 0.12))
     assert [q.name for q, _r in pf.rank([p, other], full)] == ["mid.png", "low.png"]   # the picker takes the fit one
+
+
+def test_salience_alone_moves_no_window():
+    """Decision D1 (review of cycle 5, D4): the soft measures of an unreviewed photograph are recorded and never alone
+    the cause of a move, even where a nearer crop would hold more of what salience reads as the subject (a move made
+    for it took a Story frame to the aircraft's wing at the photograph's edge)."""
+    im = Image.fromarray(np.clip(with_subject(ground(3000, 1500, grain=1), 0.33, 0.5, 0.08), 0, 255).astype(np.uint8))
+    an = pf.analyse(im)
+    window = pf.Window((1080, 1920), name="story")
+    rec = pf.place(None, window, analysis=an)
+    assert rec["problems"] and set(rec["problems"]) <= set(pf.SOFT)
+    assert not rec["moved"] and rec["box"] == [round(v, 1) for v in pf.fit_box(an.size, window.size)]
+    # the move it did not take exists: a crop holding the asked centre with more of the subject in view
+    left = pf.fit_box(an.size, window.size, (0.38, 0.5))
+    assert an.total("salience", left) > 1.3 * an.total("salience", tuple(rec["box"]))
 
 
 def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():
@@ -208,25 +325,31 @@ def test_a_move_does_not_set_the_type_on_a_busier_ground(tmp_path):
     asked = pf.place(p, window, fixed=True)
     assert "matte" in asked["problems"]
     rec = pf.place(p, window)
-    assert rec["moved"] and rec["matte"] <= pf.MATTE_MAX
-    assert rec["protected"][0]["busy"] <= max(pf.BUSY_MOVE_MAX, asked["protected"][0]["busy"]) or not rec["fit"]
-    if rec["fit"]:
-        assert rec["box"][0] > 1300 * 0.6                          # the masthead's box is off the clutter
+    if rec["moved"]:
+        assert rec["fit"] and rec["matte"] <= pf.MATTE_MAX
+        assert rec["protected"][0]["busy"] <= max(pf.BUSY_MOVE_MAX, asked["protected"][0]["busy"])
+    else:   # no crop that clears the frame keeps the asked centre and a calm ground: the asked one, recorded
+        assert rec["box"] == asked["box"] and not rec["fit"] and "matte" in rec["problems"]
+    # a move is never taken that trades the asked crop's defect for another one (review of cycle 5, B1)
+    assert rec["fit"] or not rec["moved"] or set(rec["problems"]) < set(asked["problems"])
 
 
 # ---------------------------------------------------------------- the surfaces ask it
 def test_every_cover_crop_stays_inside_the_photographs_content(tmp_path):
     from src.typography import cover_crop
-    for name, framed in (("wedge", wedge), ("oval", oval)):
-        p = save(tmp_path, f"{name}.png", framed(with_subject(ground(1800, 1400), 0.5, 0.5, 0.2)))
-        for size in ((1080, 1920), (1920, 1080), (1440, 1800)):
-            out = np.asarray(cover_crop(p, size).convert("L"))
-            assert (out <= pf.MATTE_LUMA).mean() <= 0.004, (name, size)
+    p = save(tmp_path, "border.png", border(with_subject(ground(1800, 1400), 0.5, 0.5, 0.2), 0.05, 0.06))
+    for size in ((1080, 1920), (1920, 1080), (1440, 1800)):
+        out = np.asarray(cover_crop(p, size).convert("L"))
+        assert (out <= pf.MATTE_LUMA).mean() <= 0.004, size
+    scene = save(tmp_path, "limb.png", limb(with_subject(ground(1800, 1400), 0.5, 0.6, 0.2)))
+    with Image.open(scene) as im:                                  # scene black: cropped exactly as asked
+        plain = ImageOps.fit(im.convert("RGBA"), (1080, 1920), Image.LANCZOS)
+    assert np.array_equal(np.asarray(cover_crop(scene, (1080, 1920))), np.asarray(plain))
 
 
 def test_the_carousel_window_records_its_fit_and_never_shows_the_frame(tmp_path):
     from src import multi_format as mf
-    p = save(tmp_path, "wedge.png", wedge(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13)))
+    p = save(tmp_path, "border.png", border(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13)))
     mf._render_state.window_k, mf._render_state.masthead_box, mf._render_state.window_rec = 0, None, []
     try:
         im = mf.MultiFormatGenerator._fill(p, (1440, 1100), view=(0, 0, 1440, 900))
@@ -292,10 +415,17 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     a = np.asarray(im.convert("RGB"), np.int16)
     x0, y0, x1, y1 = lay.meta["composition"]["image_box"]
     assert np.abs(a[:y0 - 2] - ink).max() <= 2                     # nothing of the photograph above its window
-    # an unreviewed tall photograph fills the cover whole
+    # an unreviewed square photograph with its subject in the profile tile's view fills the cover
+    square = Image.fromarray(np.clip(with_subject(ground(1800, 1800), 0.5, 0.45, 0.2), 0, 255).astype(np.uint8))
+    im, lay = _cover(square)
+    assert lay.meta["composition"]["mode"] in ("full_bleed", "photo_over_ink") and lay.meta["photo_fit"]["fit"]
+    assert all(t["shown"] >= 0.5 for t in lay.meta["photo_fit"]["tried"] if not t["problems"])
+    # an unreviewed PORTRAIT photograph stays whole (review of cycle 5, B2: a full-width band of a portrait cut the
+    # statue's head out of the profile tile): contained, once, on INK, with the reason recorded
     tall = Image.fromarray(np.clip(with_subject(ground(1400, 2400), 0.5, 0.4, 0.2), 0, 255).astype(np.uint8))
     im, lay = _cover(tall)
-    assert lay.meta["composition"]["mode"] == "full_bleed"
+    assert lay.meta["composition"]["mode"] == "contain" and lay.meta["composition"]["source_box"] == [0, 0, 1400, 2400]
+    assert lay.meta["photo_fit"]["fit"] is False and "portrait" in lay.meta["photo_fit"]["reason"]
     # an unreviewed wide one is not cut to a quarter of itself: it stands whole, once, on INK (the cycle-5 crop of a
     # 2:1 miniature showed its parchment and no ship)
     ends = Image.fromarray(np.clip(with_subject(with_subject(ground(3000, 1500), 0.15, 0.5, 0.3), 0.85, 0.5, 0.3, 2),
@@ -385,9 +515,11 @@ def test_a_hero_that_cannot_fill_the_cover_gives_way(tmp_path, monkeypatch):
     pano = save(tmp_path, "01_pano.png", np.concatenate([np.zeros((300, 3000, 3), np.float32),
                                                          with_subject(ground(3000, 500), 0.5, 0.5, 0.4),
                                                          np.zeros((300, 3000, 3), np.float32)]))
-    tall = save(tmp_path, "02_tall.png", with_subject(ground(1400, 2400), 0.5, 0.4, 0.2))
-    assert hero_photo.fills_cover(tall) and not hero_photo.fills_cover(pano)
-    assert hero_photo.score(tall) is not None
+    square = save(tmp_path, "02_square.png", with_subject(ground(1800, 1800), 0.5, 0.45, 0.2))
+    tall = save(tmp_path, "03_tall.png", with_subject(ground(1400, 2400), 0.5, 0.4, 0.2))
+    assert hero_photo.fills_cover(square) and not hero_photo.fills_cover(pano)
+    assert not hero_photo.fills_cover(tall)          # an unreviewed portrait stands contained (cover_design._filled)
+    assert hero_photo.score(square) is not None
 
 
 # ---------------------------------------------------------------- the corpus proof uses this measure
@@ -397,7 +529,7 @@ def test_the_corpus_script_judges_with_the_trees_measure(tmp_path):
     corpus = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(corpus)
     assert corpus.pf is pf
-    p = save(tmp_path, "wedge.png", wedge(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13)))
+    p = save(tmp_path, "border.png", border(with_subject(ground(1600, 1600), 0.36, 0.70, 0.13)))
     an = corpus.Photos(None).get(p)
     surfaces = corpus.windows()
     assert {kind for _s, kind, _w in surfaces} == {"carousel", "story", "ground", "hook"} and len(surfaces) >= 13
@@ -406,7 +538,7 @@ def test_the_corpus_script_judges_with_the_trees_measure(tmp_path):
         base_bad += bool(corpus.crop_base(an, window, kind)["problems"])
         tip = corpus.crop_tip(an, window, kind)
         tip_bad += "matte" in tip["problems"]
-    assert tip_bad == 0                                            # no window of any surface shows the wedge
+    assert tip_bad == 0                                            # no window of any surface shows the border
     assert base_bad > 0                                            # the base rule's croppers did
     assert corpus.cover_tip(an)["problems"] == []
 

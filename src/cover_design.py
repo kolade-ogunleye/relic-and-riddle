@@ -667,6 +667,18 @@ def _filled(source, focus, top, lay):
     if focus:
         fx0, fy0, fx1, fy1 = focus["focus_box"]
         fbox = (fx0 * sw, fy0 * sh, fx1 * sw, fy1 * sh)
+    if fbox is None and sh > sw:
+        # An unreviewed PORTRAIT photograph stays whole (review of cycle 5, B2): a full-width crop of it keeps a
+        # band of its height, and nothing says which band holds the subject (the Memnon statue's head and chest
+        # fell above the profile tile; a pillar's capital and a temple's tower were cut). Until a reviewed subject
+        # box exists for it, the cover takes the contained window on INK: the photograph once, whole.
+        if lay is not None:
+            lay.meta["photo_fit"] = {"fit": False, "tried": [], "layout": "contain",
+                                     "reason": "the Reel cover's full-width photograph: an unreviewed portrait "
+                                               "photograph is shown whole (no subject box to crop it by; rule: "
+                                               "a photograph is fit for the window it is put in, "
+                                               "src/photo_fitness.py)"}
+        return None
     analysis = pf.analyse(src, fbox)
     foot = min(1920, int(top) - COVER_INK_CLEAR)
     tried = []

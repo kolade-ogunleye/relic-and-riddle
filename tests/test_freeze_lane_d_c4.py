@@ -124,11 +124,31 @@ def _wedge(w: int = 1600, h: int = 1600) -> Image.Image:
     return im
 
 
-def test_a_black_window_wedge_is_cleared_inside_the_enlargement_limit():
+def _border(w: int = 1600, h: int = 1600) -> Image.Image:
+    """A scan's border: straight digital-black bands down the left side and across the foot (the source's frame)."""
+    rng = np.random.default_rng(4)
+    a = (rng.normal(120, 18, (h, w, 3))).clip(30, 230).astype(np.uint8)
+    a[:, :int(0.08 * w)] = 0
+    a[int(0.9 * h):] = 0
+    return Image.fromarray(a)
+
+
+def test_a_spacecraft_windows_wedge_is_the_photographs_scene():
+    # review of cycle 5, B1: a curved or slanted black region the picture runs into is scene, not the source's frame;
+    # moving off it took the Richat Eye out of a Story frame. The window asked is kept (and nothing is recorded as
+    # matte).
+    im = _wedge()
+    an = pf.analyse(im)
+    assert an.matte_share == 0
+    got = pf.place(None, pf.Window((1440, 1800), checks=("matte", "upscale")), image=im, analysis=an)
+    assert not got["moved"] and got["fit"]
+
+
+def test_a_black_border_is_cleared_inside_the_enlargement_limit():
     # freeze cycle 5: the frame is one measure of the photo-fitness rule (src/photo_fitness.py), judged with the
     # subject the move must keep; lane D cycle 4's frame_window (which held the centre and asked nothing of the
     # subject) left the tree. tests/test_photo_fitness.py holds the subject half.
-    im = _wedge()
+    im = _border()
     an = pf.analyse(im)
     for size in ((1440, 1800), (1440, 1000)):
         got = pf.place(None, pf.Window(size, checks=("matte", "upscale")), image=im, analysis=an)
@@ -154,9 +174,9 @@ def test_a_frame_across_the_top_is_left_out_of_the_window_or_recorded():
     assert (got["fit"] and got["box"][1] >= 418) or (not got["fit"] and "matte" in got["problems"])
 
 
-def test_the_slide_window_draws_no_wedge(tmp_path):
-    p = tmp_path / "wedge.jpg"
-    _wedge().save(p, quality=95)
+def test_the_slide_window_draws_no_border(tmp_path):
+    p = tmp_path / "border.jpg"
+    _border().save(p, quality=95)
     from src.multi_format import _render_state
     _render_state.window_rec = []
     im = MultiFormatGenerator._fill(p, (1440, 1800), top=False)

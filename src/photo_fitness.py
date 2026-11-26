@@ -33,7 +33,8 @@ numbers):
   fails it whatever the subject is. "keep" compares crops of ONE shape, so it cannot see what the shape itself leaves
   out (a 2:1 miniature cut to 9:16 keeps a quarter of itself in its best crop as in its worst). A window that crops an
   unreviewed photograph hard asks for "shown" as well (Window.shown_min): the share of the photograph's whole
-  salience that lies where the photograph shows unobscured (the window's `hold`, else its view).
+  salience that lies where the photograph shows unobscured (the window's view: a Reel cover's starts at the profile
+  grid's square, so what the tile leaves out is not counted as shown).
 - flat: the share of the view whose blocks have no spread of luma (FLAT_STD over FLAT_BLOCK: sand, sky, a wall,
   out-of-focus ground; the panel's own block measure), against FLAT_MAX.
 - tone: "extreme", the share of the view that is near-white or near-black (TONE_WHITE, TONE_BLACK), against TONE_MAX;
@@ -89,6 +90,26 @@ MATTE_STD = 2.5
 MATTE_MEAN = 2.0
 MATTE_MIN_AREA = 0.003    # of the picture: a smaller dark corner is not a frame
 MATTE_MAX = 0.002         # of a crop: more than this of frame in it shows as an edge
+# Which of that black is the FRAME (the review of cycle 5, B1: black space above the Earth's limb, a dark foreground and
+# a studio's black ground were taken for a frame, and the window moved the subject out of the picture): a band along a
+# side, over FRAME_FULL of the side's length between its FRAME_ENDS, whose inner edge is straight (FRAME_EDGE of its
+# lines within FRAME_STRAIGHT of the picture, or FRAME_STRAIGHT_PX analysis px, of their median depth); a mount's
+# rounded corner (FRAME_CORNER of each side) at a band's end or alone. Everything else is the photograph's own scene.
+# Measured on the dev pool's 20 photographs with digital black at an edge: a plate's or scan's border lies within 1 px
+# of its median on 0.89-1.0 of its lines; the limb under black space (Richat 10) on 0.67, a spacecraft against space
+# (Richat 06) on 0.04.
+FRAME_FULL = 0.98
+FRAME_ENDS = 0.10
+FRAME_STRAIGHT = 0.004
+FRAME_STRAIGHT_PX = 1
+FRAME_EDGE = 0.85         # of a band's lines whose inner edge lies within that spread of their median
+FRAME_CORNER = 0.12
+FRAME_CORNER_MIN = 8       # analysis px: a mount's corner alone in it is a frame from this size (MATTE_MIN_AREA spared)
+# A window moved without a REVIEWED subject box keeps the asked window's centre: the moved crop holds the central
+# MOVE_HOLD of the asked crop on each axis, and its view keeps MOVE_KEEP of the salience the asked view held. "keep"
+# compares crops with each other, not with the subject: a spacecraft is more salient than the crater it flies over.
+MOVE_HOLD = 0.5
+MOVE_KEEP = 0.70
 
 # The soft measures' thresholds are the corpus' own 5 % tail: over the 353 pool photographs of the dev runs in every
 # photo window (5289 asked crops; corpus/photo_fitness.py --distribution prints it), the 5th percentile of "keep" is
@@ -128,7 +149,7 @@ class Window:
     checks: tuple[str, ...] = ("matte", "upscale", "subject", "flat", "protected")   # the measures that can fail it
     hold: Box | None = None   # output px box a reviewed subject must lie whole in (None: the view)
     focus_min: float = FOCUS_KEEP   # the share of a reviewed subject the VIEW must show (with `hold`: under 1)
-    shown_min: float = 0.0    # of an UNREVIEWED photograph's whole salience, the least `hold` (else the view) shows
+    shown_min: float = 0.0    # of an UNREVIEWED photograph's whole salience, the least the view shows
 
     def view_box(self) -> Box:
         w, h = self.size
@@ -198,10 +219,49 @@ class Analysis:
         return min(1.0, self.total(name, box) / area)
 
 
+def _frame_part(comp: np.ndarray) -> np.ndarray:
+    """The part of one edge-touching region of digital black that is the source's FRAME (review of cycle 5, B1): a
+    hard, straight band along a whole side of the picture that the picture's content does not run into (a letterbox,
+    a pillarbox, a scan or plate border), and a mount's rounded corner at a band's end or alone in a corner. Black that
+    the picture's content runs into, or whose inner edge is not straight (space above a planet's curved limb, a
+    spacecraft against the sky, a dark foreground, a studio's black ground, the black round an arched window or a
+    spacecraft window's curved wedge), is SCENE: it is the photograph, and no window is moved for it."""
+    h, w = comp.shape
+    out = np.zeros_like(comp)
+    ch, cw = max(1, int(round(FRAME_CORNER * h))), max(1, int(round(FRAME_CORNER * w)))
+    ys, xs = np.nonzero(comp)
+    if ys.size and ((xs.max() < cw or xs.min() >= w - cw) and (ys.max() < ch or ys.min() >= h - ch)
+                    and (xs.min() == 0 or xs.max() == w - 1) and (ys.min() == 0 or ys.max() == h - 1)):
+        return comp.copy()           # a mount's corner, alone in it, on both of its edges
+    # (side view of comp, how to put a side-view mask back)
+    views = (("top", comp, lambda m: m), ("bottom", comp[::-1], lambda m: m[::-1]),
+             ("left", comp.T, lambda m: m.T), ("right", comp.T[::-1], lambda m: m[::-1].T))
+    for _name, arr, back in views:
+        depth = np.where(arr.all(axis=0), arr.shape[0], arr.argmin(axis=0))   # black run from the side, per line
+        n = arr.shape[1]
+        lo, hi = int(FRAME_ENDS * n), max(int(FRAME_ENDS * n) + 1, int(np.ceil((1 - FRAME_ENDS) * n)))
+        mid = depth[lo:hi]
+        if mid.size == 0 or float((mid > 0).mean()) < FRAME_FULL:
+            continue                 # not the side's whole length
+        tol = max(FRAME_STRAIGHT_PX, FRAME_STRAIGHT * arr.shape[0])
+        level = float(np.median(mid))
+        if float((np.abs(mid - level) <= tol).mean()) < FRAME_EDGE:
+            continue                 # its inner edge is not straight: the content runs into it
+        d = int(np.ceil(level + tol)) + 1
+        band = np.zeros_like(arr)
+        band[:d] = True
+        c = max(1, int(round(FRAME_CORNER * n)))
+        band[:, :c] = True           # a mount's rounded corner at either end of the band
+        band[:, n - c:] = True
+        band[min(arr.shape[0], max(d, int(round(FRAME_CORNER * arr.shape[0])))):] = False
+        out |= back(arr & band)
+    return out
+
+
 def matte_mask(lum: np.ndarray, video: bool = False) -> np.ndarray:
-    """The frame pixels of a luma picture (0-255): every connected region of digital black (MATTE_LUMA or under,
-    even, MATTE_MEAN or under as a whole) of at least MATTE_MIN_AREA that touches the picture's edge. `video`: an
-    encoded frame, whose black carries noise (twice the levels)."""
+    """The frame pixels of a luma picture (0-255): the FRAME part (_frame_part) of every connected region of digital
+    black (MATTE_LUMA or under, even, MATTE_MEAN or under as a whole) of at least MATTE_MIN_AREA that touches the
+    picture's edge. `video`: an encoded frame, whose black carries noise (twice the levels)."""
     import cv2
     k = 2.0 if video else 1.0
     n, lab, st, _ = cv2.connectedComponentsWithStats((lum <= MATTE_LUMA * k).astype(np.uint8), connectivity=8)
@@ -209,11 +269,15 @@ def matte_mask(lum: np.ndarray, video: bool = False) -> np.ndarray:
     ah, aw = lum.shape
     for i in range(1, n):
         x, y, bw, bh, area = (int(v) for v in st[i])
-        if area < MATTE_MIN_AREA * ah * aw or not (x == 0 or y == 0 or x + bw == aw or y + bh == ah):
+        if not (x == 0 or y == 0 or x + bw == aw or y + bh == ah):
+            continue
+        corner = (bw <= FRAME_CORNER * aw and bh <= FRAME_CORNER * ah and (x == 0 or x + bw == aw)
+                  and (y == 0 or y + bh == ah))
+        if area < (FRAME_CORNER_MIN if corner else MATTE_MIN_AREA * ah * aw):   # a mount's corner is small
             continue
         comp = lab == i
         if float(lum[comp].std()) <= MATTE_STD * k and float(lum[comp].mean()) <= MATTE_MEAN * k:
-            mask |= comp
+            mask |= _frame_part(comp)
     return mask
 
 
@@ -265,11 +329,22 @@ def _salience(rgb: np.ndarray, detail: np.ndarray, matte: np.ndarray) -> np.ndar
 
 def analyse(clean: Image.Image, focus: Box | None = None, video: bool = False) -> Analysis:
     """The maps of a CLEAN picture (hero_window.clean's result, or a video frame)."""
-    import cv2
     w, h = clean.size
     scale = min(1.0, ANALYSIS / max(w, h))
     aw, ah = max(1, round(w * scale)), max(1, round(h * scale))
     rgb = np.asarray(clean.convert("RGB").resize((aw, ah), Image.Resampling.BOX), np.uint8)
+    thumb = clean.convert("RGB")
+    thumb.thumbnail((THUMB, THUMB), Image.Resampling.BILINEAR)
+    thumb.info = {}   # no EXIF or ICC blob kept with the analysis
+    return analyse_maps(rgb, (w, h), focus, video, thumb)
+
+
+def analyse_maps(rgb: np.ndarray, size: tuple[int, int], focus: Box | None = None, video: bool = False,
+                 thumb: Image.Image | None = None) -> Analysis:
+    """The maps of a picture of `size` px from its ANALYSIS-px RGB (analyse's, or a kept analysis' `rgb`)."""
+    import cv2
+    w, h = size
+    ah, aw = rgb.shape[:2]
     lum = rgb.astype(np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
     matte = matte_mask(lum, video)
     gx = cv2.Sobel(lum, cv2.CV_32F, 1, 0, ksize=3) / 4.0
@@ -282,9 +357,6 @@ def analyse(clean: Image.Image, focus: Box | None = None, video: bool = False) -
     sx, sy = w / aw, h / ah
     content = (int(np.ceil(box[0] * sx)), int(np.ceil(box[1] * sy)), int(np.floor(box[2] * sx)),
                int(np.floor(box[3] * sy)))
-    thumb = clean.convert("RGB")
-    thumb.thumbnail((THUMB, THUMB), Image.Resampling.BILINEAR)
-    thumb.info = {}   # no EXIF or ICC blob kept with the analysis
     return Analysis((w, h), aw / w, matte, detail, _salience(rgb, detail, matte), rgb, content,
                     float(matte.mean()), focus, thumb)
 
@@ -441,9 +513,8 @@ def measure(a: Analysis, box: Box, window: Window, best_view: float | None = Non
         rec["focus"] = round(_overlap(a.focus, view), 3)
         if window.hold is not None:
             rec["held"] = round(_overlap(a.focus, _sub(box, out, window.hold)), 3)
-    elif window.shown_min > 0:
-        open_part = _sub(box, out, _clip(window.hold, out)) if window.hold is not None else view
-        rec["shown"] = round(a.total("salience", open_part), 3)
+    elif window.shown_min > 0:   # measured on the VIEW (a cover's: from the profile grid's square), not on `hold`:
+        rec["shown"] = round(a.total("salience", view), 3)   # what the tile leaves out is not shown (review B2)
     prot = [protected_measure(a, _sub(box, out, p)) for p in window.protected]
     if prot:
         rec["protected"] = prot
@@ -548,8 +619,31 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     def crowded(r: dict[str, Any]) -> bool:
         return overlap_max is not None and r.get("overlap", 0.0) > overlap_max + 1e-6
 
-    plain = _candidates(a, window, 1.0)
-    best1 = max([held(asked), *(held(b) for b in plain)])
+    # Without a REVIEWED subject box no measure knows where the subject is, so a move keeps the asked window's centre
+    # (MOVE_HOLD of it on each axis) and MOVE_KEEP of the salience its view held: a window moved off black space onto
+    # a spacecraft left the crater it was asked for out of the picture, recorded fit because the spacecraft is salient
+    # (review of cycle 5, B1). With a reviewed box the box itself is held (FOCUS_KEEP).
+    cx, cy = (asked[0] + asked[2]) / 2, (asked[1] + asked[3]) / 2
+    hw, hh = (asked[2] - asked[0]) * MOVE_HOLD / 2, (asked[3] - asked[1]) * MOVE_HOLD / 2
+    rx0, ry0, rx1, ry1 = _region(a)   # the frame is not picture: the centre held is the asked centre's picture part
+    centre = (max(cx - hw, rx0), max(cy - hh, ry0), min(cx + hw, rx1), min(cy + hh, ry1))
+    asked_view = held(asked)
+
+    def holds(b: Box) -> bool:
+        return a.focus is not None or (b[0] <= centre[0] + 1e-6 and b[1] <= centre[1] + 1e-6
+                                       and b[2] >= centre[2] - 1e-6 and b[3] >= centre[3] - 1e-6)
+
+    def kept(r: dict[str, Any]) -> dict[str, Any]:
+        """A moved crop of an unreviewed photograph: its view's salience against the asked view's ("kept_asked");
+        under MOVE_KEEP the move lost what was asked for ("subject")."""
+        if a.focus is None:
+            r["kept_asked"] = round(min(9.99, r["subject"] / asked_view), 3) if asked_view > 1e-9 else 1.0
+            if r["kept_asked"] < MOVE_KEEP and "subject" not in r["problems"] and "subject" in window.checks:
+                r["problems"].append("subject")
+        return r
+
+    every = _candidates(a, window, 1.0)
+    best1 = max([held(asked), *(held(b) for b in every)])
     base = judged(asked, 1.0, best1)
     # What moves a window is what is measured for certain: the source's frame in it, the enlargement, a structure
     # under the type, a REVIEWED subject out of view. What salience suggests of an unreviewed photograph (SOFT) is
@@ -569,11 +663,14 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     for zoom in ZOOM_STEPS:
         if zoom > window.zoom_max + 1e-9:
             break
-        boxes = plain if zoom == 1.0 else _candidates(a, window, zoom)
-        if window.size[0] / max(1e-6, boxes[0][2] - boxes[0][0]) > window.upscale_max + 1e-6:
+        every = _candidates(a, window, zoom)
+        if window.size[0] / max(1e-6, every[0][2] - every[0][0]) > window.upscale_max + 1e-6:
             break
-        best = best1 if zoom == 1.0 else max(held(b) for b in boxes)
-        recs = [judged(b, zoom, best, base) for b in boxes]
+        boxes = [b for b in every if holds(b)]
+        if not boxes:
+            continue
+        best = best1 if zoom == 1.0 else max(held(b) for b in every)
+        recs = [kept(judged(b, zoom, best, base)) for b in boxes]
         ok = sorted((r for r in recs if not r["problems"]),
                     key=lambda r: (crowded(r), round(r.get("overlap", 0.0), 2) if crowded(r) else 0.0,
                                    -round(r.get("focus", 0.0), 2), -round(r["subject"], 3), near(r)))
@@ -583,15 +680,22 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
             if not crowded(ok[0]):
                 found = ok[0]
                 break
-        for r in recs:   # no fit crop: the record is the crop with the fewest problems, then the most subject
+        for r in recs:   # no fit crop: the crop with only some of the asked crop's problems, the fewest first
+            if not set(r["problems"]) < set(base["problems"]):
+                continue
             k = (len(r["problems"]), "matte" in r["problems"], zoom, -round(r["subject"], 3), near(r))
             if least is None or k < least[0]:
                 least = (k, r)
     asked_rec = {k: v for k, v in base.items() if k != "zoom"}
+    # what a moved crop's "fit" rests on: a reviewed box held whole, or (no subject box) the asked centre held and
+    # MOVE_KEEP of the asked view's salience kept; never the salience ranking alone
+    basis = "reviewed subject" if a.focus is not None else "asked centre held"
     if found is not None:
-        return {**found, "fit": True, "moved": True, "window": window.name, "base": asked_rec}
-    if base["problems"] and least is not None and least[0][:2] < (len(base["problems"]), "matte" in base["problems"]):
-        return {**least[1], "fit": False, "moved": True, "window": window.name, "base": asked_rec}
+        return {**found, "fit": True, "moved": True, "window": window.name, "base": asked_rec, "basis": basis}
+    # no fit crop: a moved crop is taken only when its problems are some of the asked crop's, never another one (a
+    # crop that clears the frame and loses the subject trades the lesser defect for the greater: review B1)
+    if least is not None:
+        return {**least[1], "fit": False, "moved": True, "window": window.name, "base": asked_rec, "basis": basis}
     return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
 
 
@@ -621,3 +725,19 @@ def rank(photos: Sequence[Path], window: Window, **kw: Any) -> list[tuple[Path, 
         out.append((i, Path(p), rec))
     out.sort(key=lambda t: (not t[2]["fit"], len(t[2]["problems"]) if not t[2]["fit"] else 0, t[0]))
     return [(p, rec) for _, p, rec in out]
+
+
+def drawn_record(photo: Path, window: Window, rec: dict[str, Any], drew: dict[str, Any]) -> dict[str, Any]:
+    """The placement record of the crop a surface DREW when it did not take `rec`'s (place()'s) crop: `drew` is what
+    typography.cover_crop filled in ("box", "moved", "full_image"). The same box: `rec` as it is. Another box: that
+    box measured in `window`, with `rec` kept as "measured" (the record is the drawn box: review of cycle 5, D1)."""
+    if drew.get("full_image"):
+        return {**{k: v for k, v in rec.items() if k != "box"}, "drawn": "full image", "box": None}
+    box = drew.get("box")
+    if box is None or all(abs(float(x) - float(y)) < 1.0 for x, y in zip(box, rec["box"])):
+        return rec
+    a = analysis_of(Path(photo))
+    got = measure(a, tuple(float(v) for v in box), window)
+    got["problems"] = problems(got, window)
+    return {**got, "fit": not got["problems"], "moved": bool(drew.get("moved")), "window": window.name,
+            "drawn": "cover crop", "measured": {k: v for k, v in rec.items() if k != "window"}}

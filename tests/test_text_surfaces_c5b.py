@@ -250,3 +250,30 @@ def test_judge_families(judge):
     assert judge.family("graphic_timeline_916_label2") == "graphic_timeline_916"
     assert judge.family("graphic_route_stop2_169") == "graphic_route_169"
     assert judge.family("endcard_169_share") == "endcard_169_share"
+
+
+# ---------------------------------------------------------------------------------------------------- Reel cover
+def test_cover_lockup_line_faults_are_the_drawn_rows_only():
+    """The Reel cover's lockup (real covers: DRAWN WITHOUT / EVER FLYING, an authored field seam after a last-resort
+    word): the fault is written under "line_faults", the key still_layout.json keeps; a later fit of the same layout
+    replaces it (never a trial fit's rows on the record), other roles' records stay."""
+    from src import cover_design, still_layout
+    measure = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    font = get_font(brand.DISPLAY_FONT, 104)
+    faulty = {"line1": (font, [[("DRAWN WITHOUT", "bone")]]), "line2": (font, [[("EVER FLYING", "gold")]])}
+    clean = {"line1": (font, [[("DRAWN", "bone")]]), "line2": (font, [[("WITHOUT EVER FLYING", "gold")]])}
+    body = {"fault": "measure_over", "line": 0, "text": "x", "role": "body"}
+    record = {"line_faults": [dict(body)]}
+    cover_design.lockup_line_faults(record, measure, faulty)
+    title = [f for f in record["line_faults"] if f.get("role") == "title"]
+    assert [(f["fault"], f["word"], f["text"]) for f in title] == [("function_word_end", "without", "DRAWN WITHOUT")]
+    assert body in record["line_faults"]
+    lay = still_layout.Layout("cover", (1080, 1920), (0, 0, 1080, 1920))
+    lay.meta.update(record)
+    assert still_layout.text_records(lay)["line_faults"] == record["line_faults"]     # what the sidecar keeps
+    cover_design.lockup_line_faults(record, measure, clean)
+    assert record["line_faults"] == [body]
+    only = {}
+    cover_design.lockup_line_faults(only, measure, faulty)
+    cover_design.lockup_line_faults(only, measure, clean)
+    assert "line_faults" not in only

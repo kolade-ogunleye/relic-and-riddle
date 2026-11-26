@@ -144,7 +144,8 @@ def approx_rows(j: dict, d) -> list[dict]:
             else:
                 rows.append({"surface": "cover_lockup", "text": title, "lines": list(form.lines), "size": form.size,
                              "widths": [round(anton(t, form.size), 1) for t in form.lines],
-                             "record": dict(form.record), "heading": True, "approx": True})
+                             "record": dict(form.record), "heading": True, "approx": True,
+                             "record_in_memory": True})
     share = " ".join(str(j.get("share_line") or "").split())
     if len(share.split()) >= 2:
         _notes()

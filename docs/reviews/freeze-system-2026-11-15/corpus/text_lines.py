@@ -184,6 +184,10 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter, dict]:
                 cls = CLASS.get(f["fault"], f["fault"])
                 tot[f"{cls} {f['fault']}"] += 1
                 tot[f"{cls} {'recorded' if ok else 'UNRECORDED'}"] += 1
+                if ok and row.get("record_in_memory"):
+                    # the heading engine's Form.record: the slide keeps it in layout.meta, no run file holds it
+                    tot["recorded in memory only (heading form record, not in still_layout.json)"] += 1
+                    f_["in_memory"] += 1
                 f_[f["fault"]] += 1
                 f_["recorded" if ok else "UNRECORDED"] += 1
                 table.append((run, row["surface"], f"{f['fault']}: {' / '.join(row['lines'])}", why))
@@ -213,11 +217,11 @@ def main() -> int:
     for k in sorted(tot):
         print(f"{k}: {tot[k]}")
     print("\nsurface family | texts | refused | errors | " + " | ".join(FAULTS)
-          + " | recorded | UNRECORDED | weak_end (no violation)")
+          + " | recorded | of which in memory only | UNRECORDED | weak_end (no violation)")
     for name in sorted(fam):
         c = fam[name]
         print(" | ".join([name, str(c["texts"]), str(c["refused"]), str(c["errors"])] + [str(c[k]) for k in FAULTS]
-                         + [str(c["recorded"]), str(c["UNRECORDED"]), str(c["weak_end"])]))
+                         + [str(c["recorded"]), str(c["in_memory"]), str(c["UNRECORDED"]), str(c["weak_end"])]))
     bad = sum(v for k, v in tot.items() if k.endswith("UNRECORDED"))
     print(f"\nunrecorded violations: {bad}")
     print(f"collector errors: {tot['collector errors']}")

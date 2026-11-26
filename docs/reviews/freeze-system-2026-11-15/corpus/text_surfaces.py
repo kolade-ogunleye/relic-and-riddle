@@ -6,6 +6,8 @@ Per surface, the call path (no approximated fit; every function is the productio
 - carousel body      MultiFormatGenerator._body on the 1440 canvas (3 lines on the first / last slide, 4 inside, one
                      more line when shortened: the stack's own retry);
 - carousel heading   MultiFormatGenerator._set_heading (the locked cover spec on slide 1, the content ladder inside);
+                     its record is the engine's Form.record, which the slide keeps in layout.meta only
+                     (record_in_memory: still_layout.json holds no heading record; the judge counts these apart);
 - Story frame        MultiFormatGenerator._render_story_frame through still_layout.drawn (the frame is drawn, never
                      saved): the title fields and the body as the frame's own layout record holds them; the ground is
                      the run's recorded Story photo, else a neutral ground (the text layout reads no pixel of it:
@@ -82,7 +84,7 @@ def carousel_rows(j: dict) -> list[dict]:
                     form, font = g._set_heading(d, px, head, width, "wrap", 1.0, gen.CONTENT_HEADING, True)
                 rows.append({"surface": name, "text": head, "lines": list(form.lines), "size": form.size,
                              "widths": [round(d.textlength(t, font=font), 1) for t in form.lines],
-                             "record": dict(form.record), "heading": True})
+                             "record": dict(form.record), "heading": True, "record_in_memory": True})
             except Exception as ex:   # noqa: BLE001
                 rows.append({"surface": name, "text": head, "refused": True, "reason": str(ex)[:200]}
                             if _refusal(ex) else _err(name, ex))

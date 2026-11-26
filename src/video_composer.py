@@ -1892,6 +1892,13 @@ def _line_break_defect(shown: list[str], k: int) -> bool:
     return never_end_end(shown[k - 1]) or unit_link(shown[k - 1], shown[k])
 
 
+@lru_cache(maxsize=8192)
+def _policy_bonds(raw: tuple[str, ...]) -> frozenset[int]:
+    """The break positions k (before word k) inside a keep-together group of the ONE line policy, but for a range's
+    seam (line_policy.range_seams: the break a range too long for a line may take, recorded)."""
+    return frozenset(_line_policy.keep_together(list(raw)) - _line_policy.range_seams(list(raw)))
+
+
 def _policy_name_split(raw: list[str], k: int) -> bool:
     """Whether a line break before word k of a burst parts a proper name as the ONE line policy reads names
     (line_policy: a run of capitalised words in mixed-case copy, THE INTERNATIONAL / UNION OF GEOLOGICAL, where
@@ -2194,10 +2201,11 @@ def _clip_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
     pure = _reel_form_pure(raw)
     own = pure[1] if pure and pure[0] == "two" and 0 < pure[1] < n else 0
     held = caption_bonds(words) | name_bonds(words) | named | _figure_bonds(list(shown))
+    kept = _policy_bonds(raw)   # the one policy's keep-together groups (10,000 YEARS / AGO), a range's seam apart
     best = None
     for k in range(1, n):
         a, b = shown[:k], shown[k:]
-        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k):
+        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k) or k in kept:
             continue
         # the burst's own break (the builder's form: a figure group's seam, a line past the caps) stands where legal;
         # any other break keeps each line within one burst's caps and parts no bond
@@ -4286,6 +4294,7 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
             forced.append({"text": " ".join(raw[:k]) + " / " + " ".join(raw[k:]),
                            "faults": _break_faults(_phrase_words(list(raw)), k)
                            + (["article_line_end"] if _bare(raw[k - 1]) in _ARTICLES else [])
+                           + (["keep_together_split"] if k in _policy_bonds(raw) else [])
                            + (["figure_group_split"] if (k - 1) in _figure_bonds(_phrase_words(list(raw))) else [])
                            + (["name_split"] if (k - 1) in name_bonds(_phrase_words(list(raw)))
                               or _policy_name_split(list(raw), k) else [])})

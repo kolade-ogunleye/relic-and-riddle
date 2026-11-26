@@ -520,6 +520,9 @@ SHEET_MEASURES = {"endscreen": "endscreen__x__169", "endcard916": "endcard__x", 
                   "bridge": "bridge__x", "bridge_nofollow": "bridge__x", "hook": "hook__x__916",
                   "dissolve": "act_dissolve__x__916"}
 SHEET_SUFFIXES = ("_curves", "_curve", "_timing", "_steps", "_alpha", "_bursts")
+# a surface case named inside a longer label (a peer feed's "ours: slot 5, cover__<topic>__reel")
+_CASE_IN_LABEL = re.compile(r"(?<![A-Za-z0-9_])((?:" + "|".join(sorted(TIER_HEADS, key=len, reverse=True))
+                            + r")__[A-Za-z0-9_]+)")
 
 
 def tier_known(name: str) -> bool:
@@ -547,16 +550,18 @@ def sheet_measures(stem: str, wide_captions: tuple[str, ...] = ()) -> str | None
 
 def tile_tier(name: str, sheet: str = "", wide_captions: tuple[str, ...] = ()) -> tuple[str, str]:
     """(tier, the text drawn in the tile's label strip) for one tile of the sheet `sheet`: the tier of the surface
-    case the tile's label names (any ` | ` part of it that is a case name), else the sheet's own (T4, with the tier
-    of the surface the sheet measures where it measures one). Every tile of every sheet gets one."""
+    case the tile's label names (any ` | ` part of it that is a case name), else the sheet's own (T4: an evidence
+    sheet, a feed among peers), with the tier of the surface it is about where it is about one (the surface a
+    motion sheet measures; our tile in a peer feed, named inside its label). Every tile of every sheet gets one."""
     case = next((part for part in name.split(" | ") if tier_known(part.strip())), None)
     if case is not None:
         t = tier(case.strip(), name, wide_captions)
         return t, f"TIER {t[1:]}: {TIER_WHAT[t]}"
     t = tier(sheet or name, name, wide_captions)
-    about = sheet_measures(sheet or name, wide_captions)
+    inside = _CASE_IN_LABEL.search(name)
+    about = tier(inside.group(1), name, wide_captions) if inside else sheet_measures(sheet or name, wide_captions)
     return t, f"TIER {t[1:]}: {TIER_WHAT[t]}" + (
-        f" | measures a tier {about[1:]} surface ({TIER_WHAT[about]})" if about and about != t else "")
+        f" | about a tier {about[1:]} surface ({TIER_WHAT[about]})" if about and about != t else "")
 
 
 def case_tiers(manifest: dict[str, Any], wide_captions: tuple[str, ...] = ()) -> dict[str, str]:

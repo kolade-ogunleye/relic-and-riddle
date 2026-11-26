@@ -368,7 +368,12 @@ def test_the_tiers_follow_the_usage_inventory(mods):
     assert be.sheet_measures("row07_captions_run__subject__916_bursts") == "T1"
     assert be.sheet_measures("row12_motion_eases") is None and be.sheet_measures("row13_elements") is None
     t, words = be.tile_tier("loop bridge f012 t=0.400s", "row12_motion_bridge")
-    assert t == "T4" and "measures a tier 1 surface" in words
+    assert t == "T4" and "about a tier 1 surface" in words
+    # our tile in a peer feed is named inside its label: the feed sheet is internal, the surface it shows is said
+    t, words = be.tile_tier("Feed at 390 px | ours: slot 5, cover__subject__youtube | PEER SLOTS: STAND-IN", "peer_feed_yt_home")
+    assert t == "T4" and "about a tier 3 surface" in words
+    t, words = be.tile_tier("Feed at 124 px | STAND-IN peer slot 3 | PEER SLOTS: STAND-IN", "peer_feed_ig_grid")
+    assert t == "T4" and "about" not in words
 
 
 def test_every_case_of_every_row_has_a_tier(mods):
@@ -408,7 +413,7 @@ OUTSIDE = [("row02_masthead", "dark | carousel cover | bone 5.2:1 | 1x", "T4"),
            ("row12_motion_bridge", "loop bridge f012 t=0.400s", "T4"),
            ("row13_fb_masthead", "social__subject_1__fb_carousel_slide_01 | Facebook cover masthead region", "T1"),
            ("peer_feed_ig_grid", "STAND-IN peer slot 3", "T4"),
-           ("peer_feed_yt_home", "cover__subject__youtube | ours: slot 2", "T3"),
+           ("peer_feed_yt_home", "Feed at 246 px | ours: slot 2, cover__subject__youtube | PEER SLOTS", "T4"),
            ("row09_endscreen_bridge", "endscreen__0_subject | at rest", "T4")]
 
 

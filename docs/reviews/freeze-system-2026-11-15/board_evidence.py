@@ -281,8 +281,11 @@ def current_graphic(run: Path, kind: str, size: tuple[int, int], work: Path) -> 
     graphics._encode = keep
     w, h = size
     out = work / f"ground_{kind}_{run.name}.mp4"
+    from src.refusal import collecting, hold_rows
     try:
-        with using(0.0):
+        # SYS-A-c4-4: the omission ledger open round the redraw, as graphics.make_all opens it (a part the renderer
+        # leaves out is recorded, never a refused ground); the rows beside the ground's clip
+        with collecting() as omitted, using(0.0):
             if kind == "map":
                 graphics.render_map(inp["place"], out, width=w, height=h, narration=p.get("narration_script") or "")
             elif kind == "numbers":
@@ -294,6 +297,8 @@ def current_graphic(run: Path, kind: str, size: tuple[int, int], work: Path) -> 
                 graphics.render_scale(p["scale_fact"], out, width=w, height=h)
             else:
                 raise ValueError(kind)
+        Path(str(out) + ".omissions.json").write_text(json.dumps(hold_rows(omitted), indent=1, ensure_ascii=False),
+                                                      encoding="utf-8", newline="\n")
     finally:
         graphics._encode = real
         use_palette(None)

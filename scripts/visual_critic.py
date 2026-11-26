@@ -184,7 +184,11 @@ def cmd_render(a) -> int:
                     d = out / "graphics" / run.name[4:]
                     d.mkdir(parents=True, exist_ok=True)
                     clip = d / f"{kind}_{tag}.mp4"
-                    with using(0.0):
+                    # SYS-A-c4-4: the omission ledger open round the render, as graphics.make_all opens it: a case
+                    # that leaves a part out (an event, a name, the scale bar) renders with it recorded, never fails
+                    # as a job (refusal.omit with no ledger refuses the surface); the rows beside the case
+                    from src.refusal import collecting, hold_rows
+                    with collecting() as omitted, using(0.0):
                         if kind == "map":
                             graphics.render_map(inp["place"], clip, width=w, height=h,
                                                 narration=p.get("narration_script") or "")
@@ -193,6 +197,7 @@ def cmd_render(a) -> int:
                                                        narration=p.get("narration_script") or "")
                         else:
                             graphics.render_timeline(p["timeline"], clip, width=w, height=h, photo=None)
+                    _write_json(d / f"{kind}_{tag}.omissions.json", hold_rows(omitted))
                     exp = expect_of(kind, inp)
                     if exp:
                         _write_json(d / f"{kind}_{tag}.expect.json", exp)

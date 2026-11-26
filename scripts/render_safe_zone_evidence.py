@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 from src import graphics, safe_zones  # noqa: E402
 from src.config import FONTS_DIR  # noqa: E402
 from src.multi_format import MultiFormatGenerator  # noqa: E402
+from src.refusal import collecting  # noqa: E402
 from src.typography import get_font  # noqa: E402
 from src.video_composer import VideoComposer  # noqa: E402
 from src.video_qa import caption_pills  # noqa: E402
@@ -83,6 +84,11 @@ def frame_at(video: Path, t: float, out: Path, ass: Path = None) -> Path:
     return out
 
 
+def omission_notes(what: str, rows: list) -> list[str]:
+    """The parts a render left out (its omission ledger rows), one note each: never shown as drawn whole."""
+    return [f"{what}: recorded omission: {r.get('reason') or r.get('omitted')}" for r in rows if isinstance(r, dict)]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run", type=Path)
@@ -129,7 +135,11 @@ def main() -> None:
         if old_poster.exists() and payload.get("stat_cards"):
             overlay(Image.open(old_poster), "reel").save(out / "number-card-before.jpg", quality=90)
             hero = sorted((run / "beat_images").glob("*.jpg"))
-            clip = graphics.render_stat_cards(payload["stat_cards"], tmp / "numbers.mp4", photo=hero[0] if hero else None)
+            # SYS-A-c4-4: the omission ledger open round the render, as graphics.make_all opens it; its rows noted
+            with collecting() as omitted:
+                clip = graphics.render_stat_cards(payload["stat_cards"], tmp / "numbers.mp4",
+                                                  photo=hero[0] if hero else None)
+            notes += omission_notes("Number card", omitted)
             new_poster = Image.open(clip.with_suffix(".jpg"))
             overlay(new_poster, "reel").save(out / "number-card-after.jpg", quality=90)
             notes.append(f"Number card: bright text pixels outside the graphics box {gbox}: before {bright_outside(Image.open(old_poster), gbox)}, "
@@ -138,7 +148,9 @@ def main() -> None:
         # A timeline and a scale on sample data (this run had neither), the two kinds measured over the bounds.
         from tests.test_safe_zones import GRAPHICS
         for kind in ("timeline", "scale_depth"):
-            clip = GRAPHICS[kind](tmp / f"{kind}.mp4")
+            with collecting() as omitted:   # SYS-A-c4-4: as make_all renders them, the omissions recorded
+                clip = GRAPHICS[kind](tmp / f"{kind}.mp4")
+            notes += omission_notes(kind, omitted)
             poster = Image.open(clip.with_suffix(".jpg"))
             overlay(poster, "reel").save(out / f"{kind.replace('_', '-')}-after.jpg", quality=90)
             notes.append(f"{kind} (sample data): bright text pixels outside the graphics box after: {bright_outside(poster, gbox)}.")

@@ -1103,6 +1103,18 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     return im0, lay0
 
 
+def _holds_text_contrast(draw):
+    """A slide or Story frame renderer whose moved photo window is held to the text's contrast (keep_text_contrast):
+    `draw(self, ...)` -> (image, layout)."""
+    import functools
+
+    @functools.wraps(draw)
+    def guarded(self, *args, **kw):
+        im, lay = draw(self, *args, **kw)
+        return keep_text_contrast(lambda: draw(self, *args, **kw), im, lay)
+    return guarded
+
+
 # Lane D cycle 4 (AD-04 + PL-ri3-wedge: the Richat slide 3 showed the Apollo 9 photograph's black window wedge down its
 # left edge) found a source's own FRAME (digital black touching the picture's edge) and moved the window off it. Freeze
 # cycle 5: the frame is one measure of the photo-fitness rule (src/photo_fitness.py: matte_mask, MATTE_*), judged
@@ -1294,14 +1306,9 @@ class MultiFormatGenerator:
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides
 
-    def _render_story_frame(self, *args, **kw):
-        """One Story frame (_draw_story_frame), its moved photo window held to the text's contrast
-        (keep_text_contrast)."""
-        im, lay = self._draw_story_frame(*args, **kw)
-        return keep_text_contrast(lambda: self._draw_story_frame(*args, **kw), im, lay)
-
-    def _draw_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
-                          tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
+    @_holds_text_contrast
+    def _render_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
+                            tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
         """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
         at STORY_MARGIN, a kicker (gold bar, tracked gold capitals), a two-tone Anton title (bone, then gold), the
         Montserrat body in balanced lines, and on the first frame the pointer to the Reel. Every block is measured
@@ -2858,17 +2865,12 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
-    def _render_carousel_slide(self, *args, **kw):
-        """One carousel slide (_draw_carousel_slide), its moved photo window held to the text's contrast
-        (keep_text_contrast)."""
-        im, lay = self._draw_carousel_slide(*args, **kw)
-        return keep_text_contrast(lambda: self._draw_carousel_slide(*args, **kw), im, lay)
-
-    def _draw_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
-                             total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                             subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
-                             lead: str | None = None, window: int = 0, heading_tier: int = 0,
-                             heading_px: float | None = None):
+    @_holds_text_contrast
+    def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
+                               total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
+                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
+                               lead: str | None = None, window: int = 0, heading_tier: int = 0,
+                               heading_px: float | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing

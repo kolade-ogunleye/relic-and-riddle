@@ -544,6 +544,46 @@ def gap_faults(text: str, derived: Mapping[str, Any] | None, payload: Mapping[st
     return [f"no two signed timeline years are {'about ' if hedged else ''}{shown:,} years apart by the timeline's rule"]
 
 
+def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payload: Mapping[str, Any]) -> list[str]:
+    """[] when a derived comparison (a scale's bracket figure, its line of meaning: freeze cycle 5, lander ruling
+    2026-11-26, figures.DERIVED_RULE) holds; else one line per fault. Its record is re-computed (figures.
+    derivation_faults: an allowed operation, sourced operands, the result, the hedge) and every operand is checked
+    against what it claims to be: the run's signed scale_fact, or the reference file's sourced landmark. A bracket's
+    drawn figure is the record's. A bracket that states a figure with no record fails closed."""
+    if not isinstance(derived, Mapping):
+        return ["a derived figure without its derivation record (figures.DERIVED_RULE)"]
+    out = figures.derivation_faults(derived)
+    fact = payload.get("scale_fact") if isinstance(payload.get("scale_fact"), Mapping) else None
+    for o in derived.get("operands") or []:
+        unit = str(o.get("unit") or "").upper()
+        per_ft = _FT_PER.get(unit)
+        if o.get("source") == "scale_fact":
+            try:
+                feet = float(fact["value"]) * _FT_PER["M" if str(fact.get("unit")).lower() == "m" else "FT"]
+            except (TypeError, KeyError, ValueError):
+                out.append(f"its operand {o.get('name')!r} claims the run's scale_fact, which the run does not sign")
+                continue
+            if per_ft is None or abs(float(o["value"]) * per_ft - feet) > CONVERT_TOL * max(feet, 1e-9):
+                out.append(f"its operand {o.get('text')!r} is not the run's signed scale_fact "
+                           f"({fact.get('value')} {fact.get('unit')})")
+        elif o.get("role") == "reference":
+            from .reference_facts import references
+            ref = next((r for r in references() if r.get("id") == o.get("reference_id")
+                        or r.get("label") == o.get("name")), None)
+            if ref is None or not ref.get("source_url") or o.get("source") != ref.get("source_url"):
+                out.append(f"its operand {o.get('name')!r} is not a sourced landmark of the reference file")
+            elif per_ft is None or abs(float(o["value"]) * per_ft - float(ref["feet"])) > CONVERT_TOL * float(ref["feet"]):
+                out.append(f"its operand {o.get('text')!r} is not the reference file's figure for {ref['label']}")
+        else:
+            out.append(f"its operand {o.get('name') or o.get('role')!r} is neither a signed field of the run nor a "
+                       "sourced reference")
+    if name == "bracket" and str(derived.get("shown") or ""):
+        drawn = [f.lo for f in figures.parse(text) if f.values]
+        if str(derived["shown"]) not in drawn:
+            out.append(f"it draws {text!r}, not its derivation's {derived.get('text')!r}")
+    return out
+
+
 def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     """The gate on one run: {"faults": [...], "unrecorded": [...], "judged": n, "derived": n, "surfaces": n}. Each
     fault names the surface, the element, the drawn figure, what is wrong and the nearest signed value."""
@@ -571,6 +611,12 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
         if GAP.match(name):         # a derived gap label: its arithmetic between two signed years, never a claim
             derived += 1
             for fault in gap_faults(text, e.get("derived"), payload):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
+            continue
+        rec = e.get("derived")
+        if (isinstance(rec, Mapping) and rec.get("rule") in figures.DERIVED_OPS) or name == "bracket":
+            derived += 1      # a derived comparison: re-computed from its recorded operands, never a claim
+            for fault in derived_faults(name, text, rec if isinstance(rec, Mapping) else None, payload):
                 faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
             continue
         if DERIVED.match(name):

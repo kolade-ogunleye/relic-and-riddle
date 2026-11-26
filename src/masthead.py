@@ -348,6 +348,9 @@ def palette_problems(config) -> list[str]:
 
 MARGIN = 6.0                      # the worst glyph's ratio a drawn masthead should clear (the gate is 5.5)
 MARGIN_REACH = (1.25, 1.5, 2.0)   # the longer top-scrim reaches tried, in order, where the ruled order ends short
+MARGIN_REACH_FREE = 1.5           # past this a reach is taken only to draw a withheld name or to leave the halo exception
+# (measured on the dev decks: x1.25 keeps 0.72-0.94 of the top half's luma against 0.79-0.95 at the surface's own
+# reach; x2 kept 0.57 against 0.77, a fifth of the photograph's top half for a ratio already over the gate)
 
 
 def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
@@ -377,6 +380,8 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     if short(best[2]) and best[2].get("fit_floor_px") is None:      # a group that does not fit its room stays refused
         first = best[2]
         for k in MARGIN_REACH:
+            if k > MARGIN_REACH_FREE and best[2].get("shown") and not best[2].get("halo_exception"):
+                break   # drawn within the ruled caps: the photograph is not darkened further for margin alone
             trial = plan_at(im, x0, baseline, size, asked * k, target, max_width, floor=MARGIN)
             trial[2].update(reach=round(asked * k), margin_step=f"reach x{k:g}",
                             margin_from={"contrast": first.get("contrast"), "shown": first.get("shown"),

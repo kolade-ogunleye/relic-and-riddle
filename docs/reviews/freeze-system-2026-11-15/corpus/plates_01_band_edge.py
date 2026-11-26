@@ -101,7 +101,10 @@ for topic, n, photo in pc.corpus_photos(dev, a.per_topic):
     band = (0, y0, 1080, y1)                         # its ease right of the block, read across the plate's rows
     add(topic, n, photo, "hook plate side",
         pc.band_edges(tall.crop(band), comp.crop(band), brand.INK, True, 1080, transpose=True))
-    wash_layer = dc._wash_layer(tall.size, 736, 1040, 0.70, right)
+    if hasattr(dc, "_wash_feathers"):
+        wash_layer = dc._wash_layer(tall.size, 736, 1040, 0.70, right, dc._wash_feathers(tall, 736, 1040, 0.70))
+    else:
+        wash_layer = dc._wash_layer(tall.size, 736, 1040, 0.70, right)
     wash = Image.alpha_composite(tall.convert("RGBA"), wash_layer).convert("RGB")
     add(topic, n, photo, "hook wash top/foot",
         pc.band_edges(tall.crop(left), wash.crop(left), brand.INK, True, 1080))

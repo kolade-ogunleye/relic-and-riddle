@@ -4026,11 +4026,22 @@ HOOK_WASH_FLOOR = 0.55      # share of the strength it keeps at the frame's righ
 HOOK_WASH_RIGHT_AIR = 90    # design px past the block's right ink before the ease begins
 
 
-def _wash_layer(size: tuple[int, int], y0: float, y1: float, strength: float, x1: float | None = None
-                ) -> Image.Image:
-    """An INK wash: `strength` from y0 to y1, smoothstepped to 0 over HOOK_WASH_FEATHER above and below; with `x1`,
-    smoothstepped right of x1 down to HOOK_WASH_FLOOR x strength over HOOK_WASH_SIDE (no edge anywhere)."""
-    up, down = HOOK_WASH_FEATHER
+def _wash_feathers(bg: Image.Image, y0: float, y1: float, strength: float) -> tuple[int, int]:
+    """The wash's (above, below) feathers on `bg` (freeze cycle 5, stream PLATES): the band-edge rule's for the
+    ground each crosses (a floating shade), never under the designed HOOK_WASH_FEATHER."""
+    from . import band_edge
+    lum = band_edge.luma_rows(bg)
+    w = bg.size[0]
+    return (band_edge.feather(lum, y0, "up", brand.INK, strength, HOOK_WASH_FEATHER[0], w, floating=True),
+            band_edge.feather(lum, y1, "down", brand.INK, strength, HOOK_WASH_FEATHER[1], w, floating=True))
+
+
+def _wash_layer(size: tuple[int, int], y0: float, y1: float, strength: float, x1: float | None = None,
+                feathers: tuple[float, float] | None = None) -> Image.Image:
+    """An INK wash: `strength` from y0 to y1, smoothstepped to 0 over `feathers` (HOOK_WASH_FEATHER by default;
+    _wash_feathers gives the ground's own) above and below; with `x1`, smoothstepped right of x1 down to
+    HOOK_WASH_FLOOR x strength over HOOK_WASH_SIDE (no edge anywhere)."""
+    up, down = feathers or HOOK_WASH_FEATHER
     yy = np.arange(size[1], dtype=np.float32)
     d = np.where(yy < y0, (y0 - yy) / up, np.where(yy > y1, (yy - y1) / down, 0.0))
     v = np.clip(1 - d, 0, 1)
@@ -4179,7 +4190,8 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
     for top in dict.fromkeys((head, max(head, box[1]))):
         tried: list[dict] = []
         for i, st in enumerate(steps):
-            wash = _wash_layer(bg.size, top, box[3], st, right)    # open to the right, no edge
+            wash = _wash_layer(bg.size, top, box[3], st, right,    # open to the right, no edge
+                               _wash_feathers(bg, top, box[3], st) if st > 0 else None)
             last = i == len(steps) - 1
             h, worst, under = _least_halo(base, wash, field, plates, 1.0 if last else HOOK_GLOW_MAX)
             tried.append({"strength": st, "min": round(worst, 2), "halo": h})

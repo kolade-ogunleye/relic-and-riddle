@@ -39,15 +39,20 @@ def luma_rows(im: Image.Image | np.ndarray) -> np.ndarray:
     return a[..., :3] @ LUMA
 
 
-def step_across(luma: np.ndarray, y0: float, y1: float, colour, strength: float = 1.0, pct: float = EDGE_PCT) -> float:
+def step_across(luma: np.ndarray, y0: float, y1: float, colour, strength: float = 1.0, pct: float = EDGE_PCT,
+                by_row: bool = False) -> float:
     """The luma step a band edge crosses over rows y0..y1 of `luma` (H x W): the rows' `pct` percentile less the
-    band colour's luma, times `strength` (the band's alpha at its full); 0 for a band no lighter than the ground."""
+    band colour's luma, times `strength` (the band's alpha at its full); 0 for a band no lighter than the ground.
+    `by_row` (a floating band, freeze cycle 5): the bright end is read row by row and the `pct` percentile of the
+    rows' own taken, so one bright stretch the edge crosses sets the length (the steepest row is where it shows)."""
     h = luma.shape[0]
     a, b = max(0, int(np.floor(min(y0, y1)))), min(h, int(np.ceil(max(y0, y1))) + 1)
     if b <= a:
         return 0.0
     band = float(np.dot(np.asarray(colour[:3], np.float32), LUMA))
-    return max(0.0, (float(np.percentile(luma[a:b], pct)) - band) * float(strength))
+    bright = (float(np.percentile(np.percentile(luma[a:b], pct, axis=1), pct)) if by_row
+              else float(np.percentile(luma[a:b], pct)))
+    return max(0.0, (bright - band) * float(strength))
 
 
 TEXTURE_BLOCKS = 16     # ground_texture: the column blocks the ground is read in
@@ -89,9 +94,9 @@ def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 
     w = luma.shape[1]
     width = w if width is None else width
     length = max(1.0, float(minimum))
-    for _ in range(3):
+    for _ in range(5):
         span = (edge - length, edge) if side == "up" else (edge, edge + length)
-        need = edge_feather(step_across(luma, *span, colour, strength), width, minimum,
+        need = edge_feather(step_across(luma, *span, colour, strength, by_row=floating), width, minimum,
                             slope=slope_limit(luma, *span, width, floating))
         if need <= length:
             break
@@ -118,7 +123,7 @@ def steepest(luma_column: np.ndarray) -> float:
     return float(np.abs(np.diff(c)).max()) if c.size > 1 else 0.0
 
 
-HOLD_POWER = 4.0   # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
+HOLD_POWER = 6.0   # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
 
 
 def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None) -> Image.Image:

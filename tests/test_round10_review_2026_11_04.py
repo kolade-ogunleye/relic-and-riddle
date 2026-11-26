@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from src import geo, graphics
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 needs_geo = pytest.mark.skipif(not geo.available(), reason="Natural Earth data not downloaded")
 SIZES = [(1080, 1920), (1920, 1080)]

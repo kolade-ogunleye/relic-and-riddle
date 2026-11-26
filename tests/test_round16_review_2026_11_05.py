@@ -19,6 +19,7 @@ import pytest
 from src import geo, graphics
 from tests import geo_truth
 from tests.test_r4_graphics_2026_11_02 import _render
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 needs_data = pytest.mark.skipif(not (geo.available() and geo.COUNTRIES_10M_FILE.is_file() and geo.MARINE_FILE.is_file()),
                                 reason="Natural Earth data not fetched")

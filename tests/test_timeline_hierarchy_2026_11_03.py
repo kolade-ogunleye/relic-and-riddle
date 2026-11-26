@@ -10,6 +10,9 @@ import pytest
 
 import test_r4_graphics_2026_11_02 as r4
 from src import graphics, safe_zones
+from omission_ledger import assert_timeline_drops_recorded
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
+from src.refusal import omissions
 
 TALL = (1080, 1920)
 E = lambda y, l, a=False: {"year": y, "label": l, "approximate": a}  # noqa: E731
@@ -122,6 +125,8 @@ def test_every_set_keeps_the_hierarchy_rules(tmp_path, monkeypatch, caplog, case
         monkeypatch.setattr(graphics, "_encode", lambda *_a, **_k: pytest.fail("a refused timeline was encoded"))
         with pytest.raises(graphics.TextFitError, match="Checked copy does not fit the portrait timeline"):
             graphics.render_timeline(events, tmp_path / "t.mp4", *TALL)
+        # freeze lane A cycle 4: an event left out before the refusal is on the ledger by name (omission_ledger)
+        assert_timeline_drops_recorded(omissions(), events, tmp_path / "t.mp4")
         return
     st = _render(monkeypatch, caplog, tmp_path, events)
     ent, kept, log_text = st["entries"], st["kept"], st["log"]

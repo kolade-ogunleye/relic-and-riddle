@@ -11,6 +11,7 @@ from PIL import Image
 from src import brand, graphics
 from tests.test_r3_graphics_2026_11_02 import fake_geo  # noqa: F401  (fixture)
 from tests.test_r4_graphics_2026_11_02 import _render_fast, route_geo  # noqa: F401  (fixture)
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 PLACE = {"lat": 38.3735, "lon": 34.7347, "label": "Derinkuyu", "country": "Turkey"}
 

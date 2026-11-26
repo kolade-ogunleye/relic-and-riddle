@@ -26,6 +26,7 @@ from src import callouts, end_card, graphics, then_now
 from src import design_cards as dc
 from tests import test_freeze_cards_2026_11_04 as fc
 from tests.test_callouts_v4_2026_11_03 import REF_DOOR, REF_WALL
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 W, H = 1080, 1920
 REEL_RECT = (113, 288, 848, 1370)

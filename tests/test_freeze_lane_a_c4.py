@@ -198,3 +198,20 @@ def test_footprint_pad_covers_every_overlay_label_step(px, text):
                 bx = back.record()["box"]
                 assert bx[0] >= ink[0] - pad and bx[2] <= ink[2] + pad
                 assert bx[1] >= ink[1] - pad and bx[3] <= ink[3] + pad
+
+
+def test_every_module_that_renders_a_lane_a_surface_opens_the_ledger():
+    """CI on cb239c84 (15 failures, one class): test fixtures rendered a timeline outside a ledger, so a dropped event
+    refused the surface where production (graphics.make_all) records it and draws. Every test module that calls a
+    lane A renderer directly imports the autouse omission_ledger (tests/omission_ledger.py), as make_all opens it."""
+    import re
+    from pathlib import Path
+
+    from omission_ledger import LANE_A_RENDERERS
+    call = re.compile(r"(?<!def )\b(" + "|".join(LANE_A_RENDERERS) + r")\(")
+    tests = Path(__file__).resolve().parent
+    missing = [p.name for p in sorted(tests.glob("test_*.py"))
+               if call.search(p.read_text(encoding="utf-8"))
+               and not re.search(r"^from omission_ledger import omission_ledger\b", p.read_text(encoding="utf-8"),
+                                 re.M)]
+    assert not missing, missing

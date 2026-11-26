@@ -25,6 +25,7 @@ from typing import Any
 import pytest
 
 from src import brand, brand_system, figures, graphics, typography
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 ROOT = Path(__file__).resolve().parents[1]
 TALL, WIDE = (1080, 1920), (1920, 1080)

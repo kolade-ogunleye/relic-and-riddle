@@ -25,6 +25,7 @@ from src.encoding import BT709_FLAGS
 from tests.test_qf10_picture_gate import compose_record, gate, old_report, pre_qf01
 from tests.test_r3_graphics_2026_11_02 import fake_geo  # noqa: F401  (fixture)
 from tests.test_r4_graphics_2026_11_02 import _render_fast
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 def clip(path: Path, frame, seconds=3.0, w=270, h=480) -> Path:

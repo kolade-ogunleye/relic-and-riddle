@@ -21,6 +21,7 @@ import pytest
 from PIL import Image
 
 from src import brand, figure_gate, figures, graphics, heading, multi_format, typography
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 ROOT = Path(__file__).resolve().parents[1]
 

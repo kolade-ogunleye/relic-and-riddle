@@ -22,6 +22,7 @@ from typing import Any
 import pytest
 
 from src import figure_gate, figures, graphics, reference_facts
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 # ------------------------------------------------------------------------------------------------ fixtures
 

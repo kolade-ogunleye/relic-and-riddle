@@ -8,6 +8,7 @@ from PIL import Image
 from src import brand, brand_system, graphics, safe_zones, then_now
 from src.refusal import LayoutError
 from src.typography import get_font
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 def _rows_ok(rows: list[str]) -> bool:
@@ -207,7 +208,8 @@ def test_omitted_scale_bar_is_recorded_on_the_ledger():
     with collecting() as rows:
         graphics.omit_scale_bar("map x.mp4", "no corner is clear")
     assert rows and rows[0]["omitted"] == "the scale bar" and "furniture" in rows[0]["rule"]
-    with pytest.raises(Declined):
+    from omission_ledger import no_ledger
+    with no_ledger(), pytest.raises(Declined):
         graphics.omit_scale_bar("map x.mp4", "no corner is clear")         # no ledger: never only a log line
 
 

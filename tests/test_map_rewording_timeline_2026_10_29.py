@@ -21,6 +21,7 @@ from src import beat_images, config, graphics, prevoice_lines, scene_planner as 
 from src.lineage import record_graphic
 
 from test_prevoice_lines_2026_10_28 import MODERN, ROMAN, world  # noqa: F401  (the fixture)
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 def _graphic(tmp_path, name, inputs):

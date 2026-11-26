@@ -28,6 +28,7 @@ import pytest
 from PIL import Image, ImageFont
 
 from src import brand, graphics, then_now, typography
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 ROOT = Path(__file__).resolve().parents[1]
 TALL, WIDE = (1080, 1920), (1920, 1080)

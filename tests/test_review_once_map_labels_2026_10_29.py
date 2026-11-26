@@ -9,6 +9,7 @@ from src import control, graphics, script_engine
 from src.script_engine import engagement_bait, story_body_word_limit
 from src.telegram_bot import TelegramApprovalBot
 from src.telegram_state import get, put, review_fingerprint
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 
 # ---------------------------------------------------------------- 1. one review card per run

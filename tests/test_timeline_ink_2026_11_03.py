@@ -8,6 +8,7 @@ import pytest
 from src import brand, graphics
 from src.typography import rel_luminance
 from tests.test_r4_graphics_2026_11_02 import _render
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 E = lambda y, l, a=False: {"year": y, "label": l, "approximate": a}
 POMPEII = [E(-600, "Oscans found a town on the Sarnus", True), E(62, "Earthquake damages the forum temples"),

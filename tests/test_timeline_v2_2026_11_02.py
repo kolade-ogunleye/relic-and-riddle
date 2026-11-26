@@ -14,6 +14,7 @@ import pytest
 from PIL import Image
 
 from src import brand, graphics
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 DERINKUYU = [{"year": -700, "approximate": True, "label": "Possibly Phrygian tunnels"},
              {"year": 780, "approximate": True, "label": "Expanded against raiders"},

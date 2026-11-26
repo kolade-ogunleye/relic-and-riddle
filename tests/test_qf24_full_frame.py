@@ -25,6 +25,7 @@ from src.config import (
     VIDEO_WIDTH,
 )
 from src.video_qa import caption_pills
+from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 REEL_RECT = (113, 288, 848, 1370)          # the approved shared organic Reel rectangle

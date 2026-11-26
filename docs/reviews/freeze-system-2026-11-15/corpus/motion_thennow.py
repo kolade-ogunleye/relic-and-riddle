@@ -1,7 +1,7 @@
 """MOTION-01 / MOTION-02 (FIGURES, cycle 5): the then-and-now clip's markers and divider, on the renderer's own
 production-encoded clips (then_now._encode: never NVENC) and its own schedule.
 
-    python motion_thennow.py <tree> <dir> [--render]
+    python motion_thennow.py <tree> <dir> [--render --dev <dev checkout>]
 
 --render draws the committed then-and-now cases (docs/reviews/freeze-panel-2026-11-04/fixtures, both formats) with
 THIS tree into <dir> (the heavy step, minutes per clip: run it once per tree); without it the clips and their
@@ -98,7 +98,8 @@ if __name__ == "__main__":
     tree, out = Path(sys.argv[1]).resolve(), Path(sys.argv[2])
     sys.path.insert(0, str(tree))
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    os.environ.setdefault("RR_FIXTURE_REPO", str(tree))
+    if "--dev" in sys.argv:     # the dev checkout the fixture catalogue's run files and photos resolve against
+        os.environ["RR_FIXTURE_REPO"] = sys.argv[sys.argv.index("--dev") + 1]
     if "--render" in sys.argv:
         render(tree, out)
     import figures_corpus as fc

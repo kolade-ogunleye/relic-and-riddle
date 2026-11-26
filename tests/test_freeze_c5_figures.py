@@ -38,7 +38,7 @@ def records(tmp_path_factory):
             for k, f in enumerate(FACTS)]
     jobs += [{"run": f"section{k}", "kind": "section", "input": s, "palette": None, "narration": "",
               "source": "FIXTURE"} for k, s in enumerate(SECTIONS)]
-    return [fc.capture_one(job, fmt, work) for job in jobs for fmt in fc.FORMATS]
+    return [fc.capture_one(job, fmt, work) for job in jobs for fmt in fc.formats(job["kind"])]
 
 
 def _fails(rows):
@@ -216,3 +216,89 @@ def test_a_region_line_that_yields_is_recorded():
            "omissions": rows_}
     assert fm.region_line_rows(rec, "ADRAR PLATEAU, MAURITANIA")[0][4] == "RECORDED"
     assert fm.region_line_rows(dict(rec, omissions=[]), "ADRAR PLATEAU, MAURITANIA")[0][4] == "FAIL"
+
+
+SWEEP_M = [1.75, 2, 3, 4.6, 5, 6, 6.5, 7, 8, 9, 10, 12, 15, 17, 18, 19, 20, 21, 22, 25, 28, 30, 32.6, 35, 40, 42, 45, 50,
+           55, 60, 70, 80, 85, 90, 93, 96, 100, 110, 120, 130, 140, 146, 147, 150, 160, 180, 200, 220, 250, 280, 300,
+           327, 350, 400, 450]
+SWEEP_FT = [6, 8, 10, 11.5, 15, 18, 20, 25, 30, 40, 45, 50, 55, 58, 60, 62, 65, 66, 70, 80, 90, 100, 107, 120, 138, 150,
+            180, 200, 250, 280, 300, 305, 310, 330, 350, 400, 455, 470, 481, 500, 600, 700, 800, 1000, 1073, 1200, 1400,
+            1500]
+
+
+def _stated(note: str):
+    import re
+    m = re.search(r"([\d,]+(?:\.(\d+))?)\s*(FT|M)\b(?:\s+(\d+)\s*IN)?", note or "", re.I)
+    if not m:
+        return None
+    v, step = float(m.group(1).replace(",", "")), 10 ** -len(m.group(2) or "")
+    if m.group(4) is not None:
+        v, step = v + float(m.group(4)) / 12, 1 / 12
+    return v, step
+
+
+def test_every_derived_figure_over_the_rules_domain_is_true_to_the_signed_values():
+    """Review D1 (freeze cycle 5, the reviewer's 594-case sweep): over every metre and foot value x depth / height /
+    length x hedged / exact, a depth's drawn gap is within half its last stated digit of the gap between the SIGNED
+    values (the fact, the reference file's figure), never 'about 0' for a gap (that is 'nearly level'), and a ratio
+    is the comparison rule on the signed values; computed here from the inputs, never from the drawn operands."""
+    import re
+    false, zero, ratios, n = [], [], [], 0
+    for unit, vals in (("m", SWEEP_M), ("ft", SWEEP_FT)):
+        for v in vals:
+            for dim in ("depth", "height", "length"):
+                for approx in (True, False):
+                    fact = {"value": float(v), "unit": unit, "dimension": dim, "subject": "Subject",
+                            "approximate": approx}
+                    feet = v * (3.28084 if unit == "m" else 1.0)
+                    ref = graphics.pick_reference(feet)
+                    if not ref:
+                        continue
+                    n += 1
+                    k = graphics.per_ft(graphics.lead_unit(fact))
+                    st = graphics.scale_statement(fact, feet, ref[0], ref[1], dim == "depth")
+                    if dim == "depth":
+                        true = abs(ref[1] - feet) * k
+                        got = _stated(st["note"])
+                        if got is None:
+                            assert "LEVEL" in str(st["note"]), (v, unit, st["note"])
+                            continue
+                        if got[0] == 0:
+                            zero.append((v, unit, st["note"]))
+                        if abs(got[0] - true) > 0.5 * got[1] + 1e-9:
+                            false.append((v, unit, ref[0], st["note"], round(true, 3)))
+                    else:
+                        big, small = max(ref[1], feet) * k, min(ref[1], feet) * k
+                        want = "near" if big / small < 1.1 else figures.comparison_ratio(big, small)
+                        text = " ".join(st["lines"])
+                        m = re.search(r"about ([\d.]+) times", text, re.I)
+                        drawn = "near" if "nearly" in text.lower() else m.group(1) if m else None
+                        if drawn != want:
+                            ratios.append((v, unit, dim, ref[0], drawn, want))
+    assert n == 594
+    assert not false and not zero and not ratios, (false[:5], zero[:5], ratios[:5])
+
+
+def test_the_answer_is_one_step_above_the_drawings_other_figures_and_no_bracket_stands_alone(records):
+    """FIG-09: the subject's own figure is larger than the landmark's figure and the bracket's; review D5: no axis
+    figure is larger than a stated quantity on the drawing; review D4: a depth's comparison is not withheld for these
+    ordinary inputs; review D2: on a video depth drawing the
+    landmark's height is not set beside the depth ruler (the line of meaning states it)."""
+    rows = [row for r in records for row in fm.hierarchy_rows(r)]
+    assert not _fails(rows), _fails(rows)
+    for r in records:
+        if r["kind"] != "scale" or not r.get("drawn"):
+            continue
+        names = {e["name"] for e in r["elements"]}
+        figs = [x["px"] for e in r["elements"] if e["name"] in fm.SUBJECT_FIGURE + fm.OTHER_FIGURES
+                for x in e["runs"] if any(ch.isdigit() for ch in x["text"])]
+        axis = [x["px"] for e in r["elements"] if fm.RULER_ROLE.match(e["name"]) for x in e["runs"]]
+        assert not figs or not axis or max(axis) <= min(figs), (r["run"], r["format"], axis, figs)
+        if r["input"]["dimension"] == "depth":
+            lay = r["layout"]
+            if r["format"] != "slide":      # the video drawings: never withheld for these inputs (review D4)
+                assert lay["derived"] is not None, (r["run"], r["format"], r["omissions"])
+                assert "ref_label" not in names and "reference" in lay["labelled"]
+            elif lay["derived"] is None:     # the slide room (open, hand-back): withheld only on the record, and then
+                assert any("derived figure" in str(o.get("omitted")) for o in r["omissions"])   # no orphan figure
+                assert "bracket" not in names

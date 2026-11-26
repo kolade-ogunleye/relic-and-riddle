@@ -38,6 +38,13 @@ from pathlib import Path
 from typing import Any
 
 FORMATS = ((1080, 1920, "916"), (1920, 1080, "169"))
+# review (cycle 5): the carousel diagram slide redraws a run's scale drawing in its own room (multi_format.
+# diagram_room: 1280 x 652 on the 1440 slide) at the slide's label floor; a production surface the corpus visits
+SLIDE = (1280, 652, "slide")
+
+
+def formats(kind: str) -> tuple:
+    return FORMATS + ((SLIDE,) if kind == "scale" else ())
 KINDS = ("scale", "section", "numbers", "timeline", "route", "map")
 
 # Committed stress inputs (FIXTURE): real signed shapes the dev corpus does not carry. No topic list drives any code;
@@ -52,6 +59,19 @@ SCALE_FIXTURES = [
     {"value": 455.0, "unit": "ft", "dimension": "height", "subject": "Great Pyramid of Giza", "approximate": False},
     {"value": 1500.0, "unit": "ft", "dimension": "depth", "subject": "A very deep mine shaft", "approximate": True},
     {"value": 20.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True},
+    # the independent review's synthetic inputs (cycle 5, its rend2.py): ordinary depths and heights the dev runs miss
+    {"value": 147.0, "unit": "m", "dimension": "depth", "subject": "Deep shaft", "approximate": True},
+    {"value": 96.0, "unit": "m", "dimension": "depth", "subject": "Old mine", "approximate": False},
+    {"value": 150.0, "unit": "m", "dimension": "depth", "subject": "Sinkhole", "approximate": True},
+    {"value": 55.0, "unit": "ft", "dimension": "depth", "subject": "Cistern", "approximate": True},
+    {"value": 210.0, "unit": "ft", "dimension": "depth", "subject": "Stepwell", "approximate": True},
+    {"value": 310.0, "unit": "m", "dimension": "depth", "subject": "Cave", "approximate": True},
+    {"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "Salt mine", "approximate": True},
+    {"value": 28.0, "unit": "m", "dimension": "height", "subject": "Tower", "approximate": False},
+    {"value": 60.0, "unit": "m", "dimension": "height", "subject": "Minaret", "approximate": True},
+    {"value": 19.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True},
+    {"value": 470.0, "unit": "ft", "dimension": "depth", "subject": "Shaft", "approximate": True},
+    {"value": 105.0, "unit": "m", "dimension": "depth", "subject": "Mine", "approximate": True},
 ]
 SECTION_FIXTURES = [
     {"subject": "Derinkuyu underground city", "total_depth_ft": 280.0, "approximate": True,
@@ -218,7 +238,8 @@ def capture_one(job: dict[str, Any], fmt: tuple[int, int, str], work: Path) -> d
         with collecting() as omitted, using(0.0), graphics.poster_only():
             kind, inp = job["kind"], job["input"]
             if kind == "scale":
-                made = graphics.render_scale(inp, out, width=w, height=h)
+                kw = {"drawing_floor": graphics.diagram_label_floor(1440)} if tag == "slide" else {}
+                made = graphics.render_scale(inp, out, width=w, height=h, **kw)
             elif kind == "section":
                 made = graphics.render_cross_section(inp, out, width=w, height=h)
             elif kind == "numbers":
@@ -308,7 +329,7 @@ def capture(tree: Path, dev: Path, cache: Path, kinds=KINDS, fixtures_only: bool
     work = cache.parent / f"_work_{sha}"
     work.mkdir(parents=True, exist_ok=True)
     jobs = [j for j in run_inputs(dev) if j["kind"] in kinds and (not fixtures_only or j["source"] == "FIXTURE")]
-    todo = [(job, fmt) for job in jobs for fmt in FORMATS
+    todo = [(job, fmt) for job in jobs for fmt in formats(job["kind"])
             if f"{job['kind']}|{job['run']}|{fmt[2]}" not in have["records"]]
     if shard is not None:
         todo = todo[shard[0]::shard[1]]
@@ -322,7 +343,7 @@ def capture(tree: Path, dev: Path, cache: Path, kinds=KINDS, fixtures_only: bool
         target.write_text(json.dumps(mine, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
     if shard is None:
         cache.write_text(json.dumps(have, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
-    keys = {f"{j['kind']}|{j['run']}|{f[2]}" for j in jobs for f in FORMATS}
+    keys = {f"{j['kind']}|{j['run']}|{f[2]}" for j in jobs for f in formats(j["kind"])}
     return {"src_sha": sha, "records": {k: v for k, v in have["records"].items() if k in keys}}
 
 

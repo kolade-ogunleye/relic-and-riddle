@@ -9941,11 +9941,25 @@ def scale_meaning(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: f
 
 
 SCALE_MEANING_PX = (36, 34)   # the 9:16 line of meaning's size and floor (round 3: it was the smallest text, 30-22)
-SCALE_RULER_PX = 34           # the rulers' data-face figures on 9:16 (round 4: 26 before, an 18 px cap)
+SCALE_RULER_PX = 28           # the rulers' data-face figures on 9:16 (round 4: 26 before, an 18 px cap; freeze
+#                               cycle 5, review D5: at the label floor, never above the drawing's stated quantities)
+# Freeze cycle 5 (FIGURES, FIG-09: panel 6, the answer at the reference's size on every scale drawing): the drawing's
+# own figure for its SUBJECT (a depth's floor figure, a height's or a length's block label) is one step above the
+# drawing's other stated quantities (the landmark's figure, the derived bracket): 38 px (the heading conversion's size
+# in the figure face) against their 28 (9:16) / 30 (16:9). Where it has no room at that step it takes the others'
+# ladder (the hierarchy measure, fig_answer_hierarchy.py, names it).
+SCALE_SUBJECT_FIGURE_PX = 38
 SCALE_SETTLE = 2.6            # s: the landmark lands (a depth) or finishes rising (a height)
 SCALE_MEANING_AT = 2.75       # round 4: the line of meaning on the impact, not 0.6 s after it (3.2 before)
 SCALE_HOLD_PUSH = 0.025       # round 4: the drawing pushes in 1.0 -> 1.025 about its tip over the hold
 SCALE_HOLD_FROM = 3.0         # s: the hold's push starts once the meaning is in
+
+
+def subject_figure_font(other, text: str, room: float, track: float, px: int | None = None):
+    """FIG-09: the font of a scale drawing's figure for its subject: SCALE_SUBJECT_FIGURE_PX (or `px`), one step above
+    `other` (the drawing's other stated quantities' font), when `text` at that size fits `room` px; else `other`."""
+    big = figure_font(px or SCALE_SUBJECT_FIGURE_PX)
+    return big if big.size > other.size and tracked_width(text, big, track) <= room else other
 
 
 def _scale_case_name(fact: dict[str, Any]) -> str:
@@ -10042,6 +10056,13 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
     if depth:
         gap_txt = _short(abs(ops[0]["value"] - ops[1]["value"]) / per_ft(u), u)
         shown = gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 else ""
+        if not any(_lead_values(gap_txt)):
+            # freeze cycle 5 (review D1): a gap under half its last stated digit is never "about 0": it is level
+            rec = derivation("difference", ops, "", "NEARLY LEVEL")
+            out["lines"] = [f"{_cap_first(ref)}, {say(ref_feet)},", "would stand nearly level with the surface."]
+            if derive:
+                out.update(derived_line=1, derivation=rec, note=rec["text"])
+            return out
         rec = derivation("difference", ops, shown, "")
         rec["text"] = ("ABOUT " if rec["hedged"] else "") + gap_txt
         h = "about " if rec["hedged"] else ""
@@ -10049,7 +10070,8 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
             out["lines"] = ([f"{_cap_first(ref)}, {say(ref_feet)},", f"would show only its top {h}{lower(gap_txt)}."]
                             if derive else [f"{_cap_first(ref)}, {say(ref_feet)},", "would show only its top."])
         else:
-            out["lines"] = ([f"{_cap_first(ref)} would vanish:", f"its top {h}{lower(gap_txt)} below the surface."]
+            out["lines"] = ([f"{_cap_first(ref)}, {say(ref_feet)}, would vanish:",
+                             f"its top {h}{lower(gap_txt)} below the surface."]
                             if derive else [f"{_cap_first(ref)}, {say(ref_feet)},", "would vanish below the surface."])
         if derive:
             out.update(derived_line=1, derivation=rec, note=rec["text"])
@@ -10492,6 +10514,17 @@ RULER_LABEL_AIR = 6     # px of air between two ruler figures
 FLOOR_FIGURE_AIR = 0.6  # x an axis figure's cap height: the air it keeps from the floor's stated figure (else it thins)
 
 
+FLOOR_TICK_YIELD = 0.3   # review D3: an axis figure within 0.3 of a step above the floor yields to the floor's figure
+#                          by VALUE (the cross-section's deepest-level rule), so the yield never depends on the
+#                          palette's face; nearer ticks the pixel air catches as before. Never to an omitted floor.
+
+
+def tick_step_ft(ticks: Sequence[tuple[float, str, bool]]) -> float:
+    """A ruler's step in feet from its (feet, text, is_floor) ticks (inf with fewer than two axis ticks)."""
+    vals = sorted(ft for ft, _t, fl in ticks if not fl)
+    return min((b - a for a, b in zip(vals, vals[1:]) if b - a > 1e-9), default=math.inf)
+
+
 def scale_layout_record(form: str, drawing: Sequence[float], labels: Sequence[Sequence[float]],
                         box: Sequence[float], statement: Mapping[str, Any], labelled: Iterable[str],
                         derive: bool, axis_yielded: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
@@ -10654,11 +10687,15 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # freeze cycle 5 (FIGURES): the floor's figure is a stated quantity (floor_figure), measured in its own face
         least_px = f_note.size - 2 * ((f_note.size - max(26, floor)) // 2)   # its ladder's last 2 px step
         need = shaft[0] - 26 - tracked_width(floor_txt, figure_font(least_px), 2)
-        if need < x0:
-            move = min(x0 - need, max(0.0, x1 - shaft[1]))
+        # freeze cycle 5 (FIG-09): the shaft moves right for the subject's figure at its step when the drawing has
+        # the room (never past its right edge); the walls come in only for the least size, as before
+        subj_px = max(SCALE_SUBJECT_FIGURE_PX, f_note.size)
+        need_s = shaft[0] - 26 - tracked_width(floor_txt, figure_font(subj_px), 2)
+        if need_s < x0 or need < x0:
+            move = min(x0 - min(need_s, need), max(0.0, x1 - shaft[1]))
             cx += move
             # then the shaft's wall comes in toward the landmark (its air beside it, from 50 px to 16 at the least)
-            half = max(half - (x0 - need - move), ref_w / 2 + 16)
+            half = max(half - max(0.0, x0 - need - move), ref_w / 2 + 16)
             shaft = (cx - half, cx + half)
         ref_cx = cx
         top_y = floor_y - ref_feet * px_ft
@@ -10697,7 +10734,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # centred on its own tick. It is placed FIRST: an axis figure that would stand within RULER_LABEL_AIR of it is
         # not drawn (the axis thins; the fact never yields to a tick). One with no room at its least size is recorded.
         floor_fig = None
-        for px in range(f_note.size, max(26, floor) - 1, -2):
+        for px in [subj_px] * (subj_px > f_note.size) + list(range(f_note.size, max(26, floor) - 1, -2)):
             f_floor = figure_font(px)
             fx = rx - tracked_width(floor_txt, f_floor, 2)
             if fx >= x0:
@@ -10712,7 +10749,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             floor_fig = None
             record_drop(surface_of("scale", out), f"the floor figure {floor_txt}", SCALE_DROP_RULE,
                         "no room left of the shaft at its least size")
-        for ft, text, is_floor in _depth_ruler(feet, hedge, unit, fact):
+        ticks_d = _depth_ruler(feet, hedge, unit, fact)
+        step_ft = tick_step_ft(ticks_d)
+        for ft, text, is_floor in ticks_d:
             if is_floor:
                 continue
             yy = line_y + ft * px_ft
@@ -10724,8 +10763,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             # (it sat 28 px under it, which reads as about 78 ft on a 36 px-per-100-ft ruler); the line yields round it
             at = datum if ft == 0 else yy
             plate = ruler_label(ground, rx, at, text, f_rule, brand.STONE_LT)
-            near_floor = floor_fig is not None and LayoutConstraintSolver.boxes_intersect(
-                plate.box, floor_fig.box, max(RULER_LABEL_AIR, FLOOR_FIGURE_AIR * cap_height(f_rule)))
+            near_floor = floor_fig is not None and (
+                0 < feet - ft < FLOOR_TICK_YIELD * step_ft or LayoutConstraintSolver.boxes_intersect(
+                    plate.box, floor_fig.box, max(RULER_LABEL_AIR, FLOOR_FIGURE_AIR * cap_height(f_rule))))
             if near_floor or any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, RULER_LABEL_AIR)
                                  for _, q in rulers):
                 yield_axis_figure(surface_of("scale", out), text, "it would crowd the floor's stated figure"
@@ -10752,13 +10792,24 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
         reach_d = max(crown_reach(ref_label) * ref_feet * px_ft, 6)
-        ref_note = ""       # the figure alone: a depth's line of meaning names the landmark (the height drawing's
-        #                     referent note was never part of the depth drawing, so none is dropped here)
-        fig_pl, rows_n, tick_d, rec_n = referent_block(ground, _short(ref_feet, unit), f_note, 2, ref_note,
-                                                       max(SCALE_RULER_PX - 4, floor), ref_cx + reach_d,
-                                                       ref_cx - reach_d, top_y, 1.0, clear_d)
+        # freeze cycle 5 (review D2): the landmark's height set at its top beside the DEPTH ruler read as a depth
+        # ("146 M" at about 181 m). On a video drawing its figure is stated by the line of meaning ("The Great
+        # Pyramid, 146 m,": scale_statement), which labels the operand on the drawing, so no figure is set there.
+        # A slide's drawing has no line of meaning: there the figure is set with what it measures (reference_note:
+        # "BASE TO APEX"), so it reads as the landmark's height, never a depth.
+        ref_note = reference_note(ref_label) if drawing else ""
+        if drawing:
+            fig_pl, rows_n, tick_d, rec_n = referent_block(ground, _short(ref_feet, unit), f_note, 2, ref_note,
+                                                           max(SCALE_RULER_PX - 4, floor), ref_cx + reach_d,
+                                                           ref_cx - reach_d, top_y, 1.0, clear_d)
+        else:
+            fig_pl, rows_n, tick_d, rec_n = None, [], None, {"form": "meaning",
+                                                              "reason": "stated by the line of meaning"}
+            labelled.add("reference")
         LAST_REFERENT_NOTE.update(rec_n)
-        if fig_pl is not None:
+        if fig_pl is None and not drawing:
+            pass
+        elif fig_pl is not None:
             plates.append(("ref_label", fig_pl))
             ref_tick = tick_d
             labelled.add("reference")
@@ -10771,6 +10822,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             log.warning("Scale: the referent note %r is refused: %s.", ref_note, rec_n.get("reason"))
             record_drop(surface_of("scale", out), f"the referent note {ref_note.upper()}", SCALE_DROP_RULE,
                         str(rec_n.get("reason") or "no form holds it"))
+        if not any(n_ == "bracket" for n_, _ in plates):
+            bracket = None       # review D4: a bracket never stands without its figure (withheld or no place)
     else:
         base_y = draw_bottom
         block = 170
@@ -10782,6 +10835,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         s0 = rule_x + 30
         f_blk = figure_font(max(28, floor))                 # stated quantities on the drawing: the figure face (r8)
         blk_text = hedge + _short(feet, unit, fact)         # hedged like the figure, at its signed precision
+        f_subj = subject_figure_font(f_blk, blk_text, label_x1 - x0, 2)   # FIG-09: the subject's step
         ref_txt_w = tracked_width(_short(ref_feet, unit), f_blk, 2)
         c_rule = heading_clear(heads, x0, rule_x, top) + cap_height(f_rule_h) / 2 + 2
 
@@ -10792,7 +10846,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             took 13 % off the landmark): the subject's label, the landmark's top and its figure's label."""
             bw, _bh = subject_extent(feet, pf, block, lying)
             room_ = x1 - (s0 + bw) - 40 - 20
-            c_blk_ = heading_clear(heads, s0 - 30, s0 + bw + 30, top) + 16 + cap_height(f_blk)
+            c_blk_ = heading_clear(heads, s0 - 30, s0 + bw + 30, top) + 16 + cap_height(f_subj)
             ref_w_ = ref_feet * pf * width_per_px
             rcx_ = s0 + bw + 40 + max(room_, ref_w_) / 2
             c_ref_ = heading_clear(heads, rcx_ - ref_w_ / 2, rcx_ + ref_w_ / 2, top)
@@ -10830,9 +10884,10 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # The subject's block is labelled with its own figure, so the gold block reads as the subject at a
         # glance (round-2 panel, 2026-11-02); the same words as the figure above, never new ones.
         # lane A cycle 1: centred over the subject, its ink kept right of the ruler's tick column
-        lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_blk, 2) / 2)
+        lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_subj, 2) / 2)
+        lab_cx = min(lab_cx, label_x1 - tracked_width(blk_text, f_subj, 2) / 2)
         plates.append(("block_label", quantity_plate(ground, (lab_cx, base_y - blk_h - 16),
-                                                     blk_text, f_blk, "ms", track=2)))
+                                                     blk_text, f_subj, "ms", track=2)))
         labelled.add("subject")
         # and the landmark's figure at its top, on a hairline tick (round 3), with its referent note ("GROUND TO TORCH
         # TIP", what the figure measures) as ONE block (referent_block; lander, cycle 2): the text face (BC-3) at its
@@ -11097,7 +11152,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     width_per_px = _silhouette_width(ref_label)
     top_d, draw_bottom = WIDE_TITLE_SAFE[1], WIDE_TITLE_SAFE[3] - 14  # round 4: title-safe's height (210-790 before)
     if depth:   # cycle 5: the floor's figure is centred on the floor's tick; half its cap stays inside title-safe
-        draw_bottom = WIDE_TITLE_SAFE[3] - max(14.0, math.ceil(cap_height(figure_font(g.f(30))) / g.k / 2) + 3)
+        draw_bottom = WIDE_TITLE_SAFE[3] - max(14.0, math.ceil(cap_height(figure_font(g.f(SCALE_SUBJECT_FIGURE_PX)))
+                                                           / g.k / 2) + 3)   # FIG-09: the floor figure's step
     if depth:
         line_y = top_d + 60
         above = max(0.0, ref_feet - feet)
@@ -11111,6 +11167,10 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         line_y = floor_y - feet * px_ft
         half = max(ref_feet * px_ft * width_per_px / 2 + 60, 160)
         cx = (dx0 + dx1) / 2
+        # freeze cycle 5 (FIG-09): the shaft moves right, within the drawing, for the floor's figure at its step
+        floor_w = tracked_width(_depth_ruler(feet, hedge, unit, fact)[-1][1],
+                                figure_font(g.f(SCALE_SUBJECT_FIGURE_PX)), S(1)) / g.k
+        cx += max(0.0, min(WIDE_TITLE_SAFE[0] - (cx - half - 30 - floor_w), dx1 - (cx + half)))
         shaft = (cx - half, cx + half)
         ref_cx = cx
     else:
@@ -11123,7 +11183,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         top_ft = max(ft for ft, _ in height_ruler(max(feet, ref_feet), unit))
         # freeze cycle 3 (lane A, stress item 3: 'ABOUT 335.7 FT' set at y 125, over title-safe's 129): the room over
         # the tallest part holds the subject's own figure (its baseline 18 over the block, its cap, 8 px of air)
-        lab_room = max(40.0, 18 + cap_height(figure_font(g.f(30))) / g.k + 8)
+        lab_room = max(40.0, 18 + cap_height(figure_font(g.f(SCALE_SUBJECT_FIGURE_PX))) / g.k + 8)   # FIG-09
         px_ft = (base_y - top_d - lab_room) / max(feet, ref_feet, top_ft)
         for _ in range(5):     # lane A cycle 1: the subject's extent depends on the scale (subject_extent)
             bw, _bh = subject_extent(feet, px_ft, block, lying)
@@ -11181,7 +11241,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                 # at the largest size of its ladder that keeps it inside title-safe, so an axis figure too near it
                 # thins and the fact never does
                 f_floor = figure_font(g.f(24))
-                for px in range(round(g.f(30)), round(g.f(24)) - 1, -2):
+                for px in [g.f(SCALE_SUBJECT_FIGURE_PX)] + list(range(round(g.f(30)), round(g.f(24)) - 1, -2)):
                     f_floor = figure_font(px)
                     if shaft[0] - 30 - tracked_width(text, f_floor, S(1)) / g.k >= WIDE_TITLE_SAFE[0]:
                         break
@@ -11195,8 +11255,10 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     else:
         f_blk = figure_font(g.f(30))
         blk_text = hedge + _short(feet, unit, fact)
-        lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_blk, S(1)) / g.k / 2)
-        ann.append(("block_label", blk_text, f_blk, brand.GOLD, lab_cx, base_y - blk_h - 18, "ms"))
+        f_subj = subject_figure_font(f_blk, blk_text, (WIDE_TITLE_SAFE[2] - WIDE_TITLE_SAFE[0]) * g.k, S(1),
+                                     g.f(SCALE_SUBJECT_FIGURE_PX))           # FIG-09: the subject's step
+        lab_cx = max((shaft[0] + shaft[1]) / 2, rule_x + 16 + tracked_width(blk_text, f_subj, S(1)) / g.k / 2)
+        ann.append(("block_label", blk_text, f_subj, brand.GOLD, lab_cx, base_y - blk_h - 18, "ms"))
         ref_top = base_y - ref_feet * px_ft
         note = reference_note(ref_label)             # round 4: what the landmark's figure measures (set below with
         #                                              its figure, referent_block, once the other words are placed)
@@ -11285,6 +11347,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     labelled = {"subject"}            # the operands this drawing labels: the heading's figure is the subject's
     ruler_rows: list[dict[str, Any]] = []
     axis_out: list[dict[str, Any]] = []                     # the axis figures that yielded (yield_axis_figure)
+    ys_d = sorted(a_[5] for a_ in ann if a_[6] == "ruler")    # review D3: the floor yield by value (design px)
+    step_d = min((q - p_ for p_, q in zip(ys_d, ys_d[1:]) if q - p_ > 1e-6), default=math.inf)
     for name, text, font, colour, x, yb, anchor in ann:
         if anchor == "ruler":                                         # F11: centred on its tick, a zero on its datum
             plate = ruler_label(final, X(x), Y(yb), text, font, colour, "r", track=S(1))
@@ -11300,8 +11364,9 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                    "it would sit on another word" if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, 6)
                                                          for _, q in plates) else
                    "it would crowd the floor's figure" if anchor == "ruler" and floor_box is not None
-                   and LayoutConstraintSolver.boxes_intersect(plate.box, floor_box,
-                                                              max(6, FLOOR_FIGURE_AIR * cap_height(font))) else "")
+                   and (LayoutConstraintSolver.boxes_intersect(plate.box, floor_box,
+                                                               max(6, FLOOR_FIGURE_AIR * cap_height(font)))
+                        or (depth and 0 < floor_y - yb < FLOOR_TICK_YIELD * step_d)) else "")
         if why_out:                                                  # never into the margin, the column or a word
             if anchor != "ruler":   # lane A c4: a stated quantity left out is recorded (an axis figure thins)
                 record_drop(surface_of("scale", out), f"the {name.replace('_', ' ')} {text}", SCALE_DROP_RULE,
@@ -11317,7 +11382,9 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     LAST_REFERENT_NOTE.clear()
     if any(n_ in ("floor_figure", "block_label") for n_, _ in plates):
         labelled.add("subject")
-    if True:   # cycle 5: a depth's landmark carries its own figure too (the derived difference's second operand)
+    if depth:  # review D2: a depth's landmark height is stated by the line of meaning, never beside the ruler
+        labelled.add("reference")
+    if not depth:   # the height's landmark carries its own figure (the derived ratio's second operand)
         from .brand_system import label_floor_px
         own = max(g.f(28), math.ceil(label_floor_px(width, height) - 1e-6))
         lim = X(cx0 - 20)
@@ -11359,6 +11426,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))
             record_drop(surface_of("scale", out), f"the referent note {note.upper()}", SCALE_DROP_RULE,
                         str(rec_n.get("reason") or "no form holds it"))
+    if depth and not any(n_ == "bracket" for n_, _ in plates):
+        bracket = None           # review D4: a bracket never stands without its figure (withheld or no place)
     if derive and statement["derivation"] is not None:   # the ruling, on THIS drawing (see the 9:16 renderer)
         from .figures import derivation_faults
         d_faults = derivation_faults(statement["derivation"], labelled)

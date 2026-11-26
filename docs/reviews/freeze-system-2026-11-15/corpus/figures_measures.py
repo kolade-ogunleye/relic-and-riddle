@@ -445,6 +445,38 @@ def hierarchy_rows(rec: dict[str, Any]) -> list[tuple]:
              "PASS" if a > top else "FAIL")]
 
 
+# --------------------------------------------------------------------------------------------- FIG-11
+def scale_bar_rows(rec: dict[str, Any]) -> list[tuple]:
+    """FIG-11: a map's two-unit scale bar never reads as an equation ('100 KM / 30 MI'): either the two values are
+    the same length (mi x 1.609 within 5 % of km) or each label ends on its OWN tick, the two label ends at least 8 px
+    apart along the bar and in the order of their lengths (the shorter run's label ends nearer the zero end)."""
+    st = _status(rec)
+    if st:
+        return [st] if st[4] == "FAIL" else []
+    if rec["kind"] not in ("map", "route"):
+        return []
+    sc = {e["name"]: e for e in rec["elements"] if e["name"] in ("scale", "scale_secondary")}
+    where = (rec["run"], surface(rec), "scale bar")
+    if len(sc) < 2:
+        return [(*where, "one unit (or no bar)", "PASS")] if sc else []
+    num = lambda t: float(re.sub(r"[^\d.]", "", t) or 0)          # noqa: E731
+    km_e = next((e for e in sc.values() if "KM" in e["text"]), None)
+    mi_e = next((e for e in sc.values() if "MI" in e["text"]), None)
+    if km_e is None or mi_e is None:
+        return [(*where, f"units {[e['text'] for e in sc.values()]}", "NOTE")]
+    km, mi = num(km_e["text"]), num(mi_e["text"]) * 1.609344
+    if abs(mi - km) <= 0.05 * km:
+        return [(*where, f"{km_e['text']} = {mi_e['text']} (one length)", "PASS")]
+    p, s_ = sc["scale"], sc["scale_secondary"]
+    mirrored = p["box"][0] < s_["box"][0] - 8 and p["box"][2] <= s_["box"][2]   # a bar drawn leftwards
+    pe, se = (p["box"][0], s_["box"][0]) if mirrored else (p["box"][2], s_["box"][2])
+    longer_primary = num(p["text"]) * (1.609344 if "MI" in p["text"] else 1) >=         num(s_["text"]) * (1.609344 if "MI" in s_["text"] else 1)
+    order_ok = (pe > se) == longer_primary if not mirrored else (pe < se) == longer_primary
+    ok = abs(pe - se) >= 8 and order_ok
+    return [(*where, f"{p['text']} ends {pe}, {s_['text']} ends {se} (each on its own tick)",
+             "PASS" if ok else "FAIL")]
+
+
 # --------------------------------------------------------------------------------------------- FIG-12
 def placement_rows(rec: dict[str, Any]) -> list[tuple]:
     """A timeline sets every event's label in ONE placement relative to its year (all below it, or all beside it);
@@ -540,6 +572,8 @@ def floor_rows(rec: dict[str, Any]) -> list[tuple]:
     if st:
         return [st]
     import collections
+    if rec["format"] == "slide":         # the carousel slide's drawing: its own floor (diagram_label_floor), not 16:9
+        return []
     w = rec["size"][0]
     need = delivered_floor_px(w)
     seen: dict[tuple, int] = collections.Counter()

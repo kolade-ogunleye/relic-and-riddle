@@ -19,5 +19,10 @@ if __name__ == "__main__":
     sys.path.insert(1, str(Path(__file__).resolve().parent))
     import board_speed
     board_speed.install()
+    if os.environ.get("BOARD_DEPS") == "1":   # cycle 5: which code each job runs (board_deps.py), a record only
+        import board_deps
+        board_deps.install(tree)
+    import board_inputs   # cycle 5: the tree's own data files a render reads (tests' fixtures, the catalogue) too
+    board_inputs.install(board_inputs.tree_roots(tree))
     sys.argv = [str(script), *args]
     runpy.run_path(str(script), run_name="__main__")

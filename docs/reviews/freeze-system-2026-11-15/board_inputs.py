@@ -77,6 +77,16 @@ def install(roots, skip=()) -> None:
         _state["installed"] = True
 
 
+TREE_DATA = ("tests", "docs/reviews/freeze-panel-2026-11-04/fixtures")   # tree paths whose data reads are recorded
+
+
+def tree_roots(tree) -> list[str]:
+    """The tree's folders whose data files (never code) a render can read and that are recorded as inputs (cycle 5):
+    a changed tests fixture or catalogue file then counts for the incremental board only when a render read it.
+    fonts/ and assets/ are left out: FreeType opens a face outside Python, so their reads are not all seen."""
+    return [str(Path(tree) / p) for p in TREE_DATA]
+
+
 def seen() -> set[str]:
     return set(_state["seen"])
 

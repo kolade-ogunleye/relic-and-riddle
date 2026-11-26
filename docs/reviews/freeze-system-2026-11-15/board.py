@@ -401,7 +401,8 @@ def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     import board_speed
     board_speed.install()
     import board_inputs   # cycle 3: this worker's reads join the board's input record (board_evidence.captured)
-    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[tempfile.gettempdir() + os.sep + "board-"])
+    board_inputs.install([dev, board_inputs.FRAME_CACHE, *board_inputs.tree_roots(tree)],
+                         skip=[tempfile.gettempdir() + os.sep + "board-"])
     configure_palette(Path(tree), brand_name)
 
 
@@ -1305,25 +1306,57 @@ def merge_shards(parts: list[dict]) -> dict:
     return merged
 
 
-def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, brand_name: str, workers: int,
-                 timings: Path | None, subset: Path | None) -> dict:
-    """render_surfaces.py through run_surfaces.py into <out>/surfaces and <out>/surfaces.json: one process, or
-    `workers` shards (--jobs) merged into the same surfaces.json. Returns what ran (for board.json)."""
+def surfaces_cmd(here: Path, tree: Path, dev: Path, per_kind: int, brand_name: str) -> tuple[list[str], list[str]]:
+    """(run_surfaces.py's command up to render_surfaces.py's own arguments, the arguments every call shares)."""
     script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
     base = [sys.executable, str(here / "run_surfaces.py"), str(script), str(tree), str(dev)]
-    common = ["--per-kind", str(per_kind)] + (["--brand", brand_name] if brand_name != "default" else [])
+    return base, ["--per-kind", str(per_kind)] + (["--brand", brand_name] if brand_name != "default" else [])
+
+
+def offered_jobs(here: Path, tree: Path, dev: Path, per_kind: int, brand_name: str, subset: Path | None) -> list[str]:
+    """The jobs render_surfaces.py would render now (its --list-jobs, after --per-kind and --surface-jobs), in order."""
+    base, common = surfaces_cmd(here, tree, dev, per_kind, brand_name)
+    tmp = Path(tempfile.mkdtemp(prefix="board-jobs-"))
+    try:
+        subprocess.run(base + [str(tmp / "listing.json")] + common + (["--jobs", str(subset)] if subset else [])
+                       + ["--list-jobs", str(tmp / "jobs.txt")], check=True, stdout=subprocess.DEVNULL)
+        return (tmp / "jobs.txt").read_text(encoding="utf-8").splitlines()
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, brand_name: str, workers: int,
+                 timings: Path | None, subset: Path | None, deps: bool = False) -> dict:
+    """render_surfaces.py through run_surfaces.py into <out>/surfaces and <out>/surfaces.json: one process, or
+    `workers` shards (--jobs) merged into the same surfaces.json. Returns what ran (for board.json). `deps`
+    (cycle 5): each process also records the code every job ran (board_deps.py) into <out>/DEPS.json; a record
+    only, the surfaces are the same bytes."""
+    script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
+    base, common = surfaces_cmd(here, tree, dev, per_kind, brand_name)
     keep = ["--keep", str(out / "surfaces")]
+    env = dict(os.environ, BOARD_DEPS="1") if deps else dict(os.environ, BOARD_DEPS="0")
+    import board_deps
+
+    def write_deps(parts: list[Path]) -> None:
+        have = [json.loads(p.read_text(encoding="utf-8")) for p in parts if p.is_file()]
+        if deps and have:
+            (out / "DEPS.json").write_text(json.dumps(board_deps.merge(have), indent=0, sort_keys=True),
+                                           encoding="utf-8", newline="\n")
+        elif (out / "DEPS.json").is_file():   # never a stale record beside surfaces it does not describe
+            (out / "DEPS.json").unlink()
     if workers > 1 and "--list-jobs" not in script.read_text(encoding="utf-8"):
         print("board: this tree's render_surfaces.py has no --list-jobs: surfaces in one process", file=sys.stderr)
         workers = 1
     if workers <= 1:
         subprocess.run(base + [str(out / "surfaces.json")] + keep + common + (["--jobs", str(subset)] if subset else []),
-                       check=True)
-        return {"processes": 1}
+                       check=True, env=env)
+        write_deps([out / "surfaces.deps.json"])
+        (out / "surfaces.deps.json").unlink(missing_ok=True)
+        return {"processes": 1, "deps": deps}
     tmp = Path(tempfile.mkdtemp(prefix="board-shards-"))
     listing = tmp / "jobs.txt"
     subprocess.run(base + [str(tmp / "listing.json")] + common + (["--jobs", str(subset)] if subset else [])
-                   + ["--list-jobs", str(listing)], check=True, stdout=subprocess.DEVNULL)
+                   + ["--list-jobs", str(listing)], check=True, stdout=subprocess.DEVNULL, env=env)
     names = listing.read_text(encoding="utf-8").splitlines()
     src = timings or (out / "surfaces.json")
     prior = {}
@@ -1338,7 +1371,8 @@ def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, br
         (tmp / f"shard{k}.jobs").write_text("".join(f"{j}\n" for j in jobs), encoding="utf-8", newline="\n")
         log = open(tmp / f"shard{k}.log", "w", encoding="utf-8")
         cmd = base + [str(tmp / f"shard{k}.json")] + keep + common + ["--jobs", str(tmp / f"shard{k}.jobs")]
-        procs.append((k, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT), log, time.perf_counter()))
+        procs.append((k, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=env), log,
+                      time.perf_counter()))
     print(f"board: surfaces in {len(shards)} shards ({len(names)} jobs, times from "
           f"{src if prior else 'the per-kind defaults'}), logs in {tmp}", file=sys.stderr, flush=True)
     failed, took_s = [], {}
@@ -1357,10 +1391,12 @@ def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, br
     if missing:
         raise RuntimeError(f"surfaces shards: jobs not run {missing[:5]} (logs in {tmp})")
     (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
+    write_deps([tmp / f"shard{k}.deps.json" for k in range(len(shards))])
     print(merged["count"], "surfaces,", len(merged.get("errors", {})), "errors,",
           round(sum(merged["seconds"].values())), "s of jobs in", len(shards), "shards")
     shutil.rmtree(tmp, ignore_errors=True)
     return {"processes": len(shards), "jobs": len(names), "balanced_by": str(src) if prior else "per-kind defaults",
+            "deps": deps,
             "shard_jobs_seconds": [round(sum(merged["seconds"].get(j) or 0 for j in s), 1) for s in shards],
             "shard_seconds": [took_s[k] for k in range(len(shards))]}
 
@@ -1385,6 +1421,15 @@ def main() -> None:
                     "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed, fb_reels (none: the slots are the channel's other runs, "
                     "labelled STAND-IN; a feed folder that is missing or holds fewer than 8 posts is filled with "
                     "labelled STAND-INs)")
+    ap.add_argument("--reuse", type=Path, help="cycle 5, the incremental board: a previous board of this palette "
+                    "(its board.json, surfaces.json, DEPS.json, MANIFEST.json). Only the render_surfaces.py jobs whose "
+                    "inputs changed since it are rendered (board_reuse.py says what an input is); the rest are its "
+                    "files, byte for byte; REUSE.json records which. Anything that forbids it renders every job")
+    ap.add_argument("--reuse-sample", type=int, default=2, help="with --reuse: this many reused jobs, picked at "
+                    "random, are rendered anyway and must equal the previous board's (a difference: exit 3)")
+    ap.add_argument("--reuse-seed", type=int, help="with --reuse: the sample's seed (default: random, recorded)")
+    ap.add_argument("--no-deps", action="store_true", help="do not record the code each job runs (DEPS.json): the "
+                    "board cannot then be the --reuse base of a later one")
     ap.add_argument("--end-topics", default="", help="rows 9 / 12: only these board grounds' end sequences "
                     "(comma-separated; default every board ground with a catalogue end-card case)")
     ap.add_argument("--portability", type=Path, help="a lane's freeze candidate: a file of render_surfaces.py job "
@@ -1409,8 +1454,9 @@ def main() -> None:
         board_portability.main(here, tree, dev, out, a.portability.resolve(), a.workers)
         return
     import board_inputs   # cycle 3: the code stamp and every data file the board reads (MANIFEST provenance)
-    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[out])
+    board_inputs.install([dev, board_inputs.FRAME_CACHE, *board_inputs.tree_roots(tree)], skip=[out])
     stamp = board_inputs.tree_stamp(tree, here)
+    stamp["path"] = str(tree)   # cycle 5: where the tree was (its recorded data reads are under it)
     src_hash = hashlib.sha256()
     for f in sorted((tree / "src").glob("*.py")):
         src_hash.update(f.name.encode() + f.read_bytes().replace(bytes([13, 10]), bytes([10])))
@@ -1425,11 +1471,54 @@ def main() -> None:
     def took(what: str, t0: float) -> None:
         manifest["seconds"][what] = round(time.perf_counter() - t0, 1)
         print(f"board: {what}: {manifest['seconds'][what]:.0f}s", file=sys.stderr, flush=True)
+    import board_reuse   # cycle 5: the not-code inputs outside git and the inputs record (toolchain, tools/ data)
+    reuse_env = manifest["reuse_env"] = board_reuse.environment(tree)
     if rows & set(ROWS) and not a.no_surfaces:
         t0 = time.perf_counter()
-        manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
-                                                        a.timings.resolve() if a.timings else None,
-                                                        a.surface_jobs.resolve() if a.surface_jobs else None)}
+        subset = a.surface_jobs.resolve() if a.surface_jobs else None
+        timings = a.timings.resolve() if a.timings else None
+        plan = None
+        if a.reuse:   # cycle 5: the incremental board (board_reuse.py): only the jobs whose inputs changed
+            prev = a.reuse.resolve()
+            try:
+                offered = offered_jobs(here, tree, dev, a.per_kind, a.brand, subset)
+                plan = board_reuse.plan(tree, prev, a.brand, stamp, reuse_env, offered, str(board_inputs.FRAME_CACHE),
+                                        a.reuse_sample, a.reuse_seed)
+            except board_reuse.NoReuse as e:
+                print(f"board: NO REUSE of {prev}: {e}: rendering every job", file=sys.stderr, flush=True)
+                manifest["reuse"] = {"prev": str(prev), "no_reuse": str(e)}
+                board_reuse.none(out, str(e), a.brand, prev)
+        if plan is None:
+            (out / board_reuse.REUSE_NAME).unlink(missing_ok=True) if not a.reuse else None
+            manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
+                                                            timings, subset, deps=not a.no_deps)}
+        else:
+            todo = board_reuse.to_render(plan)
+            print(f"board: reuse of {plan['prev']['dir']} ({plan['prev']['head'][:10]}): {len(todo)} of "
+                  f"{len(plan['jobs'])} jobs render ({len(plan['sample']['jobs'])} of them the sample)",
+                  file=sys.stderr, flush=True)
+            for j in todo:
+                r = plan["jobs"][j]
+                print(f"board:   {r['status']:8} {j}: {r.get('why', 'sample')} "
+                      f"{'; '.join(c.rsplit('/', 1)[-1] for c in (r.get('changed') or [])[:4])}", file=sys.stderr)
+            fresh = fresh_deps = None
+            if todo:
+                jobs_file = Path(tempfile.mkdtemp(prefix="board-reuse-")) / "jobs.txt"
+                jobs_file.write_text("".join(f"{j}\n" for j in todo), encoding="utf-8", newline="\n")
+                manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand,
+                                                                min(a.workers, len(todo)), timings or
+                                                                (a.reuse.resolve() / "surfaces.json"), jobs_file,
+                                                                deps=True)}
+                fresh = json.loads((out / "surfaces.json").read_text(encoding="utf-8"))
+                fresh_deps = json.loads((out / "DEPS.json").read_text(encoding="utf-8"))
+                shutil.rmtree(jobs_file.parent, ignore_errors=True)
+            merged = board_reuse.finish(plan, out, fresh, fresh_deps)   # exit 3 on a sample mismatch
+            merged["src_sha256"] = manifest["src_sha256"]
+            (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8",
+                                               newline="\n")
+            manifest["reuse"] = {"prev": plan["prev"], "counts": plan["counts"], "sample": plan["sample"],
+                                 "record": board_reuse.REUSE_NAME}
+            print(f"board: reuse: {plan['counts']}", file=sys.stderr, flush=True)
         took("surfaces (render_surfaces.py)", t0)
     from src import brand
     manifest["palette"] = palette_record(a.brand, tree)   # cycle 4: what this palette moves (BC4)
@@ -1679,9 +1768,27 @@ def main() -> None:
                           "note": "every data file read under the dev checkout (and fixtures.frame's cache) by "
                                   "render_surfaces.py, this process and its workers; code is the tree stamp's"}
     hashes = board_inputs.input_hashes(out, stamp, a.brand, inputs)
+    # cycle 5: a surface whose job has a code record (DEPS.json) takes the hash of what can change it: its job's
+    # code key, the palette, the not-code environment and the inputs' union (equal across two boards exactly when
+    # board_reuse.py may reuse it); every other file keeps the whole-tree hash
+    per_job = 0
+    if (out / "DEPS.json").is_file():
+        import board_deps
+        deps_rec = json.loads((out / "DEPS.json").read_text(encoding="utf-8"))
+        uni = board_deps.universe(tree, None, deps_rec)
+        job_keys = {j: uni.key(fns)["sha256"] for j, fns in deps_rec["jobs"].items()}
+        manifest["job_code_keys"] = job_keys
+        for rel in list(hashes):
+            job = board_reuse.job_of(Path(rel).stem) if rel.startswith("surfaces/") else None
+            if job in job_keys:
+                hashes[rel] = "sha256:" + hashlib.sha256(json.dumps(
+                    {"brand": a.brand, "env": reuse_env["sha256"], "inputs_sha256": manifest["inputs"]["sha256"],
+                     "job": job, "code_key": job_keys[job], "output": rel}, sort_keys=True,
+                    separators=(",", ":")).encode()).hexdigest()
+                per_job += 1
     (out / "INPUT_HASHES.json").write_text(json.dumps(hashes, indent=1, sort_keys=True), encoding="utf-8",
                                            newline="\n")
-    manifest["input_hashes"] = {"file": "INPUT_HASHES.json", "count": len(hashes)}
+    manifest["input_hashes"] = {"file": "INPUT_HASHES.json", "count": len(hashes), "per_job_code_key": per_job}
     (out / "board.json").write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8", newline="\n")
     print("board:", out, manifest["src_sha256"])
 

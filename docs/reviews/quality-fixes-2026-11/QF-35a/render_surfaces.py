@@ -235,6 +235,10 @@ def main() -> None:
         board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[work] + ([a.keep] if a.keep else []))
     except ImportError:   # run on its own: no record, the same pixels
         board_inputs = None
+    try:   # cycle 5 (lane BOARD): the code each job runs, recorded when run_surfaces.py started the recorder
+        import board_deps   # (board_deps.py: <out>.deps.json, the incremental board's per-job code record)
+    except ImportError:
+        board_deps = None
     clips: dict[str, Hasher] = {}
     listed: list[str] | None = [] if a.list_jobs else None
     swapped: set[str] = set()   # cycle 3: the job groups whose copy the --copy-set replaced
@@ -292,6 +296,8 @@ def main() -> None:
         except ImportError:
             collecting = None
         ctx = collecting() if collecting is not None else contextlib.nullcontext([])
+        if board_deps is not None:
+            board_deps.job_begin(name)
         try:
             with ctx as omitted:
                 fn()
@@ -299,6 +305,8 @@ def main() -> None:
                 result.setdefault("omissions", {})[name] = [dict(r) for r in omitted]
         except Exception:  # noqa: BLE001  one failed case is recorded (both trees must fail alike), the rest render
             result["errors"][name] = traceback.format_exc()[-1200:]
+        if board_deps is not None:
+            board_deps.job_end(name)
         result["seconds"][name] = round(time.perf_counter() - t0, 2)
         a.out.write_text(json.dumps(result, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
 
@@ -734,6 +742,8 @@ def main() -> None:
                                            "the cards (tests' fields) and the callout (tests' labels) keep their "
                                            "own words"}
     result["count"] = len(result["surfaces"])
+    if board_deps is not None:   # cycle 5: beside the result, never in it (surfaces.json keeps its keys)
+        board_deps.write(a.out.with_name(a.out.stem + ".deps.json"))
     a.out.write_text(json.dumps(result, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
     print(result["count"], "surfaces,", len(result["errors"]), "errors,", round(sum(result["seconds"].values())), "s")
 

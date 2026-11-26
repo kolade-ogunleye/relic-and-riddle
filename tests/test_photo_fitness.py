@@ -22,10 +22,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def ground(w: int, h: int, seed: int = 0, level: int = 150, grain: int = 5) -> np.ndarray:
-    """A flat, faintly grained ground (sand, sky): no detail the measure would call a subject."""
+    """A ground with no subject: evenly textured (rock, scrub: a coarse mottle the eye and the block measure both
+    see), or with `grain` 1 a flat field (sand, sky)."""
     rng = np.random.default_rng(seed)
     a = np.full((h, w, 3), (level, level - 20, level - 50), np.float32)
-    return a + rng.normal(0, grain, (h, w, 1)).astype(np.float32)
+    a += rng.normal(0, grain, (h, w, 1)).astype(np.float32)
+    if grain > 1:
+        coarse = rng.normal(0, 4 * grain, (h // 12 + 1, w // 12 + 1)).astype(np.float32)
+        mottle = np.asarray(Image.fromarray(coarse, "F").resize((w, h), Image.BILINEAR), np.float32)
+        a += mottle[..., None]
+    return a
 
 
 def with_subject(a: np.ndarray, cx: float, cy: float, r: float, seed: int = 1) -> np.ndarray:
@@ -237,7 +243,7 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     px0, py0, px1, py1 = comp["protected_box"]
     assert 0 <= px0 < px1 <= 1080 and 0 <= py0 < py1 <= comp["image_box"][3]   # the feature whole, in the photo
     if comp["mode"] == "photo_over_ink":
-        assert np.abs(a[comp["image_box"][3] + 4:] - ink).max() <= 30   # INK under the photograph (type aside)
+        assert np.abs(a[1880:] - ink).max() <= 2                      # INK under the photograph, to the foot
     # a panorama whose feature cannot fit a full-width crop: the contained window on a clean INK field
     pano = Image.fromarray(np.clip(with_subject(ground(4000, 800), 0.5, 0.5, 0.45), 0, 255).astype(np.uint8))
     focus = {"focus_box": [0.05, 0.05, 0.95, 0.95], "sha256": "x", "reviewed": "test"}
@@ -259,10 +265,11 @@ def test_the_youtube_side_field_is_ink():
     assert field.shape[:2] == (yt.H, yt.W) and np.abs(field - np.array(brand.INK, np.int16)).max() == 0
 
 
-def test_the_end_screen_takes_the_field_only_ground_over_a_framed_last_frame():
+def test_the_end_screen_takes_the_field_only_ground_over_a_framed_last_frame(monkeypatch):
     """PHOTO-02: a last frame inside its own black oval is no ground; the whole frame eases to INK (no soft
     ellipse left at rest), and a plain last frame keeps its picture."""
     from src import end_card
+    monkeypatch.setattr(end_card, "END_SCREEN_SECONDS", 2.0)
     a = with_subject(ground(1920, 1080, level=170), 0.5, 0.5, 0.3)
     framed = Image.fromarray(np.clip(oval(a), 0, 255).astype(np.uint8))
     stats: dict = {}

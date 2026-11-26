@@ -610,7 +610,7 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
 
 
 COVER_GRID_TOP = 420        # the profile grid's 1:1 square starts here (PLATE_SQUARE): the photograph's view from there
-COVER_INK_FADE = 180        # px over which a photograph that ends above the type fades into the INK field under it
+COVER_INK_FADE = 120        # px over which a photograph that ends above the type fades into the INK field under it
 
 
 COVER_TYPE_TOP = 1180       # where the type's stack usually starts (1434 less a three-row stack): the hero pick's

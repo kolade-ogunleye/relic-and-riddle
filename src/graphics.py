@@ -13126,6 +13126,16 @@ def render_route(stops: list[dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 if not boxes:
                     continue
                 u = _union(boxes)
+                # freeze lane A cycle 4 (CI rr4/rr8 9:16: the footprint rule cost the far stops their names): a place
+                # whose ink is inside the box and only its footprint past an edge is the same place slid in by that
+                # deficit (at most fp px), then judged like any other; the search's grid never loses it to the pad
+                if sx0 <= u[0] and u[2] <= sx1 and sy0 <= u[1] and u[3] <= sy1:
+                    dx = math.ceil(max(0.0, sx0 + fp - u[0])) - math.ceil(max(0.0, u[2] - (sx1 - fp)))
+                    dy = math.ceil(max(0.0, sy0 + fp - u[1])) - math.ceil(max(0.0, u[3] - (sy1 - fp)))
+                    if dx or dy:
+                        tx, base = tx + dx, base + dy
+                        boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in boxes]
+                        u = _union(boxes)
                 if not (sx0 + fp <= u[0] and u[2] <= sx1 - fp and sy0 + fp <= u[1] and u[3] <= sy1 - fp):
                     continue          # review 5: rejected on its box before anything is measured
                 dist = box_distance((x, y), u)

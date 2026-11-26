@@ -1396,13 +1396,15 @@ def test_r4_tall_long_myth_draws_1969(richat):
 
 
 def test_r4_chapter_wide_lead_bounds():
-    """Round 4 (C5): the 16:9 two-line step is 0.98 P unless the numeral needs more, never past 1.20 P; one-line and
-    three-line titles and 9:16 titles keep _lead's step."""
+    """Round 4 (C5): the 16:9 two-line step was 0.98 P unless the numeral needed more, never past 1.20 P. Lane F cycle
+    4 (panel 5 TY-G2: one lead for the title role): every line count keeps _lead's step (0.98 P); a block that does
+    not span the numeral is top-aligned on its ink top (_chapter_wide_rise)."""
     assert dc.CHAPTER_WIDE_LEAD_MAX == 1.20
-    assert dc._chapter_wide_off(["DOCUMENTED PHYSICAL", "ARCHITECTURE"], 152, 311) == [0, 311 - round(0.86 * 152)]
+    assert dc._chapter_wide_off(["DOCUMENTED PHYSICAL", "ARCHITECTURE"], 152, 311) == [0, round(0.98 * 152)]
     assert dc._chapter_wide_off(["ORIGIN DEBATES", "AND ROCK DATING"], 176, 311) == [0, round(0.98 * 176)]
-    assert dc._chapter_wide_off(["A B", "C D"], 96, 311) == [0, round(1.20 * 96)]
+    assert dc._chapter_wide_off(["A B", "C D"], 96, 311) == [0, round(0.98 * 96)]
     assert dc._chapter_wide_off(["ONE"], 152, 311) == [0]
+    assert dc._chapter_wide_rise([0, round(0.98 * 152)], 152, 311) == 311
 
 
 # ------------------------------------------------------------------------------------------------ fix round 1

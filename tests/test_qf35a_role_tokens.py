@@ -49,7 +49,6 @@ ALLOW = {
     ("graphics", "landmark_mask", "(255, 255, 255)"): ("the mask's ink on a black analysis image (lane A c2: the pixels "
                                                        "the referent note keeps off), never drawn on a frame"),
     ("multi_format", "diagram_room", "(0, 0, 1, 1)"): "a unit bounding box (lane D c2: the room for a 1 x 1 drawing)",
-    ("design_cards", "plan_chapter_card", "(120, 112, 104, 96)"): "type sizes",
     ("multi_format", "MAP_FADE", "(160, 110, 56)"): "fade lengths",
     ("multi_format", "STRENGTH_FIGURE", "(3, 2, 1)"): "ranks",
     ("end_card", "SHARE_SIZES", "(58, 56, 54)"): "type sizes",

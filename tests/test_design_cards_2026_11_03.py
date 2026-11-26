@@ -1329,9 +1329,11 @@ def test_hook_scrim_sized_to_the_ground(tmp_path, photos):
             g0 = np.asarray(plan.meta["_ground0"]).astype(float)
             bg = np.asarray(plan.meta["_r"]["bg"]).astype(float)
             y0, y1 = sc["plate"]
-            inside_ = g0[y0 + 2:y1 - 2]
-            ratio = inside_.mean(axis=(0, 2)) / np.maximum(1, bg[y0 + 2:y1 - 2].mean(axis=(0, 2)))
-            assert ratio.max() - ratio.min() <= 0.03, name            # one even plate, edge to edge
+            # lane F cycle 4: even from the left edge to plate_right (past the block's right ink), graded out after it
+            xr = sc["plate_right"]
+            inside_ = g0[y0 + 2:y1 - 2, :xr]
+            ratio = inside_.mean(axis=(0, 2)) / np.maximum(1, bg[y0 + 2:y1 - 2, :xr].mean(axis=(0, 2)))
+            assert ratio.max() - ratio.min() <= 0.03, name            # one even plate under the whole block
             # freeze panel round 2 (H6 (4), deliberate change): the plate's edges feather over HOOK_PLATE_FEATHER (were
             # crisp), so the photograph is untouched from there
             fe = dc.HOOK_PLATE_FEATHER
@@ -2047,9 +2049,14 @@ def test_hook_has_no_glow_and_opens_right(tmp_path, photos):
         assert not sc["halo"] and sc["mode"] == "plate", sc
         for n, p in plan.meta["_contrast"]:
             assert p.contrast >= dc.HOOK_TARGET, (n, p.contrast)
-        layer = dc._plate_layer((1080, 1920), *sc["plate"], sc["strength"])
+        layer = dc._plate_layer((1080, 1920), *sc["plate"], sc["strength"], sc["feather"], sc["plate_right"])
         al = np.asarray(layer.getchannel("A")).astype(int)
-        assert (al == al[:, :1]).all()                                    # full bleed: no left or right edge
+        xr = sc["plate_right"]
+        # lane F cycle 4 (panel 5 CD: the full-width band read as a slab on bright grounds): no left edge, even under
+        # the block to plate_right, then graded out to the right with no step (no vertical edge anywhere)
+        assert (al[:, :xr] == al[:, :1]).all()
+        row = al[sum(sc["plate"]) // 2]
+        assert row[-1] < row[0] and (np.diff(row) <= 0).all() and np.abs(np.diff(row)).max() <= 2
     mid = tmp_path / "mid.jpg"
     Image.new("RGB", (1300, 2100), (120, 110, 100)).save(mid, quality=92)
     plan = dc.plan_hook_frame(hook(mid), SHEET)

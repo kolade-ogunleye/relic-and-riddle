@@ -1185,6 +1185,25 @@ def record_drop(surface: str, element: str, rule: str, reason: str) -> None:
     omit(surface, element, rule, reason)
 
 
+AXIS_YIELD_RULE = ("an axis figure yields to a stated quantity, to another label and to the frame's margin, never "
+                   "the reverse; the yielded figure is recorded (freeze cycle 5, FIGURES)")
+
+
+def yield_axis_figure(surface: str, text: str, reason: str, yielded: list | None = None) -> None:
+    """An axis figure a drawing's rule left out (a ruler's "300" beside the floor's stated figure), recorded: on the
+    drawing's own layout record (`yielded`, written to the sidecar's "layout" as "axis_yielded") always, and on the
+    omission ledger when one is open. An axis mark is furniture, not signed text: with no ledger open the drawing is
+    still made (unlike a stated quantity, record_drop), and its own record names the mark and the rule."""
+    from .refusal import ledger_open
+    row = {"text": text, "rule": AXIS_YIELD_RULE, "reason": reason}
+    if yielded is not None and not any(r.get("text") == text for r in yielded):
+        yielded.append(row)
+    if ledger_open():
+        record_drop(surface, f"the axis figure {text}", AXIS_YIELD_RULE, reason)
+    else:
+        log.info("%s: drawn without the axis figure %r: %s (rule: %s).", surface, text, reason, AXIS_YIELD_RULE)
+
+
 def surface_of(kind: str, out: Path | str | None) -> str:
     """The ledger's name for a lane A surface: its kind and its file ("timeline graphic_timeline.mp4")."""
     return f"{kind} {Path(out).name}" if out else kind
@@ -9944,21 +9963,26 @@ def _drawn_value(text: str) -> float | None:
 
 
 def scale_operands(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float) -> list[dict[str, Any]]:
-    """The two operands of a scale drawing's comparison, AS DRAWN in the fact's own unit (figures.operand): the
-    subject's signed size (source "scale_fact") and the landmark's sourced figure (its reference-file url). An operand
-    is approximate when its fact is hedged or its drawn figure is not its signed value (rounded, or converted)."""
+    """The two operands of a scale drawing's comparison in the fact's own unit (figures.operand): the subject's
+    signed size (source "scale_fact") and the landmark's sourced figure (its reference-file url). Each carries its
+    figure as drawn (`text`) and its SIGNED SOURCE value (`value`: the fact's own value; the reference file's feet in
+    the drawing's unit, unrounded), which the derived figure is computed from (figures.DERIVED_RULE: never from the
+    figures as rounded for drawing). An operand is approximate when its fact is hedged or its drawn figure is not its
+    source value (rounded, or converted)."""
     from .figures import operand
     from .reference_facts import reference_by_label
     u = lead_unit(fact)
     k = per_ft(u)
     s_txt, r_txt = _short(feet, u, fact), _short(ref_feet, u)
-    s_val, r_val = _drawn_value(s_txt), _drawn_value(r_txt)
+    s_drawn, r_drawn = _drawn_value(s_txt), _drawn_value(r_txt)
+    own = signed_lead(fact, feet, u)
+    s_val, r_val = (float(own) if own is not None else feet * k), ref_feet * k
     ref = reference_by_label(ref_label) or {}
-    return [operand("subject", str(fact.get("subject") or ""), s_txt, s_val if s_val is not None else feet * k, u,
-                    bool(fact.get("approximate", True)) or s_val is None
-                    or abs(s_val / k - feet) > 1e-6 * max(feet, 1.0), "scale_fact"),
-            operand("reference", ref_label, r_txt, r_val if r_val is not None else ref_feet * k, u,
-                    r_val is None or abs(r_val / k - ref_feet) > 1e-6 * max(ref_feet, 1.0),
+    return [operand("subject", str(fact.get("subject") or ""), s_txt, s_val, u,
+                    bool(fact.get("approximate", True)) or s_drawn is None
+                    or abs(s_drawn - s_val) > 1e-6 * max(s_val, 1.0), "scale_fact"),
+            operand("reference", ref_label, r_txt, r_val, u,
+                    r_drawn is None or abs(r_drawn - r_val) > 1e-6 * max(r_val, 1.0),
                     str(ref.get("source_url") or ""), reference_id=str(ref.get("id") or ""),
                     reference_feet=float(ref_feet))]
 
@@ -9969,8 +9993,8 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
     {"lines": the line of meaning's sentences, "derived_line": the index of the line that states the derived figure
     (None when none is stated), "derivation": its record (figures.derivation: a depth's difference between the two
     drawn figures, a height's or a length's ratio), "note": the difference as the drawing's bracket states it ("ABOUT
-    181 M"; None for a ratio)}. The arithmetic is on the operands as drawn (327 - 146 = 181) and the result is hedged
-    unless every operand is exact. `derive` False (an operand is not labelled on the drawing, so the figure is
+    180 M"; None for a ratio)}. The arithmetic is on the operands' signed source values and the result is rounded
+    once for display (the drawing's own figure rule, measure_text) and hedged unless every operand is exact. `derive` False (an operand is not labelled on the drawing, so the figure is
     withheld): the same sentences without the derived figure."""
     from .figures import derivation
     hedge = "about " if fact.get("approximate", True) else ""
@@ -10439,11 +10463,11 @@ FLOOR_FIGURE_AIR = 0.6  # x an axis figure's cap height: the air it keeps from t
 
 def scale_layout_record(form: str, drawing: Sequence[float], labels: Sequence[Sequence[float]],
                         box: Sequence[float], statement: Mapping[str, Any], labelled: Iterable[str],
-                        derive: bool) -> dict[str, Any]:
+                        derive: bool, axis_yielded: Sequence[Mapping[str, Any]] = ()) -> dict[str, Any]:
     """The scale drawing's layout record (the contrast sidecar's "layout"; freeze cycle 5): its form, the drawing's
     own extent (the shaft or the two figures to scale) and with its labels, the graphics box it is composed in and
-    the drawing's share of it, the operands this drawing labels, and the derived comparison (figures.derivation) or
-    that it was withheld."""
+    the drawing's share of it, the operands this drawing labels, the derived comparison (figures.derivation) or
+    that it was withheld, and every axis figure that yielded (yield_axis_figure: its text, the rule, why)."""
     xs = [drawing[0], drawing[2], *(v for b in labels for v in (b[0], b[2]))]
     ys = [drawing[1], drawing[3], *(v for b in labels for v in (b[1], b[3]))]
     whole = (min(xs), min(ys), max(xs), max(ys))
@@ -10453,7 +10477,7 @@ def scale_layout_record(form: str, drawing: Sequence[float], labels: Sequence[Se
             "drawing_share": round((whole[2] - whole[0]) * (whole[3] - whole[1]) / area, 4),
             "drawing_height_share": round((whole[3] - whole[1]) / max(1.0, box[3] - box[1]), 4),
             "labelled": sorted(labelled), "derived": dict(statement["derivation"]) if statement.get("derivation") else None,
-            "derived_withheld": not derive}
+            "derived_withheld": not derive, "axis_yielded": [dict(r) for r in axis_yielded]}
 
 
 def diagram_label_floor(slide_width: int) -> float:
@@ -10557,6 +10581,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     rulers: list[tuple[float, Any]] = []
     ruler_rows: list[dict[str, Any]] = []                   # the critic's records (ruler_record)
     ruler_marks: list[tuple[float, float, Any]] = []        # (feet, the label's datum y, its plate)
+    axis_out: list[dict[str, Any]] = []                     # the axis figures that yielded (yield_axis_figure)
     zero_boxes: list[Box] = []                              # the zero labels the datum line yields round
     line_spans: list[tuple[float, float]] = [(x0, x1)]      # the ground line's drawn spans
     bracket = None                                          # (x, y_top, y_bottom)
@@ -10662,14 +10687,18 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             yy = line_y + ft * px_ft
             f_rule = data_font(rule_px)
             if ruler_label_runs(rx, 0.0, text, f_rule)[1][0] < x0:
+                yield_axis_figure(surface_of("scale", out), text, "it would cross the frame's margin", axis_out)
                 continue
             # Cycle 0 round 7 (F11, zero datum): every figure centred on its tick, "0 FT" on the ground line itself
             # (it sat 28 px under it, which reads as about 78 ft on a 36 px-per-100-ft ruler); the line yields round it
             at = datum if ft == 0 else yy
             plate = ruler_label(ground, rx, at, text, f_rule, brand.STONE_LT)
-            if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, RULER_LABEL_AIR) for _, q in rulers) or (
-                    floor_fig is not None and LayoutConstraintSolver.boxes_intersect(
-                        plate.box, floor_fig.box, max(RULER_LABEL_AIR, FLOOR_FIGURE_AIR * cap_height(f_rule)))):
+            near_floor = floor_fig is not None and LayoutConstraintSolver.boxes_intersect(
+                plate.box, floor_fig.box, max(RULER_LABEL_AIR, FLOOR_FIGURE_AIR * cap_height(f_rule)))
+            if near_floor or any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, RULER_LABEL_AIR)
+                                 for _, q in rulers):
+                yield_axis_figure(surface_of("scale", out), text, "it would crowd the floor's stated figure"
+                                  if near_floor else "it would stand on another axis figure", axis_out)
                 continue
             rulers.append((yy, plate))
             ruler_marks.append((ft, at, plate))
@@ -10761,6 +10790,11 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                 ruler_marks.append((ft, at, plate))
                 if ft == 0:
                     zero_boxes.append(plate.box)
+            else:
+                yield_axis_figure(surface_of("scale", out), text, "it would cross the frame's margin"
+                                  if plate.box[0] < x0 - 2 else "it would stand in the heading's band"
+                                  if plate.box[1] < c_rule - cap_height(f_rule_h) else
+                                  "it would stand on another axis figure", axis_out)
         plates += [(f"ruler{j}", pl) for j, (_, pl) in enumerate(rulers)]
         # The subject's block is labelled with its own figure, so the gold block reads as the subject at a
         # glance (round-2 panel, 2026-11-02); the same words as the figure above, never new ones.
@@ -10922,7 +10956,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         d_box = (shaft[0], line_y, shaft[1], floor_y) if depth else (shaft[0], base_y - max(feet, ref_feet) * px_ft,
                                                                      ref_cx + ref_feet * px_ft * width_per_px / 2, base_y)
         layout = scale_layout_record("depth" if depth else dimension_word(fact).lower(), d_box, own,
-                                     (x0, top, box_x1, bottom), statement, labelled, derive)
+                                     (x0, top, box_x1, bottom), statement, labelled, derive, axis_out)
         record_contrast(out, last[0], plates, ruler_rows)   # the push ends at 1.0: the last frame is the planned layout
         record_layout(out, layout)
         size = (width, height)
@@ -11219,6 +11253,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             derived_plate(plate, statement["derivation"])
     labelled = {"subject"}            # the operands this drawing labels: the heading's figure is the subject's
     ruler_rows: list[dict[str, Any]] = []
+    axis_out: list[dict[str, Any]] = []                     # the axis figures that yielded (yield_axis_figure)
     for name, text, font, colour, x, yb, anchor in ann:
         if anchor == "ruler":                                         # F11: centred on its tick, a zero on its datum
             plate = ruler_label(final, X(x), Y(yb), text, font, colour, "r", track=S(1))
@@ -11240,6 +11275,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             if anchor != "ruler":   # lane A c4: a stated quantity left out is recorded (an axis figure thins)
                 record_drop(surface_of("scale", out), f"the {name.replace('_', ' ')} {text}", SCALE_DROP_RULE,
                             why_out)
+            else:                   # freeze cycle 5: and the thinned axis figure is recorded too
+                yield_axis_figure(surface_of("scale", out), text, why_out, axis_out)
             continue
         plates.append((name, plate))
         if anchor == "ruler":
@@ -11359,7 +11396,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                   X(ref_cx + ref_feet * px_ft * width_per_px / 2), Y(base_y)))
         layout = scale_layout_record("depth" if depth else dimension_word(fact).lower(), d_box, own_boxes,
                                      (X(WIDE_TITLE_SAFE[0]), Y(top_d), X(cx0 - 20), Y(WIDE_TITLE_SAFE[3])),
-                                     statement, labelled, derive)
+                                     statement, labelled, derive, axis_out)
         record_contrast(out, last[0], plates, ruler_rows)   # the push ends at 1.0 (see the 9:16 renderer)
         record_layout(out, layout)
         size, lw = (width, height), max(1, round(S(3)))

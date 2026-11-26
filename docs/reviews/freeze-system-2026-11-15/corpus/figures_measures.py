@@ -221,10 +221,48 @@ def section_rows(rec: dict[str, Any]) -> list[tuple]:
 
 
 # --------------------------------------------------------------------------------------------- FIG-07
+NUMBER = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?")
+
+
+def _numbers(text: str) -> list[str]:
+    return [m.group(0).rstrip(",") for m in NUMBER.finditer(text)]
+
+
+def _rounded_once(shown: str, true: float) -> bool:
+    raw = shown.replace(",", "")
+    return abs(float(raw) - true) <= 0.5 * 10 ** -len(raw.partition(".")[2]) + 1e-9
+
+
+def _ratio_text(ratio: float) -> str:
+    """The comparison's ratio rule (one decimal under 2, else the whole number, half up), written here on its own so
+    the measure does not take the tree's word for it."""
+    return f"{math.floor(ratio * 10 + 0.5) / 10:g}" if ratio < 2 else str(math.floor(ratio + 0.5))
+
+
+def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subject: float, reference: float) -> str:
+    """'' when every derived number `text` draws is the rule's result on the SIGNED SOURCE values (`subject`, the
+    fact's own value; `reference`, the reference file's figure in the drawing's unit, unrounded) rounded once; else
+    what is wrong. Numbers that restate an operand's own drawn figure are not derived numbers."""
+    drawn = [n for n in _numbers(text) if n not in operands_drawn]
+    if rule == "ratio":
+        true = max(subject, reference) / min(subject, reference)
+        if not shown:
+            return "" if true < 1.1 and not drawn else f"states no ratio for a true ratio of {true:.3f}"
+        bad = [n for n in drawn if n != _ratio_text(true)]
+        return f"draws {bad[0]} for a true ratio of {true:.3f} ({_ratio_text(true)} by the rule)" if bad else ""
+    true = abs(subject - reference) if rule == "difference" else subject + reference
+    if not drawn and shown and shown in _numbers(text):
+        drawn = [shown]
+    bad = [n for n in drawn if not _rounded_once(n, true)]
+    return f"draws {bad[0]} for a true {rule} of {true:.3f} between the signed values" if bad else ""
+
+
 def derived_rows(rec: dict[str, Any]) -> list[tuple]:
     """Every figure a scale drawing or a timeline states is a signed figure of its input, the reference file's
     sourced landmark figure, a conversion of one, or a DERIVED figure whose record (operands, operation, result)
-    satisfies the ruling (figures.derivation_faults) with its operands labelled on the drawing."""
+    satisfies the ruling (figures.derivation_faults) with its operands labelled on the drawing, AND whose drawn number
+    is the operation on the SIGNED SOURCE values rounded once (truth_fault: re-computed here from the capture's input
+    and the reference file, not from the record; "ABOUT 2.0 M" for a true 1.71 m gap fails)."""
     st = _status(rec)
     if st:
         return [st]
@@ -243,6 +281,11 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
         fig, metric = graphics.scale_figure(fact, feet, depth)
         signed = {v for t in (fig, metric, graphics._short(ref[1], unit)) for f in figures.parse(t) for v in f.values}
         labelled = set((rec.get("layout") or {}).get("labelled") or [])
+        per = 1 / 3.28084 if unit == "M" else 1.0
+        own_unit = "M" if str(fact.get("unit") or "").strip().lower() == "m" else "FT"
+        s_true = float(fact["value"]) if own_unit == unit else feet * per
+        r_true = float(ref[1]) * per
+        op_drawn = {n for t in (fig, metric, graphics._short(ref[1], unit)) for n in _numbers(t)}
         for e in rec["elements"]:
             if RULER_ROLE.match(e["name"]):
                 continue
@@ -256,6 +299,9 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                 rows.append((*where, f"draws {extra} with no derivation record", "FAIL"))
                 continue
             faults = figures.derivation_faults(d, labelled if rec.get("layout") else None)
+            wrong = truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true)
+            if wrong:
+                faults = [*faults, wrong]
             ops = " ; ".join(f"{o['text']} ({o['role']})" for o in d.get("operands") or [])
             rows.append((*where, "; ".join(faults) or f"{d['rule']} of {ops} = {d['result']:g}, shown "
                          f"{d.get('text')!r}", "FAIL" if faults else "PASS"))

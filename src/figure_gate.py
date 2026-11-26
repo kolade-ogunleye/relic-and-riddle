@@ -544,11 +544,15 @@ def gap_faults(text: str, derived: Mapping[str, Any] | None, payload: Mapping[st
     return [f"no two signed timeline years are {'about ' if hedged else ''}{shown:,} years apart by the timeline's rule"]
 
 
+SOURCE_TOL = 1e-4     # an operand's recorded value against its signed source: the same number, in the drawing's unit
+
+
 def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payload: Mapping[str, Any]) -> list[str]:
     """[] when a derived comparison (a scale's bracket figure, its line of meaning: freeze cycle 5, lander ruling
     2026-11-26, figures.DERIVED_RULE) holds; else one line per fault. Its record is re-computed (figures.
-    derivation_faults: an allowed operation, sourced operands, the result, the hedge) and every operand is checked
-    against what it claims to be: the run's signed scale_fact, or the reference file's sourced landmark. A bracket's
+    derivation_faults: an allowed operation, sourced operands, the result from their signed source values rounded
+    once, the hedge) and every operand's value is checked against what it claims to be (the same number, SOURCE_TOL:
+    never a figure as rounded for drawing): the run's signed scale_fact, or the reference file's sourced landmark. A bracket's
     drawn figure is the record's. A bracket that states a figure with no record fails closed."""
     if not isinstance(derived, Mapping):
         return ["a derived figure without its derivation record (figures.DERIVED_RULE)"]
@@ -563,8 +567,10 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
             except (TypeError, KeyError, ValueError):
                 out.append(f"its operand {o.get('name')!r} claims the run's scale_fact, which the run does not sign")
                 continue
-            if per_ft is None or abs(float(o["value"]) * per_ft - feet) > CONVERT_TOL * max(feet, 1e-9):
-                out.append(f"its operand {o.get('text')!r} is not the run's signed scale_fact "
+            # the operand's VALUE is the signed value itself (the arithmetic is done on it: figures.DERIVED_RULE);
+            # its drawn figure may round it within CONVERT_TOL (figures.derivation_faults)
+            if per_ft is None or abs(float(o["value"]) * per_ft - feet) > SOURCE_TOL * max(feet, 1e-9):
+                out.append(f"its operand {o.get('text')!r} ({float(o['value']):g}) is not the run's signed scale_fact "
                            f"({fact.get('value')} {fact.get('unit')})")
         elif o.get("role") == "reference":
             from .reference_facts import references
@@ -572,8 +578,9 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
                         or r.get("label") == o.get("name")), None)
             if ref is None or not ref.get("source_url") or o.get("source") != ref.get("source_url"):
                 out.append(f"its operand {o.get('name')!r} is not a sourced landmark of the reference file")
-            elif per_ft is None or abs(float(o["value"]) * per_ft - float(ref["feet"])) > CONVERT_TOL * float(ref["feet"]):
-                out.append(f"its operand {o.get('text')!r} is not the reference file's figure for {ref['label']}")
+            elif per_ft is None or abs(float(o["value"]) * per_ft - float(ref["feet"])) > SOURCE_TOL * float(ref["feet"]):
+                out.append(f"its operand {o.get('text')!r} ({float(o['value']):g}) is not the reference file's "
+                           f"figure for {ref['label']}")
         else:
             out.append(f"its operand {o.get('name') or o.get('role')!r} is neither a signed field of the run nor a "
                        "sourced reference")

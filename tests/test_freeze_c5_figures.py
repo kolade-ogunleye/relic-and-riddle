@@ -100,7 +100,7 @@ def test_derivation_rule():
     rec = figures.derivation("difference", [a, b], "181", "ABOUT 181 M")
     assert rec["result"] == 181 and rec["hedged"] and not figures.derivation_faults(rec, ["subject", "reference"])
     assert figures.derivation_faults(dict(rec, text="181 M"))                      # hedged unless exact
-    assert figures.derivation_faults(dict(rec, shown="183"))                       # the arithmetic, as drawn
+    assert figures.derivation_faults(dict(rec, shown="183"))                       # the arithmetic
     assert figures.derivation_faults(rec, ["subject"])                             # an operand not labelled
     assert figures.derivation_faults(dict(rec, rule="product"))                    # difference, ratio or sum only
     assert figures.derivation_faults(dict(rec, operands=[a, dict(b, source="")]))  # every operand sourced
@@ -109,6 +109,37 @@ def test_derivation_rule():
     assert not exact["hedged"] and not figures.derivation_faults(exact)
     with pytest.raises(ValueError):
         figures.derivation("product", [a, b], "1", "x")
+
+
+def test_a_derived_figure_is_computed_from_the_signed_values_and_rounded_once():
+    """TRUTH (lander ruling 2026-11-26): the arithmetic is on the signed source values, rounded once for display;
+    never on the operands as rounded for drawing (a 20 m well against a 60 ft landmark drew 'ABOUT 2.0 M' for a true
+    1.71 m gap)."""
+    well = figures.operand("subject", "Well", "20 M", 20.0, "M", True, "scale_fact")
+    mark = figures.operand("reference", "Landmark", "18 M", 60 / 3.28084, "M", True, "https://example.org/landmark")
+    good = figures.derivation("difference", [well, mark], "1.7", "ABOUT 1.7 M")
+    assert abs(good["result"] - 1.712) < 1e-3 and good["hedged"] and not figures.derivation_faults(good)
+    assert figures.derivation_faults(figures.derivation("difference", [well, mark], "2.0", "ABOUT 2.0 M"))
+    # an operand recorded at its drawn rounding (18, not 18.288) does not state the source: the gate refuses it
+    fact = {"value": 20.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True}
+    feet = 20.0 * 3.28084
+    ref = graphics.pick_reference(feet)
+    st = graphics.scale_statement(fact, feet, ref[0], ref[1], True)
+    rec = st["derivation"]
+    assert not figure_gate.derived_faults("bracket", st["note"], rec, {"scale_fact": fact})
+    true = abs(20.0 - ref[1] / 3.28084)
+    assert abs(rec["result"] - true) < 1e-4 and figures.rounded_once(rec["shown"], true)
+    assert all(rec["shown"] in t for t in (st["note"], st["lines"][rec and st["derived_line"]]))
+    rounded = dict(rec, operands=[rec["operands"][0], dict(rec["operands"][1], value=round(ref[1] / 3.28084))])
+    assert figure_gate.derived_faults("bracket", st["note"], rounded, {"scale_fact": fact})
+    assert figures.rounded_once("180", 180.39) and not figures.rounded_once("181", 180.39)
+    assert not figures.rounded_once("2.0", 1.712) and figures.rounded_once("2", 1.712)
+    # the measure the corpus runs (docs/.../corpus/fig_derived.py), on its own arithmetic
+    assert fm.truth_fault("difference", "ABOUT 2.0 M", "2.0", {"20", "18"}, 20.0, 18.288)
+    assert not fm.truth_fault("difference", "ABOUT 1.7 M", "1.7", {"20", "18"}, 20.0, 18.288)
+    assert fm.truth_fault("ratio", "about 3 times as tall", "3", {"138", "305"}, 138.0, 305.0)
+    assert not fm.truth_fault("ratio", "about 2 times its length.", "2", {"138", "305"}, 138.0, 305.0)
+    assert fm.truth_fault("ratio", "nearly the same height.", "", set(), 100.0, 150.0)
 
 
 def test_gate_recomputes_a_derived_comparison():

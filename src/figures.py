@@ -766,9 +766,12 @@ def gap_record(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any] | N
 # run's signed fact, or the reference file's sourced landmark figure, named with its source); the operation is one of
 # DERIVED_OPS; the result carries a hedge unless it is exact; its operands are labelled on the drawing (so the reader
 # sees what the figure is the difference or the ratio of); and the surface's record stores the operands, the operation
-# and the result (derivation). Otherwise it is withheld and the omission recorded. The arithmetic is done on the
-# operands AS DRAWN, so the drawing's sum holds on its face (327 - 146 = 181), and the drawn-figure gate re-computes
-# it from the record (derivation_faults).
+# and the result (derivation). Otherwise it is withheld and the omission recorded.
+# TRUTH (lander ruling 2026-11-26, second part): the arithmetic is done on the operands' SIGNED SOURCE values (the
+# fact's own value, the reference file's figure in the drawing's unit, unrounded) and the result is rounded ONCE for
+# display, with its hedge. Never on operands as already rounded for drawing: a 20 m well against a 60 ft (18.288 m)
+# landmark labelled "18 M" is "ABOUT 1.7 M" below it, not 20 - 18 = "2.0". The drawn-figure gate re-computes the
+# result from the record's source values (derivation_faults) and checks each against what it claims to be.
 DERIVED_OPS = ("difference", "ratio", "sum")
 DERIVED_RULE = ("a derived figure is drawn only from signed operands labelled on the drawing, by difference, ratio "
                 "or sum, hedged unless exact, with its derivation recorded (lander ruling 2026-11-26)")
@@ -785,15 +788,24 @@ def comparison_ratio(big: float, small: float) -> str:
 
 def operand(role: str, name: str, text: str, value: float, unit: str, approximate: bool, source: str,
             **more: Any) -> dict[str, Any]:
-    """One operand of a derivation: what it is (`role`, `name`), as drawn (`text`, its `value` in `unit`), whether it
-    is approximate (a hedged fact, a rounded or converted figure) and the signed field or sourced reference it is."""
+    """One operand of a derivation: what it is (`role`, `name`), its figure as drawn (`text`), its SIGNED SOURCE
+    `value` in `unit` (never the drawn rounding: the arithmetic is done on this), whether it is approximate (a hedged
+    fact, or a figure drawn rounded or converted) and the signed field or sourced reference it is."""
     return {"role": role, "name": name, "text": text, "value": float(value), "unit": unit,
             "approximate": bool(approximate), "source": source, **more}
 
 
+def rounded_once(shown: str, true: float) -> bool:
+    """Whether the drawn number `shown` is `true` rounded once at shown's own precision (within half a unit of its
+    last drawn place: "1.7" for 1.712, "180" for 180.39; never "2.0" for 1.712, nor "181" for 180.39)."""
+    raw = str(shown).replace(",", "").strip()
+    dp = len(raw.partition(".")[2])
+    return abs(float(raw) - float(true)) <= 0.5 * 10 ** -dp + 1e-9
+
+
 def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, text: str) -> dict[str, Any]:
     """The record of a derived figure: its `rule` (DERIVED_OPS), its operands (operand), the exact result of the rule
-    on the operands' drawn values, `shown` (the number as drawn: "181", "2", "" for a comparison that states none,
+    on the operands' signed source values, `shown` (the number as drawn: "181", "2", "" for a comparison that states none,
     "nearly the same height"), whether it is hedged (never exact unless every operand is exact and the drawn number
     is the result itself) and `text` (the words that state it on the surface: "ABOUT 181 M", "about 2 times")."""
     vals = [float(o["value"]) for o in operands]
@@ -825,8 +837,9 @@ HEDGE_WORDS = ("ABOUT", "NEARLY", "ROUGHLY", "AROUND", "ALMOST", "APPROXIMATELY"
 def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | None = None) -> list[str]:
     """[] when a derived figure's record satisfies the ruling; else one line per breach. Structural and arithmetical:
     an allowed rule; two operands or more, each with a drawn text, a value, a unit and a source; the result
-    re-computed from the operands' values; the drawn number that result at the rule's rounding (a difference or a sum
-    to the operands' drawn precision, a ratio by comparison_ratio); a hedge in its text unless it is exact. With
+    re-computed from the operands' signed source values; every operand's drawn figure a statement of its source
+    value (within CONVERT_TOL); the drawn number that result rounded once (rounded_once; a ratio by
+    comparison_ratio), never the arithmetic of the figures as rounded for drawing; a hedge unless it is exact. With
     `labelled` (the roles whose figures the drawing labels), every operand's role must be among them."""
     if not isinstance(rec, Mapping):
         return ["a derived figure without a derivation record"]
@@ -843,6 +856,11 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
     if out:
         return out
     vals = [float(o["value"]) for o in ops]
+    for o in ops:                    # the figure an operand is labelled with states its source value
+        said = [v for f in parse(str(o["text"])) for v in f.values]
+        if len(said) == 1 and abs(said[0] - float(o["value"])) > CONVERT_TOL * max(abs(float(o["value"])), 1e-9) + 1e-9:
+            out.append(f"its operand {o.get('name') or o.get('role')!r} is drawn {o['text']!r} for a source value "
+                       f"of {float(o['value']):g} {o['unit']}")
     want = (abs(vals[0] - vals[1]) if rule == "difference" else sum(vals) if rule == "sum"
             else max(vals[:2]) / min(vals[:2]))
     if abs(want - float(rec.get("result", float("nan")))) > 1e-4 * max(1.0, abs(want)):
@@ -853,11 +871,9 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
         if rule == "ratio":
             if shown != comparison_ratio(max(vals[:2]), min(vals[:2])):
                 out.append(f"its drawn ratio {shown} is not its operands' ({want:.2f})")
-        else:
-            dp = max(len(str(o["text"]).split()[0].partition(".")[2]) if str(o["text"])[:1].isdigit() else 0
-                     for o in ops)
-            if abs(got - want) > 0.5 * 10 ** -dp + 1e-9:
-                out.append(f"its drawn figure {shown} is not the {rule} of its operands as drawn ({want:g})")
+        elif not rounded_once(shown, want):
+            out.append(f"its drawn figure {shown} is not the {rule} of its operands' signed values ({want:g}) "
+                       "rounded once")
     exact = (not any(o.get("approximate") for o in ops) and shown and _is_number(shown)
              and abs(float(shown.replace(",", "")) - want) < 1e-9)
     text = str(rec.get("text") or "").upper()

@@ -102,24 +102,26 @@ def test_one_size_per_clip_and_every_other_size_is_recorded(name, tmp_path):
     assert len(off) <= (1 - vc.CAPTION_CLIP_MAJORITY) * len(bursts) + 1
 
 
-def test_a_misfit_never_drags_the_clip_down_and_the_letter_of_one_size_is_one_switch(monkeypatch):
+def test_a_misfit_never_drags_the_clip_down_and_no_burst_of_several_words_stands_at_another_size(monkeypatch):
     """The Amber clip's one burst that sets only at the bond floor (OF ARMY GROUP NORTH) put the whole clip at 66 px
-    under "the largest rung EVERY burst sets at"; under the majority rule the clip is not at the floor for it."""
+    under "the largest rung EVERY burst sets at"; under the majority rule the clip is not at the floor for it, and
+    the burst is drawn at the clip's size like every other (its break recorded: no legal form)."""
     words = _words("amber")
     phrases = vc.caption_phrases(words, CLIPS["amber"]["emphasis_words"])
-    clip = vc._clip_state()
-    forms = vc.clip_forms()
+    clip, forms = vc._clip_state(), vc.clip_forms()
     assert clip["px"] > min(vc.CAPTION_LADDER)
     assert [w for p in phrases for w in p] == words
     assert set(forms) == {_raw(p) for p in phrases}
-    sized = {f[2] for f in forms.values()}
-    assert sized - {clip["px"]} == {u["px"] for u in clip["under"]} - {clip["px"]}
-    # to the letter (every burst at the clip's size): no multi-word burst stands at another size
-    monkeypatch.setattr(vc, "CAPTION_MISFIT_OWN_SIZE", False)
-    phrases = vc.caption_phrases(words, CLIPS["amber"]["emphasis_words"])
+    assert {f[2] for raw, f in forms.items() if len(raw) > 1} == {clip["px"]}        # ONE size per clip
+    assert not [u for u in clip["under"] if len(u["text"].split()) > 1], clip["under"]
+    for row in clip["no_legal_form"]:   # each drawn against the rule is named with its fault
+        assert " / " in row["text"] and row["faults"], row
+    assert vc.CAPTION_MISFIT_OWN_SIZE is False
+    # the measured alternative (not delivered): the misfit on its legal lines one rung down, recorded "under"
+    monkeypatch.setattr(vc, "CAPTION_MISFIT_OWN_SIZE", True)
+    vc.caption_phrases(words, CLIPS["amber"]["emphasis_words"])
     clip, forms = vc._clip_state(), vc.clip_forms()
-    assert all(f[2] == clip["px"] for raw, f in forms.items() if vc._clip_fallback(raw, clip["px"]) is not None
-               or vc._clip_form(raw, clip["px"]) is not None)
+    assert {f[2] for f in forms.values()} - {clip["px"]} == {u["px"] for u in clip["under"]}
 
 
 # ------------------------------------------------------------------------------- D5: one line where one line fits

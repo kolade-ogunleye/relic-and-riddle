@@ -1380,7 +1380,7 @@ class MultiFormatGenerator:
         cap_k = cap_height(font_k)
         k_gap = kicker_gap(font_k.size)                           # F20: the one kicker gap
         hero = story_figure(l1, l2) if i == 1 and not asks_poll else None
-        b_step = round(STORY_BODY_PX * 1.36)
+        b_step = round(STORY_BODY_PX * brand_system.SPEC["lead.body"])
         b_gap = round(STORY_BODY_PX * tok("band.body_gap_tall"))  # title's last baseline to the body's first (F3)
         font_p = get_font(brand.TEXT_FONT, 32 if tight else 36, weight=800)
         sticker = STORY_STICKER_H if asks_poll else 0
@@ -1410,7 +1410,7 @@ class MultiFormatGenerator:
                     # TENSION' at 1.19, the Antikythera kicker over an accented title at 1.02): a line's accents
                     # keep the gap to the kicker or the line above, the pitch growing by their rise
                     y += accent_rise(d, " ".join(r for r, _ in line_runs), f)
-                    y += cap_height(f) if not out else round(cap_height(f) * 1.13)
+                    y += cap_height(f) if not out else round(cap_height(f) * brand_system.SPEC["lead.display"])
                     dx = 0
                     for run, role in line_runs:
                         out.append((name, y, run, f, brand.GOLD if role in GOLD_ROLES else brand.BONE, dx))
@@ -1538,7 +1538,7 @@ class MultiFormatGenerator:
             ct = cap_height(font_t)
             b1 = ct + accent_rise(d, l1, font_t)                       # lane D cycle 3: accents keep the gaps
             t_rows = [r for r in (("title_1", b1, l1, font_t, brand.BONE, 0),
-                                  ("title_2", b1 + round(ct * 1.13) + accent_rise(d, l2, font_t), l2, font_t,
+                                  ("title_2", b1 + round(ct * brand_system.SPEC["lead.display"]) + accent_rise(d, l2, font_t), l2, font_t,
                                    brand.GOLD, 0)) if r[2]]
             t_height = t_rows[-1][1] if t_rows else 0
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
@@ -2037,7 +2037,7 @@ class MultiFormatGenerator:
             # The second heading line at the design size (round 3: at its floor the two-line "IMPACT THEORY /
             # DISPROVED" missed the frame by a few px and dropped to bottom-aligned); both copies since lane D cycle 2.
             second = top
-            hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * 1.13)
+            hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * brand_system.SPEC["lead.display"])
         k_size = fx(type_px("kicker", "carousel") * 3 / 4)
         return {"kicker": hb - cap_height(h) - kicker_gap(k_size), "heading": hb, "heading_last": h_last,
                 "first_body": first_body, "heading_lines": 2 if two else 1}
@@ -2301,7 +2301,7 @@ class MultiFormatGenerator:
                 # touched line 1 at 1.58): a second line's accents keep the line gap to the line above, so the
                 # pitch grows by the accent's rise, never the accent into the first line's ink
                 y += accent_rise(d, line_text, font_h)
-            y += ch if j == 0 else round(ch * 1.13)
+            y += ch if j == 0 else round(ch * brand_system.SPEC["lead.display"])
             x = 0
             for text, role in line_runs:
                 rows.append({"name": "heading", "text": text, "font": font_h,

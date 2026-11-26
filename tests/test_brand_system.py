@@ -581,7 +581,7 @@ def test_every_runtime_token_has_a_probe():
     assert set(TOKEN_PROBES) == set(brand_system.SYSTEM_TOKENS)
     assert not set(brand_system.SPEC) & set(brand_system.SYSTEM_TOKENS)
     with pytest.raises(ValueError, match="not runtime tokens"):
-        brand.DEFAULT_BRAND.derive("spec override", system={"plate.panel": 0.5})
+        brand.DEFAULT_BRAND.derive("spec override", system={"lead.body": 0.5})
 
 
 @pytest.mark.parametrize("token", sorted(TOKEN_PROBES))

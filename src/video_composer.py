@@ -168,6 +168,8 @@ TRANS_DUR = 0.40
 # is (operator decision 2026-11-03; "[ HISTORICAL RECONSTRUCTION ]" until then, the same 29 monospaced characters, so
 # the plates keep their width). The covers and the YouTube thumbnail draw this same constant.
 RECON_BADGE_LABEL = "AI ILLUSTRATION · NOT A PHOTO"
+from .brand_system import SPEC as _SPEC   # noqa: E402
+BADGE_WEIGHT = _SPEC["badge.weight"]   # freeze cycle 5 (BOARD-05): the badge role's weight is the token, read here
 
 
 def _is_reconstruction_scene(item) -> bool:
@@ -5541,7 +5543,7 @@ class VideoComposer:
             wide_px = round(CAPTION_WIDE_SIZE * height / 1080)
             wide_fs = ass_font_size(_brand.CAPTION_WIDE_FONT, wide_px, 700)
             badge_px = round(RECON_SIZE_WIDE * height / 1080)
-            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, 600)
+            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, BADGE_WEIGHT)
             styles = (
                 f"Style: CapText,{caption_family},{wide_fs},{_col_past()},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
                 f"Style: CapBox,{caption_family},{wide_fs},{_col_back()},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
@@ -5550,7 +5552,7 @@ class VideoComposer:
             )
         else:
             badge_px = RECON_SIZE_PORTRAIT
-            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, 600)
+            badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, BADGE_WEIGHT)
             # CapText Bold 0 (QF-87): Anton has one weight (400); Bold -1 asked libass for 700, and libass thickened
             # the outlines synthetically (about 10% more ink than the face draws). The caption face draws as designed.
             styles = (
@@ -5821,8 +5823,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # caption review of 2026-11-02 (operator approved moving it).
             scale = height / 1080 if is_widescreen else 1
             pad_x, pad_y = round(14 * scale), round(8 * scale)
-            b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, 600)
-            tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=600), label) + 1.5 * len(label)
+            b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, BADGE_WEIGHT)
+            tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=BADGE_WEIGHT), label) + 1.5 * len(label)
             if is_widescreen:
                 # lane F cycle 3 (panel 4 PL r1): the 5 % corner (y 54) sat under the YouTube player's title and
                 # controls band; the badge stands at 16:9 title-safe's top-left corner (graphics.WIDE_TITLE_SAFE,

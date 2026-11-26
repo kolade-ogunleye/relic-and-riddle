@@ -70,6 +70,7 @@ CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 from . import brand
 from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out, ease_out_back, tok
+from .brand_system import SPEC as _SPEC
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground. Read as brand.<ROLE>
 # when drawn (QF-35a role tokens): the names this module bound at import before, for its readers, are served from the
@@ -6656,7 +6657,7 @@ CIRCA = "c."                      # round 4: circa drawn lowercase, smaller, in 
 SPAN_UNDER_LABEL = 2             # round 4 review 3: a 9:16 span is always at least this many px under the labels
 TALL_LABEL_ROWS = 3               # round 4 review 3: a 9:16 label's rows before it is cut (never cut where it fits)
 TALL_LABEL_ROWS_MAX = 6           # round 4 review 4: and more, up to this, while the column has room for them
-TALL_LEADING = 1.12               # round 6: the 9:16 labels' leading, absolute (30 px -> a 34 px pitch; 1.15 before)
+TALL_LEADING = _SPEC["lead.label"]               # round 6: the 9:16 labels' leading, absolute (30 px -> a 34 px pitch; 1.15 before)
 TALL_TIGHT_LEADING = 1.08         # and the tight one (37 px), taken before any year step (0.88 x 1.3 before)
 TALL_YEAR_LABEL_AIR = 14          # 2026-11-03: px from a year's baseline to its label's cap top (3-4 entries)
 TALL_NO_SPAN_AIR = 32             # round 6: px from a label's ink bottom to the next year's cap (42 before)

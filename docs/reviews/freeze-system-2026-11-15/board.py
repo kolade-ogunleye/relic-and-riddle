@@ -260,13 +260,54 @@ def fit_sample(text: str, font, track: float, room: float) -> str:
     return s + "..."
 
 
+def fit_sample_lines(lines, font, track: float, room: float) -> list[str]:
+    """Freeze cycle 5 (ledger TEXT-06): a specimen sample's lines as drawn. Lines that fit are drawn as they are.
+    Where one does not, the sample is ONE text re-broken by the system's breaker (src/line_policy.wrap) onto the same
+    number of lines where it fits them; else only the LAST drawn line is cut, with a terminal "...". (Each line was cut on its own, so
+    the tall sheet read "... in Mauritania that... / long fascinated observers": the word "has" was gone while the
+    sentence carried on. A fitter never drops a word inside a sentence.)"""
+    from src import line_policy
+
+    def width(s):
+        return font.getlength(s) + track * max(0, len(s) - 1)
+    lines = list(lines)
+    if all(width(t) <= room for t in lines):
+        return lines
+    text = " ".join(lines)
+    got = line_policy.wrap(text, width, room, max_lines=len(lines))
+    if got is not None:                      # the whole sample on its lines, broken by the one policy
+        return got + [""] * 0
+    words, out = text.split(), []
+    for _ in range(len(lines) - 1):          # else: full lines, and the last one cut at its end
+        k = 1
+        while k < len(words) and width(" ".join(words[:k + 1])) <= room:
+            k += 1
+        out.append(" ".join(words[:k]))
+        words = words[k:]
+    out.append(fit_sample(" ".join(words), font, track, room))
+    assert not line_policy.ellipsis_drop(" ".join(out), text), out
+    return out
+
+
 SPECIMEN_FACE_WEIGHTS = {"display": None, "text": 600, "data": 600, "masthead": 700}   # row 1's weight per face
+
+
+def specimen_weight(role: str):
+    """Freeze cycle 5 (ledger BOARD-05, one source): the weight a role draws at, from the token the renderers read
+    (kicker.weight, credit.weight, badge.weight, masthead.weight, place.weight for labels), else its face's own. The
+    specimen drew the credit at the data face's 600 while credit.weight says 500."""
+    from src import brand_system
+    token = {"kicker": "kicker.weight", "credit": "credit.weight", "badge": "badge.weight",
+             "masthead": "masthead.weight"}.get(role)
+    if token is not None and sys_value(token) is not None:
+        return int(sys_value(token))
+    return SPECIMEN_FACE_WEIGHTS[brand_system.FACE[role]]
 
 
 def specimen_weights() -> dict[str, object]:
     """The weight row 1's specimen draws per role (the kicker at 800, else its face's), for row 13's weight table."""
     from src import brand_system
-    return {role: 800 if role == "kicker" else (SPECIMEN_FACE_WEIGHTS[brand_system.FACE[role]] or "regular")
+    return {role: specimen_weight(role) or "regular"
             for role in brand_system.FACE}
 
 
@@ -308,7 +349,7 @@ def row1_specimen(out: Path, dev: Path) -> list[str]:
             y = 24
             for role, px in roles.items():
                 face_role = brand_system.FACE[role]
-                weight = 800 if role == "kicker" else weights[face_role]
+                weight = specimen_weight(role)
                 font = get_font(brand.active().font(face_role), px, weight=weight)
                 track = (brand_system.tok("kicker.track") * px if role == "kicker" else
                          brand_system.tok("masthead.track") * px if role == "masthead" else 0)
@@ -322,7 +363,7 @@ def row1_specimen(out: Path, dev: Path) -> list[str]:
                 lines = sample[role] if step else sample[role][:1]
                 # round 8 (TY-A-13, TY 1b): a sample never runs off the sheet; one that would is cut at a word and
                 # marked "...", so every specimen line is seen whole at its true size
-                lines = [fit_sample(text, font, track, w - 48) for text in lines]
+                lines = fit_sample_lines(lines, font, track, w - 48)
                 for k, text in enumerate(lines):
                     p = be.guarded(f"row 1 specimen {canvas} {ground} {role}", plan_text, im,
                                    (24, round(base_y + k * (step or 0))), text, font, fill, "ls", track,
@@ -1106,7 +1147,7 @@ def element_rows():
     out = [("element", *[f"{c} {w}x{h}" for c, (w, h) in bs.CANVASES.items()], "shared tokens")]
     out.append(("heading / accent", *per(lambda c: "; ".join(size(r, c) for r in ("display_xl", "display_l", "display_m"))
                                          + f"; {face('display_xl')}"),
-                f"accent GOLD {hexc(brand.GOLD)}, rest BONE {hexc(brand.BONE)}; line ends never "
+                f"accent GOLD {hexc(brand.GOLD)}, rest BONE {hexc(brand.BONE)}; {bs.ACCENT_RULE}; line ends never "
                 f"{len(bs.LINE_END_NEVER)} words, last resort {len(bs.LINE_END_LAST_RESORT)}; "
                 + tokens("heading.", "accent.", "contrast.display")))
     out.append(("figure face", *per(lambda c: f"{size('figure', c)} {face('figure')}; {size('data_label', c)} "

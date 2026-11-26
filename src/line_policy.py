@@ -423,7 +423,14 @@ def _cuts_of(lines: Sequence[str]) -> tuple[list[str], list[int]]:
 
 
 SET_LINES_MAX_FORMS = 250_000     # break sets one body may enumerate (a 40-word body on five lines is ~82,000)
-MEASURE_STRETCH = 1.2             # a line may run this far over its character measure to hold the policy (34 -> 41)
+# A line may run this far over its character measure to hold the policy (lander, 2026-11-26: the carousel body's 34
+# characters stretch to 38, never 41), recorded when used (drawn_record: measure_over)
+MEASURE_STRETCH = 1.12
+
+
+def stretch_chars(chars: int) -> int:
+    """The longest line (characters) a body of character measure `chars` may draw to hold the policy (34 -> 38)."""
+    return round(chars * MEASURE_STRETCH) if chars else 0
 
 
 def _need(words: Sequence[str], chars: int | None) -> int:
@@ -444,7 +451,7 @@ def _form_key(words, cuts, chars, need, bonds, seams, names, classes) -> tuple[i
     spans = list(itertools.pairwise((0, *cuts, n)))
     cl = [classes[k] for k in cuts]
     lens = [len(" ".join(words[a:b])) for a, b in spans]
-    stretch = round(chars * MEASURE_STRETCH) if chars else 0
+    stretch = stretch_chars(chars) if chars else 0
     far = sum(max(0, x - stretch) for x in lens) if chars else 0
     near = sum(max(0, min(x, stretch) - chars) for x in lens) if chars else 0
     m = len(spans)

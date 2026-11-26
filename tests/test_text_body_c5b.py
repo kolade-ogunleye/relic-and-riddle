@@ -80,11 +80,13 @@ def test_the_renderers_body_setter_holds_the_policy_on_real_run_copy(row):
 def test_the_aswan_weight_range_keeps_each_figure_with_its_unit(cw):
     # panel 6's lowest-scored stem of the class (Aswan deck slide 5): "... nearly 1,090 / tonnes to 1,168 tonnes."
     lines, _, _ = _body(ASWAN, 4, cw)
-    assert not line_policy.violations(lines), lines
-    assert any("1,090 tonnes to 1,168 tonnes." in ln for ln in lines), lines
-    # the legal break passes the 34-character measure: recorded, never silent
-    over = [r for r in line_policy.drawn_record(lines, MEASURE) if r["fault"] == "measure_over"]
-    assert over and all(r["chars"] <= round(MEASURE * line_policy.MEASURE_STRETCH) for r in over), (lines, over)
+    # each figure stays with its unit; the range may take its seam (a recorded last resort) when keeping it whole
+    # needs a line over the 38-character stretch (lander 2026-11-26: "from nearly 1,090 tonnes to 1,168 tonnes." is 41)
+    assert all(f.get("seam") for f in line_policy.violations(lines)), lines
+    assert any("1,090 tonnes" in ln for ln in lines) and any("1,168 tonnes." in ln for ln in lines), lines
+    assert max(map(len, lines)) <= line_policy.stretch_chars(MEASURE), lines
+    rec = line_policy.drawn_record(lines, MEASURE)
+    assert all(r.get("seam") or r["fault"] == "measure_over" for r in rec), rec
 
 
 def test_a_name_is_not_parted_to_avoid_a_function_word_end_and_no_line_is_added():
@@ -126,13 +128,30 @@ def test_set_lines_order_and_refusal():
         assert not [f for f in line_policy.violations(lines) if f["fault"] == "unit_split"], lines
     assert line_policy.set_lines(text, m, 200, 1) is None                    # it refuses; it never truncates
     # a line over the measure is taken before a figure is parted from its unit, and before a function-word end
-    lines = line_policy.set_lines("It weighs from nearly 1,090 tonnes to 1,168 tonnes.", m, 900, 3, chars=34)
+    lines = line_policy.set_lines("It covers from 1,090 hectares to 1,168 hectares.", m, 900, 3, chars=34)
     assert not line_policy.violations(lines) and max(map(len, lines)) > 34, lines
     # but never further than the stretch while a last-resort break exists: the range then takes its seam
     lines = line_policy.set_lines("It weighs somewhere between 1,090 tonnes and 1,168 tonnes of granite.", m, 900, 4,
                                   chars=24)
-    assert max(map(len, lines)) <= 29, lines                                # 24 x 1.2 (MEASURE_STRETCH)
+    assert max(map(len, lines)) <= 27, lines                                # 24 x 1.12 (MEASURE_STRETCH)
     assert all(f.get("seam") for f in line_policy.violations(lines)), lines
+
+
+def test_the_body_stretch_is_capped_at_38_characters_and_recorded():
+    # lander 2026-11-26: the carousel body's 34-character measure stretches to 38 characters, never further; a change
+    # of MEASURE_STRETCH (either way) fails here
+    assert line_policy.stretch_chars(MEASURE) == 38
+    assert line_policy.stretch_chars(34) == 38 and line_policy.stretch_chars(35) < 40
+    m = lambda s: 10.0 * len(s)   # noqa: E731
+    # a 38-character line is taken to keep the range whole ...
+    lines = line_policy.set_lines("It covers from 1,090 hectares to 1,168 hectares.", m, 900, 3, chars=34)
+    assert max(map(len, lines)) == 38 and not line_policy.violations(lines), lines
+    # ... a 39-character one is not: the range takes its seam (a recorded last resort) instead
+    lines = line_policy.set_lines("It covers from 1,090 hectares to 11,168 hectares.", m, 900, 3, chars=34)
+    assert max(map(len, lines)) <= 38 and all(f.get("seam") for f in line_policy.violations(lines)), lines
+    # every line over the measure is in the drawn record
+    rec = line_policy.drawn_record(["Its weight is about 1,090 tonnes to", "1,168 tonnes."], chars=34)
+    assert [f["chars"] for f in rec if f["fault"] == line_policy.MEASURE_OVER] == [35], rec
 
 
 # ------------------------------------------------------------------------------------------------ D2: the records
@@ -166,12 +185,14 @@ def test_line_faults_are_written_beside_the_still_for_the_lines_it_drew(tmp_path
     assert faults, entry.keys()                                              # in still_layout.json, not in memory only
     drawn = next(e["text"] for e in entry["elements"] if e["name"] == "body")
     assert all(f["role"] == "body" and f["text"] in drawn for f in faults), (faults, drawn)
-    assert [f["fault"] for f in faults] == ["measure_over"] and faults[0]["text"].endswith("1,168 tonnes.")
+    lines0, _, _ = _body(ASWAN, 4)
+    assert [f["fault"] for f in faults] == [f["fault"] for f in line_policy.drawn_record(lines0, MEASURE)], faults
+    assert all(f["fault"] == "measure_over" or f.get("seam") for f in faults), faults
     # the heading engine's form (its recorded last resorts with it) is beside the still too, as drawn
     assert " ".join(entry["heading"]["lines"]) == "UNMATCHED WEIGHT" and "conjunction_end" in entry["heading"]
     # every recorded line is a line of the drawn body, once: no trial fit's lines beside them
     lines, _, _ = _body(ASWAN, 4)
-    assert sorted({f["text"] for f in faults}) == sorted({ln for ln in lines if len(ln) > MEASURE})
+    assert sorted({f["text"] for f in faults}) == sorted({r["text"] for r in line_policy.drawn_record(lines, MEASURE)})
 
 
 def test_a_clean_slide_has_no_record_and_takes_none_from_another_surface(tmp_path):

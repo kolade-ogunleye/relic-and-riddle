@@ -231,9 +231,10 @@ def test_the_act_dissolve_runs_eased_and_monotonic_on_the_bundled_encoder(tmp_pa
     import numpy as np
 
     from src import video_composer
-    ffmpeg = next(iter(sorted((ROOT / "tools" / "ffmpeg").glob("*/*/bin/ffmpeg.exe"))), None)
+    import shutil
+    ffmpeg = shutil.which("ffmpeg")   # the encoder the composer runs (PATH): the pinned 8.1 on CI, the bundled one here
     if ffmpeg is None:
-        pytest.skip("no bundled ffmpeg")
+        pytest.skip("no ffmpeg on PATH")
     out = tmp_path / "x.raw"
     graph = f"[0][1]xfade={video_composer.act_dissolve_transition()}:duration=0.5:offset=0.25,format=gray"
     subprocess.run([str(ffmpeg), "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",

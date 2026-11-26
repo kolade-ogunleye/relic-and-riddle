@@ -1939,7 +1939,12 @@ def _two_line_options(words: tuple[str, ...]) -> tuple[tuple[tuple, int, int, fl
             # lane C cycle 2 (lander ruling 2, 2026-11-20): a proper name is a bond like a figure and its unit, so a
             # break inside one (name_bonds) ranks first, above the line defect and the rung: the lead-in and the whole
             # name take one line down to the bond floor (_reel_form) before a name splits (was: rung first)
-            rank = (name, _line_break_defect(shown, k), -rung, dangles, lone, round(wide),
+            # lane C cycle 4 (lander ruling 2026-11-25, LINE_RULE): a break after a qualifier (MORE THAN / 590 SQUARE
+            # FEET) or leaving a one-word line is no legal break either: it ranks after every legal break, the rung
+            # included, so a legal break one rung down comes first (TRACKING ITS / LOCATION ENDS at 74 before
+            # TRACKING / ITS LOCATION ENDS at 80); a burst with none is split (_line_split)
+            rule = _hedge_break(shown, k) or k == 1 or k == len(shown) - 1
+            rank = (name, _line_break_defect(shown, k), rule, -rung, dangles, lone, round(wide),
                     0 if _bare(shown[k]) in NAME_PARTICLES else 1)
             out.append((rank, k, rung, wide))
     return tuple(sorted(out))
@@ -2541,7 +2546,8 @@ def never_end_lines(phrases) -> list[dict[str, Any]]:
 
 
 def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float, float, list[float]]],
-                  widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+                  widescreen: bool = False, bond_extra: list[dict[str, Any]] | None = None,
+                  line_split: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Each burst's reading rate as delivered (QF-88): its characters, spaces included, over its time on screen
     ("shown"), against the rate its own words are spoken at: over the time they hold the narration, from its first
     word's start to the next burst's first word where that follows without a pause (CAPTION_PAUSE_GAP), else to its
@@ -2588,7 +2594,11 @@ def reading_rates(phrases: list[list[dict[str, Any]]], timings: list[tuple[float
                 not row["hedge_break"] for row in never_end_lines(phrases))),
             # lane C ruling 5: the bursts the repair formed with the bond extra (+1 word / +2 characters), each with
             # the defect it removed (caption_phrases' bond_extra)
-            "bond_extra": list(bond_extra or [])}
+            "bond_extra": list(bond_extra or []),
+            # lane C cycle 4 (lander ruling 2026-11-25): each 9:16 burst whose two-line break broke LINE_RULE, the
+            # bursts it was split into ("into": None where no legal split held: recorded, the burst kept), the faults
+            # it removed and the rule (caption_phrases' line_split)
+            "line_split": list(line_split or [])}
 
 
 def emphasis_bonds(words: list[dict[str, Any]], emphasis: list[str] | None) -> set[int]:
@@ -3205,12 +3215,15 @@ def _rejoin_base(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]
 
 def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = None, widescreen: bool = False,
                     max_width: int | None = None,
-                    bond_extra: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+                    bond_extra: list[dict[str, Any]] | None = None,
+                    line_split: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """The bursts build_subtitles draws (9:16 Reel bursts, or 16:9 one-line bursts): the grammatical partition
     with every bond (caption_bonds, and the key terms with their hedges: emphasis_bonds), then merge_short_bursts.
     9:16 joins also keep each burst on screen for its dwell (freeze pass C10). Fix round 1 (operator decision
     2026-11-04): the round-4 phrasing is the base (round4_burst_cuts), a cut it does not have is made only where a
-    rule forces it, and a join it made is made again (_rejoin_base)."""
+    rule forces it, and a join it made is made again (_rejoin_base). Lane C cycle 4 (lander ruling 2026-11-25): a
+    9:16 burst with no legal two-line break is split into consecutive bursts (_line_split), each recorded in
+    `line_split`. A 16:9 burst is one line, so its line ends are its burst ends (_never_end_repair)."""
     if widescreen:
         wide_max = max_width if max_width is not None else min(int(1920 * 0.75), CAPTION_WIDE_MAX_PLATE)
         base = round4_burst_cuts(words, emphasis, True, wide_max)
@@ -3287,6 +3300,7 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         2 <= len(ph) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(ph))) <= MAX_BURST_CHARS
         and not _function_only(ph) and _fits_caption_burst(ph)) or group_two_lines(ph) or lone_tail(ph),
         bond_extra=bond_extra, range_cuts=range_joiner_cuts(words), ranged=lambda ph: strict(ph) or relaxed(ph))
+    out = _line_split(out, words, emphasis, line_split)
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
@@ -3448,6 +3462,196 @@ def _window_recut(out, i: int, allowed, cut_ok, defects):
         if defects(trial, list(range(lo, hi + 1))) <= before:
             return trial
     return None
+
+
+# Lane C cycle 4 (lander ruling 2026-11-25, delegated): the caption line rule. A two-line 9:16 burst whose line break is
+# not legal is drawn as consecutive bursts instead. A legal break never ends line 1 on an article, a preposition or a
+# conjunction (never_end_end, the one never-end class), never parts a qualifier from its figure (_hedge_break: MORE
+# THAN / 590 SQUARE FEET) or a figure from its unit (unit_link), and leaves no one-word line in a burst of more than
+# one word.
+LINE_RULE = ("caption line rule (lander ruling 2026-11-25): no line ends on an article, preposition or conjunction; "
+             "a qualifier stays with its figure; a one-word line only in a one-word burst")
+
+
+def line_rule_faults(phrase: Any) -> list[str]:
+    """Why a 9:16 burst's two-line break (reel_caption_lines) breaks LINE_RULE: "function_word_line_end",
+    "qualifier_line", "unit_line", "one_word_line". [] for a one-line burst or a legal break."""
+    raw = [w if isinstance(w, str) else str(w.get("word", "")) for w in (
+        phrase.split() if isinstance(phrase, str) else phrase)]
+    layout = reel_caption_lines(raw)
+    if layout is None:
+        return []
+    k, shown = layout[0], _phrase_words(raw)
+    out = []
+    if _hedge_break(shown, k):
+        out.append("qualifier_line")
+    elif never_end_end(shown[k - 1]):
+        out.append("function_word_line_end")
+    if unit_link(shown[k - 1], shown[k]):
+        out.append("unit_line")
+    if k == 1 or k == len(shown) - 1:
+        out.append("one_word_line")
+    return out
+
+
+def _line_split(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None,
+                record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+    """Lane C cycle 4 (lander ruling 2026-11-25): the last pass of the 9:16 path. Each burst whose two-line break
+    breaks LINE_RULE (line_rule_faults) is split into two (else three) consecutive bursts at the best legal cuts: no
+    cut inside a bond (caption_bonds, name_bonds, unit_links, a figure group's closing word, a key term:
+    emphasis_bonds) or an atomic pair, no burst ending mid-sentence on a never-end word, and every part a one-word
+    burst or a burst that fits (_fits_caption_burst) with no LINE_RULE fault of its own, and no burst left up for
+    less than CAPTION_MIN_ON_SCREEN_S that was not already (D1). A one-word part may join the burst of its sentence
+    before or after it (the burst caps, LINE_RULE clean); where no split of the burst alone holds, the bursts of its
+    sentence around it are re-cut with it under the same rule. Best: no clause punctuation inside a burst, then the
+    fewest one-word bursts, the fewest soft ends (_dangles), the fewest two-line bursts, the most even parts. Every word keeps its order and its own timing (burst_timings times each part on its words; no voice
+    stretch; the reading rate is recorded as before). Each split is recorded (`record`: the burst, its parts, the
+    faults it removed, LINE_RULE); a burst with no legal split stays and is recorded with "into": None."""
+    out = [list(p) for p in phrases if p]
+    if not out:
+        return out
+    pos = {id(w): k for k, w in enumerate(words)}
+    raw = [str(w.get("word", "")) for w in words]
+    protected = (name_bonds(raw) | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words)
+                 | emphasis_bonds(words, emphasis))
+
+    def cut_ok(a: list[dict[str, Any]], b: list[dict[str, Any]]) -> bool:
+        return (pos[id(a[-1])] not in protected and not never_end_end(a[-1]["word"])
+                and not _is_atomic_boundary(a[-1]["word"], b[0]["word"]))
+
+    def clean(part: list[dict[str, Any]]) -> bool:
+        return len(part) == 1 or (_fits_caption_burst(part) and not line_rule_faults(part))
+
+    def text(p: list[dict[str, Any]]) -> str:
+        ws = [w["word"] for w in p]
+        layout = reel_caption_lines(ws)
+        return " ".join(ws[:layout[0]]) + " / " + " ".join(ws[layout[0]:]) if layout else " ".join(ws)
+
+    def slow_at(trial: list[list[dict[str, Any]]], timing, q: int) -> int:
+        show, hide = timing[q][0], timing[q][1]
+        return int(hide - show < CAPTION_MIN_ON_SCREEN_S - 1e-6)
+
+    def crossings(parts: list[list[dict[str, Any]]]) -> int:   # clause punctuation inside a burst, not at its end
+        return sum(bool(CLAUSE_PUNCT.search(w["word"])) for q in parts for w in q[:-1])
+
+    def joinable(q: list[dict[str, Any]]) -> bool:   # a part joined to its neighbour: the burst caps, LINE_RULE clean
+        return (len(q) <= MAX_BURST_WORDS and len(" ".join(_phrase_words(q))) <= MAX_BURST_CHARS
+                and not _function_only(q) and _fits_caption_burst(q) and not line_rule_faults(q))
+
+    result: list[list[dict[str, Any]]] = []
+    i = 0
+    while i < len(out):
+        p = out[i]
+        faults = line_rule_faults(p)
+        if not faults:
+            result.append(p)
+            i += 1
+            continue
+        n = len(p)
+        nxt = out[i + 1] if i + 1 < len(out) else None
+        # the window as it stands (the burst before, this one, the one after): a split adds no rate defect and no
+        # burst up for less than CAPTION_MIN_ON_SCREEN_S (D1: the existing rule) to it
+        now = result + out[i:]
+        timing = burst_timings(now, dwell=True)
+        base_slow = sum(slow_at(now, timing, q) for q in range(max(0, len(result) - 1), min(len(now), len(result) + 2)))
+        best = None
+        for m in (2, 3):
+            for cuts in itertools.combinations(range(1, n), m - 1):
+                bounds = (0, *cuts, n)
+                parts = [p[a:b] for a, b in zip(bounds, bounds[1:])]
+                if not all(cut_ok(a, b) for a, b in zip(parts, parts[1:])) or not all(clean(q) for q in parts):
+                    continue
+                # a one-word part may instead join the burst of its sentence before or after it, where the joined
+                # burst holds the caps and LINE_RULE: the fewer one-word bursts, the steadier the rhythm
+                heads = [False] + ([True] if len(parts[0]) == 1 and result and not _ends_sentence(result[-1])
+                                   and joinable(result[-1] + parts[0]) else [])
+                tails = [False] + ([True] if len(parts[-1]) == 1 and nxt is not None and not _ends_sentence(p)
+                                   and joinable(parts[-1] + nxt) else [])
+                for head in heads:
+                    for tail in tails:
+                        mid = parts[1 if head else 0:len(parts) - (1 if tail else 0)]
+                        if not mid:
+                            continue
+                        before = result[:-1] + [result[-1] + parts[0]] if head else list(result)
+                        after = [parts[-1] + nxt] + out[i + 2:] if tail else out[i + 1:]
+                        trial = before + mid + after
+                        lo, hi = len(before) - (1 if head else 0), len(before) + len(mid) + (1 if tail else 0)
+                        if head and len(before) >= 1 and not cut_ok(before[-1], mid[0]):
+                            continue
+                        if tail and not cut_ok(mid[-1], after[0]):
+                            continue
+                        timing = burst_timings(trial, dwell=True)
+                        win = range(max(0, len(result) - 1), min(len(trial), hi + 1))
+                        if sum(slow_at(trial, timing, q) for q in win) > base_slow:
+                            continue
+                        formed = trial[lo:hi]
+                        score = (crossings(formed), sum(len(q) == 1 for q in formed),
+                                 sum(_dangles(q[-1]["word"]) for q in formed[:-1]),
+                                 sum(reel_caption_lines([w["word"] for w in q]) is not None for q in formed),
+                                 max(len(q) for q in parts) - min(len(q) for q in parts), head + tail)
+                        if best is None or score < best[0]:
+                            best = (score, head, mid, tail, formed)
+            if best is not None:
+                break
+        entry = {"at": round(float(p[0].get("start", 0.0)), 2), "text": text(p), "removed": faults, "rule": LINE_RULE}
+        window = None
+        if best is None:
+            # no split of the burst alone holds (a part would be up for under CAPTION_MIN_ON_SCREEN_S): the bursts of
+            # its sentence before and after it are re-cut with it, every cut and burst under the same rule
+            head = bool(result) and not _ends_sentence(result[-1])
+            tail = nxt is not None and not _ends_sentence(p)
+            flat = (result[-1] if head else []) + p + (nxt if tail else [])
+            k = 1 + head + tail
+            found = None
+            if len(flat) <= 16:
+                for m in (k, k + 1, k + 2):
+                    for cuts in itertools.combinations(range(1, len(flat)), m - 1):
+                        bounds = (0, *cuts, len(flat))
+                        parts = [flat[a:b] for a, b in zip(bounds, bounds[1:])]
+                        if not all(len(q) == 1 or joinable(q) for q in parts) or not all(
+                                cut_ok(a, b) for a, b in zip(parts, parts[1:])):
+                            continue
+                        before = result[:-1] if head else list(result)
+                        trial = before + parts + out[i + 1 + tail:]
+                        timing = burst_timings(trial, dwell=True)
+                        win = range(max(0, len(before) - 1), min(len(trial), len(before) + m + 1))
+                        if sum(slow_at(trial, timing, q) for q in win) > base_slow:
+                            continue
+                        score = (crossings(parts), sum(len(q) == 1 for q in parts),
+                                 sum(_dangles(q[-1]["word"]) for q in parts[:-1]),
+                                 sum(reel_caption_lines([w["word"] for w in q]) is not None for q in parts), m - k)
+                        if found is None or score < found[0]:
+                            found = (score, parts)
+                    if found is not None:
+                        break
+            if found is not None:
+                window = (head, tail, found[1])
+        if window is not None:
+            head, tail, parts = window
+            if head:
+                result.pop()
+            result.extend(parts)
+            entry["into"] = " | ".join(text(q) for q in parts)
+            entry["window"] = True
+            i += 1 + tail
+        elif best is None:
+            result.append(p)
+            entry["into"] = None
+            i += 1
+        else:
+            _, head, mid, tail, formed = best
+            if head:
+                result[-1] = formed[0]
+            result.extend(mid)
+            if tail:
+                out[i + 1] = formed[-1]   # read again on its turn (clean by construction)
+            entry["into"] = " | ".join(text(q) for q in formed)
+            i += 1
+        if record is not None:
+            record.append(entry)
+    if [w for p in result for w in p] != [w for p in phrases for w in p]:
+        raise RuntimeError("caption line split lost or reordered a word")
+    return result
 
 
 def _two_line_phrasing(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
@@ -5098,7 +5302,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         key = emphasis_indices(words, emphasis)
         hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
         bond_extra: list[dict[str, Any]] = []
-        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width, bond_extra=bond_extra)
+        line_split: list[dict[str, Any]] = []   # lane C cycle 4: each burst LINE_RULE split, or could not
+        phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width, bond_extra=bond_extra,
+                                  line_split=line_split)
         # The whole first frame is a Reel (9:16) feature only: a 16:9 documentary's first line appears with its
         # narration, as in round 3 (round 4 fix: it jumped to 0.0, up to 0.6 s before the voice).
         if is_widescreen:
@@ -5110,7 +5316,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             timings = snap_to_cuts(phrases, timings, cuts)
         # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
         self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen,
-                                                       bond_extra=bond_extra)
+                                                       bond_extra=bond_extra, line_split=line_split)
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
             # starts its captions timeline_offset_s late; the release gate prints these times for the operator)

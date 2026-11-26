@@ -2152,6 +2152,9 @@ CAPTION_MISFIT_OWN_SIZE = False
 CLIP_RULE = ("one caption size per clip (lander ruling 2026-11-26): the largest ladder size at which at least "
              "nine in ten of its bursts set on their legal lines; a burst that fits one line at that size is one "
              "line; a burst that does not set at it is split into consecutive bursts")
+# the faults a burst no legal form or split sets at the clip's size may still be drawn with (_clip_fit's
+# no_legal_form record, and the line_split "into": None record rebuilt from it), beyond line_rule_faults' own
+CLIP_FORCED_FAULTS = ("article_line_end", "keep_together_split", "figure_group_split", "name_split")
 
 
 def _break_faults(shown: list[str], k: int) -> list[str]:
@@ -2247,7 +2250,8 @@ def _clip_fallback(raw: tuple[str, ...], size: int) -> int | None:
     for j in range(1, len(shown)):
         wa, wb = _caption_ink_width(shown[:j], size), _caption_ink_width(shown[j:], size)
         if max(wa, wb) <= budget and _caption_two_line_geometry([shown[:j], shown[j:]], size)[1] <= band:
-            found.append(((j - 1) in held, len(_break_faults(shown, j)) + (_bare(shown[j - 1]) in _ARTICLES),
+            found.append(((j - 1) in held or _policy_name_split(list(raw), j),
+                          len(_break_faults(shown, j)) + (_bare(shown[j - 1]) in _ARTICLES),
                           round(abs(wa - wb)), j))
     return min(found)[3] if found else None
 

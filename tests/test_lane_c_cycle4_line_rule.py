@@ -27,7 +27,9 @@ import fixtures as _fx  # noqa: E402
 REAL = list(_fx.load("captions"))
 REEL = [c for c in REAL if c["format"] == "9:16"]
 WIDE = [c for c in REAL if c["format"] == "16:9"]
-FAULTS = {"function_word_line_end", "qualifier_line", "unit_line", "one_word_line"}
+# freeze cycle 5: a burst with no legal form and no legal split at the clip's one size is drawn on its least bad
+# break and recorded with the faults it keeps, which may also be one of the clip's forced faults
+FAULTS = {"function_word_line_end", "qualifier_line", "unit_line", "one_word_line", *vc.CLIP_FORCED_FAULTS}
 
 # labelled synthetic narrations (not real copy): long words and lead-in prepositions, so two-line bursts are common
 SYNTHETIC = [

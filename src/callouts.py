@@ -661,10 +661,12 @@ def label_sizes(fmt: str) -> list[int]:
     return list(range(size0, math.ceil(size0 * 0.8) - 1, -LABEL_STEP))
 
 
-def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, max_w: int) -> list[list[str]]:
+def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, max_w: int,
+             ruled: bool = True) -> list[list[str]]:
     """The label's line sets that fit its plate at this font (_shapes): one line, and the best two balanced lines
     whose break the heading engine's one line rule holds (freeze cycle 4, SYS item 2: heading.label_ok; never a line
-    ending on an article or a preposition, never a one-word last line in a name of three words or more)."""
+    ending on an article or a preposition, never a one-word last line in a name of three words or more). `ruled`
+    False: the best two balanced lines whatever their break (the set's recorded last resort, _layout_set)."""
     from .heading import label_ok
     words = text.split()
     out = []
@@ -674,7 +676,7 @@ def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, m
     for i in range(1, len(words)):
         a, b = " ".join(words[:i]), " ".join(words[i:])
         wa, wb = _tracked(measure, a, font, track), _tracked(measure, b, font, track)
-        fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w and label_ok([a, b], [wa, wb])
+        fits = max(len(a), len(b)) <= LABEL_MAX_CHARS and max(wa, wb) <= max_w and (not ruled or label_ok([a, b], [wa, wb]))
         if fits and (best is None or max(wa, wb) < best[0]):
             best = (max(wa, wb), [a, b])
     if best:
@@ -682,7 +684,8 @@ def _fitting(measure: ImageDraw.ImageDraw, text: str, font: Any, track: float, m
     return out
 
 
-def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None = None) -> list[_Shape]:
+def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None = None,
+            ruled: bool = True) -> list[_Shape]:
     """The label's plate shapes: on one line and on two balanced lines (at most LABEL_MAX_CHARS each), in
     Montserrat Bold tracked +0.04 em, at the largest size down to four fifths of LABEL_PX where either fits
     (`top`: the largest size tried, for a set stepped down together; QF-24)."""
@@ -693,7 +696,7 @@ def _shapes(measure: ImageDraw.ImageDraw, label: str, fmt: str, top: int | None 
     for s in sizes:
         font = get_font(brand.TEXT_FONT, s, weight=700)
         track = LABEL_TRACK * s
-        out = _fitting(measure, text, font, track, max_w)
+        out = _fitting(measure, text, font, track, max_w, ruled)
         if out:
             return [_Shape(lines, font, track, fmt, measure) for lines in out]
     font = get_font(brand.TEXT_FONT, sizes[-1], weight=700)   # nothing fits: the smallest size, on two lines
@@ -1316,6 +1319,28 @@ def _plates_apart(labs: list[dict[str, Any]]) -> bool:
 def _layout_set(points: list[tuple], width: int, height: int, loupe: bool, ground: Any, mag: float | None,
                 spoken: list[int] | None, top: int | None = None, len_step: int = FINE_STEP,
                 relax: bool = True) -> list[dict[str, Any]] | None:
+    """_layout_once on the heading engine's line rule (freeze cycle 4, SYS item 2: heading.label_ok); when no valid
+    set holds on ruled names only, the set again with each name's best balanced break whatever its rule (a name
+    whose ruled form does not fit its place: a placement conflict is worse than a ragged break), the rule each name
+    gives up recorded on its label ("line_rule", heading.label_fault); then the ruled set's own conflicts (relax)."""
+    args = (points, width, height, loupe, ground, mag, spoken, top, len_step)
+    got = _layout_once(*args, relax=False)
+    if got is not None:
+        return got
+    measure = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    fmt = _fmt(width, height)
+    if any([s.lines for s in _shapes(measure, p[0], fmt, top)] != [s.lines for s in _shapes(measure, p[0], fmt, top,
+                                                                                              ruled=False)]
+           for p in points):
+        got = _layout_once(*args, relax=False, ruled=False)
+        if got is not None:
+            return got
+    return _layout_once(*args, relax=relax) if relax else None
+
+
+def _layout_once(points: list[tuple], width: int, height: int, loupe: bool, ground: Any, mag: float | None,
+                 spoken: list[int] | None, top: int | None = None, len_step: int = FINE_STEP,
+                 relax: bool = True, ruled: bool = True) -> list[dict[str, Any]] | None:
     """Where each label goes, in the order of `points` (each (label, x, y[, area[, w, h[, kind[, box]]]])): its
     lines and font, its plate box (inside text_box at every sampled t), the edge its leader meets and that edge's
     centre (`end`), its S1/S2 route and text anchor. Every label's candidates (2 plate shapes x 4 edges x 6 leader
@@ -1335,7 +1360,7 @@ def _layout_set(points: list[tuple], width: int, height: int, loupe: bool, groun
     feats = [_Feat(k, p, width, height, fmt, k == li, src_r) for k, p in enumerate(points)]
     ctx = _Ctx(feats, width, height, bounds, fmt, ground)
     spoken = list(spoken) if spoken else list(range(len(points)))
-    shapes = [_shapes(measure, p[0], fmt, top) for p in points]
+    shapes = [_shapes(measure, p[0], fmt, top, ruled) for p in points]
     cands, valid = [], []
     def scored(k: int, ft: _Feat) -> tuple[list[dict], Any]:
         cs = _candidates(ft, shapes[k], fmt, lr, bounds, len_step)
@@ -1534,7 +1559,12 @@ def _describe(c: dict, ft: _Feat, conflict: bool, set_cost: float, fmt: str) -> 
             "drawn": _fillet(c["path"], FILLET_R[fmt]) if c["route"] == "S2" else [tuple(p) for p in c["path"]],
             "target": tuple(c["target"]), "dot": (ft.x, ft.y), "tier": ft.tier, "mbox": ft.mbox,
             "length": c["vis"], "bar": bar, "r_gold": ft.r_gold, "r_vis": ft.r_vis, "src_r": ft.src_r,
-            "cost": c.get("static"), "set_cost": set_cost}
+            "cost": c.get("static"), "set_cost": set_cost, "line_rule": _label_fault(sh.lines, sh.widths)}
+
+
+def _label_fault(lines: list[str], widths: list[float]) -> str:
+    from .heading import label_fault
+    return label_fault(lines, widths)
 
 
 # Caption band (panel round 4: a low dot ran its leader from the plate down through the caption pills). No dot (its

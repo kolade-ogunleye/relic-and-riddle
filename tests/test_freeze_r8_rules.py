@@ -245,7 +245,14 @@ def test_the_act_dissolve_reads_its_token_and_is_a_true_crossfade():
     from src.video_composer import VIDEO_FPS, VideoComposer, act_dissolve_s
     assert act_dissolve_s() == round(tok("motion.act_dissolve") * VIDEO_FPS) / VIDEO_FPS == 0.5
     src = inspect.getsource(VideoComposer.compose_video)
-    assert "act_dissolve_s()" in src and "transition=fade:" in src and "transition=dissolve" not in src
+    # freeze cycle 4 (SYS-E-c4-1): the transition is the token's crossfade ease (brand_system.xfade_transition), never
+    # ffmpeg's "dissolve" dither; linear is xfade's own fade
+    from src.brand_system import xfade_transition
+    from src.video_composer import act_dissolve_transition
+    assert "act_dissolve_s()" in src and "act_dissolve_transition()" in src and "transition=dissolve" not in src
+    assert act_dissolve_transition() == xfade_transition(tok("motion.act_dissolve_ease"))
+    with brand.use(brand.DEFAULT_BRAND.derive("linear probe", system={"motion.act_dissolve_ease": "linear"})):
+        assert act_dissolve_transition() == "transition=fade"
     with brand.use(brand.DEFAULT_BRAND.derive("dissolve probe", system={"motion.act_dissolve": 0.8})):
         assert act_dissolve_s() == pytest.approx(0.8)
 

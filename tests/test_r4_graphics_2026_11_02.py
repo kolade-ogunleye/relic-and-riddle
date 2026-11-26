@@ -229,7 +229,14 @@ def test_wide_figure_prefers_one_line(tmp_path, monkeypatch) -> None:
     assert rows["figure"].text == "ABOUT 280 FT DEEP" and "figure1" not in rows
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     lines, _f = graphics.scale_figure_lines(probe, "ABOUT 280 FT DEEP", 96, 400, 64, 420)
-    assert lines == ["ABOUT", "280 FT DEEP"]                              # balanced, no orphan
+    # freeze cycle 4 (SYS item 2): the break is the heading engine's. Every two-line form of this figure breaks the
+    # no-lone-row rule, and ABOUT / 280 FT DEEP also splits the hedge from its figure (a bonded break: hedged figures
+    # stay whole, the lander's ruling), so the form kept is the one that breaks no bonded rule: the hedge and the unit
+    # stay with the figure, every word drawn
+    from src import heading
+    assert " ".join(lines) == "ABOUT 280 FT DEEP" and len(lines) == 2
+    assert heading._bonded("ABOUT 280 FT DEEP".split()).isdisjoint({len(lines[0].split())})
+    assert heading.valid(lines, lone_ok=True)
 
 
 def test_scale_meaning_lands_on_the_impact_and_the_hold_moves(tmp_path, monkeypatch) -> None:

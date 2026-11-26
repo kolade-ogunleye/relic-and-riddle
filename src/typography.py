@@ -1242,13 +1242,15 @@ def label_ladder(colours, ink: bool = True, colour_held: bool = False) -> list[t
     label halo ("halo", k), then INK type ("ink", -1) unless `ink` is False, then each colour on the held INK plate
     ("plate", k). A step names a treatment exactly (its backing and its fill), so two labels on one step look alike.
     `colour_held` (freeze cycle 4, SYS item 3: the ONE kicker colour rule): the label's own colour is its meaning (a
-    kicker's accent), so the ground is answered by the backing before the colour gives way: its first colour on the
-    halo, then on the held plate, and only then the other colours and INK type (a palette whose colour misses the gate
-    even on the plate; recorded by the step drawn)."""
+    kicker's accent), so the ground is answered by the backing before the colour gives way to another colour: its
+    first colour on the halo, then INK type where `ink` allows it (the binding ink rule, ruling 2026-11-17: a bright
+    or paper ground takes INK type, no halo and no plate, before any held plate), then its first colour on the held
+    plate, and only then the other colours (a palette whose colour misses the gate even on the plate; recorded by the
+    step drawn). So a kicker never gives way to bone while its colour holds on the plate."""
     n = len(colours)
     if colour_held and n:
-        return ([("halo", 0), ("plate", 0)] + [("halo", k) for k in range(1, n)] + ([("ink", -1)] if ink else [])
-                + [("plate", k) for k in range(1, n)])
+        return ([("halo", 0)] + ([("ink", -1)] if ink else []) + [("plate", 0)]
+                + [("halo", k) for k in range(1, n)] + [("plate", k) for k in range(1, n)])
     return ([("halo", k) for k in range(n)] + ([("ink", -1)] if ink else []) + [("plate", k) for k in range(n)])
 
 

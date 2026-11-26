@@ -58,9 +58,20 @@ def test_only_an_explicit_act_change_has_the_act_dissolve(tmp_path, monkeypatch,
     out, graph = render_cuts(tmp_path, monkeypatch, acts=[2.0], wide=wide)
     assert graph.count('xfade=') == 1
     assert vc.act_dissolve_s() == pytest.approx(0.5)
-    assert 'xfade=transition=fade:duration=0.500000000:offset=1.750000000' in graph
+    # freeze cycle 4 (SYS-E-c4-1): the curve is the token's (tok("motion.act_dissolve_ease"), a crossfade ease), not a
+    # pinned transition name; the length and the offset are the act's
+    assert f'xfade={vc.act_dissolve_transition()}:duration=0.500000000:offset=1.750000000' in graph
     assert graph.count('concat=n=2:v=1:a=0') == 3
-    assert 'fadeblack' not in graph and 'transition=zoomin' not in graph
+    assert 'fadeblack' not in graph and 'transition=zoomin' not in graph and 'transition=dissolve' not in graph
+    # a true crossfade on the encoder that ran: the blue scene's frames give way to the lime one's evenly (no dither:
+    # one flat mix per frame), monotonic over the dissolve's 15 frames, with no step a hard cut would make
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(out), '-vf', 'crop=8:8',
+                          '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-'], capture_output=True, check=True).stdout
+    px = np.frombuffer(raw, np.uint8).reshape(-1, 8, 8, 3).astype(float)
+    green = px[48:72, :, :, 1].mean(axis=(1, 2))
+    assert np.all(np.diff(green) >= -3), green.round()
+    assert np.max(np.diff(green)) < 0.5 * (green[-1] - green[0]), green.round()
+    assert px[60].std(axis=(0, 1)).max() < 6                       # a flat mix, not a per-pixel dither
     seconds = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
                               '-show_entries', 'stream=duration', '-of', 'csv=p=0', str(out)],
                              capture_output=True, text=True, check=True).stdout

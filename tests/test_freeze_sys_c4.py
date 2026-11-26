@@ -139,7 +139,10 @@ def test_scale_figure_lines_never_splits_a_hedge_or_a_unit():
 def test_the_kicker_ladder_holds_its_colour_on_the_plate_before_it_gives_way():
     from src.typography import label_ladder
     held = label_ladder((0, 1), colour_held=True)
-    assert held.index(("plate", 0)) < held.index(("halo", 1)) < held.index(("ink", -1))
+    # the colour holds on the plate before it gives way to another colour; INK type on a bright ground (the binding
+    # ink rule, 2026-11-17) comes before any plate
+    assert held == [("halo", 0), ("ink", -1), ("plate", 0), ("halo", 1), ("plate", 1)]
+    assert label_ladder((0, 1), ink=False, colour_held=True) == [("halo", 0), ("plate", 0), ("halo", 1), ("plate", 1)]
     assert label_ladder((0, 1)) == [("halo", 0), ("halo", 1), ("ink", -1), ("plate", 0), ("plate", 1)]   # others
 
 
@@ -156,8 +159,10 @@ def test_a_kicker_is_drawn_in_its_colour_wherever_any_backing_holds_it(grey):
                                        brand_system.tok("contrast.kicker"))
     gold_holds = any(k == 0 for _, k in label_passes(**member))
     assert rec["shown"]
-    if gold_holds:
-        assert tuple(plate.fill[:3]) == tuple(gold) and rec["step"][1] == 0, rec
+    if gold_holds:   # never bone while gold holds; INK type only where the ink rule takes it (a bright ground)
+        assert rec["step"][1] != 1, rec
+        if rec["step"][0] != "ink":
+            assert tuple(plate.fill[:3]) == tuple(gold) and rec["step"][1] == 0, rec
     assert rec["contrast"] >= brand_system.tok("contrast.kicker") - 1e-9
 
 

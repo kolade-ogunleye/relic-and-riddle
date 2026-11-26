@@ -152,7 +152,11 @@ def test_discovery_reviewed_photo_spans_the_full_width() -> None:
     comp = lay.meta["composition"]
     assert comp["full_width"] and comp["image_box"][0] == 0 and comp["image_box"][2] == 1080
     x0, y0, x1, y1 = comp["protected_box"]
-    assert 420 <= y0 < y1 <= 1500
+    # freeze cycle 5 (cover_design.cover_windows): the feature is whole on the Reel cover, above the type, and at
+    # least COVER_GRID_FOCUS of it lies inside the profile square (y 420-1500); round 3 held all of it there by
+    # scaling the photograph down and padding the canvas above it with a blurred field, which is gone
+    from src.cover_design import COVER_GRID_FOCUS
+    assert 0 <= y0 < y1 <= 1500 and (y1 - max(y0, 420)) >= COVER_GRID_FOCUS * (y1 - y0)
     for e in lay.elements:
         assert e["name"] == "brand_mark" or not (e["box"][0] < x1 and x0 < e["box"][2]
                                                  and e["box"][1] < y1 and y0 < e["box"][3]), e

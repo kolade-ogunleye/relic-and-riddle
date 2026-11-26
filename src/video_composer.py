@@ -23,6 +23,7 @@ import logging
 import math
 import os
 import re
+import threading
 import shutil
 import subprocess
 import unicodedata
@@ -1810,7 +1811,8 @@ def caption_clip_size(fits: list[int]) -> int:
     clip's 9:16 bursts draw at: the largest CAPTION_LADDER rung every burst sets at (its own fit: one line, or its
     two-line form), never under CAPTION_BOND_MIN_SIZE, the ladder's floor (the floor every burst could already draw
     at). Only a single word too long for the line at that floor still draws smaller, alone (recorded: "under")."""
-    need = min(fits, default=FONT_SIZE)
+    # a fit off the ladder is a single over-long word's own shrink: it does not set the clip's size
+    need = min((f for f in fits if f in CAPTION_LADDER), default=FONT_SIZE)
     return max((r for r in CAPTION_LADDER if r <= need), default=min(CAPTION_LADDER))
 
 
@@ -2019,7 +2021,6 @@ def reel_caption_lines(phrase: Any) -> tuple[int, int] | None:
     return _reel_caption_lines(raw)
 
 
-@lru_cache(maxsize=8192)
 def _reel_caption_lines(raw: tuple[str, ...]) -> tuple[int, int] | None:
     form = _reel_form(raw)
     return (form[1], form[2]) if form and form[0] == "two" else None
@@ -2080,18 +2081,50 @@ def reel_floor_line(phrase: Any) -> bool:
     return bool(form) and form[0] == "floor"
 
 
-@lru_cache(maxsize=8192)
+_joined = threading.local()   # .raws: the bursts the current clip's readable merge joined (word tuple -> (k, size))
+
+
+def _joined_raws() -> dict:
+    box = getattr(_joined, "raws", None)
+    if box is None:
+        box = _joined.raws = {}
+    return box
+
+
 def _reel_form(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
+    """_reel_form_pure, or the joined two-line form the current clip's readable merge gave this burst (a burst within
+    the bond extra, which the phrase builder would set on one line at the bond floor: the merge's form is the clip's
+    own, registered per clip and cleared when the next clip's bursts are built, so the builder never sees it)."""
+    got = _joined_raws().get(raw)
+    return ("two", *got) if got else _reel_form_pure(raw)
+
+
+@lru_cache(maxsize=8192)
+def _reel_form_pure(raw: tuple[str, ...]) -> tuple[str, int, int] | None:
     """("two", k, size) for a two-line 9:16 burst (reel_caption_lines), ("floor", 0, CAPTION_BOND_MIN_SIZE) for one
     drawn on one line at the bond floor (reel_floor_line), else None. Freeze cycle 5: a burst past one burst's caps
     that has no form of its own and fits no one line at CAPTION_BURST_MIN_SIZE is a joined burst (_joined_form:
     reflow at the size comes before the bond floor, which one size per clip would hand to every burst)."""
     form = _reel_form_strict(raw)
-    if form is None and len(raw) > 1 and over_caps(list(raw)) and (
+    # past the bond extra too: a burst the phrase builder itself forms with the bond extra (SHORE OF THE BLACK SEA,
+    # one line at the bond floor) keeps its form
+    if form is None and len(raw) > 1 and (
+            len(raw) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS
+            or len(" ".join(_phrase_words(list(raw)))) > MAX_BURST_CHARS + CAPTION_BOND_EXTRA_CHARS) and (
             _caption_ink_width(_phrase_words(list(raw)), CAPTION_BURST_MIN_SIZE) > _ink_budget()):
         joined = _joined_form(raw)
         return ("two", *joined) if joined else None
     return form
+
+
+def _reel_caches_clear() -> None:
+    _reel_form_pure.cache_clear()
+    _joined_raws().clear()
+
+
+# the caches' handles, where the two readers were lru_cache functions themselves (tests and the brand switch clear them)
+_reel_form.cache_clear = _reel_caches_clear
+_reel_caption_lines.cache_clear = _reel_caches_clear
 
 
 @lru_cache(maxsize=8192)
@@ -3363,6 +3396,7 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         phrases = _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
         return _never_end_repair(phrases, words, lambda ph: (
             2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
+    _joined_raws().clear()   # freeze cycle 5: the last clip's joined forms never reach this clip's phrase builder
     base = round4_burst_cuts(words, emphasis)
     units = unit_links(words)   # lane C cycle 1 (N2): MORE THAN 590 SQUARE FEET is one value, never cut
     # lane C cycle 3 (lander ruling): a figure group is a bond: one the Reel can set (one line, or two lines each
@@ -3844,7 +3878,9 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
             return False
         form = _reel_form(raw)
         if form is None:
-            return not over_caps(ws) and _caption_ink_width(_phrase_words(ws), CAPTION_BURST_MIN_SIZE) <= _ink_budget()
+            if not over_caps(ws):
+                return _caption_ink_width(_phrase_words(ws), CAPTION_BURST_MIN_SIZE) <= _ink_budget()
+            return _joined_form(raw) is not None       # within the bond extra: the merge's own joined form
         if form[0] == "floor":
             return not over_caps(ws)
         return not line_rule_faults(ws) and not reel_name_split(ws)
@@ -3918,6 +3954,10 @@ def _readable_merge(phrases: list[list[dict[str, Any]]], words: list[dict[str, A
                 record.append({"at": round(float(flat[0].get("start", 0.0)), 2),
                                "recut": " | ".join(text(q) for q in best[1]),
                                "was": " | ".join(text(q) for q in span), "why": why, "rule": LINE_RULE})
+            for q in best[1]:   # a joined burst within the bond extra takes its joined form for this clip
+                key = tuple(raw_of(q))
+                if len(key) > 1 and over_caps(q) and _reel_form_pure(key) is None and _joined_form(key):
+                    _joined_raws()[key] = _joined_form(key)
             out[lo:hi + 1] = best[1]
             i = lo
             continue

@@ -216,7 +216,8 @@ def test_caption_clip_size_is_the_largest_rung_every_burst_sets_at():
     top, mid, low = vc.CAPTION_LADDER
     assert vc.caption_clip_size([top, top]) == top and vc.caption_clip_size([top, mid, top]) == mid
     assert vc.caption_clip_size([top, low, mid]) == low
-    assert vc.caption_clip_size([top, low - 6]) == low      # a single over-long word draws alone under the floor
+    assert vc.caption_clip_size([top, low - 6]) == top      # a single over-long word's own shrink sets no clip size
+    assert vc.caption_clip_size([71]) == top
     assert vc.caption_clip_size([]) == top
 
 

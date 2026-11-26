@@ -271,7 +271,6 @@
  "end_card:frames": [
   35.0,
   56.0,
-  58.0,
   67.0
  ],
  "end_card:layout": [
@@ -282,8 +281,7 @@
   58.0
  ],
  "end_card:loop_bridge": [
-  56.0,
-  58.0
+  56.0
  ],
  "graphics:_JoinedPlate.draw": [
   28.0

@@ -24,7 +24,10 @@ the freeze-panel catalogue (docs/reviews/freeze-panel-2026-11-04/fixtures) and t
 - then-and-now: the catalogue's two accepted pairs, both formats;
 - loop bridge and end screen: the catalogue's nine end-card cases, every frame;
 - covers: the catalogue's five heroes and payloads (Reel cover, grid tile, YouTube thumbnail);
-- carousels, Facebook gallery and Stories: the three runs that kept per-slide recipes;
+- carousels, Facebook gallery and Stories: the runs that kept per-slide recipes; each carousel deck (both copies)
+  is drawn by production's own entry, generate_carousel_sequence, on the run's verified script and recorded photo
+  match (board_decks.py, cycle 5); a Story frame, and a deck whose saved data cannot drive that entry, is redrawn
+  from its recorded recipe;
 - hook, chapter and myth cards: the tests' committed card fields (no run has a checked card field) on two real
   heroes, every frame, signed with the tests' throwaway key in this process only;
 - photo callouts: no run drew one; the operator's reference pair (tests/test_callouts_v4_2026_11_03.py) on a real
@@ -126,10 +129,17 @@ class AttributedSurfaces(dict):
     def __init__(self, result: dict):
         super().__init__()
         self.result, self.seen = result, 0
+        self.given: dict[str, list] = {}
 
     def new_job(self) -> None:
         """A job opens its own ledger: its rows count from 0."""
         self.seen = 0
+
+    def give(self, name: str, rows: list) -> None:
+        """Cycle 5 (the decks through production's entry): a surface whose rows the job attributes itself. A deck is
+        drawn whole before any of its slides is written, so the rows since the previous surface are the deck's, not
+        the first slide's; the job names each slide's rows (board_decks.slide_rows) and the rest stay with the job."""
+        self.given[name] = [dict(r) for r in rows]
 
     def __setitem__(self, name, rec) -> None:
         super().__setitem__(name, rec)
@@ -139,6 +149,8 @@ class AttributedSurfaces(dict):
             return
         rows = omissions()
         new, self.seen = rows[self.seen:], len(rows)
+        if name in self.given:
+            new = self.given.pop(name)
         if new:
             self.result.setdefault("surface_omissions", {})[name] = [dict(r) for r in new]
 
@@ -202,6 +214,7 @@ def main() -> None:
     from PIL import Image
 
     from src import brand, callouts, graphics, then_now
+    graphics_encode = graphics._encode   # production's own (the decks' diagram poster is drawn through it)
     def configure_evidence(cfg):
         """Cycle 0 round 8 (ruling 6): a brand is validated when configured (BrandRefused). The board renders the test
         brands as evidence even where the fit corpus refuses them (every surface still refuses on its own floors),
@@ -582,6 +595,56 @@ def main() -> None:
         swapped.add("social")
         return r
 
+    def production_decks(run: Path, entry: dict | None) -> str | None:
+        """Cycle 5 (review item 5): the run's Instagram and Facebook decks drawn by production's own entry, as
+        carousel_lazy.draw calls it (board_decks.production_deck: generate_carousel_sequence on the run's verified
+        script, its recorded photo match given as the kept match, the vision matcher blocked), recorded under the
+        same surface names and record keys as the replay. Returns None when the decks were drawn (or held, as
+        production would hold them), else why the run's saved data cannot drive that entry (the caller then draws
+        the replay). A slide's photo_choice says which path drew it."""
+        try:
+            import board_decks
+        except ImportError:   # run on its own (QF-35a A/B on two trees), without the board's modules
+            return "render_surfaces.py was run without the board's board_decks.py"
+        script = run / "verified_script.json"
+        if not script.is_file():
+            return f"{run.name} has no verified_script.json (the payload production draws the deck from)"
+        payload = json.loads(script.read_text(encoding="utf-8"))
+        if not payload.get("carousel_slides"):
+            return f"{run.name}: its verified script has no carousel_slides"
+        if entry:   # cycle 3 (portability): the copy set's words on the run's own photographs
+            payload = copy_swap(payload, entry)
+            swapped.add("social")
+        fake_encode = graphics._encode
+        graphics._encode = graphics_encode
+        try:
+            deck = board_decks.production_deck(run, payload, work / f"deck_{run.name}")
+        except board_decks.NotDriven as e:
+            return str(e)
+        finally:
+            graphics._encode = fake_encode
+        tag = run.name[4:]
+        for kind, made in deck["copies"].items():
+            if made["held"] is not None:   # production ships no such copy: recorded on every frame the run kept
+                for stem in made["stems"] or [f"deck_{kind}"]:
+                    key = f"social__{tag}__{kind}_{stem}"
+                    if "error" in made["held"]:
+                        result["errors"][key] = made["held"]["error"]
+                    else:
+                        result["surfaces"][key] = dict(made["held"])
+                continue
+            for s in made["slides"]:
+                key = f"social__{tag}__{kind}_{s['stem']}"
+                was = (s["recorded"] or {}).get("archetype")
+                if was and was != s["archetype"]:
+                    result.setdefault("rerouted", {})[key] = {"recorded": was, "current": s["archetype"]}
+                result.setdefault("photo_choice", {})[key] = board_decks.choice_record(deck, s)
+                if s["masthead"] is not None:
+                    result.setdefault("masthead_records", {})[key] = dict(s["masthead"])
+                result["surfaces"].give(key, s["omissions"])
+                frames_of(key, [s["image"]])
+        return None
+
     for n_case, case in enumerate(c for c in fx.load("social") if c.get("exact_recipes")):
         run = fx.path(case["run"])
         entry = copy_set[n_case % len(copy_set)] if copy_set else None
@@ -590,7 +653,13 @@ def main() -> None:
             from src import multi_format as mf
             gen = MultiFormatGenerator()
             retired_frames = tuple(getattr(mf, "RETIRED_STORY_FRAMES", ()))
+            # cycle 5 (review item 5): both carousel copies through production's own entry
+            # (generate_carousel_sequence, board_decks.production_deck); the replay below only for a deck whose saved
+            # data cannot drive that entry, each of its tiles saying so
+            replay_why = production_decks(run, entry)
             for sub, kind in (("carousel", "carousel"), ("carousel_fb", "fb"), ("stories", "story")):
+                if kind != "story" and replay_why is None:
+                    continue
                 rec_file = run / sub / "still_layout.json"
                 if not rec_file.is_file():
                     continue
@@ -649,6 +718,9 @@ def main() -> None:
                         result.setdefault("photo_choice", {})[key] = {
                             k: (str(v) if isinstance(v, Path) else v) for k, v in why.items()} | {
                             "recorded": str(r.get("photo")), "drawn_on_recorded": r.get("archetype") == "diagram"}
+                    if kind != "story":   # this deck is the replay, and its tile says so (board_evidence.record_note)
+                        result.setdefault("photo_choice", {}).setdefault(key, {}).update(
+                            replay=replay_why, drawn_through="multi_format._render_carousel_slide")
                         if r.get("archetype") != "diagram":   # a drawing slide keeps its poster
                             r = dict(r, photo=photo, photo_next=nxt or r.get("photo_next"))
                     try:   # round 8: one frame's refusal never takes the run's other frames with it

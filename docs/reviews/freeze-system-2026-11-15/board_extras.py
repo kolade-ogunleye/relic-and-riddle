@@ -299,10 +299,13 @@ def aswan_deck(dev: Path, work: Path) -> list[dict[str, Any]]:
         except (TypeError, IndexError, ValueError):
             pass
         return got
+    import board_decks
     MultiFormatGenerator._render_carousel_slide = spy
     try:
-        slides = be.guarded(f"carousel deck {ASWAN_DECK_RUN[4:]}", MultiFormatGenerator().generate_carousel_sequence,
-                            stills, payload, d, facebook=False, graphics=graphics, default=None)
+        with board_decks.no_vision():   # cycle 5: the kept match above is the deck's; the paid matcher never runs
+            slides = be.guarded(f"carousel deck {ASWAN_DECK_RUN[4:]}",
+                                MultiFormatGenerator().generate_carousel_sequence,
+                                stills, payload, d, facebook=False, graphics=graphics, default=None)
     finally:
         MultiFormatGenerator._render_carousel_slide = real
     if slides is None:
@@ -353,13 +356,19 @@ def near_white_slides(dev: Path) -> list[dict[str, Any]]:
             continue
         im, lay = got
         out.append({"name": f"social__antikythera_mechanism_near_white__carousel_slide_{i + 1:02d}",
-                    "archetype": arch[i], "image": im.convert("RGB"), "label": STAND_IN,
+                    "archetype": arch[i], "image": im.convert("RGB"),
+                    "label": f"{STAND_IN}; a single slide through _render_carousel_slide, not a deck draw",
                     "masthead": (getattr(lay, "meta", None) or {}).get("masthead")})
     return out
 
 
-def recipe_archetype(dev: Path, stem: str) -> str | None:
-    """A recipe surface's archetype (social__<run>__carousel_carousel_slide_NN / __fb_...), from its run's record."""
+def recipe_archetype(dev: Path, stem: str, rerouted: dict[str, Any] | None = None) -> str | None:
+    """A recipe surface's archetype (social__<run>__carousel_carousel_slide_NN / __fb_...): the one the tree drew
+    where render_surfaces.py recorded that it differs from the run's (`rerouted`: surfaces.json "rerouted", cycle 5:
+    production's entry draws a diagram slide where an older run recorded a photo slide), else the run's record."""
+    now = ((rerouted or {}).get(stem) or {}).get("current")
+    if now:
+        return str(now)
     try:
         run, rest = stem[len("social__"):].split("__", 1)
     except ValueError:

@@ -522,7 +522,8 @@ def _grade_like(ground: Image.Image, frame: Image.Image, graded: Image.Image) ->
 
 
 def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]],
-                    rulers: Sequence[dict[str, Any]] | None = None) -> dict[str, Any]:
+                    rulers: Sequence[dict[str, Any]] | None = None,
+                    layout: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Each element's ratio on the clip's last frame as drawn and as graded, written beside the clip; with `rulers`
     (ruler_record rows) the ruler labels' datums too, checked by the critic's zero_datum_faults (logged). A plate
     carrying a derivation (`plate.derived`, set by derive_gap: a timeline gap label's rule and operands) writes it on
@@ -542,6 +543,8 @@ def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]]
     vals = [v for v in vals if v is not None]
     record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
               "min": min(vals) if vals else None, "elements": rows}
+    if layout is not None:      # the renderer's own layout record (freeze cycle 5: what the corpus proofs read)
+        record["layout"] = dict(layout)
     if rulers is not None:
         record["rulers"] = list(rulers)
         for fault in zero_datum_faults(record):
@@ -12154,6 +12157,59 @@ def contact_pulse(dt: float) -> float:
     """The lantern's size `dt` s after it reaches a level: 1 -> 1.4 -> 1 over 180 ms, once."""
     return 1.0 + 0.4 * math.sin(math.pi * dt / 0.18) if 0.0 < dt < 0.18 else 1.0
 SECTION_LABEL_CLEAR = 24                             # design px: the first label block's least gap under the ground
+SECTION_GROUP_RATIO = 1.5    # a label block's clear air to the next block, per the widest clear air inside a block
+SECTION_BLOCK_TAIL = 8       # design px under a block's last baseline that count as its ink (descenders)
+SECTION_STACK_LADDER = ((1.0, 0), (0.8, 0), (0.8, 2))   # (label leading x, label type step down in px)
+SECTION_LEADER_END = 16      # design px: a leader ends at most this far left of its own figure's ink
+SECTION_ROW_GUTTER = 28      # design px between a row-form block's figure column and its label
+SECTION_ROW_LABEL_MIN = 220  # design px: the row form's narrowest label column
+SECTION_ROW_LABEL_STEP = 20  # design px the column widens by until the stack holds
+SECTION_ROW_CITY_MIN = 0.6   # the row form never narrows the city under this share of its designed span
+# A leader's bends as design px LEFT of the label column's edge (freeze cycle 5: they were frame constants, so a
+# column moved in by a wide figure, QF-24, left every 9:16 leader clipped 2 px into its transfer, pointing from its
+# datum at whichever block stood beside it): out of the room, the transfer's end, the leader's end at its figure.
+SECTION_BENDS = {"tall": (28.0, 16.0, 10.0), "wide": (60.0, 34.0, 14.0)}
+
+
+def section_group_gap(label_gap: float, line_step: float, label_cap: float) -> float:
+    """The least clear air (design px) between two label blocks of the section: SECTION_GROUP_RATIO x the widest
+    clear air inside a block (its figure's baseline to its first row's cap top, one row's baseline to the next row's
+    cap top), so a block reads as one group and its neighbours as others."""
+    return SECTION_GROUP_RATIO * max(label_gap - label_cap, line_step - label_cap, 1.0)
+
+
+def section_layout_faults(layout: Mapping[str, Any]) -> list[str]:
+    """The cross-section's label rules checked on its own layout record (the contrast sidecar's "layout"): every
+    block's clear air to the next at least its `group_gap`; every leader starting on its level's datum and ending on
+    its OWN figure (within SECTION_LEADER_END of its ink's left edge, inside its cap band); no leader crossing
+    another block's ink. [] when every rule holds."""
+    faults = []
+    blocks, k = layout.get("blocks") or [], float(layout.get("k") or 1.0)
+    need = float(layout.get("group_gap_px") or 0.0)
+    for a, b in zip(blocks, blocks[1:]):
+        air = b["box"][1] - a["box"][3]
+        if air < need - 3.0:      # two ink boxes' rounding and a descender past SECTION_BLOCK_TAIL
+            faults.append(f"level {a['level']} -> {b['level']}: {air:.0f} px of air between the blocks, under the "
+                          f"group gap {need:.0f}")
+    for ld in layout.get("leaders") or []:
+        blk = next((b for b in blocks if b["level"] == ld["level"]), None)
+        if blk is None:
+            faults.append(f"level {ld['level']}: a leader without a block")
+            continue
+        fx0, fy0, _fx1, fy1 = blk["figure"]
+        ex, ey = ld["path"][-1]
+        if not (0 <= fx0 - ex <= SECTION_LEADER_END * k + 1) or not (fy0 - 1 <= ey <= fy1 + 1):
+            faults.append(f"level {ld['level']}: its leader ends at ({ex:.0f}, {ey:.0f}), not on its own figure "
+                          f"{blk['figure']}")
+        if abs(ld["path"][0][1] - ld["datum"]) > ld["datum_tol"] + 1:
+            faults.append(f"level {ld['level']}: its leader starts {ld['path'][0][1] - ld['datum']:+.0f} px off its "
+                          f"datum")
+        for other in blocks:
+            if other["level"] != ld["level"] and any(
+                    other["box"][0] <= x <= other["box"][2] and other["box"][1] <= y <= other["box"][3]
+                    for x, y in ld["path"]):
+                faults.append(f"level {ld['level']}: its leader runs into level {other['level']}'s block")
+    return faults
 # Chamber profiles by depth band (round 3, 2026-11-02; the same rounded bump at every level read as a comb):
 # low, wide, flat-roofed chambers near the surface, taller halls with rock pillars left standing mid-depth, fewer
 # and larger rooms at the deepest level. Width and gap scale the layout's ranges; `h` its room height; `flat`
@@ -12171,23 +12227,27 @@ def section_band(depth_ft: float, total: float, deepest: bool) -> str:
 
 
 def label_stack(wants: list[float], heights: list[float], lo: float, hi: float, gap: float,
-                weights: list[float] | None = None) -> list[float]:
+                weights: list[float] | None = None, hold: bool = False) -> list[float] | None:
     """Label blocks' tops as near their wanted tops as the stack allows (round 3: least squares, not the greedy
     top-down push that moved every block below a crowded pair off its floor): each block at least `gap` under
     the one above, the first never above `lo` (a hard floor under the ground line), the last ending by `hi`. In
     offset coordinates the order constraint is monotone, solved by pooling adjacent violators and clipping to the
     bounds (`weights`: how strongly each block keeps its place; a heavy one moves its light neighbours instead);
-    when the stack cannot fit, the gaps shrink to 4 px before anything moves above `lo`."""
+    when the stack cannot fit, the gaps shrink to 4 px before anything moves above `lo`. `hold` (freeze cycle 5,
+    FIGURES: the gap is what makes the blocks separate groups): the gap is never shrunk; None when the stack does not
+    fit `lo`..`hi` with it."""
     n = len(wants)
     if not n:
         return []
-    for g in (gap, gap * 0.6, gap * 0.3, 4.0):
+    for g in ((gap,) if hold else (gap, gap * 0.6, gap * 0.3, 4.0)):
         offs = [0.0]
         for k in range(1, n):
             offs.append(offs[-1] + heights[k - 1] + g)
         upper = hi - heights[-1] - offs[-1]
         if upper >= lo or g == 4.0:
             break
+    if hold and upper < lo - 0.5:
+        return None
     z = [w - o for w, o in zip(wants, offs)]
     ws = list(weights) if weights else [1.0] * n
     pools: list[list[float]] = []                      # [weighted mean, weight, count]
@@ -12255,49 +12315,155 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     label_x = min(label_x, L.right - (math.ceil(inline_w) + 1) / g.k)
     rooms_x1 = min(rooms_x1, label_x - (L.label_x - L.rooms_x1))
     lab_w = S(L.right - label_x)
-    left_turn, right_turn, mid_turn = L.turns
 
     # ---- the city: rooms per level, a passage from the shaft, ramps between levels
-    plan = []
-    prev_floor, prev_rooms = ground_d, []
-    for k, lv in enumerate(levels):
-        rnd = random.Random(31 + 7 * k)
-        floor = dy(lv["depth_ft"])
-        band = section_band(lv["depth_ft"], total, k == len(levels) - 1)
-        prof = SECTION_PROFILES[band]
-        room_h = max(20.0, min(L.room_h_max * prof["h"], (floor - prev_floor) * 0.7))
-        x = shaft_x + shaft_w / 2 + rnd.uniform(*L.room_start)
-        rooms = []      # (x0, x1, floor, height, seed, flat): each room's floor a few px off the level's
-        while x < rooms_x1 - 40:
-            w = rnd.uniform(*L.room_w) * prof["w"]
-            if x + w > rooms_x1 or rooms_x1 - (x + w) < 40:
-                w = rooms_x1 - x
-            rooms.append((x, x + w, floor - rnd.uniform(0, 4), room_h * rnd.uniform(0.7, 1.0), 100 * k + len(rooms),
-                          prof["flat"]))
-            x += w + rnd.uniform(*L.room_gap) * prof["gap"]
-        if room_h > 24 and rnd.random() < 0.75:                       # a niche on the shaft's other side
-            w = rnd.uniform(*L.niche_w)
-            rooms.append((shaft_x - shaft_w / 2 - w, shaft_x - shaft_w / 2 + 2, floor, room_h * 0.6, 100 * k + 50, 2.4))
-        passage_h = min(11.0, room_h * 0.5)
-        ramp, joints = [], []
-        if k and prev_rooms and floor - room_h - prev_floor > 40:   # close levels share the shaft only
-            gap = floor - room_h - prev_floor
-            legs = max(1, round(gap / 80))
-            src = max(prev_rooms, key=lambda r: r[1])
-            xa = (src[0] + src[1]) / 2
-            ramp = [(xa, prev_floor - 3)]
-            for j in range(legs):
-                xb = (left_turn + rnd.uniform(-8, 12) if (j % 2 == 0) == (xa > mid_turn) else
-                      right_turn + rnd.uniform(-12, 8))
-                yb = prev_floor + (floor - 3 - prev_floor) * (j + 1) / legs
-                ramp.append((xb, yb))
-                if j < legs - 1:     # round 4: a plain bend, a little wider at the joint (no vault: it read as a level)
-                    joints.append((xb, yb))
-                xa = xb
-        plan.append({"floor": floor, "rooms": rooms, "joints": joints, "passage_h": passage_h, "ramp": ramp,
-                     "end": max(r[1] for r in rooms) if rooms else shaft_x + 40,
-                     "reach": max((r[1] for r in rooms if r[0] > shaft_x), default=shaft_x + 40)})
-        prev_floor, prev_rooms = floor, rooms
+    def city(rooms_x1: float, turns: tuple[float, float, float]) -> list[dict[str, Any]]:
+        left_turn, right_turn, mid_turn = turns
+        plan = []
+        prev_floor, prev_rooms = ground_d, []
+        for k, lv in enumerate(levels):
+            rnd = random.Random(31 + 7 * k)
+            floor = dy(lv["depth_ft"])
+            band = section_band(lv["depth_ft"], total, k == len(levels) - 1)
+            prof = SECTION_PROFILES[band]
+            room_h = max(20.0, min(L.room_h_max * prof["h"], (floor - prev_floor) * 0.7))
+            x = shaft_x + shaft_w / 2 + rnd.uniform(*L.room_start)
+            rooms = []      # (x0, x1, floor, height, seed, flat): each room's floor a few px off the level's
+            while x < rooms_x1 - 40:
+                w = rnd.uniform(*L.room_w) * prof["w"]
+                if x + w > rooms_x1 or rooms_x1 - (x + w) < 40:
+                    w = rooms_x1 - x
+                rooms.append((x, x + w, floor - rnd.uniform(0, 4), room_h * rnd.uniform(0.7, 1.0), 100 * k + len(rooms),
+                              prof["flat"]))
+                x += w + rnd.uniform(*L.room_gap) * prof["gap"]
+            if room_h > 24 and rnd.random() < 0.75:                       # a niche on the shaft's other side
+                w = rnd.uniform(*L.niche_w)
+                rooms.append((shaft_x - shaft_w / 2 - w, shaft_x - shaft_w / 2 + 2, floor, room_h * 0.6, 100 * k + 50, 2.4))
+            passage_h = min(11.0, room_h * 0.5)
+            ramp, joints = [], []
+            if k and prev_rooms and floor - room_h - prev_floor > 40:   # close levels share the shaft only
+                gap = floor - room_h - prev_floor
+                legs = max(1, round(gap / 80))
+                src = max(prev_rooms, key=lambda r: r[1])
+                xa = (src[0] + src[1]) / 2
+                ramp = [(xa, prev_floor - 3)]
+                for j in range(legs):
+                    xb = (left_turn + rnd.uniform(-8, 12) if (j % 2 == 0) == (xa > mid_turn) else
+                          right_turn + rnd.uniform(-12, 8))
+                    yb = prev_floor + (floor - 3 - prev_floor) * (j + 1) / legs
+                    ramp.append((xb, yb))
+                    if j < legs - 1:     # round 4: a plain bend, a little wider at the joint (no vault: it read as a level)
+                        joints.append((xb, yb))
+                    xa = xb
+            plan.append({"floor": floor, "rooms": rooms, "joints": joints, "passage_h": passage_h, "ramp": ramp,
+                         "end": max(r[1] for r in rooms) if rooms else shaft_x + 40,
+                         "reach": max((r[1] for r in rooms if r[0] > shaft_x), default=shaft_x + 40)})
+            prev_floor, prev_rooms = floor, rooms
+        return plan
+    plan = city(rooms_x1, L.turns)
+
+    # ---- label blocks fanned out between the ground and the box's bottom (round 3, 2026-11-02): each block as
+    # near its floor as the stack allows (label_stack), a level with room above it held on its floor, the first
+    # block never above SECTION_LABEL_CLEAR under the ground; a stack that cannot do that tightens its gaps, then
+    # its label leading, then takes one 2 px step of label type.
+    lo, hi = ground_d + max(L.label_lo, SECTION_LABEL_CLEAR), L.label_hi
+
+    def build(lab_px: int, label_gap: float, line_step: float) -> list[dict[str, Any]]:
+        out_blocks = []
+        for k, (lv, p) in enumerate(zip(levels, plan)):
+            deepest = k == len(levels) - 1
+            ff = f_deep if deepest else f_fig
+            lines, _f, overflow = probe_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 2, g.f(lab_px),
+                                             weight=600, quiet=True)
+            if overflow:   # QF-23: three lines before the graphic is refused (it was cut on two with an ellipsis)
+                try:
+                    lines, _f, _ = fit_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 3,
+                                            g.f(lab_px), weight=600, quiet=True)
+                except TextFitError:   # no three rows hold it whole under the line-end rule: the section's refusal
+                    raise TextFitError(" | ".join(str(v["label"]) for v in levels),
+                                       where="the cross-section's label column") from None
+            capf = cap_height(ff) / g.k
+            h = capf + label_gap + line_step * (len(lines) - 1) + SECTION_BLOCK_TAIL
+            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "three": overflow,
+                               "want": p["floor"] - p["passage_h"] / 2, "fig_dy": capf, "lab_dy": capf + label_gap,
+                               "text_x": label_x})
+        return out_blocks
+
+    def build_rows(lab_px: int, line_step: float, labcol: float) -> tuple[list[dict[str, Any]], float] | None:
+        """The ROW form (freeze cycle 5): a level's figure and its label side by side, the label's rows centred on
+        the figure's cap band, in a label column `labcol` design px wide; the city gives the width up (never under
+        SECTION_ROW_CITY_MIN of its span: None). (blocks, the label column's x); an empty list of blocks when a
+        label does not sit in two rows of this column."""
+        f = get_font(brand.TEXT_FONT, g.f(lab_px), weight=600)
+        cap_lab = cap_height(f) / g.k
+        figcol = math.ceil(inline_w) / g.k
+        lx = L.right - figcol - SECTION_ROW_GUTTER - labcol
+        if lx - (L.label_x - L.rooms_x1) - shaft_x < SECTION_ROW_CITY_MIN * (L.rooms_x1 - L.shaft_x):
+            return None
+        fits = [probe_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(S(labcol)), 2, g.f(lab_px),
+                           weight=600, quiet=True) for lv in levels]
+        if any(over for _l, _f, over in fits):
+            return [], lx
+        out_blocks = []
+        for k, (lv, pl, (lines, _f, _o)) in enumerate(zip(levels, plan, fits)):
+            ff = f_deep if k == len(levels) - 1 else f_fig
+            capf = cap_height(ff) / g.k
+            lab_h = cap_lab + line_step * (len(lines) - 1)
+            band = max(capf, lab_h)
+            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": band + SECTION_BLOCK_TAIL, "three": False,
+                               "want": pl["floor"] - pl["passage_h"] / 2, "fig_dy": (band - capf) / 2 + capf,
+                               "lab_dy": (band - lab_h) / 2 + cap_lab,
+                               "text_x": lx + figcol + SECTION_ROW_GUTTER})
+        return out_blocks, lx
+
+    def stacked(blocks: list[dict[str, Any]], group_gap: float) -> list[float] | None:
+        wants = [b["want"] - (b["fig_dy"] - b["cap"] / 2) for b in blocks]     # the figure's cap band on its floor
+        anchored = [k > 0 and blocks[k]["want"] - blocks[k - 1]["want"] >= blocks[k - 1]["h"] + group_gap
+                    for k in range(len(blocks))]
+        return label_stack(wants, [b["h"] for b in blocks], lo, hi, group_gap,
+                           weights=[1000.0 if a else 1.0 for a in anchored], hold=True)
+    # Freeze cycle 5 (FIGURES, panel 6: the blocks ran into one another and read as one list; the stack kept its
+    # first rung unless a tighter one put a level on its floor, and label_stack shrank the gaps to 4 px): the blocks are
+    # GROUPS. The clear air between one block's last row and the next block's figure is at least SECTION_GROUP_RATIO
+    # times the widest clear air inside a block (section_group_gap), a hard gap (label_stack hold); the ladder
+    # (leading, then one 2 px step of label type) is climbed until the stack holds it, and a stack no rung holds is
+    # refused (9:16: once more in the box column, with_box_column), never drawn as one list.
+    best, form = None, "stack"
+    for lgap, dpx in SECTION_STACK_LADDER:
+        label_gap, line_step = L.label_gap * lgap, L.line_step - dpx * 1.2
+        blocks = build(L.lab_px - dpx, label_gap, line_step)
+        group_gap = section_group_gap(label_gap, line_step,
+                                      cap_height(get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)) / g.k)
+        tops = stacked(blocks, group_gap)
+        if tops is not None:
+            best = (blocks, tops, label_gap, line_step, dpx, group_gap)
+            break
+    if best is None:
+        # the designed alternative before a refusal: the row form (build_rows), the city narrowed for its column;
+        # the narrowest label column that holds the stack (the city keeps what it can), at the label's size first
+        for dpx, labcol in ((d, c) for d in sorted({d for _g, d in SECTION_STACK_LADDER})
+                            for c in range(SECTION_ROW_LABEL_MIN, 2000, SECTION_ROW_LABEL_STEP)):
+            if best is not None:
+                break
+            line_step = L.line_step - dpx * 1.2
+            cap_lab = cap_height(get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)) / g.k
+            rows = build_rows(L.lab_px - dpx, line_step, labcol)
+            if rows is None or not rows[0]:
+                continue
+            group_gap = section_group_gap(cap_lab, line_step, cap_lab)
+            tops = stacked(rows[0], group_gap)
+            if tops is not None:
+                best, form = (rows[0], tops, 0.0, line_step, dpx, group_gap), "row"
+                span = (rows[1] - (L.label_x - L.rooms_x1) - shaft_x) / max(1.0, rooms_x1 - shaft_x)
+                label_x = rows[1]
+                rooms_x1 = label_x - (L.label_x - L.rooms_x1)
+                plan = city(rooms_x1, tuple(shaft_x + (v - shaft_x) * span for v in L.turns))
+    if best is None:
+        raise TextFitError(" | ".join(str(lv["label"]) for lv in levels),
+                           where="the cross-section's label column (its blocks do not stand apart as groups in the "
+                                 "stacked or the row form: section_group_gap)")
+    blocks, tops, label_gap, line_step, dpx, group_gap = best
+    f_lab = get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)
 
     carve_box = (X(ruler_x + 8), Y(ground_d - 6), X(rooms_x1 + 8), Y(bottom_d + 14))
 
@@ -12321,52 +12487,6 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
 
     carves = [_carve(carve_box, paint_upto(k), S(3)) for k in range(-1, len(levels))]   # [shaft only, +lvl0, ...]
 
-    # ---- label blocks fanned out between the ground and the box's bottom (round 3, 2026-11-02): each block as
-    # near its floor as the stack allows (label_stack), a level with room above it held on its floor, the first
-    # block never above SECTION_LABEL_CLEAR under the ground; a stack that cannot do that tightens its gaps, then
-    # its label leading, then takes one 2 px step of label type.
-    lo, hi = ground_d + max(L.label_lo, SECTION_LABEL_CLEAR), L.label_hi
-
-    def build(lab_px: int, label_gap: float, line_step: float) -> list[dict[str, Any]]:
-        out_blocks = []
-        for k, (lv, p) in enumerate(zip(levels, plan)):
-            deepest = k == len(levels) - 1
-            ff = f_deep if deepest else f_fig
-            lines, _f, overflow = probe_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 2, g.f(lab_px),
-                                             weight=600, quiet=True)
-            if overflow:   # QF-23: three lines before the graphic is refused (it was cut on two with an ellipsis)
-                try:
-                    lines, _f, _ = fit_text(probe, lv["label"], brand.TEXT_FONT, g.f(lab_px), int(lab_w), 3,
-                                            g.f(lab_px), weight=600, quiet=True)
-                except TextFitError:   # no three rows hold it whole under the line-end rule: the section's refusal
-                    raise TextFitError(" | ".join(str(v["label"]) for v in levels),
-                                       where="the cross-section's label column") from None
-            capf = cap_height(ff) / g.k
-            h = capf + label_gap + line_step * (len(lines) - 1) + 8
-            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "three": overflow,
-                               "want": p["floor"] - p["passage_h"] / 2})
-        return out_blocks
-    best = None
-    for fan, lgap, dpx in ((1.0, 1.0, 0), (0.6, 1.0, 0), (0.3, 1.0, 0), (0.3, 0.8, 0), (0.3, 0.8, 2)):
-        label_gap, line_step = L.label_gap * lgap, L.line_step - dpx * 1.2
-        blocks = build(L.lab_px - dpx, label_gap, line_step)
-        wants = [b["want"] - b["cap"] / 2 for b in blocks]
-        anchored = [k > 0 and blocks[k]["want"] - blocks[k - 1]["want"] >= blocks[k - 1]["h"]
-                    for k in range(len(blocks))]
-        tops = label_stack(wants, [b["h"] for b in blocks], lo, hi, L.fan_gap * fan,
-                           weights=[1000.0 if a else 1.0 for a in anchored])
-        off = max([abs(t - w) for t, w, a in zip(tops, wants, anchored) if a] or [0.0])
-        if best is None or off <= 4:     # a tighter stack only where it puts every such level on its floor
-            best = (off, blocks, tops, label_gap, line_step, dpx)
-        if off <= 4:
-            break
-    _off, blocks, tops, label_gap, line_step, dpx = best
-    if any(b["three"] for b in blocks) and tops and tops[-1] + blocks[-1]["h"] > hi + 0.5:
-        # QF-23: a label two lines held only cut takes three, and then the stack does not fit the column even at its
-        # tightest: refused rather than drawn past the text box (it was cut to fit before); stacks of labels that two
-        # lines hold whole are placed exactly as before
-        raise TextFitError(" | ".join(str(lv["label"]) for lv in levels), where="the cross-section's label column")
-    f_lab = get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)
 
     # ---- the static ground: sky, banded rock, the surface, the ruler
     ground_px = Y(ground_d)
@@ -12386,14 +12506,17 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
 
     # ---- leaders, registration ticks, the lantern and its route
     leaders, registers = [], []
-    b0, b1, b2 = L.bends
+    b0, b1, b2 = (label_x - v for v in SECTION_BENDS["tall" if height > width else "wide"])
+    leader_paths = []
     for k, (p, b) in enumerate(zip(plan, blocks)):
         deepest = k == len(levels) - 1
         y0 = p["floor"] - p["passage_h"] / 2
-        y1 = tops[k] + b["cap"] / 2
+        y1 = tops[k] + b["fig_dy"] - b["cap"] / 2
         lp = _Pen((X(p["reach"] - 12), Y(min(y0, y1) - 8), X(label_x), Y(max(y0, y1) + 8)))
         col = (*(brand.GOLD if deepest else brand.GOLD_DIM), 255)
-        lp.line(g.pts([(p["reach"] - 4, y0), (b0, y0), (b1, y1), (b2, y1)]), col, S(2.75))
+        path = [(p["reach"] - 4, y0), (max(b0, p["reach"] + 2), y0), (b1, y1), (b2, y1)]
+        leader_paths.append(g.pts(path))
+        lp.line(g.pts(path), col, S(2.75))
         lp.ellipse(X(p["reach"] - 4), Y(y0), S(4), S(4), fill=col)
         leaders.append(lp.sprite())
         # registration (round 3): a tick on the ruler at the level's true depth and its floor carried left from
@@ -12477,7 +12600,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     for k, (lv, b) in enumerate(zip(levels, blocks)):
         deepest = k == len(levels) - 1
         top = tops[k]
-        fig_base = top + b["cap"]
+        fig_base = top + b["fig_dy"]
         fig = f"{lv['depth_ft']:,.0f} FT"
         t_in = arrive[k] + LABEL_AFTER_CONTACT   # round 4: the label follows the contact (it led by 0.05 s)
         t_out = None if deepest else arrive[k + 1]
@@ -12489,9 +12612,9 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                        f_conv(k), figure_fill(), "ls")
         timed.append((f"level{k}_metres", metres, t_in, None, None))
         for j, ln in enumerate(b["lines"]):
-            yb = fig_base + label_gap + line_step * j
-            bp = _plan(final, (X(label_x), Y(yb)), ln, f_lab, brand.BONE, "ls")
-            dim = None if deepest else _plan(final, (X(label_x), Y(yb)), ln, f_lab, brand.STONE_LT, "ls")
+            yb = top + b["lab_dy"] + line_step * j
+            bp = _plan(final, (X(b["text_x"]), Y(yb)), ln, f_lab, brand.BONE, "ls")
+            dim = None if deepest else _plan(final, (X(b["text_x"]), Y(yb)), ln, f_lab, brand.STONE_LT, "ls")
             timed.append((f"level{k}_label{j}", bp, t_in + 0.08, t_out, dim))
 
     last: list[Image.Image] = []
@@ -12532,8 +12655,24 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     result = _encode(frames(), out, n, width=width, height=height)
     if result and last:
         # the drift settles to 1.0 on the last frame (section_drift), so the frame measured is the frame shown
+        by_name = {name: plate for name, plate, _a, _b, _d in timed}
+        blocks_rec = []
+        for k in range(len(levels)):
+            parts = [pl.box for name, pl in by_name.items() if name.startswith(f"level{k}_") and not pl.empty]
+            blocks_rec.append({"level": k, "depth_ft": levels[k]["depth_ft"],
+                               "figure": [int(v) for v in by_name[f"level{k}_depth"].box],
+                               "box": [min(b[0] for b in parts), min(b[1] for b in parts),
+                                       max(b[2] for b in parts), max(b[3] for b in parts)]})
+        layout = {"kind": "section", "form": form, "k": g.k, "group_gap_px": round(S(group_gap), 2),
+                  "label_px": f_lab.size, "blocks": blocks_rec,
+                  "leaders": [{"level": k, "datum": round(Y(dy(levels[k]["depth_ft"])), 2),
+                               "datum_tol": round(S(plan[k]["passage_h"]), 2),
+                               "path": [[round(x, 1), round(y, 1)] for x, y in pts]}
+                              for k, pts in enumerate(leader_paths)]}
+        for fault in section_layout_faults(layout):
+            log.warning("%s: label layout: %s", Path(out).name, fault)
         record_contrast(out, last[0], [(name, dim if dim is not None else plate) for name, plate, _a, _b, dim in timed],
-                        ruler_rows)
+                        ruler_rows, layout=layout)
         marks = [("ruler", mark_mask((width, height), lambda d: d.line([(X(ruler_x), ground_px), (X(ruler_x), axis_px)],
                                                                          fill=255, width=max(1, round(S(2))))))]
         for k, sp in enumerate(leaders):

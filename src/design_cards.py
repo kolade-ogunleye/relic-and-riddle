@@ -4127,8 +4127,9 @@ def _plate_feathers(bg: Image.Image, y0: float, y1: float, strength: float, feat
     w = bg.size[0]
     if feather <= 0:
         return (0, 0), HOOK_PLATE_SIDE
-    up = band_edge.feather(lum, y0, "up", brand.INK, strength, feather, w, floating=True)
-    down = band_edge.feather(lum, y1, "down", brand.INK, strength, feather, w, floating=True)
+    full = lum[:, :max(8, min(w, int(right)))]     # the columns the plate covers at its full strength
+    up = band_edge.feather(full, y0, "up", brand.INK, strength, feather, w, floating=True)
+    down = band_edge.feather(full, y1, "down", brand.INK, strength, feather, w, floating=True)
     across = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))].T          # rows = x: the ease right of the block
     side = band_edge.feather(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True)
     return (up, down), side

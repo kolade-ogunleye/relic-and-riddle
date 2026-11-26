@@ -55,6 +55,7 @@ def step_across(luma: np.ndarray, y0: float, y1: float, colour, strength: float 
     return max(0.0, (bright - band) * float(strength))
 
 
+FLOAT_HEADROOM = 0.85   # feather(): a floating band's edge is laid at this share of its limit
 TEXTURE_BLOCKS = 16     # ground_texture: the column blocks the ground is read in
 TEXTURE_PCT = 25        # and the percentile of their detail that counts (the flattest quarter: where an edge shows first)
 
@@ -96,8 +97,10 @@ def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 
     length = max(1.0, float(minimum))
     for _ in range(5):
         span = (edge - length, edge) if side == "up" else (edge, edge + length)
+        # a floating band is laid FLOAT_HEADROOM inside its limit (its feather is judged where it is steepest)
+        limit = slope_limit(luma, *span, width, floating) * (FLOAT_HEADROOM if floating else 1.0)
         need = edge_feather(step_across(luma, *span, colour, strength, by_row=floating), width, minimum,
-                            slope=slope_limit(luma, *span, width, floating))
+                            slope=limit)
         if need <= length:
             break
         length = float(need)

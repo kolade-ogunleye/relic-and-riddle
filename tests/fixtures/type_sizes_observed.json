@@ -108,6 +108,19 @@
  "design_cards:_chapter_compose": [
   86.0
  ],
+ "design_cards:_chapter_fit": [
+  88.0,
+  92.0,
+  100.0,
+  104.0,
+  144.0,
+  168.0,
+  176.0
+ ],
+ "design_cards:_chapter_fit.three": [
+  100.0,
+  104.0
+ ],
  "design_cards:_chapter_ink_foot": [
   100.0
  ],
@@ -221,19 +234,6 @@
   289.0,
   301.0,
   361.0
- ],
- "design_cards:plan_chapter_card": [
-  88.0,
-  92.0,
-  100.0,
-  104.0,
-  144.0,
-  168.0,
-  176.0
- ],
- "design_cards:plan_chapter_card.three": [
-  100.0,
-  104.0
  ],
  "design_cards:plan_hook_frame.hook_fit": [
   144.0,
@@ -449,6 +449,11 @@
   370.0
  ],
  "graphics:_stat_clip.frames": [
+  41.0,
+  77.0,
+  78.0,
+  207.0,
+  210.0,
   271.0,
   273.0,
   301.0,

@@ -527,7 +527,7 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
                                      (184, 176, 168, 160, 152, 144, 136, 128, 120), "F"),
     "chapter title 16:9, two lines": ("display_l", "design_cards.CHAPTER_WIDE_TWO",
                                       (176, 168, 160, 152, 144, 136, 128, 120, 112, 104, 96), "F"),
-    "chapter title 9:16": ("display_l", ("design_cards.plan_chapter_card: 136 down to 84 (inline ladder). Declared, "
+    "chapter title 9:16": ("display_l", ("design_cards._chapter_fit: 136 down to 84 (inline ladder). Declared, "
                            "round 8: the tall display steps end at 96, and on the 687 px margin column real act titles "
                            "set only at 88 (two real runs' act titles, three lines / the box column); on the steps they would "
                            "be refused (operator decision 2026-11-05: draw every chapter card)"),
@@ -566,7 +566,6 @@ DEVIATIONS: Mapping[str, tuple[str, str, tuple, str]] = MappingProxyType({
 SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "callouts:_shapes": "F",
     "cover_design:_brand": "B",
-    "cover_design:_brand_foot": "B",
     "cover_design:_eyebrow_lines": "B",
     "cover_design:_lockup": "B",
     "cover_design:_lockup.width_at": "B",
@@ -578,6 +577,8 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "cover_design:one_heading": "B",              # lane B cycle 3: the two fields set as one heading
     "design_cards:_Card.font": "F",
     "design_cards:_cap": "F",
+    "design_cards:_chapter_fit": "F",
+    "design_cards:_chapter_fit.three": "F",
     "design_cards:_chapter_compose": "F",
     "design_cards:_chapter_ink_foot": "F",         # lane F cycle 3: descenders inside the foot
     "design_cards:_chapter_wide_three": "F",       # lane F cycle 3: the 16:9 chapter spans its numeral
@@ -597,7 +598,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:frame_at": "F",
     "design_cards:hook_masthead_record": "F",
     "design_cards:plan_chapter_card": "F",
-    "design_cards:plan_chapter_card.three": "F",
     "design_cards:plan_hook_frame": "F",
     "design_cards:plan_hook_frame.hook_fit": "F",
     "design_cards:plan_hook_frame.hook_fits": "F",

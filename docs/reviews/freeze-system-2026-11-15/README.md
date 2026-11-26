@@ -210,35 +210,58 @@ A cycle should measure designs, not wait for a board or guess what changed. Four
 ### The incremental board: `board.py ... --reuse <previous board of the same palette>`
 
 Renders only the render_surfaces.py jobs whose inputs changed and takes the rest from the previous board byte for
-byte (`board_reuse.py`; the composed rows are drawn fresh from the merged surfaces).
+byte (`board_reuse.py`). The rule since the review of 2026-11-26 (FIX FIRST: the first version reused stale images):
+**a job's key covers everything its render can depend on, and what cannot be proven renders.**
 
-- What a file's input hash covered before: its path, the palette, the WHOLE tree stamp and the union of every data
-  file the board read. Every file had the same inputs and any commit changed them all, so nothing could be reused,
-  and the toolchain and the tree's untracked data (tools/geo, tools/models) were not in it.
-- What a job's inputs are now. Code: the job's code key (`board_deps.py`). Not code, and any change means no reuse at
-  all: a non-Python file under src/, tests/ (only one a render read), fonts/, assets/, the fixtures catalogue,
-  uv.lock, pyproject.toml; a recorded data input (re-hashed); tools/geo, tools/models, tools/stress; the toolchain
-  (Python, Pillow and its text libraries, numpy, the ffmpeg binary and build line); the palette; the job list.
-- Why the code key is observed, not derived. Measured at integration 4 (`python board_deps.py <tree> --measure`): the
-  import closure of every render entry is 161-164 of the 177 src modules, and a name-based symbol reach gets to
-  7 312 of 9 495 symbols from any single function. A module-level or a static symbol-level map would never reuse
-  anything. So each render process records, per job, the functions that ran (cProfile, started by `run_surfaces.py`
-  before the tree loads; `render_surfaces.py` marks each job's window): those that ran in the job, those that ran
-  outside every job (import time, the harness), and everything those ever called in that process (a memoised function
-  that returned a cached value is followed to what computed it). The record is `<out>/DEPS.json`. The key hashes
-  those functions' ASTs, every module-level value and class header they name (in any module, transitively) and every
-  module's import-time residue, at any commit, from git objects.
-- The record is on by default (`--no-deps` turns it off; such a board cannot be reused later). It changes no pixel.
-- Proof at run time: `--reuse-sample N` (default 2) reused jobs are rendered anyway and must equal the previous
-  board's files and records; a difference aborts with exit 3 and `REUSE-ABORTED.json`.
-- Records: `REUSE.json` (the checks, each job's status and the symbols that changed, each reused file), `DEPS.json`,
-  board.json `reuse`, `reuse_env`, `job_code_keys`, `tree.path`; INPUT_HASHES.json gives each surface the hash of its
-  own job's inputs (equal on two boards exactly when the surface may be reused).
-- The gate: the tools patch of this cycle makes freeze_manifest.py write each file's `provenance` (rendered / reused)
-  and freeze_gate.py call `board_reuse.verify`, which derives every reused job's key again from git objects at both
-  commits and checks each reused file against the previous board's manifest. A reused file keeps its render's mtime.
-- Not covered by the key (the sample is the net): state one job leaves in a module global for another job's
-  different function; an attribute fetched by a name that is in no recorded code; exec/eval.
+- One render process per job (`board.py run_jobs`, on by default; `--no-deps` goes back to shards and writes no
+  record). What a job reads, imports or leaves in a module is then its own: the record does not depend on which
+  jobs shared a process. Cost: each process loads the tree and picks its runs again.
+- The record (`board_deps.Recorder`, `<out>/DEPS.json`, schema board-deps/2), per job: the functions that ran (every
+  thread), every tree module loaded, every import asked for, every file read (in Python, by sqlite, or named to a
+  child process, inside an ffmpeg filter string too), every path probed (os.stat and its family), every folder
+  listed, every environment variable looked up, every file it built that outlives it (with the build's stack).
+- The key (`board_deps.job_key`, from git objects at any commit):
+
+  | input | how the key covers it |
+  |---|---|
+  | code the job ran | the WHOLE module of every function that ran (not the function); render_surfaces.py alone is cut by job closure |
+  | module-level state: imports, constants, tables, class bodies, method names, decorators, defaults | the module-level code of every module the job loaded, whether or not a function of it ran |
+  | a tests module's constants (a spec the harness imports) | the same: the module is loaded, so its module-level code is in the key |
+  | a new module that shadows one | every tree .py file an import the job asked for could resolve to |
+  | tracked data: data/ (json, data/geo, the tagger), fonts/, assets/, src/ data, tracked tools/ files, uv.lock, pyproject.toml, anything at the root | every such blob, in EVERY job's key (readers outside Python exist: FreeType, ffmpeg) |
+  | tests/ and docs/ files (fixtures, fixture media) | the blob of each one the job read; presence of each path it probed; the names of each folder it listed |
+  | a .py file read as data (font_assets keys its cache on its own bytes) | its blob, as data |
+  | the board's own scripts (render_surfaces.py, run_surfaces.py, board_speed.py, board_inputs.py, fixtures.py) | modules like any other |
+
+- Checked on the disk by the plan (`board_reuse.inputs_now`), per job: every file read outside the tree (the dev
+  runs: bytes), every path probed (a file that appeared), every folder listed (a new run), every environment
+  variable read, every artefact (still the bytes it was).
+- For every job at once (no reuse at all): palette; job list; the toolchain (Python, every installed distribution,
+  Pillow's text libraries, numpy, the ffmpeg binary, the machine, the variables native code reads); every file
+  under tools/ (sha256); a worktree that differs from HEAD anywhere.
+- On-disk caches (the tree's `cache/font_instances`, the temp folder's frame cache): a file a job read or probed
+  that git does not track was built by code. `board_deps.resolve` adds its builders to the key of every job that
+  touched it: from the job that built it in this board, or from the builders' store
+  (`<temp>/rr_board_artefacts/<sha256>.json`, written whenever a build is observed) when it was there before. No
+  proof (a cache from before this tooling, or a stored builder whose module changed since): the job is "whole",
+  keyed on every module of src/, the fixtures and the board tools. A board started with `BOARD_TMP=<empty folder>`
+  (run_palette.sh) and a tree without `cache/` observes every build.
+- A job that cannot be recorded whole renders always ("never"): a Python child process, an .env file (never read),
+  an input the job rewrote, a folder of more than 5 000 files handed to a child.
+- Proof at run time, independent of the key. The static net: when the diff changes a function of a module a reused
+  job loaded but never ran, and the code in that job's key mentions the function's name, the job is rendered and
+  compared. Plus `--reuse-sample N` (default 2) more reused jobs at random. A difference aborts with exit 3 and
+  `REUSE-ABORTED.json`. `REUSE.json` "sample.power" states what this can and cannot catch.
+- The gate (`board_reuse.verify`, called by the patched freeze_gate.py) does not re-derive the plan: it reads the
+  diff between the two commits itself and checks by set membership that no changed path is among a reused job's
+  inputs; re-derives the static net and requires its jobs rendered; proves the sample by content hash (each sampled
+  file, rendered at this commit, must be the previous manifest's bytes); checks the disk inputs again; and only then
+  compares the keys. tests/test_freeze_board_c5.py makes the plan's key blind and the gate still refuses.
+- The composed rows (1, 2, 12, 13, every sheet) are never reused: drawn in every board from `<out>/surfaces` and
+  surfaces.json. `board_reuse.composed_inputs` hashes what they are drawn from; equal to a full render's.
+- Not seen, said plainly: a file read by native code from a path Python never opened, probed or passed to a child
+  (covered only where the whole folder is in every key: data/, fonts/, assets/, tools/); a bulk copy of the
+  environment is not a read of each name; files outside the tree read by a native library of its own accord.
 
 ### The changed-surfaces report: `board_diff.py <before board> <after board> <out>`
 

@@ -10,6 +10,10 @@
 # code record (DEPS.json) and a MANIFEST.json it is the --reuse base: only the jobs whose inputs changed are
 # rendered (board_reuse.py).
 #
+# BOARD_TMP=<folder> (cycle 5 fix 1, optional): the temp folder of this board's processes (frames cut from the
+# runs, the builders' store). An empty one, with a tree that has no cache/, makes the board observe every on-disk
+# cache being built, so no job falls back to the whole-code key (board_deps.resolve). Keep it for the next board.
+#
 # <palette>: default | second | second-colours (board.py PALETTES). Writes <out root>/<palette>/ (the board),
 # <out root>/<palette>.log and <out root>/<palette>.done ("exit <rc> seconds <s> <time>"). No path is written into
 # this file: the interpreter, the dev checkout and the peers come from the environment. Hold a keep-awake around it
@@ -24,6 +28,7 @@ case "$palette" in default|second|second-colours) ;; *) echo "unknown palette $p
 PY="${BOARD_PY:?set BOARD_PY to the venv python}"
 DEV="${BOARD_DEV:?set BOARD_DEV to the dev checkout (output/run_*, assets/)}"
 [ -n "${BOARD_FRIBIDI:-}" ] && export PATH="$PATH:$BOARD_FRIBIDI"
+if [ -n "${BOARD_TMP:-}" ]; then mkdir -p "$BOARD_TMP" && export TMP="$BOARD_TMP" TEMP="$BOARD_TMP" TMPDIR="$BOARD_TMP"; fi
 peers=()
 [ -n "${BOARD_PEERS:-}" ] && peers=(--peers "$BOARD_PEERS")
 brand=()

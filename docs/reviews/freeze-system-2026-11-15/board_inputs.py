@@ -77,7 +77,9 @@ def install(roots, skip=()) -> None:
         _state["installed"] = True
 
 
-TREE_DATA = ("tests", "docs/reviews/freeze-panel-2026-11-04/fixtures")   # tree paths whose data reads are recorded
+# tree paths whose data reads are recorded (cycle 5, fix 1: data/ too: the art-direction boxes, the word lists,
+# the fit corpus, data/geo are read by the renders)
+TREE_DATA = ("tests", "docs/reviews/freeze-panel-2026-11-04/fixtures", "data")
 
 
 def tree_roots(tree) -> list[str]:
@@ -146,7 +148,8 @@ def _git(tree: Path, *args: str) -> str | None:
     return r.stdout.strip() if r.returncode == 0 else None
 
 
-DRAWN_PATHS = ("src", "fonts", "assets", "uv.lock", "tests", "docs/reviews/freeze-panel-2026-11-04/fixtures",
+DRAWN_PATHS = ("src", "fonts", "assets", "data", "tools", "uv.lock", "pyproject.toml", "tests",
+               "docs/reviews/freeze-panel-2026-11-04/fixtures",
                "docs/reviews/freeze-system-2026-11-15", "docs/reviews/quality-fixes-2026-11/QF-35a")
 
 
@@ -156,7 +159,9 @@ def tree_stamp(tree: Path, here: Path) -> dict[str, Any]:
     tree, here = Path(tree), Path(here)
     head = _git(tree, "rev-parse", "HEAD")
     ids = {p: _git(tree, "rev-parse", f"HEAD:{p}") for p in DRAWN_PATHS} if head else {}
-    dirty = _git(tree, "status", "--porcelain", "--untracked-files=all", "--", *DRAWN_PATHS)
+    # cycle 5, fix 1: the WHOLE tree (a render reads data/, tools/ and more than the paths above); files git
+    # ignores (tools/ data, cache/) are not in this list: board_reuse.tool_data and board_deps.untracked hold them
+    dirty = _git(tree, "status", "--porcelain", "--untracked-files=all")
     tools = sorted(here.glob("*.py")) + [tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"]
     return {"head": head, "head_tree_ids": ids, "dirty_vs_head": bool(dirty) if dirty is not None else None,
             "dirty_paths": (dirty or "").splitlines()[:50],

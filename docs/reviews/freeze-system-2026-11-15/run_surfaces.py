@@ -14,14 +14,14 @@ from pathlib import Path
 if __name__ == "__main__":
     script, args = Path(sys.argv[1]).resolve(), sys.argv[2:]
     tree = Path(args[0]).resolve()
-    os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8")   # as render_surfaces.py sets them, before src loads
     sys.path.insert(0, str(tree))
     sys.path.insert(1, str(Path(__file__).resolve().parent))
+    if os.environ.get("BOARD_DEPS") == "1":   # cycle 5: everything the job can depend on (board_deps.py), a record only
+        import board_deps   # started before anything of the tree loads and before this process sets its own
+        board_deps.install(tree, skip=[s for s in os.environ.get("BOARD_DEPS_SKIP", "").split(os.pathsep) if s])
+    os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8")   # as render_surfaces.py sets them, before src loads
     import board_speed
     board_speed.install()
-    if os.environ.get("BOARD_DEPS") == "1":   # cycle 5: which code each job runs (board_deps.py), a record only
-        import board_deps
-        board_deps.install(tree)
     import board_inputs   # cycle 5: the tree's own data files a render reads (tests' fixtures, the catalogue) too
     board_inputs.install(board_inputs.tree_roots(tree))
     sys.argv = [str(script), *args]

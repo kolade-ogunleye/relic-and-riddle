@@ -4736,6 +4736,33 @@ def _refuse(kind: str, out: Path, e: CardRefused) -> None:
                                       ensure_ascii=False), encoding="utf-8", newline="\n")
 
 
+_FIELD_ROW = re.compile(r"([a-z]+)_(\d+)")
+
+
+def line_faults(plan: CardPlan) -> list[dict[str, Any]]:
+    """Freeze cycle 5 (TEXT stream, review D3): the line-break violations of the ONE policy (line_policy.violations: a
+    row ending on a never or last-resort word, a break inside a keep-together group) that stay in the card's drawn
+    fields, per field: [{"field", "lines", "faults", "reason"}]. The cards' break search holds the hard set (W1_STOPS)
+    and weighs every other closed-class end inside its size step, so what is listed here is what no break of that
+    search cleared above the field's floor ("IMPACT THEORY / DISPROVED WHEN / ..." at the myth fact's 76 px floor:
+    the 9:16 myth card had no record of it). Written to the card's design record for the plan actually drawn
+    (_design_record), never for a trial plan; [] for a clean card, which writes nothing."""
+    from . import line_policy
+    fields: dict[str, list[tuple[int, str]]] = {}
+    for key, text in plan.drawn_text.items():
+        m = _FIELD_ROW.fullmatch(str(key))
+        if m and str(text).strip():
+            fields.setdefault(m.group(1), []).append((int(m.group(2)), str(text)))
+    out: list[dict[str, Any]] = []
+    for field, rows in fields.items():
+        lines = [t for _k, t in sorted(rows)]
+        left = line_policy.violations(lines) if len(lines) > 1 else []
+        if left:
+            out.append({"field": field, "lines": lines, "faults": left,
+                        "reason": "no break of the card's search clears it above the field's floor"})
+    return out
+
+
 def _design_record(plan: CardPlan, poster: str) -> dict[str, Any]:
     rec: dict[str, Any] = {
         "kind": plan.kind, "version": VERSION, "width": plan.width, "height": plan.height, "seconds": plan.seconds,
@@ -4751,6 +4778,9 @@ def _design_record(plan: CardPlan, poster: str) -> dict[str, Any]:
             rec["withheld"] = m["withheld"]
     if m.get("provenance"):
         rec["provenance"] = m["provenance"]     # which lines are verbatim spans and which the fact gate passed
+    faults = line_faults(plan)
+    if faults:   # freeze cycle 5 (TEXT): a line end the search could not clear is on the card's own record
+        rec["line_faults"] = faults
     if plan.kind == "mythfact":
         rec.update(never_first=True, min_seconds=m["min_seconds"], source_omitted=m["source_omitted"],
                    quality_notes=list(m.get("quality_notes") or []), source_host_raw=m.get("source_host_raw"))

@@ -11237,6 +11237,36 @@ def tall_axis_x(width: int, height: int) -> int:
     return reel_caption_centre_x(width, height)
 
 
+STAT_LABEL_STEP = 2     # px: the label's steps down to its floor where a hard line fault needs a narrower setting
+
+
+def stat_label_policy(text: str, lines: list[str], font, width: float, track: float, floor: int):
+    """Freeze cycle 5 (TEXT stream, review D3; real runs: "COOLING OF / CARBONATITE ROCKS" on the 9:16 number card,
+    three Richat runs): a number card's label whose rows still break a HARD rule of the one policy
+    (line_policy: a row ending on a never-end word, a break inside a keep-together group) after the same-size
+    re-break (ruled_rows) takes the policy's next step, a smaller size inside the label's own range (down to `floor`,
+    STAT_LABEL_STEP at a time), at the first size where its rows set clean (line_policy.wrap on the same number of
+    rows, the engine's label rule held): (lines, font). Unchanged where the rows hold the rule already, and where no
+    size down to the floor clears it (logged; the rows as fitted)."""
+    from . import line_policy
+    from .heading import label_ok
+    hard = (line_policy.NEVER_END, line_policy.UNIT_SPLIT)
+    if len(lines) < 2 or not any(f["fault"] in hard for f in line_policy.violations(lines)):
+        return lines, font
+    px = int(font.size) - STAT_LABEL_STEP
+    while px >= floor:
+        f_try = get_font(brand.TEXT_FONT, px, weight=800)
+        got = line_policy.wrap(text, lambda t: _tracked_w(t.replace(line_policy.NBSP, " "), f_try, track), width,
+                               max_lines=len(lines), min_lines=len(lines))
+        got = [ln.replace(line_policy.NBSP, " ") for ln in got] if got else None
+        if got and not line_policy.violations(got) and label_ok(got):
+            return got, f_try
+        px -= STAT_LABEL_STEP
+    log.warning("Number card label %r: no size down to %d px sets its %d rows without a hard line fault; set as "
+                "fitted.", text, floor, len(lines))
+    return lines, font
+
+
 def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, width: int, scale: float = 1.0,
                  label_min: int | None = None, num_min: int = 120, word_floor: int = 0) -> dict[str, Any]:
     """One card measured (offsets from its block's top, x from the left margin): the figure's font fitted so the
@@ -11309,6 +11339,9 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
                                weight=800, quiet=True)                                   # 3 px tracking
     f_lab = get_font(brand.TEXT_FONT, f_lab.size, weight=800)
     lines = ruled_rows(lines, f_lab, width - 120, 3)     # freeze cycle 3 (A-S2-2): the heading engine's word rule
+    lines, f_lab = stat_label_policy(card["label"].upper(), lines, f_lab, width - 120, 3,
+                                     max(word_floor, label_min if label_min is not None
+                                         else max(26, round(f_lab_px * 0.75))))
     y += round(f_lab.size * 1.75)
     for j, line in enumerate(lines):
         rows.append({"name": "label", "kind": "text", "text": line, "font": f_lab, "y": y + j * round(f_lab.size * 1.26),

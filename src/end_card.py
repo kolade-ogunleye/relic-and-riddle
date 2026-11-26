@@ -265,13 +265,55 @@ def _tracked_width(font, text: str, spacing: float) -> float:
 
 def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[List[List[str]]]:
     """`words` on the fewest lines (up to max_lines) that fit `width`, the most even break of those, by the heading
-    engine's one line rule (freeze cycle 4, SYS item 2: heading.set_lines; no line but the last ends on an article or
-    a preposition, no one-word last line, a value kept with its unit); None when no such break fits (the caller then
-    takes a smaller size or another line)."""
-    from .heading import set_lines
+    engine's one line rule (freeze cycle 4, SYS item 2: heading.break_points and label_ok; no line but the last ends
+    on an article or a preposition, no one-word last line, a value kept with its unit); None when no such break fits
+    (the caller then takes a smaller size or another line).
+
+    Freeze cycle 5 (TEXT stream, review D3): among the breaks on that line count, a one-word row is weighed before a
+    last-resort line end. With the system's one vocabulary (THIS, WHO, WHEN ... are last-resort ends) the engine's
+    own order set "SEND / THIS TO A FRIEND FASCINATED / BY ANCIENT ENGINEERING." to keep THIS off a line end: a
+    row of one word is the worse rhythm (the labels' own order, graphics.STOP_LONE over a conjunction end)."""
+    import itertools
+
+    from . import line_policy
+    from .heading import break_points, label_ok
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    got = set_lines(" ".join(words), lambda t: probe.textlength(t, font=font), width, max_lines)
-    return [ln.split() for ln in got] if got else None
+    ws = tuple(" ".join(words).split())
+    if not ws:
+        return None
+    memo: Dict[str, float] = {}
+
+    def w(t: str) -> float:
+        if t not in memo:
+            memo[t] = float(probe.textlength(t, font=font))
+        return memo[t]
+
+    points = break_points(ws)
+    for n in range(1, max(1, max_lines) + 1):
+        best = None
+        for cuts in itertools.combinations(points, n - 1):
+            rows = tuple(" ".join(ws[a:b]) for a, b in itertools.pairwise((0, *cuts, len(ws))))
+            widths = [w(t) for t in rows]
+            if max(widths) > width + 1e-6 or not label_ok(rows, widths):
+                continue
+            lone = sum(len(t.split()) == 1 for t in rows) if n > 1 and len(ws) >= 4 else 0
+            conj = sum(line_policy.end_class(ws[k - 1]) == "last_resort" for k in cuts)
+            score = (lone, conj, round(max(widths), 3), max(widths) - min(widths))
+            if best is None or score < best[0]:
+                best = (score, rows)
+        if best is not None:
+            return [t.split() for t in best[1]]
+    return None
+
+
+def share_line_faults(lines: List[List[str]]) -> list[dict[str, Any]]:
+    """The policy's violations that stay in the share line's rows (line_policy.violations: a row ending on a never
+    or last-resort word, a break inside a keep-together group), as the card records them: [] for a clean break."""
+    from . import line_policy
+    rows = [" ".join(ln) for ln in lines]
+    left = line_policy.violations(rows) if len(rows) > 1 else []
+    return [{"lines": rows, "faults": left,
+             "reason": "no declared size of the line's tier sets it on these rows without it"}] if left else []
 
 
 _FOLLOW_WORD = re.compile(r"\bfollow", re.IGNORECASE)
@@ -372,16 +414,32 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         cx, max_w = reel_column(width, height)
         plan = SHARE_PLAN
     share_font, lines = None, None
+    line_faults: list[dict[str, Any]] = []
     for max_lines, sizes in plan:
+        # Freeze cycle 5 (TEXT stream, review D3): the ONE breaking policy (src/line_policy.py) on the share line. In
+        # the first tier (a line count and its declared sizes) that sets the line, the largest size whose break holds
+        # the policy is taken (a smaller ladder size comes before a line ending on a function word: "... TO A FRIEND
+        # WHO / LOVES ..." at 64 px set clean at 60); where no size of the tier holds it, the largest stays, as
+        # before, and what stays is RECORDED (the layout's "line_faults", on the card's stats). Never more lines and
+        # never a size under the tier's own floor to cure a line end.
+        held = None
         for size in sizes:
             # the share line's words are planned one by one: all in the line's face (QF-94)
-            share_font = field_font(" ".join(words), get_font(brand.TEXT_FONT, size, weight=SHARE_WEIGHT))
-            lines = _balanced(words, share_font, max_w, max_lines)
-            if lines and floor is not None and top0 + len(lines) * round(size * 1.24) > floor:
-                lines = None   # it would run into the subscribe slot: fewer lines or a smaller size
-            if lines:
+            font = field_font(" ".join(words), get_font(brand.TEXT_FONT, size, weight=SHARE_WEIGHT))
+            got = _balanced(words, font, max_w, max_lines)
+            if got and floor is not None and top0 + len(got) * round(size * 1.24) > floor:
+                got = None   # it would run into the subscribe slot: fewer lines or a smaller size
+            share_font = font
+            if not got:
+                continue
+            left = share_line_faults(got)
+            if held is None:
+                held = (font, got, left)
+            if not left and not (len(words) >= 4 and any(len(ln) == 1 for ln in got)):
+                held = (font, got, left)   # clean, and no one-word row bought it
                 break
-        if lines:
+        if held is not None:
+            share_font, lines, line_faults = held
             break
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     if not lines:  # longer still (the writer's limit keeps it far shorter): filled lines, never wider than the area
@@ -435,6 +493,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         left = align_x if landscape else cx - widest / 2
         box = (left, top, left + widest, share_bottom)
     return {"share_font": share_font, "lines": lines, "line_h": line_h, "follow_font": follow_font, "spacing": spacing,
+            "line_faults": line_faults,
             "follow_y": follow_y, "box": box, "max_width": max_w, "follow": follow, "top": top,
             "masthead": mast, "masthead_xy": mast_xy, "mark_centre": mark_c, "rule_y": rule_y, "rule": rule,
             "align_x": align_x, "landscape": landscape, "masthead_top": mast_xy[1], "centre_x": cx,
@@ -972,6 +1031,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
                      size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text,
                      masthead=mast_rec, refused_lines=refused_lines, reading=reading)
+        if lay.get("line_faults"):   # freeze cycle 5 (TEXT): a line end no size of the tier cleared, on the record
+            stats["line_faults"] = lay["line_faults"]
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
                          push=LANDSCAPE_PUSH, handoff=text == brand.HANDOFF_LINE,
@@ -1252,6 +1313,8 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
                      follow=follow_plate is not None, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM if dimmed else 0.0, push=close_push,
                      close_zoom=close_zoom, open_push=open_push, mix_last=round(mix, 4),
                      max_step_L=round(max(steps), 2))
+        if lay and lay.get("line_faults"):   # freeze cycle 5 (TEXT): as end_card.frames records it
+            stats["line_faults"] = lay["line_faults"]
         stats.setdefault("contrast", None)
         # the bridge's one element against the reading pace (recorded, never failed: the bridge's second is the
         # operator's, LOOP_SECONDS; a line over the pace is a copy matter). Shown: from its first frame up to the

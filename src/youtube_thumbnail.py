@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
 from .typography import cap_height, get_font, plan_text, tracked_width
@@ -108,14 +108,33 @@ def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) ->
         return w, h, left, top
 
     scale = fill
-    w, h, left, top = place(scale)
-    if left + fx * w < FOCUS_MIN_X:   # the feature (or, unreviewed, the photo's centre) left on the ink side
-        target = sum(FOCUS_LAND) / 2
-        scale = fill * min(MAX_ZOOM, max(1.0, target / max(1.0, fx * sw * fill)))
+    side = photo_side_scale(sw, sh)
+    if side < fill:
+        # Lane B c4 (panel 5 CD r1 / CD r2: the Aswan thumbnail showed the obelisk's top surface only, the near-white
+        # stand-in a flat vitrine wall with its fragments cut at the top): filling the whole width with a tall
+        # photograph kept a thin slice of it (42 % of a 3:4 photo's height), most of the width under the type's ink.
+        # The photograph now needs to cover only its side of the frame (x >= PHOTO_SIDE_LEFT) and the full height, so
+        # it is scaled down until the frame shows SHOW_MIN of its height (never below covering that side); the
+        # field left of it is its own edge extended and blurred under the ink. Recorded as meta["photo_side"].
+        scale = side
+        w, h = round(sw * scale), round(sh * scale)
+        left, top = W - w, min(0, max(H - h, round(540 - fy * h)))
+    else:
         w, h, left, top = place(scale)
+        if left + fx * w < FOCUS_MIN_X:   # the feature (or, unreviewed, the photo's centre) left on the ink side
+            target = sum(FOCUS_LAND) / 2
+            scale = fill * min(MAX_ZOOM, max(1.0, target / max(1.0, fx * sw * fill)))
+            w, h, left, top = place(scale)
+    photo = src.resize((w, h), Image.Resampling.LANCZOS)
     canvas = Image.new("RGB", (W, H))
-    canvas.paste(src.resize((w, h), Image.Resampling.LANCZOS), (left, top))
+    if left > 0:
+        canvas = _side_field(photo, left, top)
+    canvas.paste(photo, (left, top), _left_feather(photo.size, left) if left > 0 else None)
     if meta is not None:
+        if left > 0:
+            meta["photo_side"] = {"left": left, "shown_height": round(H / h, 3), "full_width_shown": round(
+                H / (sh * fill), 3), "rule": f"a tall photograph covers x >= {PHOTO_SIDE_LEFT} and shows at least "
+                                          f"{SHOW_MIN:.0%} of its height where it can"}
         meta["zoom"] = round(scale / fill, 3)
         meta["focus_x"] = round(left + fx * w)
         if focus:
@@ -123,6 +142,41 @@ def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) ->
             meta["focus_box"] = [round(left + b[0] * w), round(top + b[1] * h), round(left + b[2] * w),
                                  round(top + b[3] * h)]
     return canvas
+
+
+PHOTO_SIDE_LEFT = SHADE_SOLID   # lane B c4: a tall photograph must cover x >= this (the default solid ink's edge)
+SHOW_MIN = 0.70                 # ... and shows at least this share of its height where covering that side allows
+SIDE_FEATHER = 160              # px over which such a photograph's left edge fades into its extended field
+
+
+def photo_side_scale(sw: int, sh: int) -> float:
+    """The scale a `sw` x `sh` photograph is drawn at when the full-width fill would show under SHOW_MIN of its height:
+    the largest that shows SHOW_MIN, never below covering the photo side (x >= PHOTO_SIDE_LEFT) at full height. Equal
+    to the full-width fill (no change) for any photograph that fill already shows enough of."""
+    fill = max(W / sw, H / sh)
+    cover_side = max((W - PHOTO_SIDE_LEFT) / sw, H / sh)
+    return max(cover_side, min(fill, H / (sh * SHOW_MIN)))
+
+
+def _side_field(photo: Image.Image, left: int, top: int) -> Image.Image:
+    """The frame left of a photograph drawn on the photo side only: its own edge colours extended and broadly
+    blurred (as the Reel cover's ambient field), so the ink over it covers a continuation, never a black slab."""
+    import numpy as np
+    w, h = photo.size
+    xx = np.clip(np.arange(W) - left, 0, w - 1)
+    yy = np.clip(np.arange(H) - top, 0, h - 1)
+    back = Image.fromarray(np.asarray(photo.convert("RGB"))[yy[:, None], xx[None, :]])
+    return back.resize((6, 12), Image.Resampling.BOX).resize((W, H), Image.Resampling.BICUBIC).filter(
+        ImageFilter.GaussianBlur(48))
+
+
+def _left_feather(size: tuple[int, int], left: int) -> Image.Image:
+    """The photograph's alpha: its left edge eased in over SIDE_FEATHER px (smoothstep), the rest opaque."""
+    import numpy as np
+    w, h = size
+    t = np.clip(np.arange(w, dtype=np.float32) / SIDE_FEATHER, 0, 1)
+    a = (t * t * (3 - 2 * t) * 255).astype("uint8")
+    return Image.fromarray(np.repeat(a[None, :], h, axis=0), "L")
 
 
 def _gradient(im: Image.Image, type_right: float | None = None, stop: float | None = None) -> Image.Image:
@@ -338,6 +392,23 @@ def mast_px() -> float:
     (brand_system validates its range; the system's tests hold it to the ladder and to measured_mast_px)."""
     from .brand_system import tok
     return float(tok("masthead.youtube_px"))
+
+
+def mast_size_rule() -> dict:
+    """The YouTube masthead's size as the record states it (lane B c4): the token, the canvas size it steps down from,
+    the declared ladder and the step taken, and why that step (lane B cycle 3 ruling B-S2-1, SYS-B-5). The same on
+    every thumbnail: it never depends on the hook drawn."""
+    from . import masthead
+    from .brand_system import tok
+    ladder = masthead.fit_ladder(BRAND_PX)
+    px = mast_px()
+    return {"token": "masthead.youtube_px", "px": px, "canvas_px": float(BRAND_PX), "ladder": ladder,
+            "step": ladder.index(px) if px in ladder else None, "floor": ladder[-1],
+            "measured_px": measured_mast_px(), "worst_hook_row": WORST_HOOK_ROW,
+            "hook_ratio_max": tok("masthead.hook_ratio_max"),
+            "why": ("one size on every thumbnail: the largest step of the masthead's fit ladder whose group is at most "
+                    "masthead.hook_ratio_max of the narrowest real hook row (WORST_HOOK_ROW), never under the ladder's "
+                    "floor (lane B cycle 3 ruling B-S2-1; SYS-B-5)")}
 
 
 def _mark_room(plates) -> float | None:
@@ -867,6 +938,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
                                                   max_width=masthead.group_width(mast_px(), LEFT) + 0.5)
     im = im.convert(mode)
+    # Lane B c4 (panel 5 BC MG-02 / PL: "48 px drawn against 64 asked, room 488.5" read as a fit to each hook): the
+    # size is the ruled token, not a measure of this thumbnail; the record says which rule set it.
+    meta["masthead"]["size_rule"] = mast_size_rule()
     if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).

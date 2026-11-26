@@ -1360,11 +1360,29 @@ def _signed_hedges(f: Any, script_payload: Dict[str, Any]) -> list:
     return out
 
 
-def _hedge_site(text: str, f: Any) -> str:
-    """Why a hedge word cannot open the figure `f` in `text` (the article rule, above), or "" when it can."""
+# Lane B c4 (lander ruling 2026-11-25, item 2): a figure joined to its noun by a hyphen ("720-TON TITAN") is an
+# adjective. Only an approximating adverb reads before one as headline English ("NEARLY 720-TON TITAN", "the nearly
+# 720-ton titan"); the other short forms are a preposition or a bound phrase that does not modify an adjective ("OVER
+# 720-TON TITAN", "UP TO 720-TON TITAN", "UNDER 720-TON TITAN") or reads as "about a ..." ("ABOUT 720-TON TITAN"), so
+# those stay withheld, as does the unhedged adjective. The adjective must modify a word that follows it on its line
+# (never a line ending on the adjective), and the article rule below still holds.
+HYPHEN_HEDGES = frozenset({"NEARLY"})
+
+
+def _hedge_site(text: str, f: Any, word: str = "") -> str:
+    """Why the hedge `word` cannot open the figure `f` in `text` (the article rule and the hyphen rule, above), or ""
+    when it can."""
     seg = text[f.start:f.end]
     if re.search(r"\d\s*-\s*[^\W\d_]", seg) or text[f.end:f.end + 1] == "-":
-        return "the figure is joined to its noun by a hyphen (an adjective)"
+        if word not in HYPHEN_HEDGES:
+            return ("the figure is joined to its noun by a hyphen (an adjective)"
+                    + (f"; {word} does not read before an adjective (only "
+                       f"{', '.join(sorted(HYPHEN_HEDGES))} does)" if word else ""))
+        if text[f.end:f.end + 1] == "-" or not re.match(r"\s+[^\W\d_]", text[f.end:]):
+            return f"the hyphenated figure modifies no word after it on its line ({word} would end the line on it)"
+        if re.search(r"[^\W_]", re.split(r"[.;:!?,()—–\"]", text[:f.start])[-1]):
+            return (f"the hyphenated figure does not open its line or clause ({word} reads before it only as the "
+                    "noun phrase's first word)")
     clause = re.split(r"[.;:!?,()—–\"]", text[:f.start])[-1]
     words = re.findall(r"[^\W_]+(?:['’][^\W_]+)*", clause)
     if words:
@@ -1408,7 +1426,7 @@ def hedge_figure(text: str, f: Any, faults: List[str], script_payload: Dict[str,
     if "" in forms or len(forms) != 1:
         return None, "the signed hedges give no one short form (" + "; ".join(sorted({h for h, _ in found})) + ")"
     word = forms.pop()
-    site = _hedge_site(text, f)
+    site = _hedge_site(text, f, word)
     if site:
         return None, site
     out = text[:f.start] + _in_case(word, text, f.start) + " " + text[f.start:]

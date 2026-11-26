@@ -55,10 +55,11 @@ def reviewed_focus(path, kept=None):
     return None
 
 
-def _shade(im, top, bottom, strength=0.78, feather=280, foot=None):
+def _shade(im, top, bottom, strength=0.78, feather=280, foot=None, colour=(0, 0, 0)):
     """Neutral, smoothly feathered shade; never re-grade the photograph's hue. `foot` (y, strength, ease): from y
     down, the shade eases to that lighter strength over `ease` px and holds it to `bottom` (round 4: the badge's
-    empty area under the deck shows the ambient field faintly, not a dead black band)."""
+    empty area under the deck shows the ambient field faintly, not a dead black band). `colour`: what the shade
+    darkens towards; a shade that meets a plate ends in the plate's own value (lane B c4, _render)."""
     import numpy as np
 
     y = np.arange(im.height, dtype=np.float32)
@@ -71,7 +72,7 @@ def _shade(im, top, bottom, strength=0.78, feather=280, foot=None):
         t = np.clip((y - y0) / max(1.0, ease), 0, 1)
         level = strength + (light - strength) * (t * t * (3 - 2 * t))
     alpha = Image.fromarray(np.clip(v * level * 255, 0, 255).astype("uint8")[:, None]).resize(im.size)
-    layer = Image.new("RGBA", im.size, (0, 0, 0, 255))
+    layer = Image.new("RGBA", im.size, tuple(colour)[:3] + (255,))
     layer.putalpha(alpha)
     return Image.alpha_composite(im.convert("RGBA"), layer)
 
@@ -599,7 +600,7 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     """Operator ruling 2 (2026-11-16): a Reel cover (and its grid tile) carries NO masthead; the brand lives on the
     profile, carousel, YouTube and end card. Cycle 0 round 7 removed the drawing path (it was unreached since QF-87:
     every caller passes `grid_delivery`, where the 64 px masthead is 5.2 px at the 124 px tile). `im` comes back
-    untouched and lay.meta["masthead"] says why; the band the covers lay out under (BRAND_TOP, _brand_foot) stays."""
+    untouched and lay.meta["masthead"] says why. No photograph is cut back to clear a band for it (_immersive)."""
     font = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
     if lay is not None:
         lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
@@ -680,10 +681,17 @@ def _immersive(source, aperture, focus, lay, full_width=False):
     yy = np.clip(np.arange(1920) - top, 0, size[1] - 1)
     backdrop = np.asarray(photo)[yy[:, None], xx[None, :]]
     im = _ambient(Image.fromarray(backdrop), (left, top, left + size[0], top + size[1]))
-    if full_width and top > 0:
+    # lane B c4: the one edge-fade rule both paths use (was min(64, 0.8 x margin) on the full-width path: a 64 px join
+    # over a busy top row read as a blur-to-sharp line)
+    own_fade = _edge_fade(fy0 * sy) if full_width else 0
+    if full_width and top > 0 and own_fade < FULL_WIDTH_OWN_FADE:
         # Above a full-width photograph the canvas continues its own top row (the edge-extended backdrop,
         # unblurred) and eases into the ambient field over FULL_WIDTH_BLEND px, so the photo's top edge is not
         # a hard seam (round 3 review, 2026-11-02: a visible line across Gol Gumbaz's sky and over Richat).
+        # Lane B c4: only where the photograph has too little room above its feature to fade on its own (Gol
+        # Gumbaz's dome near the top). With room (Richat as a badge cover), the continued row is a vertical run of
+        # held colour bands: streaks and a line where the photograph starts; its own long fade into the ambient
+        # field (the inset window's join) is used instead.
         ys = np.arange(1920, dtype=np.float32)
         ease = np.clip((ys - (top - FULL_WIDTH_BLEND)) / FULL_WIDTH_BLEND, 0, 1)
         ease[ys >= top + size[1]] = 0   # never the clamped rows below the photo (they streak)
@@ -696,29 +704,30 @@ def _immersive(source, aperture, focus, lay, full_width=False):
         im = Image.alpha_composite(im, raw)
     # Feather just the physical photograph's outer edge into that backdrop.
     # Limit the fade to the margin outside the explicitly reviewed feature.
-    clear = 0   # rows of the photograph's top left to the ambient field (the inset window only)
     if full_width:   # only the top edge can end inside the canvas; the shade below does the bottom fade
-        margin = max(0, fy0 * sy)
-        feather = min(64, int(margin * 0.8))
+        feather = top_fade = own_fade
         if feather > 1:
             mask = np.clip(np.arange(size[1], dtype=np.float32) / feather, 0, 1)[:, None] + np.zeros((1, size[0]))
             photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
     else:
-        # The inset window (a feature too tall to fill the width inside its band). Its top edge stays
-        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02: Richat's window started 12 px under
-        # RELIC & RIDDLE, so the name sat on the photo's edge); the context above that row is the ambient field.
-        # Each edge fades over its own margin outside the feature (one shared minimum gave hard sides).
-        clear = max(0, min(fy0 * sy, (_brand_foot() + INSET_CLEAR) - top))
-        margins = (fx0 * sx, fy0 * sy - clear, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
+        # The inset window (a feature too tall to fill the width inside its band). Each edge fades over its own
+        # margin outside the feature (one shared minimum gave hard sides). Freeze lane B cycle 4 (panel 5, Richat:
+        # a straight blur-to-sharp seam across the full width at y ~540): the photograph's top used to be cut
+        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02, when the cover drew RELIC & RIDDLE), which
+        # left the top edge 26 px of room to fade over before the feature. Operator ruling 2 (2026-11-16) removed the
+        # masthead from the Reel cover (_brand draws none), so nothing sits in that band any more: the photograph
+        # keeps the context it has above the feature and the top fades over all of it (_edge_fade). The clear band
+        # and its foot measurement (_brand_foot) went with it: no band is cut (lander CI, r4 site observation).
+        margins = (fx0 * sx, fy0 * sy, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
         f = [min(INSET_FEATHER_MAX, int(max(0, m) * 0.8)) for m in margins]
-        f[1] = min(INSET_FEATHER_MAX, int(max(0, margins[1]) - 2))   # the top fades over all its room: soft edge
-        yy = np.arange(size[1], dtype=np.float32)[:, None] - clear
+        f[1] = top_fade = _edge_fade(margins[1])   # the top fades over all its room: soft edge
+        yy = np.arange(size[1], dtype=np.float32)[:, None]
         xx = np.arange(size[0], dtype=np.float32)[None, :]
 
         def ramp(dist, width):
             return np.clip(dist / width, 0, 1) if width > 1 else (dist >= 0).astype(np.float32)
         mask = np.minimum(np.minimum(ramp(xx, f[0]), ramp(size[0] - 1 - xx, f[2])),
-                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - clear - yy, f[3])))
+                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - yy, f[3])))
         photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
     visible = photo.crop((-left, -top, 1080 - left, 1920 - top))
     im = Image.alpha_composite(im, visible)
@@ -730,10 +739,13 @@ def _immersive(source, aperture, focus, lay, full_width=False):
             "version": DESIGN_VERSION, "mode": "reviewed_focus", "source_size": [sw, sh],
             "source_box": [max(0, -left / sx), max(0, -top / sy),
                            min(sw, (1080 - left) / sx), min(sh, (1920 - top) / sy)],
-            "image_box": [max(0, left), max(0, top + clear), min(1080, left + size[0]), min(1920, top + size[1])],
+            "image_box": [max(0, left), max(0, top), min(1080, left + size[0]), min(1920, top + size[1])],
             "focus_box": focus["focus_box"], "protected_box": protected,
             "aperture": list(aperture), "reviewed": focus["reviewed"], "source_sha256": focus["sha256"],
             "full_width": bool(full_width),
+            # the px the photograph's top edge fades over where it ends inside the canvas (0 where it runs off the
+            # top), so a short join (a photograph ending at its reviewed feature) is on the record
+            "edge_fade_top": int(top_fade) if top > 0 else 0,
         }
     return im
 
@@ -742,14 +754,17 @@ BADGE_FOOT = (40, 0.6, 220)   # Discovery: 40 px under the deck the shade eases 
 IMMERSIVE_MAX_SCALE = 3.0   # Discovery full width: the most a reviewed feature is enlarged
 FULL_WIDTH_TOP = 580       # Discovery full width: the reviewed feature's band starts below the masthead's halo
 FULL_WIDTH_BLEND = 220      # px above a full-width photo over which its continued top row eases into the field
-INSET_CLEAR = 24            # Discovery inset window: px of clear field between the masthead's foot and the
-                            # photo's first row (which then fades in to the feature: half strength ~45 px down)
 INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge within its own margin)
+FULL_WIDTH_OWN_FADE = 96    # lane B c4: a full-width photograph whose top fades over at least this many px of its
+                            # own context needs no continued top row above it (_immersive)
 
 
-def _brand_foot():
-    """The masthead's ink foot (y) on every style."""
-    return BRAND_TOP + get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700).getbbox(brand.MASTHEAD, anchor="lt")[3]
+def _edge_fade(margin):
+    """The px over which a photograph's edge that ends inside the canvas fades into the field around it: all of
+    the room the photograph has outside the reviewed feature (`margin`), up to INSET_FEATHER_MAX, so the feature
+    itself is never faded. Under 2 px of room it is a cut (ramp treats width <= 1 as a step); the composition
+    record keeps the fade, so a short one is visible there (_immersive's "edge_fade")."""
+    return min(INSET_FEATHER_MAX, int(max(0, margin) - 2))
 
 
 def _photograph(im, source, aperture, lay, bottom=False):
@@ -1789,9 +1804,11 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         # A quiet continuation of the photograph outside the profile crop, fading
         # into an ink ground behind the deliberately arranged central composition.
         im = _shade(im, 0, im.height, strength=70 / 255, feather=1)
-        im = _shade(im, 420, 1500, strength=1.0, feather=180)
+        # Lane B c4 (panel 5 CD r1, PL: the bands faded to black, then stepped up to the INK plate at y 420 and 1500,
+        # a dark gutter line and a lid on bright heroes): the fade ends in the plate's own value, one field.
+        im = _shade(im, 420, 1500, strength=1.0, feather=180, colour=brand.INK)
         # Ink is an editorial ground, not a colour grade applied to the photograph.
-        ImageDraw.Draw(im).rectangle((0, 420, 1079, 1499), fill=brand.INK + (255,))
+        ImageDraw.Draw(im).rectangle(PLATE_SQUARE, fill=brand.INK + (255,))
     im = _brand(im, lay, centered, paper, grid_delivery=True)
     if style == "minimal":
         # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the
@@ -1835,7 +1852,8 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
     return _paint(im, rows, 540 if centered else margin, top, centered, lay)
 
 
-SANDWICH_WINDOW_TOP = 520   # the paper card's window starts under the masthead (12 px under its ink; round 4:
+PLATE_SQUARE = (0, 420, 1079, 1499)   # the framed-window covers' INK plate: the profile grid's 1:1 square
+SANDWICH_WINDOW_TOP = 520  # the paper card's window starts under the masthead (12 px under its ink; round 4:
                             # 4 px of it went to the deck's 32 px card foot, so the window keeps half the card)
 SANDWICH_CARD_FOOT = 1479   # the card's own foot (inside the 1:1 square, y 420-1500)
 SANDWICH_FOOT = SANDWICH_CARD_FOOT - 32   # the card's type ends here: >= 32 px of card under the deck (round 4)

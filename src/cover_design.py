@@ -611,6 +611,7 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
 
 COVER_GRID_TOP = 420        # the profile grid's 1:1 square starts here (PLATE_SQUARE): the photograph's view from there
 COVER_INK_FADE = 120        # px over which a photograph that ends above the type fades into the INK field under it
+COVER_INK_CLEAR = 10        # px of plain INK between that fade's end and the type's first row
 
 
 COVER_GRID_FOCUS = 0.80     # of a reviewed feature inside the profile square (y from COVER_GRID_TOP), at least
@@ -626,7 +627,10 @@ def cover_windows(top=COVER_TYPE_TOP):
     starts at the profile grid's square (the tile shows nothing above it) and ends where the type or the fade
     begins."""
     from . import photo_fitness as pf
-    foot = min(1920, int(top) + 10)
+    # the photograph ends COVER_INK_CLEAR px above the type's first row: the fade into INK is complete before the
+    # type's ground starts (20 px lower, the eyebrow's top rows stood on the fade's last 2 % and measured 9.94:1
+    # where the INK field gives 10.55:1)
+    foot = min(1920, int(top) - COVER_INK_CLEAR)
     # a reviewed feature lies whole above the type or the fade (`hold`: it is whole on the Reel cover and no type is
     # set on it), and COVER_GRID_FOCUS of it inside the profile square (the grid tile may trim its top, never more)
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
@@ -664,7 +668,7 @@ def _filled(source, focus, top, lay):
         fx0, fy0, fx1, fy1 = focus["focus_box"]
         fbox = (fx0 * sw, fy0 * sh, fx1 * sw, fy1 * sh)
     analysis = pf.analyse(src, fbox)
-    foot = min(1920, int(top) + 10)
+    foot = min(1920, int(top) - COVER_INK_CLEAR)
     tried = []
     for mode, window in cover_windows(top):
         size = window.size

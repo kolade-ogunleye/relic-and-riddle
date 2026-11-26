@@ -3140,6 +3140,9 @@ class MultiFormatGenerator:
                                           **({"figure_hedged": lay.meta["figure_hedged"]}
                                              if lay.meta.get("figure_hedged") else {}),
                                           **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                          # freeze cycle 5: each photo window's crop and its fit (an unfit window is drawn as
+                                          # asked and RECORDED here with its problems: src/photo_fitness.py)
+                                          **({"windows": lay.meta["windows"]} if lay.meta.get("windows") else {}),
                                           **({"comparator": comparator} if comparator and i == comparator["slide"] - 1
                                              else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
@@ -3184,6 +3187,9 @@ class MultiFormatGenerator:
                                                   "lead": lead, "window": showing[j], "heading_px": size,
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                                  # freeze cycle 5: each photo window's crop and its fit (an unfit window is drawn as
+                                                  # asked and RECORDED here with its problems: src/photo_fitness.py)
+                                                  **({"windows": lay.meta["windows"]} if lay.meta.get("windows") else {}),
                                                   **({"comparator": comparator}
                                                      if comparator and j == comparator["slide"] - 1 else {}),
                                                   **({"figure_withheld": lay.meta["figure_withheld"]}
@@ -4606,6 +4612,9 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
     drew = lay.meta.get("swipe_strip") or {}
     if drew:
         recipe["strip"] = drew
+    recipe = {k: v for k, v in recipe.items() if k != "windows"}
+    if lay.meta.get("windows"):   # the photo windows as drawn now, with their fit (freeze cycle 5)
+        recipe["windows"] = lay.meta["windows"]
     entry = still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
     if old_strip.get("side") == "left" and old_strip.get("box") != drew.get("box"):
         first = path.with_name("carousel_slide_01.jpg")

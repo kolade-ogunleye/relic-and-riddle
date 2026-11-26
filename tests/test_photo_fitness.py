@@ -312,6 +312,26 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     assert blue[y0:y1, x0:(x0 + x1) // 2].mean() > 0.02 and blue[y0:y1, (x0 + x1) // 2:x1].mean() > 0.02   # both ends
 
 
+def test_the_cover_record_keeps_the_ladder_and_the_reason(tmp_path):
+    """Truth: what the photo-fitness ladder tried and why the photograph stands contained is on the cover's kept
+    record (still_layout.json recipe.photo_fit), not only in memory."""
+    import json
+
+    from src import still_layout
+    from src.visual_engine import VisualEngine
+    ends = with_subject(with_subject(ground(3000, 1500), 0.15, 0.5, 0.3), 0.85, 0.5, 0.3, 2)
+    hero = tmp_path / "hero.jpg"
+    Image.fromarray(np.clip(ends, 0, 255).astype(np.uint8)).save(hero, quality=95)
+    copy = {"eyebrow": "DESERT ANOMALY", "line1": "SAHARA", "line2": "EYE", "tagline": "CARVED BY NATURE"}
+    VisualEngine().generate_thumbnails(hero, {"thumbnail": copy}, tmp_path / "out", style="badge", variants=False)
+    rec = json.loads((tmp_path / "out" / still_layout.SIDECAR).read_text(encoding="utf-8"))["thumbnail_cover.jpg"]
+    fit = rec["recipe"]["photo_fit"]
+    assert rec["recipe"]["composition"]["mode"] == "contain" and fit["fit"] is False
+    assert "rule: a photograph is fit" in fit["reason"] and [t["mode"] for t in fit["tried"]] == ["full_bleed",
+                                                                                                "photo_over_ink"]
+    assert all(t["shown"] < 0.5 for t in fit["tried"])
+
+
 def test_the_youtube_side_field_is_ink():
     from src import youtube_thumbnail as yt
     field = np.asarray(yt._side_field(Image.new("RGB", (600, 720), (200, 180, 90)), 680, 0), np.int16)

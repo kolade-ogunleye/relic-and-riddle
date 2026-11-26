@@ -78,6 +78,13 @@ def test_slides_are_1440x1800_on_both_copies_and_pass_every_check(gen, tmp_path,
             assert Image.open(slide).size == (1440, 1800)
             assert records[slide.name]["size"] == [1440, 1800]
             assert records[slide.name]["problems"] == [], (facebook, slide.name, records[slide.name]["problems"])
+            # freeze cycle 5 (src/photo_fitness.py): every photo window's crop and its fit are on the slide's record
+            recipe = records[slide.name]["recipe"]
+            if recipe["archetype"] != "diagram":
+                assert recipe["windows"], (facebook, slide.name)
+                for win in recipe["windows"]:
+                    assert isinstance(win["fit"]["fit"], bool) and isinstance(win["fit"]["problems"], list)
+                    assert win["fit"]["matte"] == 0 and "\\" not in win["photo"] and "/" not in win["photo"]
             assert slide.stat().st_size < EIGHT_MB / 4
     audit = QualityAuditor().audit_carousel_slides(tmp_path)
     assert not [i for i in audit["issues"] if i["type"] == "non_standard_aspect_ratio"], audit["issues"]

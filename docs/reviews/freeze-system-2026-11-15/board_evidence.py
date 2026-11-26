@@ -480,6 +480,84 @@ def omission_note(stem: str, surfaces: dict[str, Any] | None) -> str:
                                                for r in rows)
 
 
+def masthead_note(rec: dict[str, Any] | None) -> str:
+    """Cycle 5 (SYS-plates-c5-1): a frame whose masthead the gate withheld says so on its tile (a masthead a rule
+    leaves off, a Facebook interior's, is no omission)."""
+    if not rec or rec.get("shown", True) is not False or rec.get("fb_interior"):
+        return ""
+    return f"RECORDED OMISSION: drawn without the masthead ({str(rec.get('reason') or 'withheld')[:160]})"
+
+
+def record_note(stem: str, surfaces: dict[str, Any] | None) -> str:
+    """Cycle 5: what render_surfaces.py recorded about a social frame beyond its pixels: a withheld masthead, the
+    Story pointer's decision (withheld by rule is not a defect), a photograph the picker replaced."""
+    s = surfaces or {}
+    parts = [masthead_note((s.get("masthead_records") or {}).get(stem))]
+    p = (s.get("pointer_records") or {}).get(stem)
+    if p:
+        parts.append("Story pointer: " + ("drawn" if p.get("shown", True) is not False else
+                                          f"withheld ({str(p.get('reason') or 'by rule')[:140]})"))
+    c = (s.get("photo_choice") or {}).get(stem)
+    if c and c.get("replaced"):
+        parts.append(f"photo picked by deck_photo_guard: {Path(str(c.get('photo'))).name} for "
+                     f"{Path(str(c['replaced'])).name} ({str(c.get('reason'))[:100]})")
+    return " | ".join(x for x in parts if x)
+
+
+TIER_WHAT = {"T1": "published / every run", "T2": "data-gated in a normal run", "T3": "documentary / 16:9 flag",
+             "T4": "internal, never seen or unreachable"}
+
+
+def tier(name: str, label: str = "", wide_captions: tuple[str, ...] = ()) -> str:
+    """A board case's production tier (lander ruling 2026-11-26, queue SURFACE-USAGE-2026-11-26: results are
+    reported by tier and a verdict is set by tiers 1-2). T1 published or made by every run: Reel cover, 9:16
+    captions, Story, Instagram / Facebook carousel, 9:16 map, timeline, number card, loop bridge. T2 data-gated in a
+    normal run: scale, then-and-now, hook, myth, diagram slide, route, cross-section, callout, the AI badges on a
+    9:16 surface. T3 behind the documentary / 16:9 flag: YouTube thumbnail and its badge, every 16:9 caption, graphic
+    and card, the end screen. T4 never seen or unreachable: the grid tile, the dense timeline, the 9:16 chapter card,
+    the 9:16 end card, anything else (internal sheets). `label` tells a diagram slide; `wide_captions` the topics
+    whose caption fixture is 16:9."""
+    n = name
+    head = n.split("__")[0]
+    wide = "__169" in n or n.endswith("_169")
+    if head in ("cover", "cover_badge", "thumbnail_badge"):
+        if n.endswith("__youtube") or head == "thumbnail_badge":
+            return "T3"
+        if n.endswith("__grid"):
+            return "T4"
+        return "T2" if head == "cover_badge" else "T1"
+    if head == "captions":
+        if any(f"captions__{t}__" in n + "__" for t in wide_captions):
+            return "T3"
+        return "T2" if "__badge" in n else "T1"
+    if head == "captions_run":
+        return "T3" if wide else "T1"
+    if head == "social":
+        return "T2" if "diagram" in label.lower() else "T1"
+    if head in ("bridge", "bridge_follow"):
+        return "T1"
+    if head in ("endscreen",):
+        return "T3"
+    if head == "endcard":
+        return "T4"
+    if head == "timeline_dense":
+        return "T4"
+    if head in ("map", "timeline", "numbers"):
+        return "T3" if wide else "T1"
+    if head in ("scale", "thennow", "route", "cross_section", "callouts"):
+        return "T3" if wide else "T2"
+    if head == "card":
+        kind = n.split("__")[1] if "__" in n else ""
+        if kind.startswith("chapter"):
+            return "T3" if wide else "T4"
+        return "T3" if wide else "T2"   # hook (9:16 only), myth
+    if head == "hook":
+        return "T2"
+    if head == "act_dissolve":
+        return "T1"   # the Reel's own transition between its acts
+    return "T4"
+
+
 def omission_table_rows(surfaces: dict[str, Any] | None) -> list[tuple[str, str, str]]:
     """The refusal table's rows for recorded omissions: one per row attributed to a surface, and one per job-level
     row no surface took (a tree whose render_surfaces.py records per job only, or a row recorded after the job's last

@@ -166,6 +166,18 @@ def case_files(out: Path, manifest: dict, names: list[str]) -> None:
             rec.setdefault(n, None)
 
 
+WIDE_CAPTIONS: tuple[str, ...] = ()   # the topics whose caption fixture is 16:9 (main sets it from the catalogue)
+
+
+def clip_tier_name(stem: str) -> str:
+    """A clip's name as the tier rule reads surfaces: <kind>_<916|169>__<case> -> <kind>__<case>__<916|169>."""
+    head, _, rest = stem.partition("__")
+    for tag in ("916", "169"):
+        if head.endswith(f"_{tag}"):
+            return f"{head[:-4]}__{rest}__{tag}"
+    return stem
+
+
 LABEL_PX, LABEL_MIN_W = 22, 320
 
 
@@ -925,7 +937,7 @@ def row13_table(out: Path, work: Path, board_mastheads: dict | None = None) -> l
          "and the end sequences' stats of rows 9 / 12)", draw_table(bt.drawn(out, ends), (420, 190, 190, 230, 240, 230, 520))),
         ("Drawn on this board: the masthead of every social frame by kind, cover and interiors (each frame's own "
          "layout record from render_surfaces.py; row13_fb_masthead shows the regions)",
-         draw_table(bt.social_masthead_rows(surfaces), (380, 150, 170, 190, 150, 560, 170, 520))),
+         draw_table(bt.social_masthead_rows(surfaces), (380, 150, 170, 190, 150, 560, 170, 520, 150, 150, 150))),
         ("From the code: each surface's entry point and what it reaches (an AST call graph over src/*.py; colours and "
          "tokens named in the surface's own module)", draw_table(bt.code_rows(), (560, 380, 330, 420, 760))),
         ("Weights: every <role>.weight value, the src modules that read it, and what row 1's specimen draws",
@@ -1323,7 +1335,9 @@ SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged
                    "retired", "rerouted", "bridge_ladder", "wide_grounds",   # cycle 3: retired frames not drawn, slides re-routed
                    # cycle 4: the omission ledger per job (SYS batch 3, lane A) and per surface (render_surfaces.py
                    # attributes each row to the surface it was drawn into), and each frame's masthead record
-                   "omissions", "surface_omissions", "masthead_records")
+                   "omissions", "surface_omissions", "masthead_records",
+                   # cycle 5: each slide's photo choice (SYS-photo-c5-1), each Story frame's pointer (SYS-plates-c5-1)
+                   "photo_choice", "pointer_records")
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 SHARD_SKIP_KEYS = ("count",)   # recomputed after the merge
@@ -1534,6 +1548,12 @@ def main() -> None:
     t_all = time.perf_counter()
     import board_motion as bm
     TREE[:] = [tree]
+    global WIDE_CAPTIONS
+    try:
+        import fixtures as _fx
+        WIDE_CAPTIONS = tuple(c["topic"] for c in _fx.load("captions") if c.get("format") == "16:9")
+    except Exception:  # noqa: BLE001  the tiers then read every caption as 9:16; said in board.json
+        manifest["tier_note"] = "caption formats unreadable: every caption case tiered as 9:16"
     END_TOPICS[:] = [t for t in bm.end_topics(HEROES)
                      if not a.end_topics or t in {x.strip() for x in a.end_topics.split(",")}]
     manifest["end_topics"] = list(END_TOPICS)
@@ -1542,7 +1562,9 @@ def main() -> None:
         manifest["seconds"][what] = round(time.perf_counter() - t0, 1)
         print(f"board: {what}: {manifest['seconds'][what]:.0f}s", file=sys.stderr, flush=True)
     import board_reuse   # cycle 5: the not-code inputs outside git and the inputs record (toolchain, tools/ data)
+    t0 = time.perf_counter()
     reuse_env = manifest["reuse_env"] = board_reuse.environment(tree)
+    took("reuse environment (toolchain, tools/ data hashed)", t0)
     if rows & set(ROWS) and not a.no_surfaces:
         t0 = time.perf_counter()
         subset = a.surface_jobs.resolve() if a.surface_jobs else None
@@ -1552,8 +1574,11 @@ def main() -> None:
             prev = a.reuse.resolve()
             try:
                 offered = offered_jobs(here, tree, dev, a.per_kind, a.brand, subset)
+                t_plan = time.perf_counter()
+                took("reuse: the job list (render_surfaces.py --list-jobs)", t0)
                 plan = board_reuse.plan(tree, prev, a.brand, stamp, reuse_env, offered, str(board_inputs.FRAME_CACHE),
                                         a.reuse_sample, a.reuse_seed)
+                took("reuse: the plan (inputs re-hashed, code keys at both commits)", t_plan)
             except board_reuse.NoReuse as e:
                 print(f"board: NO REUSE of {prev}: {e}: rendering every job", file=sys.stderr, flush=True)
                 manifest["reuse"] = {"prev": str(prev), "no_reuse": str(e)}
@@ -1665,7 +1690,8 @@ def main() -> None:
             return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
                     f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
         def note(stem: str) -> str:   # cycle 4: the ladder's rung and any recorded omission, on the tile's label
-            return " | ".join(x for x in (shipped(stem), be.omission_note(stem, surfaces_rec)) if x)
+            return " | ".join(x for x in (shipped(stem), be.omission_note(stem, surfaces_rec),
+                                          be.record_note(stem, surfaces_rec)) if x)
         tiles = [(be.label(p.stem, note(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
@@ -1674,6 +1700,9 @@ def main() -> None:
                 if item.get("refused"):   # round 8: the renderer refused this surface; its row says so
                     tiles.append((be.label(item["name"], "REFUSED"), be.refusal_tile(item["name"], item["refused"])))
                 return
+            withheld = be.masthead_note(item.get("masthead"))   # cycle 5: a withheld masthead is said on the tile
+            if withheld:
+                item = dict(item, label=f"{item['label']} | {withheld}")
             tiles.append((be.label(item["name"], item["label"]), item["image"]))
             manifest["labels"][item["name"]] = be.label(item["name"], item["label"])
             save_case(out, manifest, item["name"], item["image"])
@@ -1803,6 +1832,8 @@ def main() -> None:
         sheet(tiles, out / f"row{r:02d}_{name}", tile_h=960)
         manifest["rows"][str(r)] = [n.split(" | ")[0] for n, _ in tiles]
         case_files(out, manifest, manifest["rows"][str(r)])
+        for n, _im in tiles:   # cycle 5: each case's production tier (scores are reported by tier)
+            manifest.setdefault("case_tiers", {})[n.split(" | ")[0]] = be.tier(n.split(" | ")[0], n, WIDE_CAPTIONS)
         for sname, (stiles, th, cols) in sheets.items():
             sheet(stiles, out / sname, tile_h=th, cols=cols)
             manifest["sheets"][sname] = [n for n, _ in stiles]
@@ -1832,6 +1863,13 @@ def main() -> None:
         PREFETCH.clear()
         bm.PREFETCH.clear()
     shutil.rmtree(work, ignore_errors=True)
+    for clip_name in manifest.get("clips") or {}:   # cycle 5: the clips' tiers too
+        stem = Path(clip_name).stem
+        manifest.setdefault("case_tiers", {})[f"clips/{stem}"] = be.tier(clip_tier_name(stem), "", WIDE_CAPTIONS)
+    manifest["tiers"] = {"what": be.TIER_WHAT, "rule": "lander ruling 2026-11-26 (SURFACE-USAGE-2026-11-26): a "
+                         "lane's verdict is set by tiers 1-2", "counts": {
+                             t: sum(1 for v in (manifest.get("case_tiers") or {}).values() if v == t)
+                             for t in be.TIER_WHAT}}
     took("board total (this process)", t_all)
     # cycle 3 (AD r1 AD-EV-manifest): the inputs' union (render_surfaces.py's shards, this process, the workers) and
     # INPUT_HASHES.json, which freeze_manifest.py reads into each image's input_hash

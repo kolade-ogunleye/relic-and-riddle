@@ -231,11 +231,11 @@ def social_masthead_rows(surfaces: dict[str, Any] | None) -> list[tuple]:
     contrast drawn, the Facebook cover's matched reach where it took it, and every reason a frame draws none (a
     Facebook interior carries no masthead by rule: the collage's cover tile is branded once)."""
     rows = [("surface (records)", "masthead size px", "variant", "contrast (worst letter)", "shown / not drawn",
-             "not drawn because", "Facebook cover reach matched", "decks")]
+             "not drawn because", "Facebook cover reach matched", "decks", "reach", "margin step", "margin short")]
     recs = (surfaces or {}).get("masthead_records") or {}
     if not recs:
         rows.append(("no frame masthead records on this board (render_surfaces.py before cycle 4, or no social "
-                     "job)", "-", "-", "-", "-", "-", "-", "-"))
+                     "job)", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"))
         return rows
     by: dict[str, list] = {}
     for stem, r in sorted(recs.items()):
@@ -250,7 +250,11 @@ def social_masthead_rows(surfaces: dict[str, Any] | None) -> list[tuple]:
                      ", ".join(sorted({str(r.get("variant")) for r in shown if r.get("variant")})) or "-",
                      _span([r.get("contrast") for r in shown]), f"{len(shown)} / {len(rs) - len(shown)}",
                      "; ".join(reasons) or "-", _span([r.get("reach_matched") for r in rs]),
-                     ", ".join(sorted({social_part(s)[0] for s, _r in items}))))
+                     ", ".join(sorted({social_part(s)[0] for s, _r in items})),
+                     # cycle 5 (SYS-plates-c5-1, PLATES-05): the masthead's reach and its margin step, where the
+                     # tree records them ("-" on a tree that does not)
+                     _span([r.get("reach") for r in shown]), _span([r.get("margin_step") for r in shown]),
+                     _span([r.get("margin_short") for r in shown])))
     return rows
 
 

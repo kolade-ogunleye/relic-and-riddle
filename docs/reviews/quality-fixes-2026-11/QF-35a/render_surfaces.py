@@ -617,6 +617,21 @@ def main() -> None:
                     # Richat's slides 4 and 5 recorded "comparison"); a recorded drawing slide keeps its poster
                     routed = MultiFormatGenerator.sequence_archetypes([r["card"] for r in ordered])
                     current = {int(r["index"]): a for r, a in zip(ordered, routed)}
+                guarded: dict[int, tuple[str, str | None, dict]] = {}
+                if kind != "story" and ordered and hasattr(mf, "deck_photo_guard"):
+                    # cycle 5 (SYS-photo-c5-1): the recorded photographs through the picker production calls before
+                    # it draws a deck (multi_format.deck_photo_guard over the run's own photo pool), so the board
+                    # draws the photograph the tree would ship, and each slide's reason is recorded
+                    pool_file = run / "carousel_photos.json"
+                    try:
+                        stills = [Path(s) for s in json.loads(pool_file.read_text(encoding="utf-8"))["key"]["stills"]]
+                        chosen, choice = mf.deck_photo_guard([r["card"] for r in ordered],
+                                                             [Path(r["photo"]) for r in ordered], stills)
+                        for k, r in enumerate(ordered):
+                            nxt = str(chosen[k + 1]) if k + 1 < len(chosen) else None
+                            guarded[int(r["index"])] = (str(chosen[k]), nxt, dict(choice[k]) if k < len(choice) else {})
+                    except Exception:  # noqa: BLE001  recorded; the deck is drawn on its recorded photographs
+                        result["errors"][f"social__{run.name[4:]}__{kind}_photo_guard"] = traceback.format_exc()[-1200:]
                 for frame_name, rec in sorted(live.items()):
                     r = swap_recipe(rec.get("recipe") or {}, entry)
                     if not r:
@@ -629,6 +644,13 @@ def main() -> None:
                         if now != r.get("archetype"):
                             result.setdefault("rerouted", {})[key] = {"recorded": r.get("archetype"), "current": now}
                             r = dict(r, archetype=now)
+                    if int(r.get("index") or 0) in guarded:
+                        photo, nxt, why = guarded[int(r["index"])]
+                        result.setdefault("photo_choice", {})[key] = {
+                            k: (str(v) if isinstance(v, Path) else v) for k, v in why.items()} | {
+                            "recorded": str(r.get("photo")), "drawn_on_recorded": r.get("archetype") == "diagram"}
+                        if r.get("archetype") != "diagram":   # a drawing slide keeps its poster
+                            r = dict(r, photo=photo, photo_next=nxt or r.get("photo_next"))
                     try:   # round 8: one frame's refusal never takes the run's other frames with it
                         im, lay = draw_social(gen, kind, r, rec, title_px)
                     except LayoutError as e:   # a refusal: the one record shape {"refused", "class", "code"}
@@ -640,6 +662,8 @@ def main() -> None:
                     meta = getattr(lay, "meta", None) or {}
                     if "masthead" in meta:   # cycle 4 (BC): the frame's own masthead record (drawn or why not)
                         result.setdefault("masthead_records", {})[key] = dict(meta["masthead"])
+                    if "pointer" in meta:   # cycle 5 (SYS-plates-c5-1): the Story pointer's decision
+                        result.setdefault("pointer_records", {})[key] = dict(meta["pointer"])
                     if kind == "story":   # cycle 3: the frame's own layout record (the size it drew at)
                         result.setdefault("story_title_px", {})[key] = {
                             "drawn": meta.get("title_px"), "story": meta.get("story_title_px"),

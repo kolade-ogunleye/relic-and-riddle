@@ -39,7 +39,7 @@ def mods():
         if p not in sys.path:
             sys.path.insert(0, p)
     names = ("board_deps", "board_reuse", "board_diff", "board", "board_extras", "board_motion", "board_table",
-             "board_inputs", "exp_cases")
+             "board_inputs", "board_evidence", "exp_cases")
     return {n: importlib.import_module(n) for n in names}
 
 
@@ -574,11 +574,71 @@ def test_board_drawn_social_frames_carry_masthead_records(mods):
             "social__unfinished_obelisk_aswan_1792993374__carousel_carousel_slide_02":
             {"shown": False, "reason": "no legible variant"}}
     rows = bt.social_masthead_rows({"masthead_records": recs})
-    assert any("unfinished_obelisk_aswan_1792993374" in str(r[-1]) for r in rows[1:])
+    assert any("unfinished_obelisk_aswan_1792993374" in str(r[7]) for r in rows[1:])
+    assert rows[0][-3:] == ("reach", "margin step", "margin short") and all(len(r) == len(rows[0]) for r in rows)
     assert any("no legible variant" in str(r[5]) for r in rows[1:])
     src = (BOARD / "board_extras.py").read_text(encoding="utf-8")
     assert "MultiFormatGenerator._render_carousel_slide = real" in src       # the spy is always taken off again
     assert 'manifest.setdefault("masthead_records", {})[item["name"]]' in (BOARD / "board.py").read_text(encoding="utf-8")
+
+
+def test_the_other_streams_records_reach_the_tile_and_the_table(mods):
+    """SYS-plates-c5-1 / SYS-photo-c5-1: a withheld masthead, the Story pointer's decision and a replaced photograph
+    are said on the tile; the deck is drawn through the picker only where the tree has one."""
+    be, bt = mods["board_evidence"], mods["board_table"]
+    assert be.masthead_note({"shown": True}) == "" and be.masthead_note(None) == ""
+    assert be.masthead_note({"shown": False, "reason": "rule", "fb_interior": True}) == ""      # by rule: no omission
+    assert "RECORDED OMISSION: drawn without the masthead (5.41 under 5.5)" in be.masthead_note(
+        {"shown": False, "reason": "5.41 under 5.5"})
+    rec = {"masthead_records": {"s": {"shown": False, "reason": "low"}},
+           "pointer_records": {"s": {"shown": False, "reason": "no tap target"}},
+           "photo_choice": {"s": {"photo": "a/new.jpg", "replaced": "a/old.jpg", "reason": "unfit"},
+                            "t": {"photo": "a/x.jpg", "reason": "matched"}}}
+    note = be.record_note("s", rec)
+    assert "drawn without the masthead" in note and "Story pointer: withheld (no tap target)" in note
+    assert "new.jpg for old.jpg (unfit)" in note and be.record_note("t", rec) == ""
+    rows = bt.social_masthead_rows({"masthead_records": {
+        "social__r_1__carousel_carousel_slide_01": {"shown": True, "size": 40.0, "contrast": 6.0, "reach": 412,
+                                                    "margin_step": 2, "margin_short": 0}}})
+    assert rows[1][-3:] == ("412", "2", "0")
+    rs = (QF35A / "render_surfaces.py").read_text(encoding="utf-8")
+    assert 'hasattr(mf, "deck_photo_guard")' in rs and 'run / "carousel_photos.json"' in rs
+    assert 'result.setdefault("photo_choice", {})[key]' in rs and 'result.setdefault("pointer_records", {})[key]' in rs
+    assert 'r.get("archetype") != "diagram":   # a drawing slide keeps its poster' in rs
+    bx = (BOARD / "board_extras.py").read_text(encoding="utf-8")
+    assert '(rec.get(p.name) or {}).get("masthead")' in bx and 'payload.get("layout_holds")' in bx
+
+
+TIERS = {
+    "cover__amber_room_heist__reel": "T1", "cover__amber_room_heist__grid": "T4", "cover__amber_room_heist__youtube": "T3",
+    "cover_badge__unfinished_obelisk_aswan__reel": "T2", "thumbnail_badge__unfinished_obelisk_aswan__youtube": "T3",
+    "captions__amber_room_heist__frame": "T1", "captions__amber_room_heist__badge__encoded": "T2",
+    "captions__richat_structure_sahara_eye__frame": "T3", "captions_run__richat_structure_sahara_eye__169": "T3",
+    "captions_run__amber_room_heist__916": "T1",
+    "social__r_1__story_story_01_hook": "T1", "social__r_1__fb_carousel_slide_02": "T1",
+    "bridge_follow__1_wieliczka_salt_mine": "T1", "endscreen__0_richat_structure_sahara_eye": "T3",
+    "endcard__1_wieliczka_salt_mine": "T4", "map__amber_1__916": "T1", "map__amber_1__169": "T3",
+    "numbers__amber_1__916": "T1", "timeline__amber_1__916": "T1", "timeline_dense__test_events_x__916": "T4",
+    "scale__w_1__916": "T2", "scale__w_1__169": "T3", "route__a_1_new_stops__916": "T2",
+    "cross_section__test_spec__916": "T2", "thennow__memnon__916": "T2", "thennow__memnon__169": "T3",
+    "callouts__reference_pair__916": "T2", "card__hook__amber__916__f00": "T2", "card__myth_richat__amber__916": "T2",
+    "card__myth_richat__amber__169": "T3", "card__chapter_act1__amber__916": "T4", "card__chapter_act1__amber__169": "T3",
+    "row13_elements": "T4",
+}
+
+
+def test_every_case_has_a_production_tier(mods):
+    be, b = mods["board_evidence"], mods["board"]
+    for name, want in TIERS.items():
+        assert be.tier(name, "", ("richat_structure_sahara_eye",)) == want, name
+    assert be.tier("social__r_1__carousel_carousel_slide_04", "x | diagram slide (recipe)") == "T2"
+    assert set(be.TIER_WHAT) == {"T1", "T2", "T3", "T4"}
+    assert b.clip_tier_name("endscreen_169__0_richat") == "endscreen__0_richat__169"
+    assert be.tier(b.clip_tier_name("bridge_follow_916__1_wieliczka_salt_mine")) == "T1"
+    assert be.tier(b.clip_tier_name("endcard_916__1_wieliczka_salt_mine")) == "T4"
+    assert be.tier(b.clip_tier_name("hook__amber__916")) == "T2"
+    src = (BOARD / "board.py").read_text(encoding="utf-8")
+    assert 'manifest.setdefault("case_tiers", {})' in src and 'manifest["tiers"]' in src
 
 
 def test_each_caption_fixture_has_its_whole_run_in_the_expected_cases(mods):
@@ -618,7 +678,7 @@ def test_each_caption_fixture_has_its_whole_run_in_the_expected_cases(mods):
 def test_a_caption_run_tile_is_the_band_at_one_to_one(mods):
     src = (BOARD / "board_extras.py").read_text(encoding="utf-8")
     fn = src[src.index("def caption_run("):src.index("# ----", src.index("def caption_run("))]
-    assert "im.crop(box)" in fn and "resize" not in fn                     # never scaled
+    assert "bands[k] = im.crop(box)" in fn and "resize" not in fn          # never scaled
     assert 'b["hide"] - CAPTION_RUN_LEAD' in fn                             # the frame at each burst's END
     assert "encode_caption_clip(" in fn                                    # the production chain and encoder
     assert "sheet(tiles, out / sname, tile_h=None" in (BOARD / "board.py").read_text(encoding="utf-8")

@@ -201,3 +201,63 @@ change measured; no import-time copies; declared deviations held to their consta
 eases bounded and shared; the masthead within the rulings, judged letter by letter on the adversary's grounds with
 its own independent probe, failing closed and recorded by every carrying surface; the mark's edge and non-text
 contrast; the system kicker on the end screen).
+
+## The review loop (cycle 5, lane BOARD; evidence tooling only)
+
+A cycle should measure designs, not wait for a board or guess what changed. Four tools, each proven on a subset
+(the lander renders the full board; numbers and the proofs' data are in the hand-back, queue/HANDBACK-board-c5.md).
+
+### The incremental board: `board.py ... --reuse <previous board of the same palette>`
+
+Renders only the render_surfaces.py jobs whose inputs changed and takes the rest from the previous board byte for
+byte (`board_reuse.py`; the composed rows are drawn fresh from the merged surfaces).
+
+- What a file's input hash covered before: its path, the palette, the WHOLE tree stamp and the union of every data
+  file the board read. Every file had the same inputs and any commit changed them all, so nothing could be reused,
+  and the toolchain and the tree's untracked data (tools/geo, tools/models) were not in it.
+- What a job's inputs are now. Code: the job's code key (`board_deps.py`). Not code, and any change means no reuse at
+  all: a non-Python file under src/, tests/ (only one a render read), fonts/, assets/, the fixtures catalogue,
+  uv.lock, pyproject.toml; a recorded data input (re-hashed); tools/geo, tools/models, tools/stress; the toolchain
+  (Python, Pillow and its text libraries, numpy, the ffmpeg binary and build line); the palette; the job list.
+- Why the code key is observed, not derived. Measured at integration 4 (`python board_deps.py <tree> --measure`): the
+  import closure of every render entry is 161-164 of the 177 src modules, and a name-based symbol reach gets to
+  7 312 of 9 495 symbols from any single function. A module-level or a static symbol-level map would never reuse
+  anything. So each render process records, per job, the functions that ran (cProfile, started by `run_surfaces.py`
+  before the tree loads; `render_surfaces.py` marks each job's window): those that ran in the job, those that ran
+  outside every job (import time, the harness), and everything those ever called in that process (a memoised function
+  that returned a cached value is followed to what computed it). The record is `<out>/DEPS.json`. The key hashes
+  those functions' ASTs, every module-level value and class header they name (in any module, transitively) and every
+  module's import-time residue, at any commit, from git objects.
+- The record is on by default (`--no-deps` turns it off; such a board cannot be reused later). It changes no pixel.
+- Proof at run time: `--reuse-sample N` (default 2) reused jobs are rendered anyway and must equal the previous
+  board's files and records; a difference aborts with exit 3 and `REUSE-ABORTED.json`.
+- Records: `REUSE.json` (the checks, each job's status and the symbols that changed, each reused file), `DEPS.json`,
+  board.json `reuse`, `reuse_env`, `job_code_keys`, `tree.path`; INPUT_HASHES.json gives each surface the hash of its
+  own job's inputs (equal on two boards exactly when the surface may be reused).
+- The gate: the tools patch of this cycle makes freeze_manifest.py write each file's `provenance` (rendered / reused)
+  and freeze_gate.py call `board_reuse.verify`, which derives every reused job's key again from git objects at both
+  commits and checks each reused file against the previous board's manifest. A reused file keeps its render's mtime.
+- Not covered by the key (the sample is the net): state one job leaves in a module global for another job's
+  different function; an attribute fetched by a name that is in no recorded code; exec/eval.
+
+### The changed-surfaces report: `board_diff.py <before board> <after board> <out>`
+
+`index.md` / `index.json` per row (changed, added, removed, unchanged, reused; the changed pixels' box, their share,
+the mean difference) and one `pairs/<row>/<stem>.jpg` per changed image: BEFORE | AFTER at 1:1, side by side when
+both fit in `--max-width` (2400), else one above the other; a changed clip gets a strip pair of the same frames of
+both clips with the per-frame difference. Row sheets are listed and paired only with `--sheets`.
+
+### Evidence that was missing (panel 6)
+
+- `cases/<name>.png`: every case the board draws itself at full size (bright and near-white covers, the Aswan deck,
+  the hook's held frames, the frames taken from clips, the badges); board.json `case_files` maps EVERY row case to its
+  file (`surfaces/...` or `cases/...`; None for a refused or raised tile). `surfaces/card__hook__*__916.png` is the
+  cards job's LAST frame (after the fade): the claim is on `cases/card__hook__<ground>__916__f00/f32.png`.
+- board.json `masthead_records`: the masthead record of each board-drawn social frame (the Aswan deck's seven slides,
+  the near-white slides); row 13's social masthead table includes them.
+- `clips/hook__<ground>__916.mp4` and `row12_motion_hook__<ground>` for every ground the hook draws on (the Amber
+  ground beside the obelisk).
+- Per caption fixture, the whole run: `clips/captions_run__<topic>__<tag>.mp4` (the master's picture chain and the
+  delivery encoder), `row07_captions_run__<topic>__<tag>.png` (the caption band at 1:1 on the frame 0.08 s before
+  each burst leaves) and `..._bursts.png/json` (per burst: seconds on screen, characters, characters per second).
+- `exp_cases.py` expects cycle 5's files (`--drop-cycle5` for a tree before them).

@@ -43,6 +43,7 @@ import random
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +59,7 @@ TOOL_DATA = ("tools/geo", "tools/models", "tools/stress")
 # surfaces.json keys by what names their entries (board.py merge_shards classifies the same keys)
 BY_JOB = ("seconds", "omissions")
 BY_SURFACE = ("surfaces", "story_title_px", "retired", "rerouted", "bridge_ladder", "wide_grounds",
-              "surface_omissions", "masthead_records")
+              "surface_omissions", "masthead_records", "photo_choice", "pointer_records")
 BY_EITHER = ("errors",)
 
 
@@ -290,7 +291,9 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
     glob = global_diff(tree, prev_head, new_head, read)
     if glob:
         raise NoReuse(f"non-Python inputs changed {prev_head[:10]}..{new_head[:10]}: {glob[:6]}")
+    t0 = time.perf_counter()
     bad = changed_inputs((pb.get("inputs") or {}).get("files") or {}, frame_cache, tree_base)
+    took = {"inputs_rehash_s": round(time.perf_counter() - t0, 1)}
     if bad:
         raise NoReuse(f"data inputs changed since the previous board: {bad[:6]}")
     prev_jobs = set(ps.get("seconds") or {})
@@ -301,7 +304,9 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
     if stray:
         raise NoReuse(f"previous surfaces.json entries no job owns: {stray[:6]}")
     missing = sorted(prev_jobs - set(deps.get("jobs") or {}))
+    t0 = time.perf_counter()
     keys = code_keys(tree, deps, prev_head, new_head)
+    took["code_keys_s"] = round(time.perf_counter() - t0, 1)
     errors = ps.get("errors") or {}
     jobs: dict[str, dict[str, Any]] = {}
     for j in offered:
@@ -326,7 +331,7 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
             "head": new_head, "palette": palette, "env_sha256": env["sha256"],
             "checks": {"global_diff": [], "inputs_rehashed": len((pb.get("inputs") or {}).get("files") or {}),
                        "jobs_offered": len(offered), "jobs_without_code_record": missing},
-            "sample": {"seed": seed, "asked": sample, "jobs": picked}, "jobs": jobs}
+            "sample": {"seed": seed, "asked": sample, "jobs": picked}, "jobs": jobs, "plan_seconds": took}
 
 
 def _key(k: dict[str, Any]) -> dict[str, Any]:

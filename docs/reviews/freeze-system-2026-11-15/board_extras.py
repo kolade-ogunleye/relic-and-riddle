@@ -309,13 +309,21 @@ def aswan_deck(dev: Path, work: Path) -> list[dict[str, Any]]:
         _cache["deck"] = []
         return []
     rec = json.loads((d / "carousel" / "still_layout.json").read_text(encoding="utf-8"))
+    for row in payload.get("layout_holds") or []:   # cycle 5 (SYS-plates-c5-1): the deck's drawn-without rows
+        be.REFUSED.append((f"social__{ASWAN_DECK_RUN[4:]}__carousel ({row.get('surface', 'deck')})",
+                           "drawn without a part (recorded omission)",
+                           f"{row.get('omitted', '?')}: {str(row.get('reason') or row.get('rule') or '')[:300]}"))
     out = []
     for p in slides:
         r = (rec.get(p.name) or {}).get("recipe") or {}
         drawn = r.get("archetype") == "diagram"
+        # the tree's own record of the frame's masthead where it keeps one (still_layout.json "masthead", stream
+        # PLATES cycle 5), else the layout the draw returned (the spy above)
+        kept = (rec.get(p.name) or {}).get("masthead")
         out.append({"name": f"social__{ASWAN_DECK_RUN[4:]}__carousel_{p.stem}", "archetype": r.get("archetype"),
                     "photo": Path(str(r.get("photo") or "")).name, "image": _rgb(p),
-                    "masthead": mastheads.get(int(r["index"])) if "index" in r else None,
+                    "masthead": kept if kept is not None else (mastheads.get(int(r["index"])) if "index" in r
+                                                               else None),
                     "label": f"bright hero, run {ASWAN_DECK_RUN[4:]}, " + (
                         "the run's own graphic poster (carousel_diagram)" if drawn else
                         "photo matched to the delivered slide")})
@@ -517,13 +525,18 @@ def caption_run(tree: Path, work: Path, clips: Path, topic: str, tag: str) -> di
     seconds = bursts[-1]["hide"] + 0.2
     clip = encode_caption_clip(ground, ass, 0.0, seconds, size, Path(tree) / "fonts", clips / f"{name}.mp4")
     want = {max(0, round((b["hide"] - CAPTION_RUN_LEAD) * bm.FPS)): i for i, b in enumerate(bursts)}
-    seq = bm.Seq(name, clip, size, None, keep=lambda i: i in want)
-    clip["frames"] = seq.n
     ys = [ln["y"] for b in bursts for ln in b["lines"] if ln["y"]]
     top = max(0, int(min(ys, default=size[1] * 0.55)) - CAPTION_RUN_PAD)
     bottom = min(size[1], int(max(ys, default=size[1] * 0.85)) + CAPTION_RUN_PAD)
     side = (size[0] - min(size[0], 1280)) // 2   # 16:9: the middle 1280 px (the caption column), still 1:1
     box = (side, top, size[0] - side, bottom)
+    bands: dict[int, Any] = {}   # decoded once; only the band of each wanted frame is kept (a run is minutes long)
+    frames = 0
+    for k, im in enumerate(bm.decode(clip["path"], size)):
+        frames += 1
+        if k in want:
+            bands[k] = im.crop(box)
+    clip["frames"] = frames
     per = rates["bursts"]
     tiles, rows = [], [("burst", "shows at (s)", "on screen (s)", "chars", "chars per second", "frame", "text")]
     for f, i in sorted(want.items(), key=lambda x: x[1]):
@@ -533,12 +546,12 @@ def caption_run(tree: Path, work: Path, clips: Path, topic: str, tag: str) -> di
         flag = " OVER 17" if (cps or 0) > 17 else ""
         rows.append((i + 1, f"{b['show']:.2f}", f"{b['hide'] - b['show']:.2f}", r.get("chars", "-"),
                      f"{cps}{flag}", f"f{f} t={f / bm.FPS:.2f}s", " / ".join(ln["text"] for ln in b["lines"])))
-        im = seq.kept.get(f)
+        im = bands.get(f)
         if im is None:
             continue
         tiles.append((f"burst {i + 1} | shows {b['show']:.2f}s | {b['hide'] - b['show']:.2f}s on screen | "
-                      f"{r.get('chars', '-')} chars | {cps} cps{flag} | frame {f}", im.crop(box)))
-    return {"name": name, "clip": clip, "frames": seq.n, "tiles": tiles, "rows": rows, "record": rates,
+                      f"{r.get('chars', '-')} chars | {cps} cps{flag} | frame {f}", im))
+    return {"name": name, "clip": clip, "frames": frames, "tiles": tiles, "rows": rows, "record": rates,
             "topic": topic, "tag": tag, "box": list(box), "ground": note, "seconds": round(seconds, 2)}
 
 

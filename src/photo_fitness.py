@@ -30,7 +30,10 @@ numbers):
   FOCUS_KEEP; a window with a `hold` box asks for all of it there and Window.focus_min of it in the view). Otherwise the measure
   is relative to what the photograph itself offers this window: "keep" is the salience in the crop's view over the
   most any crop of the same shape holds in its view (SUBJECT_KEEP). A crop that keeps the photograph's emptiest half
-  fails it whatever the subject is.
+  fails it whatever the subject is. "keep" compares crops of ONE shape, so it cannot see what the shape itself leaves
+  out (a 2:1 miniature cut to 9:16 keeps a quarter of itself in its best crop as in its worst). A window that crops an
+  unreviewed photograph hard asks for "shown" as well (Window.shown_min): the share of the photograph's whole
+  salience that lies where the photograph shows unobscured (the window's `hold`, else its view).
 - flat: the share of the view whose blocks have no spread of luma (FLAT_STD over FLAT_BLOCK: sand, sky, a wall,
   out-of-focus ground; the panel's own block measure), against FLAT_MAX.
 - tone: "extreme", the share of the view that is near-white or near-black (TONE_WHITE, TONE_BLACK), against TONE_MAX;
@@ -42,7 +45,9 @@ numbers):
 The ladder when a crop is unfit (the brief's order; never a blur pad, a feather or a dim):
 1. another photograph the run already has that is fit: `rank()` orders candidates, the pickers call it;
 2. another crop of this photograph: `place()` searches positions, then closer crops up to ZOOM_MAX and UPSCALE_MAX,
-   inside the content;
+   inside the content, when the asked crop shows the frame, is enlarged past the limit, sets type on a structure or
+   loses a reviewed subject (the certain measures); an unreviewed photograph's salience measures (SOFT) choose
+   between those crops and between photographs, and are recorded, but move no window by themselves;
 3. the surface's designed alternative layout (the caller's: the record says "unfit" and why);
 4. a recorded refusal or omission (the caller's, with `reason()`).
 
@@ -118,6 +123,7 @@ class Window:
     checks: tuple[str, ...] = ("matte", "upscale", "subject", "flat", "protected")   # the measures that can fail it
     hold: Box | None = None   # output px box a reviewed subject must lie whole in (None: the view)
     focus_min: float = FOCUS_KEEP   # the share of a reviewed subject the VIEW must show (with `hold`: under 1)
+    shown_min: float = 0.0    # of an UNREVIEWED photograph's whole salience, the least `hold` (else the view) shows
 
     def view_box(self) -> Box:
         w, h = self.size
@@ -364,6 +370,11 @@ def _sub(box: Box, out: tuple[int, int], part: Box) -> Box:
     return (box[0] + part[0] * kx, box[1] + part[1] * ky, box[0] + part[2] * kx, box[1] + part[3] * ky)
 
 
+def _clip(part: Box, out: tuple[int, int]) -> Box:
+    """`part` (output px) inside the output."""
+    return (max(0.0, part[0]), max(0.0, part[1]), min(float(out[0]), part[2]), min(float(out[1]), part[3]))
+
+
 def _overlap(a: Box, b: Box) -> float:
     w = min(a[2], b[2]) - max(a[0], b[0])
     h = min(a[3], b[3]) - max(a[1], b[1])
@@ -425,6 +436,9 @@ def measure(a: Analysis, box: Box, window: Window, best_view: float | None = Non
         rec["focus"] = round(_overlap(a.focus, view), 3)
         if window.hold is not None:
             rec["held"] = round(_overlap(a.focus, _sub(box, out, window.hold)), 3)
+    elif window.shown_min > 0:
+        open_part = _sub(box, out, _clip(window.hold, out)) if window.hold is not None else view
+        rec["shown"] = round(a.total("salience", open_part), 3)
     prot = [protected_measure(a, _sub(box, out, p)) for p in window.protected]
     if prot:
         rec["protected"] = prot
@@ -441,7 +455,8 @@ def problems(rec: dict[str, Any], window: Window) -> list[str]:
     if "focus" in rec:
         if rec["focus"] < window.focus_min or rec.get("held", 1.0) < FOCUS_KEEP:
             out.append("subject")
-    elif rec.get("keep", 1.0) < SUBJECT_KEEP or rec["density"] < DENSITY_MIN:
+    elif (rec.get("keep", 1.0) < SUBJECT_KEEP or rec["density"] < DENSITY_MIN
+          or rec.get("shown", 1.0) < window.shown_min):
         out.append("subject")
     if rec["flat"] > FLAT_MAX and "focus" not in rec:   # a reviewed subject in view is not an empty view
         out.append("flat")
@@ -452,6 +467,9 @@ def problems(rec: dict[str, Any], window: Window) -> list[str]:
             out.append("protected")
             break
     return [p for p in out if p in window.checks]
+
+
+SOFT = ("subject", "flat", "tone")   # read from salience and tone: recorded, never alone the cause of a move
 
 
 REASONS = {
@@ -492,7 +510,8 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
           earlier: Sequence[Box] = (), overlap_max: float | None = None, *, image: Image.Image | None = None,
           analysis: Analysis | None = None, fixed: bool = False) -> dict[str, Any]:
     """The crop of a photograph for `window`, and what was measured. The crop the surface would take (the plain fit
-    at `centering`) is kept when it is fit; otherwise the fit crop that changes least, cut from the content box:
+    at `centering`) is kept when it is fit, or unfit on SOFT measures only (recorded); otherwise the fit crop that
+    changes least, cut from the content box:
     the largest crops first (every position), then closer ones step by step (to window.zoom_max and
     window.upscale_max); at each step the one with the most subject in view, then the nearest the asked position.
     `earlier` (picture px boxes this deck already shows of the photograph) with `overlap_max`: a crop overlapping one
@@ -523,7 +542,13 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     plain = _candidates(a, window, 1.0)
     best1 = max([held(asked), *(held(b) for b in plain)])
     base = judged(asked, 1.0, best1)
-    if fixed or (not base["problems"] and not crowded(base)):
+    # What moves a window is what is measured for certain: the source's frame in it, the enlargement, a structure
+    # under the type, a REVIEWED subject out of view. What salience suggests of an unreviewed photograph (SOFT) is
+    # recorded and decides between the crops once a move is due, and between photographs (the pickers: rank(), the
+    # deck's photo guard); alone it moves nothing. Salience is no subject detector: a move made for it alone took
+    # a Story frame's window to the aircraft's wing at the photograph's edge, the most salient thing in it.
+    due = [p for p in base["problems"] if p not in SOFT or (p == "subject" and a.focus is not None)]
+    if fixed or (not due and not crowded(base)):
         return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
 
     def near(r: dict[str, Any]) -> float:
@@ -559,42 +584,6 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     if base["problems"] and least is not None and least[0][:2] < (len(base["problems"]), "matte" in base["problems"]):
         return {**least[1], "fit": False, "moved": True, "window": window.name, "base": asked_rec}
     return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
-
-
-def place_in_view(analysis: Analysis, window: Window) -> dict[str, Any]:
-    """The crop of a photograph whose VIEW holds its subject, for a window most of which another picture covers (a
-    then-and-now pane: the frame is split and each photograph shows in its own part only). Of every crop inside the
-    content (each position, each step closer to window.zoom_max and window.upscale_max) with no frame in it, the one
-    whose view holds the most of the photograph's salience AND the most of the crop's own (subject x the view's
-    share of what the crop holds: a subject left under the other pane counts against it); then the least zoom.
-    Returns place()'s record ("fit" by the same problems())."""
-    a = analysis
-    view = window.view_box()
-    best: tuple[float, dict[str, Any]] | None = None
-    for zoom in ZOOM_STEPS:
-        if zoom > window.zoom_max + 1e-9:
-            break
-        boxes = _candidates(a, window, zoom)
-        if window.size[0] / max(1e-6, boxes[0][2] - boxes[0][0]) > window.upscale_max + 1e-6:
-            break
-        top = max(a.total("salience", _sub(b, window.size, view)) for b in boxes)
-        for b in boxes:
-            rec = measure(a, b, window, top)
-            if rec["matte"] > MATTE_MAX:
-                continue
-            whole = a.total("salience", b)
-            score = rec["subject"] * (rec["subject"] / whole if whole > 1e-9 else 0.0)
-            if best is None or score > best[0] + 1e-9:
-                rec["zoom"] = zoom
-                rec["in_view"] = round(rec["subject"] / whole, 3) if whole > 1e-9 else 0.0
-                best = (score, rec)
-    if best is None:
-        rec = measure(a, fit_box(a.size, window.size), window)
-        rec.update(zoom=1.0, problems=problems(rec, window))
-        return {**rec, "fit": False, "moved": False, "window": window.name}
-    rec = best[1]
-    rec["problems"] = problems(rec, window)
-    return {**rec, "fit": not rec["problems"], "moved": True, "window": window.name}
 
 
 def crop(image: Image.Image, box: Iterable[float], size: tuple[int, int]) -> Image.Image:

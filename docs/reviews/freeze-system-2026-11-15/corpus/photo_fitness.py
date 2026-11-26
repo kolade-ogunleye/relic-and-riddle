@@ -16,7 +16,9 @@ The placements:
 - DECK: the run's recorded slides and Story frames (still_layout.json recipes: the photograph each slide was drawn
   with), and for the runs that kept their match (carousel_photos.json) the deck the photo guard chooses.
 - FRAME: the last frame of every master (the end screen's, end card's and bridge's ground).
-- PAIR: every then-and-now pair a run holds (graphics/then_k x now_k_j), both formats.
+- PAIR: every then-and-now pair (graphics/then_k x now_k_j) of a run that drew the comparison, both formats:
+  registered (one size: then_now.register) or not. A pair that is not registered is unfit under both rules ("pair");
+  the tip records it.
 
 --rule base reproduces the croppers as they were at integration 4 (57358665): the centred fit, the deck window rule
 (hero_window.deck_window, unchanged), lane D cycle 4's frame_window (copied below, it left the tree in cycle 5), the
@@ -241,8 +243,10 @@ def cover_tip(a: pf.Analysis) -> dict:
             return {"layout": mode, "pad": 0.0, "upscale": rec["upscale"], "problems": [],
                     "outcome": "fit" if mode == "full_bleed" and not rec["moved"] else
                                "crop" if mode == "full_bleed" else "alternative", "keep": rec.get("keep"),
-                    "density": rec.get("density"), "flat": rec.get("flat"), "focus": rec.get("focus")}
-    return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": tried[-1]}
+                    "density": rec.get("density"), "flat": rec.get("flat"), "focus": rec.get("focus"),
+                    "shown": rec.get("shown")}
+    # the contained window on INK shows the photograph whole (shown 1.0 by construction: ImageOps.contain)
+    return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": tried[-1], "shown": 1.0}
 
 
 # ---------------------------------------------------------------- the corpus
@@ -297,7 +301,8 @@ def main() -> int:
                      "problems": list(rec.get("problems") or []), "outcome": rec.get("outcome"),
                      "recorded": bool(recorded),
                      **{k: rec.get(k) for k in ("upscale", "matte", "flat", "subject", "density", "keep", "focus",
-                                                "zoom", "layout", "pad", "in_view", "registered", "extreme") if k in rec},
+                                                "zoom", "layout", "pad", "in_view", "registered", "extreme", "shown",
+                                                "moved") if k in rec},
                      **({"busy": rec["protected"][0].get("busy"), "line": rec["protected"][0].get("line"),
                          "step": rec["protected"][0].get("step"),
                          "foreign": rec["protected"][0].get("foreign")} if rec.get("protected") else {})})
@@ -396,7 +401,11 @@ def main() -> int:
         # ---- PAIR: then-and-now
         from src import then_now
         g = run / "graphics"
-        for old in sorted(g.glob("then_*.jpg")) + sorted(g.glob("then_*.png")):
+        # only a run that drew the comparison (graphic_thennow.mp4) accepted a pair; the then_k / now_k_j files of
+        # the others are candidates it downloaded and never showed. Which candidate a run accepted is not on record,
+        # so each of its candidate pairs is measured.
+        shown = (g / "graphic_thennow.mp4").is_file()
+        for old in (sorted(g.glob("then_*.jpg")) + sorted(g.glob("then_*.png"))) if shown else ():
             k = old.stem.split("_")[1]
             for new in sorted(g.glob(f"now_{k}_*.jpg")) + sorted(g.glob(f"now_{k}_*.png")):
                 ao, an_ = photos.get(old), photos.get(new)
@@ -414,10 +423,10 @@ def main() -> int:
                         if registered:
                             rec = judged(an2, pf.fit_box(an2.size, big), window)
                             rec.update(outcome="fit", problems=[], registered=True)
-                        elif a.rule == "tip":
-                            rec = pf.place_in_view(an2, window)
-                            rec.update(outcome="crop" if not rec["problems"] else "unfit", registered=False)
                         else:
+                            # not registered: one window cannot show the same part of both at one scale. Neither
+                            # rule's cropper changes that (the tree draws the shared window and records the pair as
+                            # not registered, then_now.frame_pair): unfit at base, unfit and RECORDED at the tip.
                             rec = judged(an2, pf.fit_box(an2.size, big), window)
                             whole = an2.total("salience", tuple(rec["box"]))
                             rec["in_view"] = round(rec["subject"] / whole, 3) if whole else 0.0
@@ -451,7 +460,18 @@ def main() -> int:
         by[r["group"]]["-> " + str(r["outcome"])] += 1
     for gname, c in by.items():
         print(f"  {gname:5s} " + ", ".join(f"{k} {v}" for k, v in sorted(c.items())))
-    print(f"  unfit placements: {len(bad)}; neither fixed nor recorded: {len(violations)}")
+    # a CERTAIN measure (the frame, the enlargement, a structure under type, a reviewed subject, a pad, a repeat, an
+    # unregistered pair) against the salience measures of an unreviewed photograph (photo_fitness.SOFT), which the
+    # tree records and gives to its pickers but which move no window alone
+    def certain(r):
+        return [p for p in r["problems"] if p not in pf.SOFT or (p == "subject" and r.get("focus") is not None)]
+    hard = [r for r in bad if certain(r)]
+    print(f"  unfit placements: {len(bad)} (on a certain measure: {len(hard)}; on salience measures only: "
+          f"{len(bad) - len(hard)}); neither fixed nor recorded: {len(violations)}")
+    for gname in by:
+        hg = [r for r in hard if r["group"] == gname]
+        print(f"    {gname:5s} certain {len(hg)}: " + ", ".join(f"{k} {v}" for k, v in sorted(
+            Counter(p for r in hg for p in certain(r)).items())))
     if a.distribution:
         import numpy as np
         print("\n== distribution of the asked crop's measures (POOL placements)")

@@ -615,6 +615,9 @@ COVER_INK_FADE = 120        # px over which a photograph that ends above the typ
 
 COVER_GRID_FOCUS = 0.80     # of a reviewed feature inside the profile square (y from COVER_GRID_TOP), at least
 COVER_TYPE_TOP = 1180       # where the type's stack usually starts (1434 less a three-row stack): the hero pick's
+COVER_SHOWN_MIN = 0.5       # of an unreviewed photograph's salience a full-width crop shows unobscured, at least: a
+                            # crop that leaves most of the photograph out of sight is not that photograph (the
+                            # miniature of two ships cut to 9:16 showed parchment and a flame's edge); it stays whole
 
 
 def cover_windows(top=COVER_TYPE_TOP):
@@ -628,9 +631,11 @@ def cover_windows(top=COVER_TYPE_TOP):
     # set on it), and COVER_GRID_FOCUS of it inside the profile square (the grid tile may trim its top, never more)
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
                                      hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
+                                     shown_min=COVER_SHOWN_MIN,
                                      name="reel cover full_bleed")),
             ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
                                          hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
+                                         shown_min=COVER_SHOWN_MIN,
                                          name="reel cover photo_over_ink")))
 
 

@@ -806,31 +806,19 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
     # Freeze cycle 5 (PHOTO-06, verified on the dev runs' Memnon and Pantheon pairs, which predate register()): the
     # split shows the THEN photo in one part of the frame and the NOW photo in the other, both through ONE window.
     # That compares only a REGISTERED pair (register() writes both photos at one size, the recent one warped onto the
-    # old one). Two photographs of different sizes are not registered: the same window lands on different parts of
-    # them at different scales (Memnon 9:16: the head and torso above, the pedestal below). Each then takes its own
-    # crop, the one whose pane holds its subject (photo_fitness.place_in_view: the view is the photo's own pane at
-    # rest), inside its content and the enlargement limit; nothing else of the clip changes. Recorded.
-    if ims[0].size != ims[1].size:
-        from . import photo_fitness as pf
-        lx, ly = (big[0] - width) / 2, (big[1] - height) / 2
-        cut = _split_at(width, height)
-        views = ([(lx, ly, lx + cut, ly + height), (lx + cut, ly, lx + width, ly + height)] if width > height
-                 else [(lx, ly, lx + width, ly + cut), (lx, ly + cut, lx + width, ly + height)])
-        recs, boxes = [], []
-        for im, view, which in zip(ims, views, ("then", "now")):
-            rec = pf.place_in_view(pf.analyse(im.convert("RGB")),
-                                   pf.Window(big, view=view, name=f"then-and-now {which} pane"))
-            recs.append({k: v for k, v in rec.items() if k != "window"})
-            boxes.append(tuple(rec["box"]))
-        info.update({"registered": False, "window": "per photo (the pair is not registered)",
-                     "panes": {"then": recs[0], "now": recs[1]}})
-        log.info("Then-and-now: the pair is not registered (%s and %s px); each photo takes its own pane crop.",
+    # old one; find_pair ships no other). Two photographs of different sizes are not registered: the same window
+    # lands on different parts of them at different scales (Memnon 9:16: the head and torso above, the pedestal
+    # below). No crop made here can register them (a crop per pane by salience was tried and measured: it cut the
+    # Memnon THEN statue's head at 16:9 and showed a fountain beside the Pantheon), so the pair is drawn through the
+    # shared window as before and RECORDED as not registered, with the reason; the remedy is a registered input.
+    info["registered"] = ims[0].size == ims[1].size
+    if not info["registered"]:
+        info["unregistered"] = (f"then-and-now: the photographs are not registered ({ims[0].size[0]}x{ims[0].size[1]} "
+                                f"and {ims[1].size[0]}x{ims[1].size[1]} px): one window does not show the same part "
+                                "of both at one scale (rule: both panes are cut from one registered frame, "
+                                "src/then_now.py register)")
+        log.info("Then-and-now: the pair is not registered (%s and %s px); drawn through the shared window.",
                  ims[0].size, ims[1].size)
-        out = [grade(im.resize(big, Image.LANCZOS, box=b).convert("RGB")) for im, b in zip(ims, boxes)]
-        if subjects is not None:
-            subjects[:] = [None if m is None else m.resize(big, Image.NEAREST, box=b) for m, b in zip(masks, boxes)]
-        return out[0], out[1], info
-    info["registered"] = True
     # both photos graded as the master grades a bare photo, before anything is drawn on them (QF-86)
     srcs = [grade(ImageOps.fit(im, big, Image.LANCZOS)) for im in ims]
 

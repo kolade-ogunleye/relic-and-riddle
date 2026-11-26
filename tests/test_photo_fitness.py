@@ -4,7 +4,8 @@ photograph is fit for the window it is put in, asked by every picker and cropper
 Fixtures are drawn here (no run file, no workstation path): a textured ground with one salient subject, and the
 frames a source can carry (a black wedge, an oval surround, a letterbox). Each test holds one class of the panel-6
 ledger closed: PHOTO-01 (no pad), PHOTO-02 (no frame in a crop), PHOTO-03 (the subject stays in the window),
-PHOTO-04 (nothing foreign under the masthead), PHOTO-06 (an unregistered pair), PHOTO-07 (no repeated photograph).
+PHOTO-04 (nothing foreign under the masthead), PHOTO-06 (an unregistered pair is recorded), PHOTO-07 (no repeated
+photograph).
 """
 from __future__ import annotations
 
@@ -129,12 +130,31 @@ def test_a_flat_view_and_an_empty_view_are_unfit(tmp_path):
     full = pf.Window((1080, 1350), view=(0, 0, 1080, 560), name="full bleed, type at the foot")
     asked = pf.place(p, full, fixed=True)
     assert {"flat", "subject"} & set(asked["problems"])
+    # salience is no subject detector: what it suggests is recorded and chooses between photographs (rank, the deck's
+    # photo guard); alone it moves no window (a move made for it took a Story frame to an aircraft's wing)
     rec = pf.place(p, full)
-    if rec["fit"]:                                                 # a closer, lower crop brings it into the view
-        assert rec["moved"] and rec["density"] >= pf.DENSITY_MIN and rec["flat"] <= pf.FLAT_MAX
-        assert rec["upscale"] <= pf.UPSCALE_MAX
-    else:
-        assert rec["problems"] and "rule: a photograph is fit" in pf.reason(rec, "the slide")
+    assert not rec["fit"] and not rec["moved"] and rec["box"] == asked["box"]
+    assert set(rec["problems"]) <= set(pf.SOFT) and "rule: a photograph is fit" in pf.reason(rec, "the slide")
+    other = save(tmp_path, "mid.png", with_subject(ground(1200, 2000, seed=3), 0.5, 0.3, 0.12))
+    assert [q.name for q, _r in pf.rank([p, other], full)] == ["mid.png", "low.png"]   # the picker takes the fit one
+
+
+def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():
+    """The no-regression guard of the cover's full-width crop: "keep" compares crops of one shape, so a 2:1 picture
+    cut to 9:16 passed it showing a quarter of itself. "shown" is the share of the photograph's whole salience where
+    it shows unobscured; a reviewed subject is held to its own box instead."""
+    wide = Image.fromarray(np.clip(with_subject(with_subject(ground(3000, 1500), 0.15, 0.5, 0.3), 0.85, 0.5, 0.3, 2),
+                                   0, 255).astype(np.uint8))        # two subjects, at the ends of a 2:1 picture
+    an = pf.analyse(wide)
+    tall = pf.Window((1080, 1920), view=(0, 420, 1080, 1140), hold=(0, 0, 1080, 1140), shown_min=0.5)
+    rec = pf.place(None, tall, analysis=an)
+    assert rec["shown"] < 0.5 and "subject" in rec["problems"] and not rec["moved"]
+    assert "subject" not in pf.place(None, pf.Window((1080, 1920), view=(0, 420, 1080, 1140)), analysis=an,
+                                     fixed=True)["problems"] or rec["keep"] < pf.SUBJECT_KEEP   # "keep" alone passed it
+    whole = pf.Window((1080, 540), shown_min=0.5)                  # a window of the photograph's own shape shows it
+    assert pf.place(None, whole, analysis=an)["shown"] > 0.95
+    reviewed = pf.analyse(wide, (0.15 * 3000 - 300, 450, 0.15 * 3000 + 300, 1050))
+    assert "shown" not in pf.place(None, tall, analysis=reviewed, fixed=True)
 
 
 def test_the_enlargement_limit_is_the_hook_cards(tmp_path):
@@ -257,6 +277,20 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     tall = Image.fromarray(np.clip(with_subject(ground(1400, 2400), 0.5, 0.4, 0.2), 0, 255).astype(np.uint8))
     im, lay = _cover(tall)
     assert lay.meta["composition"]["mode"] == "full_bleed"
+    # an unreviewed wide one is not cut to a quarter of itself: it stands whole, once, on INK (the cycle-5 crop of a
+    # 2:1 miniature showed its parchment and no ship)
+    ends = Image.fromarray(np.clip(with_subject(with_subject(ground(3000, 1500), 0.15, 0.5, 0.3), 0.85, 0.5, 0.3, 2),
+                                   0, 255).astype(np.uint8))
+    im, lay = _cover(ends)
+    comp = lay.meta["composition"]
+    assert comp["mode"] == "contain" and comp["source_box"] == [0, 0, 3000, 1500]
+    assert lay.meta["photo_fit"]["fit"] is False and all("subject" in t["problems"] for t in lay.meta["photo_fit"]["tried"])
+    assert all(t["shown"] < 0.5 and not t["moved"] for t in lay.meta["photo_fit"]["tried"])
+    a = np.asarray(im.convert("RGB"), np.int16)
+    x0, y0, x1, y1 = comp["image_box"]
+    assert np.abs(a[:y0 - 2] - ink).max() <= 2 and x1 - x0 >= 900
+    blue = (a[..., 2] - a[..., 0]) > 50
+    assert blue[y0:y1, x0:(x0 + x1) // 2].mean() > 0.02 and blue[y0:y1, (x0 + x1) // 2:x1].mean() > 0.02   # both ends
 
 
 def test_the_youtube_side_field_is_ink():
@@ -285,25 +319,26 @@ def test_the_end_screen_takes_the_field_only_ground_over_a_framed_last_frame(mon
     assert np.asarray(frames[-1].convert("L"))[:, 1500:].std() > 3   # the picture is still the ground
 
 
-def test_an_unregistered_then_and_now_pair_takes_a_crop_per_pane(tmp_path):
+def test_an_unregistered_then_and_now_pair_is_recorded_and_keeps_the_shared_window(tmp_path):
+    """PHOTO-06: only a registered pair (one size: then_now.register) compares through one window. A pair that is
+    not is drawn as it was (no crop by salience stands in for a registration) and recorded with the reason."""
+    from PIL import ImageOps
+
     from src import then_now
+    from src.photo_grade import grade
     old = save(tmp_path, "then.png", with_subject(ground(1800, 1400, level=190), 0.3, 0.45, 0.12))
     new = save(tmp_path, "now.png", with_subject(ground(2200, 1500, seed=5), 0.7, 0.5, 0.15))
-    for w, h in ((1080, 1920), (1920, 1080)):
-        a, b, info = then_now.frame_pair(old, new, w, h)
-        assert info["registered"] is False and "not registered" in info["window"]
-        split = then_now._split_at(w, h)
-        frame = np.asarray(then_now.compose(then_now.pushed(a, then_now.CLIP_SECONDS, (w, h)),
-                                            then_now.pushed(b, then_now.CLIP_SECONDS, (w, h)), split,
-                                            divider=False).convert("RGB"), np.int16)
-        blue = (frame[..., 2] - frame[..., 0]) > 50                # the subjects' blue rings
-        then_pane, now_pane = (blue[:, :split], blue[:, split:]) if w > h else (blue[:split], blue[split:])
-        assert then_pane.mean() > 0.02 and now_pane.mean() > 0.02, (w, h)   # each pane shows its own subject
-        for pane in info["panes"].values():
-            assert pane["matte"] <= pf.MATTE_MAX and pane["upscale"] <= pf.UPSCALE_MAX
+    w, h = 1920, 1080
+    a, b, info = then_now.frame_pair(old, new, w, h)
+    assert info["registered"] is False and "not registered" in info["unregistered"]
+    assert "rule:" in info["unregistered"] and "panes" not in info
+    big = (round(w * (1 + then_now.PUSH)), round(h * (1 + then_now.PUSH)))
+    for got, path in ((a, old), (b, new)):                         # the shared window: the centred fit of each
+        want = grade(ImageOps.fit(Image.open(path).convert("RGB"), big, Image.LANCZOS))
+        assert np.abs(np.asarray(got.convert("RGB"), np.int16) - np.asarray(want, np.int16)).max() <= 1
     same = save(tmp_path, "now_reg.png", with_subject(ground(1800, 1400, seed=7), 0.3, 0.7, 0.18))
-    _a, _b, info = then_now.frame_pair(old, same, 1920, 1080)      # one size: a registered pair, the shared window
-    assert info["registered"] is True and "panes" not in info
+    _a, _b, info = then_now.frame_pair(old, same, w, h)            # one size: a registered pair
+    assert info["registered"] is True and "unregistered" not in info
 
 
 def test_a_hero_that_cannot_fill_the_cover_gives_way(tmp_path, monkeypatch):

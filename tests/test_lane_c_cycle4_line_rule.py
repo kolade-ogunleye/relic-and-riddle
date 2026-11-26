@@ -164,7 +164,9 @@ def test_the_class_closes_on_the_real_runs():
         words, emph = _fx.words(c), list(c.get("emphasis_words") or [])
         before += sum(bool(vc.line_rule_faults(p)) for p in _pre(words, emph))
         after += sum(bool(vc.line_rule_faults(p)) for p in _layout(words, emph)[0])
-    assert after < before
+    # freeze cycle 5 (ruling 2026-11-26): a one-content-word line is legal, so fewer faults stand before the pass;
+    # it never adds one, and each one left is recorded (the first test)
+    assert after <= before
 
 
 @pytest.mark.parametrize("case", WIDE, ids=[c["topic"] for c in WIDE])
@@ -193,5 +195,6 @@ def test_a_legal_break_ranks_before_any_illegal_one_whatever_the_rung():
             ws = tuple(w["word"] for w in p)
             shown = vc._phrase_words(list(ws))
             opts = [o for o in vc._two_line_options(ws) if not o[0][0] and not o[0][1]]
-            ranks = [bool(vc._hedge_break(shown, k) or k == 1 or k == len(shown) - 1) for _, k, _, _ in opts]
+            # ruling 2026-11-26: only a line of one FUNCTION word is illegal (a one-content-word line is legal)
+            ranks = [bool(vc._hedge_break(shown, k) or vc._lone_function_line(shown, k)) for _, k, _, _ in opts]
             assert ranks == sorted(ranks), (ws, ranks)

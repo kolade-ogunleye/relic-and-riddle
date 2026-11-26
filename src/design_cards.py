@@ -1567,9 +1567,11 @@ TITLE_ALPHA = 0.28                        # s: freeze panel C4: a title line's a
 # The system's never-list (src/brand_system.py LINE_END_NEVER: no line but the last ends on an article or a preposition)
 # plus "and" / "or", which the cards refuse at a size too: W2's search steps down the ladder before it takes one, which
 # is the system's "conjunction only as a last resort" (cycle 0; refused outright they read "DEBATES AND / ROCK").
-# Freeze cycle 5 (TEXT stream; panel 6 "DISPROVED WHEN /"): every conjunction (brand_system.LINE_END_CONJUNCTIONS:
-# WHEN, THAT, WHILE, THAN, BUT ... as AND / OR before), one list for every surface.
-W1_STOPS = LINE_END_NEVER | brand_system.LINE_END_CONJUNCTIONS
+# Freeze cycle 5 (TEXT stream): the hard set stays the ruled never list plus AND / OR. Widening it to every
+# conjunction (WHEN, THAT ...) pushed the real long myth fact under its 76 px floor (72 px, CI): a size under a floor
+# is no cure for a line end. The other conjunctions are weighed (WEAK_LINE_END, the one vocabulary) and step the
+# ladder inside its floor (MYTH_WEAK_STEP); where none clears them the end stays, as before.
+W1_STOPS = LINE_END_NEVER | frozenset(("and", "or"))
 
 
 def _accented(text: str) -> bool:

@@ -181,7 +181,9 @@ def keep_together(words: Sequence[str]) -> set[int]:
             j = k - 1
             while j > 0 and (t[j] in UNITS or t[j] in SCALE_WORDS or t[j] in AREA_WORDS):
                 j -= 1
-            if is_number(ws[j]):
+            # AND / OR join a range only after BETWEEN ("between 94 and 104"); "c. 780 and 85 m" are two quantities
+            between = t[k] not in ("and", "or") or "between" in t[max(0, j - 3):j]
+            if is_number(ws[j]) and between:
                 out.update((k, k + 1))
     return out
 

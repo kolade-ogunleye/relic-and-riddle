@@ -155,7 +155,7 @@ def test_headings_keep_dates_eras_and_hedges_whole_and_prefer_no_conjunction_end
 def _amber():
     words = [dict(w) for w in AMBER["words"]]
     record: list = []
-    phrases = vc.caption_phrases(words, AMBER["emphasis_words"], line_split=record)
+    phrases = vc.caption_phrases(words, AMBER["emphasis_words"], recut=record)
     return words, phrases, record
 
 
@@ -228,3 +228,31 @@ def test_phrase_unit_reads_shapes_and_closed_classes_only():
     assert pu(["following"], "eighteenth-century", "expansions") == "modifier_noun"
     assert pu(["in"], "Germany,", "fueling") is None and pu(["it", "was"], "packed", "into") is None
     assert pu(["German"], "soldiers", "disassembled") is None
+
+
+def test_the_readable_merge_adds_no_function_word_end_and_cuts_no_bond(monkeypatch):
+    """Over the committed real caption words: against the phrase builder's bursts, the merge keeps every word, ends
+    no further burst on a function word, makes no cut inside a bond, a name or a figure and its unit, and leaves no
+    more bursts under 0.8 s."""
+    words = [dict(w) for w in AMBER["words"]]
+    after = vc.caption_phrases(words, AMBER["emphasis_words"])
+    monkeypatch.setattr(vc, "_readable_merge", lambda phrases, *a, **k: phrases)
+    before = vc.caption_phrases(words, AMBER["emphasis_words"])
+    assert [w for p in after for w in p] == [w for p in before for w in p] == words
+    assert set(vc.never_end_bursts(after)) <= set(vc.never_end_bursts(before))
+    assert set(vc.figure_split_cuts(after)) <= set(vc.figure_split_cuts(before))
+    raw = [w["word"] for w in words]
+    bonds = vc.unit_links(words) | vc.name_bonds(raw) | vc.caption_bonds(words)
+    pos = {id(w): k for k, w in enumerate(words)}
+    assert not {pos[id(p[-1])] for p in after[:-1]} & bonds - {pos[id(p[-1])] for p in before[:-1]}
+
+    def short(ph):
+        return sum(h - s < vc.CAPTION_SPLIT_MIN_S - 1e-6 for s, h, _ in vc.burst_timings(ph, dwell=True))
+    assert short(after) < short(before)
+    for p in after:                      # a joined burst: two lines, each within one burst's caps
+        if vc.over_caps(p) and vc._reel_form_strict(tuple(w["word"] for w in p)) is None:
+            lay = vc.reel_caption_lines(p)
+            if lay is not None:
+                shown = vc._phrase_words([w["word"] for w in p])
+                for line in (shown[:lay[0]], shown[lay[0]:]):
+                    assert len(line) <= vc.MAX_BURST_WORDS and len(" ".join(line)) <= vc.MAX_BURST_CHARS, shown

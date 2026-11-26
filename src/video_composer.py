@@ -3329,7 +3329,8 @@ def _rejoin_base(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]
 def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = None, widescreen: bool = False,
                     max_width: int | None = None,
                     bond_extra: list[dict[str, Any]] | None = None,
-                    line_split: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+                    line_split: list[dict[str, Any]] | None = None,
+                    recut: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """The bursts build_subtitles draws (9:16 Reel bursts, or 16:9 one-line bursts): the grammatical partition
     with every bond (caption_bonds, and the key terms with their hedges: emphasis_bonds), then merge_short_bursts.
     9:16 joins also keep each burst on screen for its dwell (freeze pass C10). Fix round 1 (operator decision
@@ -3414,7 +3415,7 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
         and not _function_only(ph) and _fits_caption_burst(ph)) or group_two_lines(ph) or lone_tail(ph),
         bond_extra=bond_extra, range_cuts=range_joiner_cuts(words), ranged=lambda ph: strict(ph) or relaxed(ph))
     out = _line_split(out, words, emphasis, line_split)
-    out = _readable_merge(out, words, emphasis, line_split)
+    out = _readable_merge(out, words, emphasis, recut)   # freeze cycle 5: its own record (reading_rates "recut")
     if bond_extra is not None:   # only those that stay in the result (a later repair may re-cut one)
         kept = {" ".join(w["word"] for w in p) for p in out}
         bond_extra[:] = [e for e in bond_extra if e["text"] in kept]
@@ -5582,8 +5583,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
         bond_extra: list[dict[str, Any]] = []
         line_split: list[dict[str, Any]] = []   # lane C cycle 4: each burst LINE_RULE split, or could not
+        recut: list[dict[str, Any]] = []        # freeze cycle 5: each re-cut of the readable merge, each short burst kept
         phrases = caption_phrases(words, emphasis, is_widescreen, max_caption_width, bond_extra=bond_extra,
-                                  line_split=line_split)
+                                  line_split=line_split, recut=recut)
         # The whole first frame is a Reel (9:16) feature only: a 16:9 documentary's first line appears with its
         # narration, as in round 3 (round 4 fix: it jumped to 0.0, up to 0.6 s before the voice).
         if is_widescreen:
@@ -5596,6 +5598,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # QF-88: CPS enforced where the caption timing decides it; the narration's own pace is recorded only.
         self.last_reading_rate = rates = reading_rates(phrases, timings, widescreen=is_widescreen,
                                                        bond_extra=bond_extra, line_split=line_split)
+        rates["recut"] = recut
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
             # starts its captions timeline_offset_s late; the release gate prints these times for the operator)

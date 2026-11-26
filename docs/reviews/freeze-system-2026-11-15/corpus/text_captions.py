@@ -1,6 +1,6 @@
 """Corpus proof, TEXT-04 / TEXT-05 / MOTION-03 (freeze cycle 5): the caption burst policy over every dev run.
 
-    python text_captions.py [--tree <tree>] [--dev <dev checkout>] [--data <collected.json>] [--quiet]
+    python text_captions.py --dev <dev checkout holding output/run_*> [--tree <tree>] [--data <collected.json>] [--quiet]
 
 Lander ruling 2026-11-26: a burst is split only to avoid a function-word line end or a qualifier / number split; no
 burst is made that is on screen under 0.8 s; a two-line burst whose line is one CONTENT word is legal; a phrase unit
@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -54,7 +55,7 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter, collections.Cou
             bursts, rate = cap["bursts"], cap.get("rate") or {}
             tot[f"{fmt} bursts"] += len(bursts)
             log = rate.get("line_split") or []
-            kept = {e.get("kept_short", "").replace(" / ", " ") for e in log if e.get("kept_short")}
+            kept = {e.get("kept_short", "").replace(" / ", " ") for e in (rate.get("recut") or []) if e.get("kept_short")}
             named = {" ".join(str(x).replace(" / ", " ").split()) for x in (
                 [e.get("text") for e in rate.get("never_end_lines") or []] + list(rate.get("line_defect") or [])
                 + list(rate.get("name_split") or []) + [e.get("text") for e in log if e.get("into", 0) is None]
@@ -116,7 +117,7 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter, collections.Cou
 
 
 def main() -> int:
-    dev = Path(_arg("--dev", r"C:\Users\omokolade\GitHub\relic-and-riddle"))
+    dev = Path(_arg("--dev") or os.environ.get("RR_DEV_CHECKOUT") or ".")
     data = (json.loads(Path(_arg("--data")).read_text(encoding="utf-8")) if _arg("--data")
             else collect(Path(_arg("--tree", str(ROOT))), dev, "captions"))
     table, tot, sizes = judge(data)

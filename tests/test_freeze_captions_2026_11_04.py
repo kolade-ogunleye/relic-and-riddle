@@ -60,6 +60,18 @@ from src.video_composer import (
     partition_words_grammatical,
 )
 
+
+@pytest.fixture(autouse=True)
+def _builder_phrasing(monkeypatch):
+    """Freeze cycle 5: this suite holds the PHRASE BUILDER's rules (caps, bonds, pause breaks, the HEAD gate): the
+    bursts before the readable merge (video_composer._readable_merge, lander ruling 2026-11-26), which joins short
+    bursts and parted phrase units into two-line bursts past one burst's caps by design. The merge's own rules (no
+    word lost, no new never-end end, no bond cut, nothing under 0.8 s unrecorded) are held by
+    tests/test_text_policy_c5.py and the corpus proof (corpus/text_captions.py)."""
+    from src import video_composer as _vc
+    monkeypatch.setattr(_vc, "_readable_merge", lambda phrases, *a, **k: phrases)
+
+
 ROOT = Path(__file__).resolve().parents[1]
 FPS = 30
 HAS_FFMPEG = shutil.which("ffmpeg") is not None

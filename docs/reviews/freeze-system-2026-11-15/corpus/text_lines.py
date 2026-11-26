@@ -1,7 +1,7 @@
 """Corpus proof, TEXT-01 / TEXT-02 / TEXT-03 (freeze cycle 5): the ONE breaking policy over every heading and body of
 every dev run.
 
-    python text_lines.py [--tree <tree>] [--dev <dev checkout>] [--data <collected.json>] [--quiet]
+    python text_lines.py --dev <dev checkout holding output/run_*> [--tree <tree>] [--data <collected.json>] [--quiet]
 
 Measures, per drawn text (text_collect.py sets it by the tree's own layout calls; src/line_policy.faults judges it):
 - TEXT-01  never_end / function_word_end: a line other than the last ends on an article, preposition, conjunction or
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -76,7 +77,7 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
 
 
 def main() -> int:
-    dev = Path(_arg("--dev", r"C:\Users\omokolade\GitHub\relic-and-riddle"))
+    dev = Path(_arg("--dev") or os.environ.get("RR_DEV_CHECKOUT") or ".")
     data = (json.loads(Path(_arg("--data")).read_text(encoding="utf-8")) if _arg("--data")
             else collect(Path(_arg("--tree", str(ROOT))), dev, "lines"))
     table, tot = judge(data)

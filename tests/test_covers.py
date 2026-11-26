@@ -118,5 +118,6 @@ def test_ensure_legible_reaches_wcag_contrast_on_bright_photos_and_leaves_dark_o
 
 def test_split_balanced_keeps_words_whole():
     from src.multi_format import split_balanced
-    assert split_balanced("WHICH TOOK MORE WORK AT KAILASA?") == ("WHICH TOOK MORE", "WORK AT KAILASA?")
+    # freeze cycle 5: MORE is a last-resort line end (the one vocabulary), so the break goes after WORK
+    assert split_balanced("WHICH TOOK MORE WORK AT KAILASA?") == ("WHICH TOOK MORE WORK", "AT KAILASA?")
     assert split_balanced("WHY?") == ("WHY?", "")

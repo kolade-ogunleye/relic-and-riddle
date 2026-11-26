@@ -179,60 +179,131 @@ def clip_tier_name(stem: str) -> str:
 
 
 LABEL_PX, LABEL_MIN_W = 22, 320
+TIER_PX = 16            # the production-tier line of a label strip: smaller than the label, in the tier's colour
+TIER_KEY = "board_tier"  # a sheet PNG's text chunk: its tiles (or its strip) carry the tier, so it is stamped once
 
 
-def label(im, text: str):
-    """The tile under its own label strip (black, white type, wrapped to the tile's width): a label never covers the
-    image (F22: the @246 masthead tiles hid the mark under the bar). A tile narrower than LABEL_MIN_W sits on a
-    board-grey field that wide, so its label stays readable."""
-    from PIL import Image, ImageDraw, ImageFont
-    f = ImageFont.load_default(size=LABEL_PX)
-    if im.width < LABEL_MIN_W:
-        field = Image.new("RGB", (LABEL_MIN_W, im.height), (40, 40, 40))
-        field.paste(im, (0, 0))
-        im = field
+def _wrap(text: str, font, room: float) -> list[str]:
+    """`text` in lines no wider than `room` (a long name breaks inside itself)."""
+    from PIL import Image, ImageDraw
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    room = im.width - 12
     lines: list[str] = []
     cur = ""
     for word in str(text).split(" "):
-        while probe.textlength(word, font=f) > room:   # a long name breaks inside itself
-            k = max(1, int(len(word) * room / probe.textlength(word, font=f)) - 1)
+        while probe.textlength(word, font=font) > room:   # a long name breaks inside itself
+            k = max(1, int(len(word) * room / probe.textlength(word, font=font)) - 1)
             if cur:
                 lines.append(cur)
                 cur = ""
             lines.append(word[:k])
             word = word[k:]
         trial = f"{cur} {word}".strip()
-        if cur and probe.textlength(trial, font=f) > room:
+        if cur and probe.textlength(trial, font=font) > room:
             lines.append(cur)
             cur = word
         else:
             cur = trial
     lines.append(cur)
+    return lines
+
+
+def label(im, text: str, tier: tuple[str, str] | None = None):
+    """The tile under its own label strip (black, white type, wrapped to the tile's width): a label never covers the
+    image (F22: the @246 masthead tiles hid the mark under the bar). A tile narrower than LABEL_MIN_W sits on a
+    board-grey field that wide, so its label stays readable. `tier` (cycle 5, review item 6: the tier was only in
+    board.json): (tier, its words) drawn as the strip's first line, small, in the tier's colour; it is part of the
+    strip, never of the image under it."""
+    from PIL import Image, ImageDraw, ImageFont
+    f = ImageFont.load_default(size=LABEL_PX)
+    if im.width < LABEL_MIN_W:
+        field = Image.new("RGB", (LABEL_MIN_W, im.height), (40, 40, 40))
+        field.paste(im, (0, 0))
+        im = field
+    room = im.width - 12
+    lines = _wrap(text, f, room)
     step = LABEL_PX + 4
-    h = 8 + step * len(lines)
+    tier_lines: list[str] = []
+    tier_step = TIER_PX + 4
+    if tier:
+        ft = ImageFont.load_default(size=TIER_PX)
+        tier_lines = _wrap(tier[1], ft, room)
+    top = tier_step * len(tier_lines)
+    h = 8 + top + step * len(lines)
     out = Image.new("RGB", (im.width, h + im.height), (0, 0, 0))
     d = ImageDraw.Draw(out)
+    if tier:
+        import board_evidence as be
+        for i, ln in enumerate(tier_lines):
+            d.text((6, 4 + tier_step * i), ln, fill=be.TIER_COLOURS.get(tier[0], (255, 255, 255)), font=ft)
     for i, ln in enumerate(lines):
-        d.text((6, 4 + step * i), ln, fill=(255, 255, 255), font=f)
+        d.text((6, 4 + top + step * i), ln, fill=(255, 255, 255), font=f)
     out.paste(im, (0, h))
     return out
+
+
+def _tier_info(tiers: str):
+    from PIL.PngImagePlugin import PngInfo
+    info = PngInfo()
+    info.add_text(TIER_KEY, tiers)
+    return info
+
+
+def tier_strip(im, stem: str):
+    """A sheet saved whole (a table, a curve, a specimen: no tiles) under a one-line strip naming its tier
+    (board_evidence.tile_tier of the sheet's own name): (the image with the strip above it, the tier). The sheet's
+    own pixels are unchanged below the strip."""
+    import board_evidence as be
+    from PIL import Image
+    t, words = be.tile_tier(stem, stem, WIDE_CAPTIONS)
+    strip = label(Image.new("RGB", (max(im.width, LABEL_MIN_W), 1), (0, 0, 0)), stem, tier=(t, words))
+    strip = strip.crop((0, 0, strip.width, strip.height - 1))
+    out = Image.new("RGB", (max(im.width, strip.width), strip.height + im.height), (0, 0, 0))
+    out.paste(strip, (0, 0))
+    out.paste(im.convert("RGB"), (0, strip.height))
+    return out, t
+
+
+def tier_sheets(out: Path) -> dict[str, str]:
+    """Cycle 5 (review item 6): every sheet of the board says its tier. sheet() draws it on each tile; this stamps
+    the sheets saved whole (rows 1, 12 and 13's tables, curves and specimens, the burst and refusal tables) with
+    tier_strip, and makes their half-size copy again from the stamped sheet. A sheet already carrying the tier (its
+    PNG text chunk TIER_KEY) is left as it is, so a board re-run over the same folder stamps nothing twice. Only
+    <out>/*.png: the surfaces and cases (the judged pixels) are in their own folders and are never opened here.
+    Returns {sheet stem: tier} of the sheets stamped."""
+    from PIL import Image
+    done: dict[str, str] = {}
+    for p in sorted(Path(out).glob("*.png")):
+        with Image.open(p) as im:
+            if im.info.get(TIER_KEY):
+                continue
+            stamped, t = tier_strip(im.convert("RGB"), p.stem)
+        stamped.save(p, compress_level=1, pnginfo=_tier_info(t))
+        half = p.with_name(p.stem + "_half.jpg")
+        if half.is_file():
+            stamped.resize((max(1, stamped.width // 2), max(1, stamped.height // 2)), Image.LANCZOS).save(half, quality=90)
+        done[p.stem] = t
+    return done
 
 
 def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
     """Tiles (label, image) at a common height (`tile_h`), or at their own pixel size (`tile_h=None`: the feed
     renders, crops and tiles that must be seen as delivered), `cols` per row, each under its own label strip, saved
     full and half (Lanczos, q90)."""
+    import board_evidence as be
     from PIL import Image
     if not tiles:
         return
     scaled = []
+    tiers = []
     for name, im in tiles:
         im = im.convert("RGB")
         if tile_h is not None and im.height != tile_h:
             im = im.resize((max(1, round(im.width * tile_h / im.height)), tile_h), Image.LANCZOS)
-        scaled.append(label(im, name))
+        # cycle 5 (review item 6): each tile's production tier in its label strip (rows 1, 2, 12, 13 and the peer
+        # feeds too: every sheet of tiles comes through here); the image under the strip is untouched
+        tier = be.tile_tier(str(name), out.stem, WIDE_CAPTIONS)
+        tiers.append(tier[0])
+        scaled.append(label(im, name, tier=tier))
     rows = [scaled[i:i + cols] for i in range(0, len(scaled), cols)]
     W = max(sum(t.width for t in r) + 12 * (len(r) - 1) for r in rows)
     H = sum(max(t.height for t in r) for r in rows) + 12 * (len(rows) - 1)
@@ -244,7 +315,8 @@ def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
             board.paste(t, (x, y))
             x += t.width + 12
         y += max(t.height for t in r) + 12
-    board.save(out.with_suffix(".png"), compress_level=1)   # lossless either way; level 1 saves the big rows faster
+    # lossless either way; level 1 saves the big rows faster. The text chunk says its tiles carry their tier
+    board.save(out.with_suffix(".png"), compress_level=1, pnginfo=_tier_info(",".join(sorted(set(tiers)))))
     board.resize((max(1, W // 2), max(1, H // 2)), Image.LANCZOS).save(out.with_name(out.stem + "_half.jpg"), quality=90)
 
 
@@ -1754,8 +1826,12 @@ def main() -> None:
             seam = rec.get("seam") or {}
             return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
                     f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
+        def drawn_arch(stem: str):   # cycle 5: the archetype the tree drew (the run's, or today's where they differ)
+            return bx.recipe_archetype(dev, stem, (surfaces_rec or {}).get("rerouted"))
+
         def note(stem: str) -> str:   # cycle 4: the ladder's rung and any recorded omission, on the tile's label
-            return " | ".join(x for x in (shipped(stem), be.omission_note(stem, surfaces_rec),
+            diagram = "diagram slide" if r == 5 and drawn_arch(stem) == "diagram" else ""   # its tier is 2
+            return " | ".join(x for x in (diagram, shipped(stem), be.omission_note(stem, surfaces_rec),
                                           be.record_note(stem, surfaces_rec)) if x)
         tiles = [(be.label(p.stem, note(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
@@ -1797,7 +1873,7 @@ def main() -> None:
         if r == 5:
             figure_slides = []
             for p in pick:   # the stat and diagram slides of every recipe run (the heroes' decks route none)
-                arch = bx.recipe_archetype(dev, p.stem)
+                arch = drawn_arch(p.stem)
                 if arch in ("colossal_stat", "diagram") and "__carousel_" in p.stem:
                     item = {"name": p.stem, "label": f"{arch} slide (recipe)", "image": Image.open(p).convert("RGB")}
                     figure_slides.append(item)
@@ -1931,8 +2007,13 @@ def main() -> None:
     for clip_name in manifest.get("clips") or {}:   # cycle 5: the clips' tiers too
         stem = Path(clip_name).stem
         manifest.setdefault("case_tiers", {})[f"clips/{stem}"] = be.tier(clip_tier_name(stem), "", WIDE_CAPTIONS)
+    # cycle 5 (review item 6): every case of every row has a tier (rows 1, 2, 12, 13 and the peer feeds are assigned
+    # outside the loop above), and every sheet saved whole says its tier on the sheet itself
+    be.case_tiers(manifest, WIDE_CAPTIONS)
+    manifest["tier_strips"] = extra("tier strips", lambda: tier_sheets(out), {})
     manifest["tiers"] = {"what": be.TIER_WHAT, "rule": "lander ruling 2026-11-26 (SURFACE-USAGE-2026-11-26): a "
-                         "lane's verdict is set by tiers 1-2", "counts": {
+                         "lane's verdict is set by tiers 1-2", "drawn": "each tile's label strip (sheet()) and a "
+                         "strip above each sheet saved whole (tier_sheets)", "counts": {
                              t: sum(1 for v in (manifest.get("case_tiers") or {}).values() if v == t)
                              for t in be.TIER_WHAT}}
     took("board total (this process)", t_all)

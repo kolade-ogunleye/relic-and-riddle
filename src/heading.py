@@ -36,6 +36,7 @@ order: feed legibility > one system > hierarchy).
 from __future__ import annotations
 
 import itertools
+import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
@@ -93,8 +94,13 @@ def _bonded(words: Sequence[str]) -> set[int]:
     # freeze cycle 5 (TEXT stream): the ONE keep-together definition (line_policy.keep_together: a date, an era, a
     # multi-word hedge, a spelled number with its unit hold in a heading as they do in body copy and captions); a
     # range may still break before its joiner (its recorded last resort)
+    if getattr(_bonds, "legacy", False):
+        return out
     from . import line_policy
     return out | (line_policy.keep_together(words) - line_policy.range_seams(words))
+
+
+_bonds = threading.local()   # .legacy: set_heading's recorded last resort (the round-7 bonds only)
 
 
 def break_points(words: Sequence[str], last_resort: bool = True) -> list[int]:
@@ -401,6 +407,30 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                 balance_min: float | None = None, locked_lines: int = 0,
                 last_resort_floor: float | None = None, extra_lines: int = 0,
                 final_floor: float | None = None) -> Form | None:
+    """_set_heading_ruled under the ONE keep-together definition (line_policy.keep_together). Freeze cycle 5: where
+    no form sets with every policy bond held (a hedge word and its figure on a locked cover: ESTIMATED / 6 TONNES),
+    the heading sets as it did before the policy (the round-7 bonds: a number and its unit, the one-word hedges)
+    rather than being newly refused, RECORDED ("keep_together_last_resort"): a refusal is the last step of the
+    fallback order, never the first."""
+    args = (text, measure, width, sizes, max_lines, seam, lockup, balance_min, locked_lines, last_resort_floor,
+            extra_lines, final_floor)
+    form = _set_heading_ruled(*args)
+    if form is None and not getattr(_bonds, "legacy", False):
+        _bonds.legacy = True
+        try:
+            form = _set_heading_ruled(*args)
+        finally:
+            _bonds.legacy = False
+        if form is not None:
+            form.record["keep_together_last_resort"] = True
+    return form
+
+
+def _set_heading_ruled(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
+                       max_lines: int = 2, seam: int | None = None, lockup: bool = False,
+                       balance_min: float | None = None, locked_lines: int = 0,
+                       last_resort_floor: float | None = None, extra_lines: int = 0,
+                       final_floor: float | None = None) -> Form | None:
     """The heading `text` set on the ladder `sizes` (first size, then at most the recorded fallback): None when no
     valid form fits `width` at any of them. `measure(line, size)` is a line's drawn width at `size`. `seam`: an
     authored line1 / line2 seam (word index) the break prefers; `lockup`: the payoff run is gold (else the heading is

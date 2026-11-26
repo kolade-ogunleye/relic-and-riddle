@@ -33,6 +33,7 @@ from src import line_policy  # noqa: E402
 
 CLASS = {"never_end": "TEXT-01", "function_word_end": "TEXT-01", "unit_split": "TEXT-02", "lone_last_row": "TEXT-03"}
 HEADING_RECORDS = {"function_word_end": ("conjunction_end", "conjunction_end_last_resort"),
+                   "unit_split": ("keep_together_last_resort",),
                    "lone_last_row": ("locked_last_resort", "lone_last_resort", "phrase_exception", "first_row_lone")}
 
 

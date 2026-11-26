@@ -7,7 +7,7 @@ stay whole. No saliency mask is treated as a semantic subject detector.
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
-from .brand_system import GATES, tok
+from .brand_system import GATES, tok, type_px
 from .heading import GOLD_ROLES, field_runs, lockup_fields, set_field, set_heading
 from .typography import (
     TextFitError,
@@ -1986,7 +1986,9 @@ def _provenance(im, lay):
 
 
 PROVENANCE_PX, PROVENANCE_PAD = 30, (14, 10)
-PROVENANCE_SIZES = (PROVENANCE_PX, 28, 26, 24)   # one line from 30 px; the floor of either form
+# one line from 30 px, else the type system's credit size (TYPE tall credit, 24), the floor of either form: the
+# label steps only onto TYPE sizes, so it opens no new size site (lane F c4 CI: 28 / 26 were off the ladder)
+PROVENANCE_SIZES = (PROVENANCE_PX, round(type_px("credit", "tall")))
 PROVENANCE_INSET = 24       # design px: the plate's edge inside its photo window
 PROVENANCE_LEAD = 1.75      # cap heights between the two lines' baselines
 

@@ -1782,8 +1782,10 @@ def _chapter_fit(t: str, geo: _Geo, col_tall: int, title_x: int, cap_px: int | N
     CardRefused where no rule sets the title."""
     def capped(ladder: Sequence[int]) -> tuple[int, ...]:
         return tuple(P for P in ladder if cap_px is None or P <= cap_px)
-    # review 2026-11-03 (second round, 3): the 9:16 title runs larger (it sat small in the upper third)
-    sizes, measure = (((120, 112, 104, 96), 1766 - title_x) if geo.wide
+    # review 2026-11-03 (second round, 3): the 9:16 title runs larger (it sat small in the upper third). The 16:9
+    # title sets only on CHAPTER_WIDE_ONE / CHAPTER_WIDE_TWO (below: it is set or refused there), so its generic
+    # ladder is empty (lane F c4: the unreachable inline (120 .. 96) is gone)
+    sizes, measure = (((), 1766 - title_x) if geo.wide
                       else ((136, 128, 120, 112, 104, 100, 96, 92, 88, 84), CHAPTER_TALL_MEASURE))
     sizes = capped(sizes)
     fit = None

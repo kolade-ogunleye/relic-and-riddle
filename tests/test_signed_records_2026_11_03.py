@@ -520,9 +520,17 @@ def test_the_bright_hook_panel_is_evenly_padded_flush_left_and_has_no_foot_rule(
         for b in titles:   # lane F cycle 3: flush left on the column's left edge (its glyphs' side bearing aside)
             assert abs(b[0] - dc.TALL_LEFT) <= 12, (rgb, b)
         assert "rule" not in plan.meta["scrim"]
+        # Lane F cycle 4 (panel 5 CD r1 + r2: the full-width plate read as a slab): the plate is full to plate_right
+        # (HOOK_WASH_RIGHT_AIR past the block's ink) and grades out right of it, so the photo shows at the foot's
+        # right end by design. The rule this test holds: under the claim the foot is INK, and nowhere along the
+        # foot does a band run brighter than the panel's own middle at that column (a foot rule, GOLD or other).
         f0 = np.asarray(plan.meta["_ground0"]).astype(int)
-        foot = f0[y1 - 8:y1 - 1].reshape(-1, 3)
+        right = plan.meta["scrim"]["plate_right"]
+        assert right > max(b[2] for b in titles), rgb
+        foot = f0[y1 - 8:y1 - 1, :right].reshape(-1, 3)
         assert (foot.max(axis=1) < 60).all(), rgb                      # the panel's foot is INK, no GOLD band
+        mid = f0[(y0 + y1) // 2].max(axis=1)
+        assert (f0[y1 - 8:y1 - 1].max(axis=2) <= mid[None, :] + 8).all(), rgb   # no band along the foot anywhere
 
 
 def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
@@ -540,9 +548,16 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
         assert sc["mode"] == "plate" and plan.meta["anchors"]["position"] in ("normal", "top")
         y0, y1 = sc["plate"]
         assert y1 >= plan.meta["anchors"]["L"]
-        a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]
-        assert (a[y0 + 2:y1 - 2] > 230).all()                                   # no bright gap inside it
-        g0 = np.asarray(plan.meta["_ground0"]).astype(float)[y0 + 20:y1 - 20].mean(axis=(0, 1))
+        # Lane F cycle 4 (panel 5 CD r1 + r2: the full-width plate read as a slab): the one panel is full strength
+        # from the frame's left edge to plate_right (past every claim line) and grades out right of it with no edge;
+        # the panel is measured over its full-strength extent (the full-width mean pinned the slab)
+        right = sc["plate_right"]
+        assert right > max(e.box[2] for e in plan.elements if e.name.startswith("title_")), rgb
+        A = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)
+        assert (A[y0 + 2:y1 - 2, :right] > 230).all(), rgb                      # no bright gap inside it
+        row = A[(y0 + y1) // 2, right:]
+        assert (np.diff(row) <= 1).all(), rgb                                   # it only eases out: no second band
+        g0 = np.asarray(plan.meta["_ground0"]).astype(float)[y0 + 20:y1 - 20, :right].mean(axis=(0, 1))
         assert max(g0) - min(g0) < 12, (rgb, g0)                                # neutral INK: never olive
 
 

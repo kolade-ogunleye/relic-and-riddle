@@ -85,7 +85,7 @@ def _harness(fn: str) -> bool:
 ASKS_PRESENCE = {
     "genericpath.py": {"exists", "isfile", "isdir"},
     "ntpath.py": {"lexists", "islink", "isdir", "ismount", "realpath", "exists", "isfile"},
-    "posixpath.py": {"lexists", "islink", "ismount", "realpath"},
+    "posixpath.py": {"lexists", "islink", "ismount", "realpath", "_joinrealpath"},   # 3.11: realpath's lstat
     "pathlib.py": {"exists", "is_file", "is_dir", "is_symlink", "is_mount", "resolve", "expanduser", "is_junction",
                    "_scandir", "_select_from", "_iterate_directories", "mkdir", "touch"},
     "shutil.py": {"which", "_access_check", "rmtree", "_rmtree_unsafe", "_rmtree_islink"},

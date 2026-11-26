@@ -1634,6 +1634,8 @@ class MultiFormatGenerator:
         kickers = (getattr(lay, "meta", None) or {}).get("kickers") if isinstance(getattr(lay, "meta", None), dict) else None
         from . import line_policy as _lp
         _story_faults = _lp.drawn_record(body_lines, role="body")
+        if l1 and l2:   # the title's two authored fields: a seam that ends on a function word is on the record too
+            _story_faults = _lp.drawn_record([l1, l2], role="title") + _story_faults
         lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "photo_credit": credit,
                     **({"kickers": kickers} if kickers else {}),
                     "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),

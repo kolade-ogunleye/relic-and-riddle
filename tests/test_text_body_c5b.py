@@ -131,7 +131,7 @@ def test_set_lines_order_and_refusal():
     # but never further than the stretch while a last-resort break exists: the range then takes its seam
     lines = line_policy.set_lines("It weighs somewhere between 1,090 tonnes and 1,168 tonnes of granite.", m, 900, 4,
                                   chars=24)
-    assert max(map(len, lines)) <= round(24 * line_policy.MEASURE_STRETCH), lines
+    assert max(map(len, lines)) <= 29, lines                                # 24 x 1.2 (MEASURE_STRETCH)
     assert all(f.get("seam") for f in line_policy.violations(lines)), lines
 
 
@@ -167,6 +167,8 @@ def test_line_faults_are_written_beside_the_still_for_the_lines_it_drew(tmp_path
     drawn = next(e["text"] for e in entry["elements"] if e["name"] == "body")
     assert all(f["role"] == "body" and f["text"] in drawn for f in faults), (faults, drawn)
     assert [f["fault"] for f in faults] == ["measure_over"] and faults[0]["text"].endswith("1,168 tonnes.")
+    # the heading engine's form (its recorded last resorts with it) is beside the still too, as drawn
+    assert " ".join(entry["heading"]["lines"]) == "UNMATCHED WEIGHT" and "conjunction_end" in entry["heading"]
     # every recorded line is a line of the drawn body, once: no trial fit's lines beside them
     lines, _, _ = _body(ASWAN, 4)
     assert sorted({f["text"] for f in faults}) == sorted({ln for ln in lines if len(ln) > MEASURE})
@@ -181,6 +183,7 @@ def test_a_clean_slide_has_no_record_and_takes_none_from_another_surface(tmp_pat
     entry = _slide(tmp_path, "s02.jpg", {"heading": "CARVED FROM BEDROCK",
                                          "body": "Workers carved it into bedrock, leaving its underside attached."})
     assert "line_faults" not in entry and "type_fallbacks" not in entry, entry.keys()
+    json.dumps(entry)                                                        # the whole entry is a plain record
     line_policy.take_notes()
 
 

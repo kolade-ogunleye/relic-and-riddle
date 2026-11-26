@@ -84,7 +84,11 @@ def carousel_rows(j: dict) -> list[dict]:
                     form, font = g._set_heading(d, px, head, width, "wrap", 1.0, gen.CONTENT_HEADING, True)
                 rows.append({"surface": name, "text": head, "lines": list(form.lines), "size": form.size,
                              "widths": [round(d.textlength(t, font=font), 1) for t in form.lines],
-                             "record": dict(form.record), "heading": True, "record_in_memory": True})
+                             "record": dict(form.record), "heading": True,
+                             # the slide keeps the form in layout.meta["heading"]; a tree whose still_layout.save
+                             # does not write that key beside the still holds the record in memory only
+                             "record_in_memory": "heading" not in getattr(
+                                 __import__("src.still_layout", fromlist=["x"]), "TEXT_RECORDS", ())})
             except Exception as ex:   # noqa: BLE001
                 rows.append({"surface": name, "text": head, "refused": True, "reason": str(ex)[:200]}
                             if _refusal(ex) else _err(name, ex))

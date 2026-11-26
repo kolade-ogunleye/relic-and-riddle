@@ -2961,7 +2961,8 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
             r = round(y)
             rows = pan[max(0, r):min(H, r + lo)] if side == "up" else pan[max(0, r - lo):min(H, r)]
             colour = rows.reshape(-1, 3).mean(axis=0) if rows.size else np.asarray(brand.INK, np.float32)
-            return band_edge.feather(out_l, y, side, colour, 1.0, lo, W)
+            # freeze cycle 5 (PLATES): a floating panel on a blurred ground; the limit is measured on that ground
+            return band_edge.feather(out_l, y, side, colour, 1.0, lo, W, floating=True)
         feet = [geo.y(y1)] + ([geo.y(foot0)] if foot0 is not None else [])
         feathers = (at(geo.y(top), "up") if top is not None else 0.0, max(at(f, "down") for f in feet))
     m = _edge_rows(H, geo.y(top) if top is not None else -1.0, geo.y(y1), feathers)
@@ -4071,28 +4072,49 @@ HOOK_PLATE_SIDE = 360       # design px over which the plate eases right of the 
 HOOK_PLATE_SIDE_FLOOR = 0.0  # the share of the plate's strength it eases to (the frame's edge may end before it)
 
 
-def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float, feather: float = 0.0,
-                 x1: float | None = None) -> Image.Image:
+def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float,
+                 feather: float | tuple[float, float] = 0.0, x1: float | None = None,
+                 side: float | None = None) -> Image.Image:
     """An INK band from y0 to y1 at `strength`, its edges crisp (one antialiased pixel), or with `feather` (freeze
-    panel H6 (4)) eased (smoothstep) from nothing `feather` px outside y0 and y1 to full at them. Full bleed, or with
-    `x1` (lane F cycle 4) full from the left edge to x1 and smoothstepped right of it to HOOK_PLATE_SIDE_FLOOR x
-    strength over HOOK_PLATE_SIDE."""
+    panel H6 (4); one length, or (above, below): freeze cycle 5, each edge's own from _plate_feathers) eased
+    (smoothstep) from nothing `feather` px outside y0 and y1 to full at them. Full bleed, or with `x1` (lane F cycle
+    4) full from the left edge to x1 and smoothstepped right of it to HOOK_PLATE_SIDE_FLOOR x strength over `side`
+    (HOOK_PLATE_SIDE by default)."""
     yy = np.arange(size[1], dtype=np.float32) + 0.5
-    if feather > 0:
-        d = np.maximum(y0 - yy, yy - y1)
-        x = np.clip(1.0 - d / feather, 0.0, 1.0)
-        v = np.where(d <= 0, 1.0, x * x * (3 - 2 * x)).astype(np.float32)
+    up, down = feather if isinstance(feather, (tuple, list)) else (feather, feather)
+    if up > 0 and down > 0:
+        x = np.clip(np.where(yy < y0, 1.0 - (y0 - yy) / up, 1.0 - (yy - y1) / down), 0.0, 1.0)
+        v = np.where((yy >= y0) & (yy <= y1), 1.0, x * x * (3 - 2 * x)).astype(np.float32)
     else:
         v = np.clip(np.minimum(yy - y0, y1 - yy) + 0.5, 0, 1)
     if x1 is None:
         hx = np.ones(size[0], np.float32)
     else:
-        u = np.clip((np.arange(size[0], dtype=np.float32) + 0.5 - x1) / HOOK_PLATE_SIDE, 0, 1)
+        u = np.clip((np.arange(size[0], dtype=np.float32) + 0.5 - x1) / (side or HOOK_PLATE_SIDE), 0, 1)
         hx = 1 - (1 - HOOK_PLATE_SIDE_FLOOR) * (u * u * (3 - 2 * u))
     a = np.clip(v[:, None] * hx[None, :] * strength * 255.0, 0, 255).astype("uint8")
     layer = Image.new("RGBA", size, brand.INK + (255,))
     layer.putalpha(Image.fromarray(a))
     return layer
+
+
+def _plate_feathers(bg: Image.Image, y0: float, y1: float, strength: float, feather: float, right: float
+                    ) -> tuple[tuple[int, int], int]:
+    """((above, below), side): the hook plate's feathers on `bg` at `strength` (freeze cycle 5, stream PLATES: panel 6
+    read the bright-ground plate as a dark bar with straight edges, 2.6 luma / px at its foot under a fixed 128 px
+    feather). Each edge takes the band-edge rule's length for the ground it crosses (band_edge.feather, a FLOATING
+    band: the photograph goes on above and below it), never under the designed `feather`; the ease right of the
+    block the same rule's across the plate's own rows, never under HOOK_PLATE_SIDE."""
+    from . import band_edge
+    lum = band_edge.luma_rows(bg)
+    w = bg.size[0]
+    if feather <= 0:
+        return (0, 0), HOOK_PLATE_SIDE
+    up = band_edge.feather(lum, y0, "up", brand.INK, strength, feather, w, floating=True)
+    down = band_edge.feather(lum, y1, "down", brand.INK, strength, feather, w, floating=True)
+    across = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))].T          # rows = x: the ease right of the block
+    side = band_edge.feather(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True)
+    return (up, down), side
 
 
 def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
@@ -4124,14 +4146,16 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
             y1 = plate_bottom             # the claim's ink foot plus the same air as above the masthead
         for i, st in enumerate(HOOK_PLATE_STEPS):
             last = i == len(HOOK_PLATE_STEPS) - 1
-            h, worst, under = _least_halo(base, _plate_layer(bg.size, y0, y1, st, feather, right), field, plates,
-                                          1.0 if last else HOOK_GLOW_MAX)
+            feathers, side = _plate_feathers(bg, y0, y1, st, feather, right)
+            h, worst, under = _least_halo(base, _plate_layer(bg.size, y0, y1, st, feathers, right, side), field,
+                                          plates, 1.0 if last else HOOK_GLOW_MAX)
             tried.append({"strength": st, "min": round(worst, 2), "halo": h})
             if h is not None:
                 break
         rec = {"luminance": round(lum, 3), "mode": "plate", "strength": tried[-1]["strength"],
                "halo": tried[-1]["halo"], "tried": tried, "plate": [round(y0), round(y1)],
-               "feather": feather, "plate_right": round(right), "above_kept": _above_kept(base, under, box[1])}
+               "feather": feather, "feathers": [int(v) for v in feathers], "side": int(side),
+               "plate_right": round(right), "above_kept": _above_kept(base, under, box[1])}
         if why:
             rec["plate_reason"] = why
         if eyebrow_row is not None:
@@ -4500,6 +4524,10 @@ def plan_hook_frame(spec: HookFrame, sheet: dict, width: int = 1080, height: int
         E = geo["E"]
         rule = (round(cx) - 22, E - 46, round(cx) + 22, E - 42) if centred else (left, E - 46, left + 44, E - 42)
         under = _rule_halo(bg, under, rule)
+    # freeze cycle 5 (PLATES): where the wash or plate grades out it holds the photograph's hue and saturation (the
+    # same luma, so the plan above stands; under the block, at the scrim's own strength, it is INK as before)
+    from .band_edge import hold_hue
+    under = hold_hue(bg, under, float(scrim_rec.get("strength") or 0) or None)
     ground0 = Image.alpha_composite(bg.convert("RGBA"), under).convert("RGB")
     # two mark layers: `marks` under the plates (the disclosure's INK plate, which its text sits on) and `top` over
     # them (the diamond and the eyebrow rule: a neighbouring plate's INK halo would otherwise dim them)

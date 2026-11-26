@@ -277,6 +277,9 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "place.halo_max": 0.16,           # the system halo cap: never deeper (a brand may set it lower, never higher)
     # ---- band and plate edges, overlay-label halos, gutters (cycle 0 round 7: panel F8, F9, F15, F17)
     "edge.slope_max": 2.0,            # luma per px at 1080 wide: a band / plate edge's steepest point (edge_feather)
+    # freeze cycle 5 (stream PLATES, panel 6): the one limit is measured on the ground (band_edge.slope_limit)
+    "edge.slope_float": 1.0,          # the ceiling for a FLOATING band (photograph above and below: myth panel, hook plate)
+    "edge.texture_gain": 2.0,         # limit = gain x the ground's own detail (luma / px), field gate .. the ceiling
     "halo.label_max": 0.16,           # an overlay label's halo alpha, never above (the masthead's cap)
     "halo.label_spread": 0.33,        # em: an overlay label's one halo spread (21 px at 64 px)
     "plate.gutter": 24,               # design px (1080 wide) of INK between two photographs side by side
@@ -359,6 +362,8 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "place.halo_px": (8, 31),
     "place.halo_max": (0.0, 0.16),        # the system halo cap
     "edge.slope_max": (0.5, 3.0),         # luma / px at 1080: never under the field gate, never a lid (6.1 measured)
+    "edge.slope_float": (0.5, 3.0),       # the same range; band_edge takes the lower of it and edge.slope_max
+    "edge.texture_gain": (0.5, 8.0),      # 0.5: only a very busy ground hides an edge; 8: nearly every photograph does
     "halo.label_max": (0.0, 0.16),        # never above the masthead's ruled cap
     "halo.label_spread": (0.15, 0.60),    # em
     "plate.gutter": (8, 64),              # design px
@@ -880,12 +885,13 @@ def masthead_spec(size: float) -> dict[str, Any]:
 SMOOTHSTEP_PEAK = 1.5   # smoothstep's steepest slope, in units of its mean slope (step / feather)
 
 
-def edge_feather(step: float, width: int, minimum: float = 0.0) -> int:
+def edge_feather(step: float, width: int, minimum: float = 0.0, slope: float | None = None) -> int:
     """The feather (canvas px) a smoothstep band or plate edge needs so that crossing a luma `step` (0-255) its
-    steepest point is at most tok("edge.slope_max") luma per px at 1080 wide, on a canvas `width` wide; never under
-    `minimum` (the surface's own designed feather)."""
+    steepest point is at most `slope` luma per px at 1080 wide (default tok("edge.slope_max"); band_edge.slope_limit
+    gives the limit measured on the ground), on a canvas `width` wide; never under `minimum` (the surface's own
+    designed feather)."""
     import math
-    slope = tok("edge.slope_max") * 1080 / max(1, width)
+    slope = (tok("edge.slope_max") if slope is None else float(slope)) * 1080 / max(1, width)
     return int(max(math.ceil(minimum), math.ceil(SMOOTHSTEP_PEAK * max(0.0, float(step)) / slope)))
 
 

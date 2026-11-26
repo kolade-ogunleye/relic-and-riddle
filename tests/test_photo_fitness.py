@@ -547,3 +547,43 @@ def test_the_corpus_script_judges_with_the_trees_measure(tmp_path):
 def test_every_problem_has_a_recorded_reason(name):
     text = pf.reason({"problems": [name]}, "the surface")
     assert pf.REASONS[name] in text and "the surface" in text and "src/photo_fitness.py" in text
+
+
+def test_a_moved_window_never_costs_the_text_its_contrast():
+    """Review of cycle 5, B3: a slide or Story frame whose window was moved is drawn again as asked; the moved drawing
+    stands only when no text element is lower after the platform re-encode and none falls under the floor."""
+    from types import SimpleNamespace
+
+    from src import multi_format as mf
+
+    class Plate:
+        empty = False
+
+        def measure(self, im):   # a stand-in ratio read from the delivered pixels: brighter ground, higher ratio
+            return float(np.asarray(im.convert("L")).mean()) / 25.0
+
+    def drawing(level, moved):
+        lay = SimpleNamespace(meta={"windows": [{"fit": {"moved": moved, "fit": True, "problems": []}}]},
+                              plates={"body": [Plate()]})
+        return Image.new("RGB", (64, 80), (level,) * 3), lay
+
+    asked_calls = []
+
+    def again(level):
+        def draw():
+            asked_calls.append(getattr(mf._render_state, "asked_only", False))
+            return drawing(level, False)
+        return draw
+
+    im, lay = drawing(100, True)                              # moved: 4.0, asked: 6.0 -> the asked drawing
+    got_im, got_lay = mf.keep_text_contrast(again(150), im, lay)
+    assert asked_calls == [True] and not getattr(mf._render_state, "asked_only", False)
+    assert np.asarray(got_im).mean() == pytest.approx(150, abs=1)
+    rec = got_lay.meta["windows"][0]["fit"]
+    assert "lowered the text's contrast" in rec["move_refused"] and rec["text_contrast"]["asked"]["body"] > 5.5
+    im, lay = drawing(150, True)                              # moved: 6.0, asked: 4.0 -> the moved one stands
+    got_im, got_lay = mf.keep_text_contrast(again(100), im, lay)
+    assert got_lay is lay and "move_refused" not in lay.meta["windows"][0]["fit"]
+    im, lay = drawing(150, False)                             # nothing moved: no second drawing
+    asked_calls.clear()
+    assert mf.keep_text_contrast(again(100), im, lay)[1] is lay and asked_calls == []

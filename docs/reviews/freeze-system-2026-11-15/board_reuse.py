@@ -276,6 +276,8 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
     if not deps_file.is_file():
         raise NoReuse(f"previous board has no {DEPS_NAME} (rendered without the code record)")
     deps = json.loads(deps_file.read_text(encoding="utf-8"))
+    if not (prev_dir / "MANIFEST.json").is_file():   # the gate proves each reused file against it
+        raise NoReuse("previous board has no MANIFEST.json (run freeze_manifest.py on it first)")
     penv = pb.get("reuse_env")
     if not penv:
         raise NoReuse("previous board has no environment record (board.json reuse_env)")
@@ -320,8 +322,7 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
         jobs[j]["status"] = "sampled"
     return {"schema": SCHEMA, "prev": {"dir": str(prev_dir), "head": prev_head,
                                        "deps_sha256": sha256_file(deps_file),
-                                       "manifest_sha256": sha256_file(prev_dir / "MANIFEST.json")
-                                       if (prev_dir / "MANIFEST.json").is_file() else None},
+                                       "manifest_sha256": sha256_file(prev_dir / "MANIFEST.json")},
             "head": new_head, "palette": palette, "env_sha256": env["sha256"],
             "checks": {"global_diff": [], "inputs_rehashed": len((pb.get("inputs") or {}).get("files") or {}),
                        "jobs_offered": len(offered), "jobs_without_code_record": missing},

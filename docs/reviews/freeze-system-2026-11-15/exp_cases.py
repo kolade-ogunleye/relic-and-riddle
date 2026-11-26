@@ -51,14 +51,38 @@ def cycle4_rows(tree: Path) -> list[dict]:
     return rows
 
 
+HOOK_GROUNDS = ("amber",)   # cycle 5: the hook clip on every ground beyond the first (the saturated yellow ground)
+
+
+def cycle5_rows(tree: Path) -> list[dict]:
+    """Cycle 5's evidence: per caption fixture of the tree's catalogue, its whole-run clip, band sheet and burst
+    table; the hook clip and its row-12 sheets on the Amber ground."""
+    cat = json.loads((tree / FIXTURES).read_text(encoding="utf-8"))
+    rows = []
+    for c in (cat["designs"].get("captions") or {}).get("cases") or []:
+        tag = "169" if c.get("format") == "16:9" else "916"
+        # freeze_common.classify: clips/captions_run__<topic>__<tag>.mp4 -> case captions_run__<topic>, format <tag>;
+        # row07_captions_run__<topic>__<tag>.png -> surface row07_captions_run, case <topic>, format <tag>
+        rows.append({"surface": "clips", "case": f"captions_run__{c['topic']}", "format": tag})
+        rows.append({"surface": "row07_captions_run", "case": c["topic"], "format": tag})
+        for kind in ("half", "bursts"):
+            rows.append({"surface": "row07_captions_run", "case": f"{c['topic']}__{tag}_{kind}", "format": "default"})
+    for g in HOOK_GROUNDS:
+        rows.append({"surface": "clips", "case": f"hook__{g}", "format": "916", "refused_as": f"card__hook__{g}__916"})
+        for kind in ("", "_half", "_curves"):
+            rows.append({"surface": "row12_motion_hook", "case": f"row12_motion_hook__{g}{kind}", "format": "default",
+                         "refused_as": f"card__hook__{g}__916"})
+    return rows
+
+
 def refused_stems(refusals: Path) -> set[str]:
     """The surface names a palette's refusal table records as refused or not drawn (its `surface` column's name)."""
     rows = json.loads(refusals.read_text(encoding="utf-8"))
     return {str(r["surface"]).split(" ")[0] for r in rows if str(r.get("what", "")).startswith(("refused", "not "))}
 
 
-def build(base: list[dict], palette: str, tree: Path, refusals: Path | None = None, cycle4: bool = True
-          ) -> tuple[list[dict], list[str]]:
+def build(base: list[dict], palette: str, tree: Path, refusals: Path | None = None, cycle4: bool = True,
+          cycle5: bool = True) -> tuple[list[dict], list[str]]:
     out, dropped = [], []
     for r in base:
         r = dict(r)
@@ -68,17 +92,19 @@ def build(base: list[dict], palette: str, tree: Path, refusals: Path | None = No
     if cycle4:
         have = {(r["surface"], r["case"], r["format"]) for r in out}
         out += [r for r in cycle4_rows(tree) if (r["surface"], r["case"], r["format"]) not in have]
-    if refusals is not None:
-        gone = refused_stems(refusals)
-        keep = []
-        for r in out:
-            stem = r["case"] + (f"__{r['format']}" if r["format"] != "default" else "")
-            if r["surface"] == "surfaces" and (stem in gone or r["case"] in gone):
-                dropped.append(f"{r['surface']}/{stem}")
-            else:
-                keep.append(r)
-        out = keep
-    return out, dropped
+    if cycle4 and cycle5:   # a tree before cycle 4 is before cycle 5 too
+        have = {(r["surface"], r["case"], r["format"]) for r in out}
+        out += [r for r in cycle5_rows(tree) if (r["surface"], r["case"], r["format"]) not in have]
+    gone = refused_stems(refusals) if refusals is not None else set()
+    keep = []
+    for r in out:
+        stem = r["case"] + (f"__{r['format']}" if r["format"] != "default" else "")
+        as_stem = r.pop("refused_as", None)   # a row that stands or falls with another surface's refusal
+        if (r["surface"] == "surfaces" and (stem in gone or r["case"] in gone)) or (as_stem and as_stem in gone):
+            dropped.append(f"{r['surface']}/{stem}")
+        else:
+            keep.append(r)
+    return keep, dropped
 
 
 def main(argv=None) -> int:
@@ -88,9 +114,10 @@ def main(argv=None) -> int:
     ap.add_argument("tree", type=Path)
     ap.add_argument("--refusals", type=Path)
     ap.add_argument("--drop-cycle4", action="store_true")
+    ap.add_argument("--drop-cycle5", action="store_true", help="for a tree before cycle 5's evidence")
     a = ap.parse_args(argv)
     base = json.loads(a.base.read_text(encoding="utf-8"))
-    out, dropped = build(base, a.palette, a.tree, a.refusals, not a.drop_cycle4)
+    out, dropped = build(base, a.palette, a.tree, a.refusals, not a.drop_cycle4, not a.drop_cycle5)
     for d in dropped:
         print(f"exp_cases: {d} left out (refused on this palette's board)", file=sys.stderr)
     sys.stdout.write(json.dumps(out) + "\n")

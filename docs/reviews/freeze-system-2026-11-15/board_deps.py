@@ -161,6 +161,29 @@ def _without(node: ast.AST, drop: tuple[type, ...]) -> ast.AST:
     return n
 
 
+class _Lift(ast.NodeTransformer):
+    """Takes the functions defined anywhere in a function's own statements (not inside another function) out of it."""
+
+    def __init__(self) -> None:
+        self.found: list[ast.AST] = []
+        self.depth = 0
+
+    def _func(self, node):
+        if self.depth == 0:   # the split function itself
+            self.depth = 1
+            self.generic_visit(node)
+            self.depth = 0
+            return node
+        self.found.append(node)
+        return ast.Pass()
+
+    visit_FunctionDef = _func
+    visit_AsyncFunctionDef = _func
+
+    def visit_Lambda(self, node):
+        return node   # a lambda is its statement's own code
+
+
 def _span(node: ast.AST) -> tuple[int, int]:
     first = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
     return first, node.end_lineno or node.lineno
@@ -180,11 +203,12 @@ def parse_module(file: str, text: str) -> list[Symbol]:
     def level(stmts: list[ast.stmt]) -> None:
         for s in stmts:
             if isinstance(s, FUNC):
-                if s.name in split:
-                    for inner in s.body:
-                        if isinstance(inner, FUNC):
-                            out.append(Symbol(file, f"{s.name}.{inner.name}", "code", [inner], _span(inner)))
-                    out.append(Symbol(file, f"{s.name}.<body>", "code", [_without(s, FUNC)], _span(s)))
+                if s.name in split:   # its nested functions (in a loop or a block too) are symbols of their own
+                    body = _Lift()
+                    rest = body.visit(copy.deepcopy(s))
+                    for inner in body.found:
+                        out.append(Symbol(file, f"{s.name}.{inner.name}", "code", [inner], _span(inner)))
+                    out.append(Symbol(file, f"{s.name}.<body>", "code", [rest], _span(s)))
                 else:
                     out.append(Symbol(file, s.name, "code", [s], _span(s)))
             elif isinstance(s, ast.ClassDef):

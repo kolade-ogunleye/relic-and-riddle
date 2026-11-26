@@ -210,7 +210,10 @@ SOCIAL_KINDS = {"carousel": "Instagram carousel", "fb": "Facebook multi-photo po
 def social_part(stem: str) -> tuple[str, str, int] | None:
     """(deck, kind, frame index) of a render_surfaces.py social surface (social__<run>__<kind>_<frame>), else None."""
     m = re.match(r"social__(.+?)__(carousel|fb|story)_(?:carousel_slide|story)_(\d+)", stem)
-    return (m.group(1), m.group(2), int(m.group(3))) if m else None
+    if m is None:   # cycle 5: a board-drawn stress slide (social__<ground>__carousel_slide_NN)
+        m2 = re.match(r"social__(.+?)__carousel_slide_(\d+)$", stem)
+        return (m2.group(1), "carousel", int(m2.group(2))) if m2 else None
+    return (m.group(1), m.group(2), int(m.group(3)))
 
 
 def masthead_class(stem: str) -> str | None:

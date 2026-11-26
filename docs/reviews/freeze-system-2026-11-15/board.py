@@ -143,6 +143,29 @@ def undrawn_tiles(r: int, prefixes: tuple[str, ...], pngs: set[str], surfaces: d
     return out
 
 
+def save_case(out: Path, manifest: dict, name: str, image) -> None:
+    """Cycle 5 (panel 6: 41 board stems had no full-size file, only their tile on the half-scale row): a case the
+    board draws itself (never render_surfaces.py: the bright and near-white covers, the Aswan deck, the hook's held
+    frames, the frames taken from the clips, the badges) is saved at full size as <out>/cases/<name>.png."""
+    if (out / "surfaces" / f"{name}.png").is_file():
+        return
+    (out / "cases").mkdir(parents=True, exist_ok=True)
+    image.convert("RGB").save(out / "cases" / f"{name}.png")
+    manifest.setdefault("case_files", {})[name] = f"cases/{name}.png"
+
+
+def case_files(out: Path, manifest: dict, names: list[str]) -> None:
+    """board.json "case_files": every case of a row -> its own full-size file (surfaces/<name>.png from
+    render_surfaces.py, else cases/<name>.png from the board's own draw), or None for a tile that is no picture (a
+    refused or raised surface: its reason is in the refusal table)."""
+    rec = manifest.setdefault("case_files", {})
+    for n in names:
+        if (out / "surfaces" / f"{n}.png").is_file():
+            rec[n] = f"surfaces/{n}.png"
+        else:
+            rec.setdefault(n, None)
+
+
 LABEL_PX, LABEL_MIN_W = 22, 320
 
 
@@ -382,6 +405,7 @@ def reveal_frame(hero_path: str, size: tuple[int, int], dev: str):
 # independent draws run in worker processes, started before row 1 and taken up where the one-process board draws them
 PREFETCH: dict = {}   # key -> Future of board_evidence.captured(...)
 END_TOPICS: list[str] = []   # cycle 3: the grounds whose end sequences rows 9 and 12 encode (main: --end-topics)
+TREE: list[Path] = []        # cycle 5: the tree under review (main sets it), for the draws a worker runs
 
 
 def prefetched(key):
@@ -490,6 +514,11 @@ def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -
     if rows & {11, 12}:   # cycle 4: the callout's held frame and its clip are one draw
         PREFETCH["callout held"] = pool.submit(be.captured, bx.callout_held, work, clips)
         done.append("row 11 callout held frame and row 12 callout clip")
+    if 7 in rows:   # cycle 5: each caption fixture's whole run (row 7)
+        for topic, tag in bx.caption_run_cases():
+            PREFETCH[("caption run", topic, tag)] = pool.submit(be.captured, bx.caption_run, str(TREE[0]), work,
+                                                                clips, topic, tag)
+            done.append(f"caption run {topic} {tag}")
     if 12 in rows:   # cycle 4: the then-and-now clips (row 12)
         for topic, tag, _size, _case in bm.thennow_cases():
             bm.MOTION_PREFETCH[("thennow", topic, tag)] = pool.submit(be.captured, bm.draw_thennow, clips, work,
@@ -629,25 +658,26 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
 
     for topic in END_TOPICS or [bm.END_TOPIC]:   # cycle 3: every board ground with a catalogue case
         made += end_motion(out, clips, topic, "" if topic == bm.END_TOPIC else f"__{topic}", clip_rec)
-    # the hook: hold and fade
+    # the hook: hold and fade, on every ground it draws on (cycle 5: the first keeps the unsuffixed names)
     hook = bm.hook_sequence(clips)
-    if hook.get("seq"):
-        hs = hook["seq"]
-        cls, why = be.pairing(f"card__hook__{hook['ground']}__916")
+    for n_hook, (ground, one) in enumerate((hook.get("all") or {}).items()):
+        hs = one["seq"]
+        sname = "row12_motion_hook" + ("" if n_hook == 0 else f"__{ground}")
+        cls, why = be.pairing(f"card__hook__{ground}__916")
         tag = f"{cls}: {why}" if cls != be.REAL else "own topic"
-        clip_rec(hs, "12", f"hook card on the {hook['ground']} ground, claim {hook['claim']} ({tag})")
+        clip_rec(hs, "12", f"hook card on the {ground} ground, claim {one['claim']} ({tag})")
         tiles = [(f"{n} | {tag}" if k == 0 else n, im)
-                 for k, (n, im) in enumerate(x for x in bm.strip(hs, scale_h=480, label="hook ")
+                 for k, (n, im) in enumerate(x for x in bm.strip(hs, scale_h=480, label=f"hook ({ground}) ")
                                              if frame_no(x[0]) % 2 == 0 or 30 <= frame_no(x[0]) <= 42)]
-        sheet(tiles, out / "row12_motion_hook", tile_h=576, cols=8)
+        sheet(tiles, out / sname, tile_h=576, cols=8)
         t = [i / bm.FPS for i in range(hs.n)]
         bm.plot({"type alpha (_hook_alpha)": (t, [dc._hook_alpha(x) for x in t]),
                  "plate + wash alpha": (t, [dc._hook_alpha(x, dc.HOOK_GROUND_HOLD, dc.HOOK_GROUND_FADE) for x in t]),
                  "frame mean luma / 255": (t, [v / 255 for v in hs.luma])},
-                f"hook card ({hook['ground']} ground, {tag}): the type's hold and fade, the ground's after it",
+                f"hook card ({ground} ground, {tag}): the type's hold and fade, the ground's after it",
                 "alpha (0-1)", (0, 1), marks={"HOOK_HOLD": dc.HOOK_HOLD, "HOOK_GROUND_HOLD": dc.HOOK_GROUND_HOLD,
-                                               "CAPTION_CLEAR": dc.CAPTION_CLEAR}).save(out / "row12_motion_hook_curves.png")
-        made += ["row12_motion_hook", "row12_motion_hook_curves"]
+                                               "CAPTION_CLEAR": dc.CAPTION_CLEAR}).save(out / f"{sname}_curves.png")
+        made += [sname, f"{sname}_curves"]
     for g, why in hook.get("refused", {}).items():
         manifest["labels"][f"card__hook__{g}__916 (row 12)"] = f"REFUSED: {why}"
     made += thennow_motion(out, clips, work, clip_rec)   # cycle 4 (panel 5 MO): then-and-now and callout clips
@@ -875,7 +905,7 @@ def uses(module: str, engine: str) -> str:
             f"from . import {engine}" in text else f"own rule (does not import src/{engine}.py)")
 
 
-def row13_table(out: Path, work: Path) -> list[str]:
+def row13_table(out: Path, work: Path, board_mastheads: dict | None = None) -> list[str]:
     """The element-by-element tables across surfaces, generated (cycle 3: never written by hand, so never stale):
     what this board's renderers recorded as drawn (board_table.drawn), what each surface's code reaches
     (board_table.code_rows), the weights the system holds and who reads them (board_table.weight_rows), and the
@@ -887,6 +917,9 @@ def row13_table(out: Path, work: Path) -> list[str]:
     ends = bm.all_end()
     sj = out / "surfaces.json"
     surfaces = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    if board_mastheads:   # cycle 5: the board-drawn social frames (the Aswan deck, the near-white slides) too
+        surfaces = dict(surfaces or {})
+        surfaces["masthead_records"] = {**(surfaces.get("masthead_records") or {}), **board_mastheads}
     parts = [
         ("Drawn on this board: each renderer's own masthead record per surface across its grounds (row 2 records, "
          "and the end sequences' stats of rows 9 / 12)", draw_table(bt.drawn(out, ends), (420, 190, 190, 230, 240, 230, 520))),
@@ -1037,6 +1070,42 @@ def row7_cps(out: Path, work: Path) -> str:
     (out / "row07_captions_cps.json").write_text(json.dumps(record, indent=1, default=str), encoding="utf-8",
                                                  newline="\n")
     return "row07_captions_cps"
+
+
+def row7_runs(out: Path, tree: Path, work: Path, clips: Path, manifest: dict) -> dict[str, list[str]]:
+    """Row 7, cycle 5: per caption fixture, the whole run: its production clip, the caption band at the end of every
+    burst at 1:1 (row07_captions_run__<topic>__<tag>.png) and the burst table (…_bursts.png / .json). A worker draws
+    each under --workers (prefetch_compose)."""
+    import board_extras as bx
+    import board_motion as bm
+    made: dict[str, list[str]] = {}
+    for topic, tag in bx.caption_run_cases():
+        key = ("caption run", topic, tag)
+        try:
+            res = prefetched(key) if key in PREFETCH else bx.caption_run(tree, work, clips, topic, tag)
+        except Exception:  # noqa: BLE001  one fixture's failure is recorded, the others are drawn
+            manifest["errors"][f"caption run {topic} {tag}"] = traceback.format_exc()[-1500:]
+            continue
+        if not res.get("clip"):
+            continue
+        sname = f"row07_{res['name']}"
+        tiles = res["tiles"]
+        if tiles:
+            head = (f"{topic} {tag}: the caption band {res['box']} at 1:1 on the frame {bx.CAPTION_RUN_LEAD}s before "
+                    f"each burst leaves (its reveal complete), production encode, on {res['ground']}")
+            tiles = [(f"{tiles[0][0]} | {head}", tiles[0][1])] + tiles[1:]
+        sheet(tiles, out / sname, tile_h=None, cols=4)
+        draw_table(res["rows"], (90, 130, 140, 90, 190, 200, 1100)).save(out / f"{sname}_bursts.png")
+        (out / f"{sname}_bursts.json").write_text(json.dumps(
+            [dict(zip(res["rows"][0], r)) for r in res["rows"][1:]], indent=1, default=str), encoding="utf-8",
+            newline="\n")
+        manifest["clips"][res["clip"]["path"].name] = {
+            "row": "7", "what": f"captions, whole run: {topic} {tag}, {len(res['rows']) - 1} bursts, "
+                                f"{res['seconds']} s on {res['ground']}",
+            "frames": res["frames"], "seconds": round(res["frames"] / bm.FPS, 3), "sha256": res["clip"]["sha256"],
+            "encoder": res["clip"]["encoder"]}
+        made[sname] = [n.split(" | ")[0] for n, _ in tiles]
+    return made
 
 
 def draw_table(rows, widths):
@@ -1464,6 +1533,7 @@ def main() -> None:
                 "tree": stamp}
     t_all = time.perf_counter()
     import board_motion as bm
+    TREE[:] = [tree]
     END_TOPICS[:] = [t for t in bm.end_topics(HEROES)
                      if not a.end_topics or t in {x.strip() for x in a.end_topics.split(",")}]
     manifest["end_topics"] = list(END_TOPICS)
@@ -1538,7 +1608,7 @@ def main() -> None:
     manifest["labels"], manifest["errors"], manifest["sheets"] = {}, {}, {}
     manifest.setdefault("clips", {})
     pool = None
-    if a.workers > 1 and rows & {2, 9, 11, 12}:
+    if a.workers > 1 and rows & {2, 7, 9, 11, 12}:
         import multiprocessing
         from concurrent.futures import ProcessPoolExecutor
         n = max(1, a.workers - 1)   # the board process composes beside them: `workers` processes in all
@@ -1606,6 +1676,9 @@ def main() -> None:
                 return
             tiles.append((be.label(item["name"], item["label"]), item["image"]))
             manifest["labels"][item["name"]] = be.label(item["name"], item["label"])
+            save_case(out, manifest, item["name"], item["image"])
+            if item.get("masthead") is not None:   # cycle 5: a board-drawn social frame's own masthead record
+                manifest.setdefault("masthead_records", {})[item["name"]] = dict(item["masthead"])
         if r in (3, 4):
             for c in extra("covers", lambda: bx.covers(dev, work, HEROES), []):
                 if r == 3:
@@ -1690,6 +1763,9 @@ def main() -> None:
                 cps = extra("caption reading record", lambda: row7_cps(out, work))
                 if cps:
                     manifest["sheets"][cps] = ["row07_captions_cps.json"]
+                for sname, names in (extra("caption whole runs", lambda: row7_runs(out, tree, work, clips, manifest),
+                                           {}) or {}).items():
+                    manifest["sheets"][sname] = names
         if r == 8:
             for item in extra("hook frames", bx.hook_frames, []):
                 if "refused" in item:
@@ -1726,6 +1802,7 @@ def main() -> None:
         tiles += undrawn_tiles(r, prefixes, {p.stem for p in pngs}, surfaces_rec)
         sheet(tiles, out / f"row{r:02d}_{name}", tile_h=960)
         manifest["rows"][str(r)] = [n.split(" | ")[0] for n, _ in tiles]
+        case_files(out, manifest, manifest["rows"][str(r)])
         for sname, (stiles, th, cols) in sheets.items():
             sheet(stiles, out / sname, tile_h=th, cols=cols)
             manifest["sheets"][sname] = [n for n, _ in stiles]
@@ -1740,7 +1817,7 @@ def main() -> None:
         took("row 12", t0)
     if 13 in rows:
         t0 = time.perf_counter()
-        manifest["rows"]["13"] = row13_table(out, work)
+        manifest["rows"]["13"] = row13_table(out, work, manifest.get("masthead_records"))
         took("row 13", t0)
     # round 8: the refusal table of this palette (surface, what, reason)
     sj = out / "surfaces.json"

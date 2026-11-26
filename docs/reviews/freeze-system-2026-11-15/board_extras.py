@@ -287,8 +287,24 @@ def aswan_deck(dev: Path, work: Path) -> list[dict[str, Any]]:
                                      encoding="utf-8", newline="\n")
     graphics = sorted((run / "graphics").glob("graphic_*.mp4"))
     import board_evidence as be
-    slides = be.guarded(f"carousel deck {ASWAN_DECK_RUN[4:]}", MultiFormatGenerator().generate_carousel_sequence,
-                        stills, payload, d, facebook=False, graphics=graphics, default=None)
+    # cycle 5 (panel 6: no masthead record for this deck): each slide's own layout record, taken as the generator
+    # draws it (the last draw of a slide index is the delivered one); the call and its result are untouched
+    mastheads: dict[int, Any] = {}
+    real = MultiFormatGenerator._render_carousel_slide
+
+    def spy(self, archetype, photo, photo_next, card, index, *a, **k):
+        got = real(self, archetype, photo, photo_next, card, index, *a, **k)
+        try:
+            mastheads[int(index)] = (getattr(got[1], "meta", None) or {}).get("masthead")
+        except (TypeError, IndexError, ValueError):
+            pass
+        return got
+    MultiFormatGenerator._render_carousel_slide = spy
+    try:
+        slides = be.guarded(f"carousel deck {ASWAN_DECK_RUN[4:]}", MultiFormatGenerator().generate_carousel_sequence,
+                            stills, payload, d, facebook=False, graphics=graphics, default=None)
+    finally:
+        MultiFormatGenerator._render_carousel_slide = real
     if slides is None:
         _cache["deck"] = []
         return []
@@ -299,6 +315,7 @@ def aswan_deck(dev: Path, work: Path) -> list[dict[str, Any]]:
         drawn = r.get("archetype") == "diagram"
         out.append({"name": f"social__{ASWAN_DECK_RUN[4:]}__carousel_{p.stem}", "archetype": r.get("archetype"),
                     "photo": Path(str(r.get("photo") or "")).name, "image": _rgb(p),
+                    "masthead": mastheads.get(int(r["index"])) if "index" in r else None,
                     "label": f"bright hero, run {ASWAN_DECK_RUN[4:]}, " + (
                         "the run's own graphic poster (carousel_diagram)" if drawn else
                         "photo matched to the delivered slide")})
@@ -456,6 +473,73 @@ def caption_frames(tree: Path, work: Path, clips: Path | None = None) -> list[di
                         "label": f"production encode t={t:.2f}s (frame {k_t} of the clip) on {note}"})
     _cache["captions"] = out
     return out
+
+
+CAPTION_RUN_PAD = 120    # px above and below the caption lines' own y range in a band crop
+CAPTION_RUN_LEAD = 0.08  # s before a burst leaves the screen: the frame its reveal is complete on
+
+
+def caption_run_cases() -> list[tuple[str, str]]:
+    """(topic, tag) of every caption fixture of the catalogue (cycle 5: the whole-run evidence, one per fixture)."""
+    import fixtures as fx
+    return [(c["topic"], "169" if c.get("format") == "16:9" else "916") for c in fx.load("captions")]
+
+
+def caption_run(tree: Path, work: Path, clips: Path, topic: str, tag: str) -> dict[str, Any]:
+    """Cycle 5 (panel 6: the caption row showed each fixture's first three bursts; the lander built the rest by
+    hand): one caption fixture's WHOLE narration as the composer captions it, burned by the master's picture chain
+    and the delivery encoder into <clips>/captions_run__<topic>__<tag>.mp4 on the run's ground at the first burst
+    (held), decoded once. {name, clip, frames, tiles: the caption band (its lines' own y range) at 1:1 on the frame
+    CAPTION_RUN_LEAD before each burst leaves, labelled with the burst's seconds on screen, characters and
+    characters per second, rows: the burst table, record: caption_rates'}. A worker process can run it."""
+    import board_evidence as be
+    import board_motion as bm
+    import fixtures as fx
+
+    from src import video_composer as vc
+    work, clips = Path(work), Path(clips)
+    case = next(c for c in fx.load("captions")
+                if c["topic"] == topic and ("169" if c.get("format") == "16:9" else "916") == tag)
+    words = json.loads(Path(fx.path(case["words"])).read_text(encoding="utf-8"))
+    wide = tag == "169"
+    size = (1920, 1080) if wide else (1080, 1920)
+    name = f"captions_run__{topic}__{tag}"
+    ass = work / f"run_{topic}_{tag}.ass"
+    comp = vc.VideoComposer()
+    comp.build_subtitles(words, ass, emphasis=case.get("emphasis_words") or None,
+                         **({"width": 1920, "height": 1080} if wide else {}))
+    text = ass.read_text(encoding="utf-8")
+    bursts = be.ass_bursts(text)
+    rates = be.caption_rates(words, text, getattr(comp, "last_reading_rate", None))
+    if not bursts:
+        return {"name": name, "clip": None, "tiles": [], "rows": [], "record": rates, "topic": topic, "tag": tag}
+    ground, note = be.caption_ground(case, bursts[0]["show"] + 0.05, size, work)
+    seconds = bursts[-1]["hide"] + 0.2
+    clip = encode_caption_clip(ground, ass, 0.0, seconds, size, Path(tree) / "fonts", clips / f"{name}.mp4")
+    want = {max(0, round((b["hide"] - CAPTION_RUN_LEAD) * bm.FPS)): i for i, b in enumerate(bursts)}
+    seq = bm.Seq(name, clip, size, None, keep=lambda i: i in want)
+    clip["frames"] = seq.n
+    ys = [ln["y"] for b in bursts for ln in b["lines"] if ln["y"]]
+    top = max(0, int(min(ys, default=size[1] * 0.55)) - CAPTION_RUN_PAD)
+    bottom = min(size[1], int(max(ys, default=size[1] * 0.85)) + CAPTION_RUN_PAD)
+    side = (size[0] - min(size[0], 1280)) // 2   # 16:9: the middle 1280 px (the caption column), still 1:1
+    box = (side, top, size[0] - side, bottom)
+    per = rates["bursts"]
+    tiles, rows = [], [("burst", "shows at (s)", "on screen (s)", "chars", "chars per second", "frame", "text")]
+    for f, i in sorted(want.items(), key=lambda x: x[1]):
+        b = bursts[i]
+        r = per[i] if i < len(per) else {}
+        cps = r.get("shown_cps")
+        flag = " OVER 17" if (cps or 0) > 17 else ""
+        rows.append((i + 1, f"{b['show']:.2f}", f"{b['hide'] - b['show']:.2f}", r.get("chars", "-"),
+                     f"{cps}{flag}", f"f{f} t={f / bm.FPS:.2f}s", " / ".join(ln["text"] for ln in b["lines"])))
+        im = seq.kept.get(f)
+        if im is None:
+            continue
+        tiles.append((f"burst {i + 1} | shows {b['show']:.2f}s | {b['hide'] - b['show']:.2f}s on screen | "
+                      f"{r.get('chars', '-')} chars | {cps} cps{flag} | frame {f}", im.crop(box)))
+    return {"name": name, "clip": clip, "frames": seq.n, "tiles": tiles, "rows": rows, "record": rates,
+            "topic": topic, "tag": tag, "box": list(box), "ground": note, "seconds": round(seconds, 2)}
 
 
 # ---------------------------------------------------------------------------------------------- hook (row 8)

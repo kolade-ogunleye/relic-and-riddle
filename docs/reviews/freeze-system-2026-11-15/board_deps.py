@@ -63,7 +63,9 @@ SELF = f"{HERE}/board_deps.py"
 # made for an EARLIER job are not followed into a later one (else every job of a process would inherit the code of
 # all the jobs before it, and a board's reuse would depend on how its jobs were sharded). What ran in a job's own
 # window is recorded for it all the same.
-DISPATCH = (f"{RENDER}::main.job", f"{RENDER}::main.<body>")
+# main.encode and main.frames_of drain each renderer's frame generator (the generator's code runs "called" by them),
+# so they are dispatchers too.
+DISPATCH = tuple(f"{RENDER}::main.{n}" for n in ("job", "<body>", "encode", "frames_of"))
 OUTSIDE = ""     # the bucket of code run outside every job's window
 MODULE = "<module>"
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

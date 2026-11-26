@@ -731,7 +731,6 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
 # Heading break vocabulary: one list for every surface (there were five).
 LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "near", "with", "into", "onto",
                             "via", "per"))
-LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
 
 
 def _never_end_words() -> frozenset:
@@ -748,6 +747,37 @@ def _never_end_words() -> frozenset:
 
 
 NEVER_END_WORDS = _never_end_words()
+
+# Freeze cycle 5 (TEXT stream; panel 6: "EVIDENCE AND /", "DISPROVED WHEN /", "when / Königsberg Castle"): ONE
+# function-word vocabulary for every drawn line end (src/line_policy.py reads it for headings, body copy, card lines,
+# graphic labels and caption lines and bursts). There were two: the headings' eight conjunctions and the captions'
+# closed class, so WHEN / THAT / WHILE / THAN / ITS could end a heading or body line that no caption line may end on.
+# - LINE_END_NEVER: the operator's ruled list (articles and the plain prepositions): hard, at any size.
+# - LINE_END_LAST_RESORT: every other closed-class word: the conjunctions, the subordinators and relative words that
+#   open a clause (LINE_END_CLAUSE_WORDS, with the derived class's own), the remaining derived prepositions,
+#   determiners and quantifiers (NEVER_END_WORDS). A line ends on one only where no other break fits, and that is
+#   RECORDED (line_policy.faults "conjunction_end_last_resort").
+# - LINE_END_WEAK: the copulas and auxiliaries (IS, HAS, DO): a line end the breakers avoid at equal cost; counted
+#   apart, never a violation (a subject and its verb read as a line: IT WAS / HIDDEN UNDERGROUND).
+LINE_END_CLAUSE_WORDS = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than", "when", "where", "why", "how",
+                                   "who", "whom", "whose", "about", "over", "beside"))
+LINE_END_LAST_RESORT = (LINE_END_CLAUSE_WORDS | NEVER_END_WORDS) - LINE_END_NEVER
+# The conjunctions proper (coordinating, subordinating, relative): the last-resort words a display card steps down
+# its ladder for before it takes one (design_cards.W1_STOPS; panel 6: "EVIDENCE AND /", "DISPROVED WHEN /").
+LINE_END_CONJUNCTIONS = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than", "when", "where", "while",
+                                   "that", "which", "who", "whom", "whose", "because", "if", "although", "though",
+                                   "unless", "until", "whether", "since", "why", "how")) & LINE_END_LAST_RESORT
+LINE_END_FUNCTION = LINE_END_NEVER | LINE_END_LAST_RESORT
+LINE_END_WEAK = frozenset(("is", "was", "are", "were", "be", "been", "being", "am", "has", "have", "had", "do",
+                           "does", "did", "will", "would", "can", "could", "may", "might", "must", "shall", "should",
+                           "not"))
+# The accent rule's own words (brand_system "Accent": the function words that open an accent line stay bone): the
+# round-7 set, unchanged by cycle 5 (a wider set would turn NO / ALL / MORE bone on a cover: a colour change no
+# ruling asked for).
+ACCENT_OPENERS = LINE_END_NEVER | frozenset(("and", "but", "nor", "so", "yet", "as", "than"))
+# A row of these alone is a break's hinge, never a row of a heading (round 8: SACRED PATHS / OR / ASTRONOMY). The
+# round-8 set, unchanged: the wider class holds words that are a whole row of copy (WHY, HOW, NO MORE).
+HINGE_WORDS = ACCENT_OPENERS | frozenset(("or",))
 
 
 def tok(name: str) -> Any:

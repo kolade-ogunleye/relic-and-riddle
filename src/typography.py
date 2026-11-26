@@ -198,7 +198,7 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
 
 
 def balanced_wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
-                  stroke: int = 0) -> List[str]:
+                  stroke: int = 0, max_lines: Optional[int] = None) -> List[str]:
     """`text` on as many lines as the greedy wrap needs at `max_width`, broken so the widest line is as narrow as
     it can be (visual overhaul, 2026-10-29: the greedy wrap left one-word last lines, "rings." alone under two
     full ones). The narrowest width that still wraps into the same number of lines is found by bisection; the
@@ -217,7 +217,34 @@ def balanced_wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeType
             best, hi = trial, mid
         else:
             lo = mid + 1
-    return ruled_lines(draw, text, font, max_width, best, stroke)
+    return policy_lines(draw, text, font, max_width, ruled_lines(draw, text, font, max_width, best, stroke), stroke,
+                        max_lines)
+
+
+def policy_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
+                 lines: List[str], stroke: int = 0, max_lines: Optional[int] = None) -> List[str]:
+    """Freeze cycle 5 (TEXT stream): `lines` (a wrap of `text`) under the ONE breaking policy (src/line_policy.py).
+    Lines with no violation are returned as they are (no pixel moves where the policy already held). Otherwise the
+    text is re-broken by line_policy.wrap at the same size: on the same number of lines, or one more where the box
+    allows it (`max_lines`) and that removes a violation (reflow at the same size comes before any smaller size). A
+    violation no break removes stays and is RECORDED (line_policy.note: the renderer's layout record and the corpus
+    proof read it); a word is never dropped."""
+    from . import line_policy
+    if len(lines) < 2 or not line_policy.violations(lines):
+        return lines
+    record: dict = {}
+    got = line_policy.wrap(glue(text), lambda t: line_width(draw, _plain(t), font, stroke), max_width,
+                           max_lines=max(len(lines), max_lines or 0) if max_lines else len(lines),
+                           min_lines=len(lines), record=record)
+    out = [_plain(ln) for ln in got] if got else lines
+    if " ".join(out).split() != " ".join(lines).split():
+        out = lines                      # never another text than the caller's
+    left = line_policy.violations(out)
+    if len(left) > len(line_policy.violations(lines)):
+        out, left = lines, line_policy.violations(lines)
+    if left:
+        line_policy.note(out, left, width=max_width, size=getattr(font, "size", None))
+    return out
 
 
 def ruled_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
@@ -364,7 +391,7 @@ def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
             if s != size and not quiet:
                 _log.info("Text set at %dpx instead of %dpx to fit %d line(s) of %d px: %.60s", s, size, max_lines, max_width, text)
             if balance and len(lines) > 1:  # the same lines' count, the widest as narrow as it can be (2026-10-29)
-                lines = balanced_wrap(draw, text, font, max_width, stroke)
+                lines = balanced_wrap(draw, text, font, max_width, stroke, max_lines)
             return lines, font, False
     raise TextFitError(text, lines, font, max_width, max_lines)
 
@@ -608,7 +635,29 @@ def glue(text: str) -> str:
     if not text or not any(ch.isdigit() for ch in text):
         return text or ""
     out = _GLUE_AFTER.sub(lambda m: m.group(1) + m.group(2).replace(" ", NBSP), text)
-    return _GLUE_BEFORE.sub(lambda m: m.group(1) + NBSP, out)
+    out = _GLUE_BEFORE.sub(lambda m: m.group(1) + NBSP, out)
+    # Freeze cycle 5 (TEXT stream): the ONE keep-together definition (line_policy.keep_together): a hedge and its
+    # figure, a date, an era, a range's far end hold too ("up / to 1,168 tonnes", "August / 1944", "1350 / BC",
+    # "94 and / 104 million years" broke on real run copy). A range may still break BEFORE its joiner, the policy's
+    # recorded last resort for a range too long for the line.
+    from . import line_policy
+    parts = out.split(" ")
+    if len(parts) < 2:
+        return out
+    flat, owner = [], []
+    for i, part in enumerate(parts):
+        for piece in part.split(NBSP):
+            if piece:
+                flat.append(piece)
+                owner.append(i)
+    bonds = line_policy.keep_together(flat) - line_policy.range_seams(flat)
+    first = {}
+    for j, o in enumerate(owner):
+        first.setdefault(o, j)
+    joined = parts[0]
+    for i in range(1, len(parts)):
+        joined += (NBSP if parts[i] and first.get(i) in bonds else " ") + parts[i]
+    return joined
 
 
 # ---------------------------------------------------------------- text placed at a measured contrast (2026-10-29)

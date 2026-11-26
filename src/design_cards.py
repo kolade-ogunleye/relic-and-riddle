@@ -38,6 +38,7 @@ from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
 from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
+from . import brand_system
 from .brand_system import LINE_END_NEVER
 from .brand_system import tok as _mtok
 from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
@@ -429,10 +430,9 @@ def _tracked_width(text: str, font: Any, track: float) -> float:
     return tracked_width(text, font, track)
 
 
-WEAK_LINE_END = frozenset((
-    "a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "with", "into", "onto", "over", "under",
-    "and", "or", "but", "nor", "so", "yet", "as", "than", "that", "which", "who", "whom", "whose", "where", "when",
-    "is", "are", "was", "were", "be", "been", "its", "their", "his", "her", "this", "these", "those", "not", "no"))
+# Freeze cycle 5 (TEXT stream): the system's one vocabulary (brand_system.LINE_END_FUNCTION and LINE_END_WEAK); the
+# cards' own 46-word list lacked WHILE / BECAUSE / IF and the derived prepositions.
+WEAK_LINE_END = brand_system.LINE_END_FUNCTION | brand_system.LINE_END_WEAK
 DESIGN_WRAP_SLACK = 12     # design px a 9:16 line broken at design size may overrun its measure once scaled
 REWRAP_MAX_WORDS = 32      # the re-wrap search (every break set) runs on texts up to this many words
 
@@ -1567,7 +1567,9 @@ TITLE_ALPHA = 0.28                        # s: freeze panel C4: a title line's a
 # The system's never-list (src/brand_system.py LINE_END_NEVER: no line but the last ends on an article or a preposition)
 # plus "and" / "or", which the cards refuse at a size too: W2's search steps down the ladder before it takes one, which
 # is the system's "conjunction only as a last resort" (cycle 0; refused outright they read "DEBATES AND / ROCK").
-W1_STOPS = LINE_END_NEVER | frozenset(("and", "or"))
+# Freeze cycle 5 (TEXT stream; panel 6 "DISPROVED WHEN /"): every conjunction (brand_system.LINE_END_CONJUNCTIONS:
+# WHEN, THAT, WHILE, THAN, BUT ... as AND / OR before), one list for every surface.
+W1_STOPS = LINE_END_NEVER | brand_system.LINE_END_CONJUNCTIONS
 
 
 def _accented(text: str) -> bool:

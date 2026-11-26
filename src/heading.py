@@ -64,7 +64,7 @@ def end_ok(word: str, last_resort: bool = True) -> bool:
 def is_function(word: str) -> bool:
     """A function word: one of the never-end words or the conjunctions. "OR" opening an alternative may stay gold."""
     w = bare(word)
-    return w != "or" and (w in brand_system.LINE_END_NEVER or w in brand_system.LINE_END_LAST_RESORT)
+    return w in brand_system.ACCENT_OPENERS
 
 
 def _figure_words(words: Sequence[str]) -> set[int]:
@@ -90,7 +90,11 @@ def _bonded(words: Sequence[str]) -> set[int]:
         if any(c.isdigit() for c in words[k]) and bare(words[k - 1]) in ("about", "over", "nearly", "almost",
                                                                          "some", "roughly", "around", "~"):
             out.add(k)   # a hedge stays with its figure
-    return out
+    # freeze cycle 5 (TEXT stream): the ONE keep-together definition (line_policy.keep_together: a date, an era, a
+    # multi-word hedge, a spelled number with its unit hold in a heading as they do in body copy and captions); a
+    # range may still break before its joiner (its recorded last resort)
+    from . import line_policy
+    return out | (line_policy.keep_together(words) - line_policy.range_seams(words))
 
 
 def break_points(words: Sequence[str], last_resort: bool = True) -> list[int]:
@@ -188,8 +192,7 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
         return False
     # cycle 0 round 8 (panel: "SACRED PATHS / OR / ASTRONOMY", "CARVED / FROM"): a row of function words only is
     # never a row, at any word count and in any last resort (it is the break's hinge, not a line of the heading)
-    if len(lines) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
-                                  for w in ln.split()) for ln in lines):
+    if len(lines) > 1 and any(all(bare(w) in brand_system.HINGE_WORDS for w in ln.split()) for ln in lines):
         return False
     bonded = _bonded(words)
     if any(b in bonded for i, (_, b) in enumerate(spans[:-1]) if i not in free_ends):
@@ -223,8 +226,7 @@ def broken_rule(lines: Sequence[str], widths: Sequence[float] | None = None, sea
     if any(not end_ok(ln.split()[-1]) for ln in rows[:-1]):
         bad = next(ln.split()[-1] for ln in rows[:-1] if not end_ok(ln.split()[-1]))
         return f"the line-end rule (a line never ends on {bad})"
-    if len(rows) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
-                                 for w in ln.split()) for ln in rows):
+    if len(rows) > 1 and any(all(bare(w) in brand_system.HINGE_WORDS for w in ln.split()) for ln in rows):
         return "the line-end rule (a row of function words only)"
     if len(rows) > 2 and any(len(ln.split()) < 2 for ln in rows[1:-1]):
         return "the no-lone-row rule (a one-word middle row)"

@@ -12682,7 +12682,7 @@ ROUTE_NAME_NB_AIR = 36      # round 16 (review): px (at 1080) a country's name k
 ROUTE_DEEP_TRIES = 24       # and a stop it left unnamed tries this many of its clear places first (place_names)
 # words that never stand alone on a name's line ("CUSTOMS / HOUSE OF / THE / GENOESE / TRADERS")
 ROUTE_FUNCTION_WORDS = frozenset({"A", "AN", "THE", "OF", "ON", "IN", "AT", "TO", "BY", "AND", "OR", "FOR", "HIS",
-                                  "HER", "ITS", "AS", "UP", "NEAR", "WITH", "FROM"})
+                                  "HER", "ITS", "AS", "UP", "NEAR", "WITH", "FROM"}) | TALL_STOP_WORDS
 
 
 NAME_ABBREVIATIONS = frozenset({"ST", "STE", "STS", "MT", "FT", "PT", "DR", "SS"})   # round 16: bound to the next word

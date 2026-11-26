@@ -1,0 +1,535 @@
+{
+"about": "Caption words of one real development run (the panel-6 Amber caption evidence): word, start, dur only; no paths.",
+"emphasis_words": [
+"Amber Room",
+"36 hours",
+"Königsberg Castle"
+],
+"words": [
+{
+"word": "In",
+"start": 0.0893,
+"dur": 0.4124
+},
+{
+"word": "1941,",
+"start": 0.5017,
+"dur": 0.8248
+},
+{
+"word": "German",
+"start": 1.6326,
+"dur": 0.3954
+},
+{
+"word": "soldiers",
+"start": 2.0408,
+"dur": 0.523
+},
+{
+"word": "of",
+"start": 2.5765,
+"dur": 0.1275
+},
+{
+"word": "Army",
+"start": 2.7168,
+"dur": 0.3061
+},
+{
+"word": "Group",
+"start": 3.0357,
+"dur": 0.3061
+},
+{
+"word": "North",
+"start": 3.3546,
+"dur": 0.4847
+},
+{
+"word": "disassembled",
+"start": 3.8648,
+"dur": 0.6633
+},
+{
+"word": "the",
+"start": 4.5408,
+"dur": 0.0765
+},
+{
+"word": "Amber",
+"start": 4.6301,
+"dur": 0.3699
+},
+{
+"word": "Room",
+"start": 5.0127,
+"dur": 0.2806
+},
+{
+"word": "in",
+"start": 5.3061,
+"dur": 0.1658
+},
+{
+"word": "36",
+"start": 5.4847,
+"dur": 0.2915
+},
+{
+"word": "hours",
+"start": 5.7762,
+"dur": 0.7289
+},
+{
+"word": "under",
+"start": 6.5179,
+"dur": 0.3316
+},
+{
+"word": "expert",
+"start": 6.8623,
+"dur": 0.3826
+},
+{
+"word": "supervision.",
+"start": 7.2576,
+"dur": 0.7143
+},
+{
+"word": "By",
+"start": 8.3929,
+"dur": 0.1658
+},
+{
+"word": "one",
+"start": 8.5714,
+"dur": 0.2934
+},
+{
+"word": "estimate,",
+"start": 8.8775,
+"dur": 0.5612
+},
+{
+"word": "following",
+"start": 9.8087,
+"dur": 0.5485
+},
+{
+"word": "eighteenth-century",
+"start": 10.3699,
+"dur": 0.7525
+},
+{
+"word": "expansions,",
+"start": 11.1352,
+"dur": 0.7781
+},
+{
+"word": "the",
+"start": 12.4617,
+"dur": 0.1148
+},
+{
+"word": "completed",
+"start": 12.5893,
+"dur": 0.4719
+},
+{
+"word": "room",
+"start": 13.074,
+"dur": 0.2806
+},
+{
+"word": "covered",
+"start": 13.3674,
+"dur": 0.3316
+},
+{
+"word": "more",
+"start": 13.7117,
+"dur": 0.2424
+},
+{
+"word": "than",
+"start": 13.9668,
+"dur": 0.1275
+},
+{
+"word": "590",
+"start": 14.1071,
+"dur": 0.9439
+},
+{
+"word": "square",
+"start": 15.0638,
+"dur": 0.3189
+},
+{
+"word": "feet",
+"start": 15.3954,
+"dur": 0.3444
+},
+{
+"word": "and",
+"start": 15.9311,
+"dur": 0.1148
+},
+{
+"word": "contained",
+"start": 16.0587,
+"dur": 0.4719
+},
+{
+"word": "over",
+"start": 16.5434,
+"dur": 0.2424
+},
+{
+"word": "13,000",
+"start": 16.7985,
+"dur": 0.6122
+},
+{
+"word": "pounds",
+"start": 17.4107,
+"dur": 0.6122
+},
+{
+"word": "of",
+"start": 18.0357,
+"dur": 0.0765
+},
+{
+"word": "amber.",
+"start": 18.125,
+"dur": 0.4209
+},
+{
+"word": "In",
+"start": 18.9158,
+"dur": 0.1275
+},
+{
+"word": "early",
+"start": 19.0561,
+"dur": 0.2806
+},
+{
+"word": "1944,",
+"start": 19.3495,
+"dur": 1.2245
+},
+{
+"word": "it",
+"start": 20.8036,
+"dur": 0.1275
+},
+{
+"word": "was",
+"start": 20.9439,
+"dur": 0.1658
+},
+{
+"word": "packed",
+"start": 21.1225,
+"dur": 0.3571
+},
+{
+"word": "into",
+"start": 21.4924,
+"dur": 0.2041
+},
+{
+"word": "crates",
+"start": 21.7092,
+"dur": 0.5102
+},
+{
+"word": "in",
+"start": 22.2449,
+"dur": 0.2168
+},
+{
+"word": "Königsberg",
+"start": 22.4745,
+"dur": 0.6122
+},
+{
+"word": "Castle.",
+"start": 23.0995,
+"dur": 0.5485
+},
+{
+"word": "Documentation",
+"start": 24.0689,
+"dur": 0.7781
+},
+{
+"word": "tracking",
+"start": 24.8597,
+"dur": 0.4592
+},
+{
+"word": "its",
+"start": 25.3316,
+"dur": 0.1913
+},
+{
+"word": "location",
+"start": 25.5357,
+"dur": 0.5357
+},
+{
+"word": "ends",
+"start": 26.0842,
+"dur": 0.3571
+},
+{
+"word": "in",
+"start": 26.4541,
+"dur": 0.1786
+},
+{
+"word": "August",
+"start": 26.6454,
+"dur": 0.903
+},
+{
+"word": "1944,",
+"start": 27.5485,
+"dur": 0.602
+},
+{
+"word": "when",
+"start": 28.5076,
+"dur": 0.2679
+},
+{
+"word": "Allied",
+"start": 28.7883,
+"dur": 0.3699
+},
+{
+"word": "bombers",
+"start": 29.1709,
+"dur": 0.4337
+},
+{
+"word": "heavily",
+"start": 29.6174,
+"dur": 0.4337
+},
+{
+"word": "fire-bombed",
+"start": 30.0638,
+"dur": 0.6633
+},
+{
+"word": "Königsberg.",
+"start": 30.7398,
+"dur": 0.7143
+},
+{
+"word": "Investigations",
+"start": 31.875,
+"dur": 0.8418
+},
+{
+"word": "conclude",
+"start": 32.7296,
+"dur": 0.4592
+},
+{
+"word": "the",
+"start": 33.2015,
+"dur": 0.051
+},
+{
+"word": "room",
+"start": 33.2653,
+"dur": 0.3571
+},
+{
+"word": "was",
+"start": 33.6352,
+"dur": 0.1658
+},
+{
+"word": "most",
+"start": 33.8138,
+"dur": 0.3316
+},
+{
+"word": "likely",
+"start": 34.1582,
+"dur": 0.3189
+},
+{
+"word": "incinerated",
+"start": 34.4898,
+"dur": 0.7398
+},
+{
+"word": "when",
+"start": 35.2424,
+"dur": 0.1913
+},
+{
+"word": "Königsberg",
+"start": 35.4464,
+"dur": 0.574
+},
+{
+"word": "Castle",
+"start": 36.0332,
+"dur": 0.4719
+},
+{
+"word": "was",
+"start": 36.5179,
+"dur": 0.1658
+},
+{
+"word": "bombed",
+"start": 36.6964,
+"dur": 0.4209
+},
+{
+"word": "by",
+"start": 37.1301,
+"dur": 0.1658
+},
+{
+"word": "British",
+"start": 37.3087,
+"dur": 0.3444
+},
+{
+"word": "aircraft",
+"start": 37.6658,
+"dur": 0.6505
+},
+{
+"word": "and",
+"start": 38.3291,
+"dur": 0.1148
+},
+{
+"word": "shelled",
+"start": 38.4566,
+"dur": 0.3444
+},
+{
+"word": "by",
+"start": 38.8138,
+"dur": 0.1403
+},
+{
+"word": "Soviet",
+"start": 38.9668,
+"dur": 0.4337
+},
+{
+"word": "artillery.",
+"start": 39.4133,
+"dur": 0.625
+},
+{
+"word": "Yet",
+"start": 40.4464,
+"dur": 0.2168
+},
+{
+"word": "in",
+"start": 40.676,
+"dur": 0.4209
+},
+{
+"word": "1997,",
+"start": 41.0969,
+"dur": 0.8418
+},
+{
+"word": "an",
+"start": 42.5,
+"dur": 0.051
+},
+{
+"word": "original",
+"start": 42.5638,
+"dur": 0.4337
+},
+{
+"word": "stone",
+"start": 43.0102,
+"dur": 0.3061
+},
+{
+"word": "mosaic",
+"start": 43.3291,
+"dur": 0.5485
+},
+{
+"word": "was",
+"start": 43.8903,
+"dur": 0.1658
+},
+{
+"word": "recovered",
+"start": 44.0689,
+"dur": 0.4592
+},
+{
+"word": "in",
+"start": 44.5408,
+"dur": 0.1531
+},
+{
+"word": "Germany,",
+"start": 44.7066,
+"dur": 0.4719
+},
+{
+"word": "fueling",
+"start": 45.7908,
+"dur": 0.3444
+},
+{
+"word": "hunts",
+"start": 46.148,
+"dur": 0.3954
+},
+{
+"word": "for",
+"start": 46.5561,
+"dur": 0.1148
+},
+{
+"word": "the",
+"start": 46.6837,
+"dur": 0.0765
+},
+{
+"word": "chamber",
+"start": 46.773,
+"dur": 0.4209
+},
+{
+"word": "looted",
+"start": 47.2066,
+"dur": 0.3699
+},
+{
+"word": "in",
+"start": 47.5893,
+"dur": 0.4252
+},
+{
+"word": "1941.",
+"start": 48.0145,
+"dur": 0.8503
+}
+]
+}

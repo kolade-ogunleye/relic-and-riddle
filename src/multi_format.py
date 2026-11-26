@@ -935,12 +935,19 @@ def even_rag(d, lines: list[str], font, width: float, measure: int) -> list[str]
             widths[(a, b)] = d.textlength(" ".join(words[a:b]), font=font)
         return widths[(a, b)]
 
+    from . import line_policy
+    bonds = line_policy.keep_together(words)
+
     def cost(cand):
         ws = [w(a, b) for a, b in cand]
         mean = sum(ws) / len(ws)
         # A last line longer than the one above it reads as an inverted rag: counted as much again.
         dangle = sum(dangles(" ".join(words[a:b])) for a, b in cand[:-1]) * (RAG_DANGLE * width) ** 2
-        return sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle
+        # freeze cycle 5 (TEXT stream): the one policy before the rag: an even rag never buys its evenness with a
+        # number parted from its unit or a line ending on a function word (it re-broke glued figures: the lines come
+        # back with ordinary spaces)
+        hard = line_policy.break_cost(words, [b for _, b in cand[:-1]], bonds)[:3]
+        return (16 * hard[0] + 4 * hard[1] + hard[2]) * (4 * width) ** 2 + sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle
     best, best_cost = None, None
     for cuts in combinations(range(1, len(words)), n - 1):
         bounds = list(zip((0,) + cuts, cuts + (len(words),)))
@@ -2441,6 +2448,24 @@ class MultiFormatGenerator:
             short = [*short, "kicker_category"]
         if lay is not None:
             lay.shortened += short
+            # Freeze cycle 5 (TEXT stream; panel 6: the IG cover body at 45.3 px instead of 48 was recorded nowhere):
+            # every size fallback of the stack is recorded per slide: the body's tier (TYPE / TYPE_FALLBACK carousel
+            # body, design px x 4/3) and why; and every line-break violation the one policy could not remove
+            # (line_policy.note: no legal break at this size and width).
+            body_rows = [r for r in rows if r.get("name") == "body" and r.get("text")]
+            if body_rows:
+                drawn_px = float(body_rows[0]["font"].size)
+                design_px = float(px.exact(self.BODY_SPEC[0])) if hasattr(px, "exact") else float(self.BODY_SPEC[0])
+                if abs(drawn_px - design_px) > 0.01:
+                    lay.meta.setdefault("type_fallbacks", []).append({
+                        "role": "body", "px": round(drawn_px, 2), "design_px": round(design_px, 2),
+                        "tier": "TYPE_FALLBACK carousel body",
+                        "reason": "the slide's stack did not clear the key area at scale 1.0: the body takes its one "
+                                  "fallback tier, never a continuous scale"})
+            from . import line_policy as _lp
+            notes = _lp.take_notes()
+            if notes:
+                lay.meta.setdefault("line_faults", []).extend(notes)
         drawn = [r for r in rows if r.get("text")]
         form = getattr(_render_state, "heading_form", None)
         stack_bottom = bottom

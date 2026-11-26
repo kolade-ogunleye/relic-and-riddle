@@ -279,6 +279,15 @@ def capture(tree: Path, dev: Path, cache: Path, kinds=KINDS, fixtures_only: bool
     share the work; a later call without a shard merges the shard files of the same src sha)."""
     tree = Path(tree).resolve()
     sha = tree_sha(tree)
+    # FIGURES_CORPUS_ACCEPT=<src sha>: records captured at that src are taken as this tree's (only for a change that
+    # draws nothing differently, named in the hand-back; the capture of every map takes hours)
+    accept = os.environ.get("FIGURES_CORPUS_ACCEPT", "")
+    if accept and accept != sha:
+        for part in [cache, *sorted(cache.parent.glob(cache.name + ".shard*"))]:
+            got = _json(part) if part.is_file() else None
+            if isinstance(got, dict) and got.get("src_sha") == accept:
+                got["src_sha"], got["captured_at_src"] = sha, accept
+                part.write_text(json.dumps(got, indent=1, ensure_ascii=False), encoding="utf-8", newline=chr(10))
     have = _json(cache) if cache.is_file() else None
     if not (isinstance(have, dict) and have.get("src_sha") == sha):
         have = {"src_sha": sha, "tree": tree.name, "records": {}}

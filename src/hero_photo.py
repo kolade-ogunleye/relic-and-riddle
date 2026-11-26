@@ -8,7 +8,8 @@ Each candidate is scored on what a 9:16 cover needs from a photograph, measured 
 - contrast: the RMS contrast of its luminance;
 - colour: Hasler and Süsstrunk's colourfulness;
 - exposure: a mid-key picture without large clipped areas;
-- resolution: its pixels against a 1080x1920 cover.
+- resolution: its pixels against a 1080x1920 cover;
+- fitness (freeze cycle 5): whether a crop of it can fill the cover at full width (fills_cover).
 
 Only strong photos compete (image_review.strong_stems: they show the topic, or you kept them), so a handsome
 context shot never replaces the subject; one with a reviewed focus (cover_design.reviewed_focus) gets a bonus,
@@ -27,6 +28,7 @@ log = logging.getLogger(__name__)
 
 SWITCH_MARGIN = 0.12
 FOCUS_BONUS = 0.08
+UNFIT_PENALTY = SWITCH_MARGIN   # a hero that cannot fill the cover loses to any equal still that can
 WEIGHTS = {"sharpness": 0.25, "contrast": 0.25, "colour": 0.2, "exposure": 0.15, "resolution": 0.15}
 ANALYSIS_EDGE = 512
 
@@ -69,7 +71,37 @@ def score(path: Path) -> float | None:
     from .cover_design import reviewed_focus
     if reviewed_focus(Path(path)) is not None:
         total += FOCUS_BONUS
+    if not fills_cover(Path(path)) or toneless(Path(path)):
+        total -= UNFIT_PENALTY
     return total
+
+
+def fills_cover(path: Path) -> bool:
+    """Whether the photo can fill the Reel cover at full width (freeze cycle 5; src/photo_fitness.py): one of
+    cover_design.cover_windows takes a fit crop of it. A photo that cannot goes out in the contained window on INK, a
+    smaller picture in the profile grid: UNFIT_PENALTY, so a strong still that fills the cover is the hero instead.
+    True when the photo cannot be read here (score() has already returned None for it)."""
+    from . import photo_fitness as pf
+    from .cover_design import cover_windows
+    try:
+        return any(pf.place(Path(path), window)["fit"] for _mode, window in cover_windows())
+    except (OSError, ValueError):
+        return True
+
+
+def toneless(path: Path) -> bool:
+    """Whether the photo's cover view is mostly a near-white or near-black field (photo_fitness "tone"; panel 6
+    PHOTO-08: a near-white vitrine and a low-key mine gave flat grey and murky tiles that lose in the feed). Such a
+    photo leads only when no strong still of the run does better (UNFIT_PENALTY)."""
+    from dataclasses import replace
+
+    from . import photo_fitness as pf
+    from .cover_design import cover_windows
+    try:
+        window = replace(cover_windows()[0][1], checks=("tone",))
+        return "tone" in pf.place(Path(path), window, fixed=True)["problems"]
+    except (OSError, ValueError):
+        return False
 
 
 def pick(scene_media: list[Path], strong_stems: set | None = None) -> Path:

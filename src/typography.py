@@ -389,13 +389,25 @@ def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
 
 def cover_crop(path: Path, size: Tuple[int, int], centering: tuple[float, float] = (0.5, 0.5)) -> Image.Image:
     """Scales and crops an image to fill `size` without distorting it: centred, or at `centering` (ImageOps.fit's, 0-1
-    along each axis: the deck window rule, hero_window.deck_window), inside the hero window's clean region."""
+    along each axis: the deck window rule, hero_window.deck_window), inside the hero window's clean region and the
+    photograph's own content (src/photo_fitness.py)."""
     from .photo_hygiene import without_caption_strip
     with Image.open(path) as im:
         from .image_presentation import fit_image, full_image
         if full_image(path):
             return fit_image(im, size)
         clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGBA"))
+        # Freeze cycle 5 (PHOTO-02): nor does any crop show the source's own frame (a black surround, wedge, border
+        # or letterbox: photo_fitness "matte"). Where the asked window holds some, the nearest window of the same
+        # shape inside the photograph's content is taken (within its zoom and enlargement limits); a photograph
+        # with no frame is cropped exactly as before.
+        from . import photo_fitness as pf
+        analysis = pf.analysis_of(Path(path), clean)
+        if analysis.matte_share > 0:
+            rec = pf.place(path, pf.Window((int(size[0]), int(size[1])), checks=("matte",), name="cover crop"),
+                           tuple(centering), image=clean, analysis=analysis)
+            if rec["fit"] and rec["moved"]:
+                return pf.crop(clean, rec["box"], (int(size[0]), int(size[1])))
         return ImageOps.fit(clean, size, Image.LANCZOS, centering=tuple(centering))
 
 

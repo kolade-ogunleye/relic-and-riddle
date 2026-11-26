@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
 from .typography import cap_height, get_font, plan_text, tracked_width
@@ -115,7 +115,8 @@ def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) ->
         # photograph kept a thin slice of it (42 % of a 3:4 photo's height), most of the width under the type's ink.
         # The photograph now needs to cover only its side of the frame (x >= PHOTO_SIDE_LEFT) and the full height, so
         # it is scaled down until the frame shows SHOW_MIN of its height (never below covering that side); the
-        # field left of it is its own edge extended and blurred under the ink. Recorded as meta["photo_side"].
+        # field left of it is INK (freeze cycle 5: it was its own edge extended and blurred). Recorded as
+        # meta["photo_side"].
         scale = side
         w, h = round(sw * scale), round(sh * scale)
         left, top = W - w, min(0, max(H - h, round(540 - fy * h)))
@@ -159,15 +160,11 @@ def photo_side_scale(sw: int, sh: int) -> float:
 
 
 def _side_field(photo: Image.Image, left: int, top: int) -> Image.Image:
-    """The frame left of a photograph drawn on the photo side only: its own edge colours extended and broadly
-    blurred (as the Reel cover's ambient field), so the ink over it covers a continuation, never a black slab."""
-    import numpy as np
-    w, h = photo.size
-    xx = np.clip(np.arange(W) - left, 0, w - 1)
-    yy = np.clip(np.arange(H) - top, 0, h - 1)
-    back = Image.fromarray(np.asarray(photo.convert("RGB"))[yy[:, None], xx[None, :]])
-    return back.resize((6, 12), Image.Resampling.BOX).resize((W, H), Image.Resampling.BICUBIC).filter(
-        ImageFilter.GaussianBlur(48))
+    """The frame left of a photograph drawn on the photo side only: the INK field the type's column stands on.
+    Freeze cycle 5 (PHOTO-01: a photograph is never extended by a blurred copy of its own edge; lane B cycle 4 drew
+    one here, as the Reel cover's ambient field did): the photograph's left edge eases into INK (_left_feather), the
+    plate it meets."""
+    return Image.new("RGB", (W, H), brand.INK)
 
 
 def _left_feather(size: tuple[int, int], left: int) -> Image.Image:

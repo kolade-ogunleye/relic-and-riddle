@@ -37,6 +37,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
+from . import photo_fitness as _photo_fitness
 from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
 from .brand_system import LINE_END_NEVER
 from .brand_system import tok as _mtok
@@ -127,7 +128,7 @@ STRIKE_PEN_MAX = 0.80       # s: every stroke is scaled down so the whole pen fi
 STRIKE_PEN_MAX_LONG = 0.95  # s: ... or this, for a myth of 3 lines or more (freeze panel M11)
 STRIKE_LINE_FLOOR = 0.20    # s: a scaled stroke stays at least this where the pen's budget allows (M11)
 STRIKE_SETTLE = 0.10        # s: the pen's end to the fact's kicker and the myth's step-back
-UPSCALE_MAX = 2.0
+UPSCALE_MAX = _photo_fitness.UPSCALE_MAX   # the one enlargement limit (src/photo_fitness.py)
 MAX_SECONDS = 10.0
 MIN_SECONDS = 6.0
 CHAPTER_SECONDS = {False: 2.5, True: 3.5}   # 9:16, 16:9

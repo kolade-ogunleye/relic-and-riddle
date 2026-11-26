@@ -130,7 +130,7 @@ def test_reviewed_feature_keeps_its_colour_and_clearance_on_redraw(tmp_path, mon
         assert not record["problems"]
         assert record["recipe"]["focus"] == focus
         composition = record["recipe"]["composition"]
-        assert composition["mode"] == "reviewed_focus"
+        assert composition["mode"] in ("full_bleed", "photo_over_ink")   # freeze cycle 5: filled, never padded
         x0, y0, x1, y1 = composition["protected_box"]
         assert 0 <= x0 < x1 <= 1080 and 420 <= y0 < y1 <= 1500
         for element in record["elements"]:

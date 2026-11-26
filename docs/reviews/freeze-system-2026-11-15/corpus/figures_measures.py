@@ -18,6 +18,7 @@ RULER_ROLE = re.compile(r"^(ruler\d*|axis\d*|tick\d*|scale|scale_secondary|scale
 DIMENSION = {"DEEP", "TALL", "LONG", "HIGH", "WIDE"}
 QUALIFIERS = {"ABOUT", "NEARLY", "ROUGHLY", "AROUND", "ALMOST", "APPROXIMATELY", "OVER", "UNDER", "UP", "TO", "EST.",
               "EST", "ESTIMATED", "C.", "CIRCA", "AN"}
+UNIT_GAP = (0.2, 0.5)     # FIG-03: a number's ink to its unit's, in caps of the number (one thin-space token)
 SPAN_CAPTION = re.compile(r"^gap\d+(_\d+)?$")      # a timeline's elapsed-time caption on the spine (derived, recorded)
 
 
@@ -88,12 +89,14 @@ def quantity_rows(rec: dict[str, Any], tok: dict[str, str]) -> list[tuple]:
             elif faces != [tok["data_face"]] and faces != ["(drawn mask)"]:
                 rows.append((*where, f"an axis figure outside the data face: {faces}", "FAIL"))
             else:
-                gap = ""
+                gap, ok = "", True
                 if len(e["runs"]) == 2:
                     a, b = e["runs"]
                     cap = max(1, a["box"][3] - a["box"][1])
-                    gap = f"; unit gap {(b['box'][0] - a['box'][2]) / cap:.2f} cap"
-                rows.append((*where, f"axis figure in the data face{gap}", "PASS"))
+                    g = (b["box"][0] - a["box"][2]) / cap
+                    ok = UNIT_GAP[0] <= g <= UNIT_GAP[1]          # FIG-03: one unit-space token, judged
+                    gap = f"; unit gap {g:.2f} cap (need {UNIT_GAP[0]}-{UNIT_GAP[1]})"
+                rows.append((*where, f"axis figure in the data face{gap}", "PASS" if ok else "FAIL"))
             continue
         if not _is_quantity_label(text):
             continue
@@ -112,9 +115,25 @@ def quantity_rows(rec: dict[str, Any], tok: dict[str, str]) -> list[tuple]:
                 bad.append(f"{r['text']!r} figure in {r['fill']}")
             elif not gold and r["fill"] != tok["bone"]:
                 bad.append(f"qualifier {r['text']!r} in {r['fill']}")
-        rows.append((*where, "; ".join(bad) or "figure face, number and unit in the figure colour, qualifier bone",
-                     "FAIL" if bad else "PASS"))
+        gaps = [g for r in e["runs"] for g in [_figure_unit_gap(r)] if g is not None]
+        bad += [f"unit gap {g:.2f} cap outside {UNIT_GAP[0]}-{UNIT_GAP[1]}" for g in gaps
+                if not UNIT_GAP[0] <= g <= UNIT_GAP[1]]
+        gap_note = f"; unit gap {min(gaps):.2f}-{max(gaps):.2f} cap" if gaps else ""
+        rows.append((*where, "; ".join(bad) or "figure face, number and unit in the figure colour, qualifier bone"
+                     + gap_note, "FAIL" if bad else "PASS"))
     return rows
+
+
+def _figure_unit_gap(run: dict[str, Any]) -> float | None:
+    """FIG-03: a figure-face run's ink gap between its number and its unit ("280 FT"), in caps, from the tree's
+    figure face at the run's size (untracked: the plate's tracking adds at most 2 px a glyph)."""
+    m = re.match(r"^(.*\d)\s+([A-Z]{1,3})$", str(run.get("text") or ""))
+    if not m or not run.get("px"):
+        return None
+    from src import graphics
+    f = graphics.figure_font(int(run["px"]))
+    nb, ub, cap = f.getbbox(m.group(1)), f.getbbox(m.group(2)), f.getbbox("H")
+    return (f.getlength(m.group(1) + " ") + ub[0] - nb[2]) / max(1, cap[3] - cap[1])
 
 
 # --------------------------------------------------------------------------------------------- FIG-02 / FIG-04
@@ -314,6 +333,143 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                              f"elapsed years {d.get('from')} -> {d.get('to')}" if ok else "no derivation record",
                              "PASS" if ok else "FAIL"))
     return rows
+
+
+# --------------------------------------------------------------------------------------------- RECORDS (axis yields)
+def _recorded_axis(rec: dict[str, Any]) -> set[float]:
+    texts = [str(r.get("text")) for r in ((rec.get("layout") or {}).get("axis_yielded") or [])]
+    texts += [str(o.get("omitted", "")).replace("the axis figure ", "") for o in rec.get("omissions") or []
+              if "axis figure" in str(o.get("omitted", ""))]
+    out = set()
+    for t in texts:
+        m = re.match(r"\s*([\d,]+(?:\.\d+)?)", t)
+        if m:
+            out.add(float(m.group(1).replace(",", "")))
+    return out
+
+
+def axis_yield_rows(rec: dict[str, Any]) -> list[tuple]:
+    """Every axis figure a drawing's ruler implies is drawn or RECORDED as yielded (freeze cycle 5: the 9:16 Wieliczka
+    '300' was left out with no record). Measured on the drawing itself, not the tree's tick list: the step is the drawn
+    ticks' spacing, the value of a height on the ruler is the drawn ticks' own line (value against datum), and the
+    ruler's extent is the drawing's (a depth's shaft, a height's tallest figure, a cross-section's ruler line); every
+    multiple of the step inside that extent is expected."""
+    st = _status(rec)
+    if st:
+        return [st] if st[4] == "FAIL" else []
+    if rec["kind"] not in ("scale", "section"):
+        return []
+    ticks = sorted((float(r["value"]), float(r["datum"])) for r in rec.get("rulers") or []
+                   if r.get("value") is not None and r.get("datum") is not None)
+    where = (rec["run"], surface(rec), "ruler")
+    if len(ticks) < 2:
+        return [(*where, f"{len(ticks)} axis figure(s) drawn: no step to measure", "NOTE")]
+    vals = [v for v, _ in ticks]
+    step = min(b - a for a, b in zip(vals, vals[1:]) if b - a > 1e-6)
+    (v0, y0), (v1, y1) = ticks[0], ticks[1]
+    per = (y1 - y0) / (v1 - v0)                           # px per unit on the drawing's own ruler
+    lay = rec.get("layout") or {}
+    if rec["kind"] == "section":
+        m = next((m["box"] for m in rec.get("marks") or [] if m["name"] == "ruler" and m.get("box")), None)
+        end_y = m[3] if m else None
+    elif lay.get("form") == "depth":
+        end_y = (lay.get("drawing") or [None] * 4)[3]
+    else:
+        end_y = (lay.get("drawing") or [None] * 4)[1]
+    if end_y is None:
+        return [(*where, "no drawing extent recorded", "NOTE")]
+    end_v = v0 + (float(end_y) - y0) / per
+    want = [k * step for k in range(0, int(end_v / step + 1e-6) + 1)]
+    drawn, kept = set(vals), _recorded_axis(rec)
+    rows = []
+    for v in want:
+        if any(abs(v - d) < 1e-6 for d in drawn):
+            continue
+        label = f"{v:,.0f}"
+        if any(abs(v - d) < 1e-6 for d in kept):
+            rows.append((*where, f"axis figure {label} yielded, recorded with its rule", "RECORDED"))
+        elif abs(v - end_v) <= 0.02 * step:
+            rows.append((*where, f"axis figure {label} is the drawing's end, named by its stated figure", "NOTE"))
+        else:
+            rows.append((*where, f"axis figure {label} (step {step:g}, extent {end_v:,.0f}) neither drawn nor "
+                                 "recorded", "FAIL"))
+    if not rows:
+        rows.append((*where, f"{len(vals)} axis figures, every multiple of {step:g} to {end_v:,.0f} drawn", "PASS"))
+    return rows
+
+
+def region_line_rows(rec: dict[str, Any], region: str) -> list[tuple]:
+    """A map whose place records a region line draws it under the site's name or records that it yielded."""
+    st = _status(rec)
+    if st:
+        return [st] if st[4] == "FAIL" else []
+    if rec["kind"] != "map" or not region:
+        return []
+    norm = lambda t: re.sub(r"\s+", "", str(t)).upper()     # noqa: E731
+    where = (rec["run"], surface(rec), f"region line {region!r}")
+    if norm(region) in norm(" ".join(e["text"] for e in rec["elements"])):
+        return [(*where, "drawn", "PASS")]
+    if any("region line" in str(o.get("omitted", "")) for o in rec.get("omissions") or []):
+        return [(*where, "yielded, recorded with its rule", "RECORDED")]
+    return [(*where, "neither drawn nor recorded", "FAIL")]
+
+
+# --------------------------------------------------------------------------------------------- FIG-09
+SUBJECT_FIGURE = ("floor_figure", "block_label")      # a scale drawing's own figure for its subject (the answer)
+OTHER_FIGURES = ("ref_label", "bracket")              # the landmark's figure and the derived difference
+
+
+def hierarchy_rows(rec: dict[str, Any]) -> list[tuple]:
+    """FIG-09: on a scale drawing the subject's own figure (the answer) is one step above every other stated quantity
+    on the drawing (the landmark's figure, the derived bracket): its figure px greater than theirs."""
+    st = _status(rec)
+    if st:
+        return [st] if st[4] == "FAIL" else []
+    if rec["kind"] != "scale":
+        return []
+
+    def px(e):
+        return max((r["px"] for r in e["runs"] if any(ch.isdigit() for ch in r["text"])), default=0)
+    subj = [e for e in rec["elements"] if e["name"] in SUBJECT_FIGURE]
+    other = [e for e in rec["elements"] if e["name"] in OTHER_FIGURES]
+    where = (rec["run"], surface(rec), "answer")
+    if not subj:
+        dropped = any(("floor figure" in str(o.get("omitted")) or "block" in str(o.get("omitted")))
+                      for o in rec.get("omissions") or [])
+        return [(*where, "the subject's figure is not drawn" + (", recorded" if dropped else ""),
+                 "RECORDED" if dropped else "FAIL")]
+    a = px(subj[0])
+    top = max((px(e) for e in other), default=0)
+    names = ", ".join(f"{e['name']} {px(e)}" for e in other)
+    return [(*where, f"{subj[0]['name']} {subj[0]['text']!r} {a} px against {names or 'none'}",
+             "PASS" if a > top else "FAIL")]
+
+
+# --------------------------------------------------------------------------------------------- FIG-12
+def placement_rows(rec: dict[str, Any]) -> list[tuple]:
+    """A timeline sets every event's label in ONE placement relative to its year (all below it, or all beside it);
+    two placements in one column read as two systems (panel 6, the dense 9:16 stand-in)."""
+    st = _status(rec)
+    if st:
+        return [st] if st[4] == "FAIL" else []
+    if rec["kind"] != "timeline":
+        return []
+    years: dict[int, list] = {}
+    labels: dict[int, list] = {}
+    for e in rec["elements"]:
+        m = re.match(r"(year|label)(\d+)$", e["name"])
+        if m:
+            (years if m.group(1) == "year" else labels).setdefault(int(m.group(2)), []).append(e["box"])
+    seen = []
+    for k in sorted(years):
+        yb, lb = years[k][0], labels.get(k)
+        if not lb:
+            continue
+        top, left = min(b[1] for b in lb), min(b[0] for b in lb)
+        seen.append("below" if top >= yb[3] - 2 else "beside" if left >= yb[2] - 2 else "over")
+    kinds = sorted(set(seen))
+    return [(rec["run"], surface(rec), f"{len(seen)} event labels", f"placements {kinds}",
+             "PASS" if len(kinds) <= 1 and "over" not in kinds else "FAIL")]
 
 
 # --------------------------------------------------------------------------------------------- FIG-10

@@ -28,6 +28,7 @@ FACTS = [
     fc.SCALE_FIXTURES[0], fc.SCALE_FIXTURES[2], fc.SCALE_FIXTURES[8],
 ]
 SECTIONS = [fc.SECTION_FIXTURES[0], fc.SECTION_FIXTURES[2]]
+TALL = (1080, 1920)
 
 
 @pytest.fixture(scope="module")
@@ -179,3 +180,39 @@ def test_then_now_divider_is_hard_and_the_fade_is_short_and_clear():
     assert then_now.group_clear(box, "then", 120 + lead + 2, w, h)
     sched = then_now.group_alpha([True] * 10 + [False] * 4 + [True] * 10)
     assert all(v == 0 for v in sched[10:14])                             # gone while the divider is within the lead
+
+
+def test_every_axis_figure_is_drawn_or_recorded_as_yielded(records):
+    """RECORDS (freeze cycle 5): an axis figure the ruler implies (every multiple of its step inside the drawing) is
+    drawn or recorded with its rule (the 9:16 Wieliczka '300' and the cross-section's tick by its deepest level were
+    left out with no record); an axis figure never crosses title-safe (the 16:9 '1,250' past a 1,073 ft floor)."""
+    rows = [row for r in records for row in fm.axis_yield_rows(r)]
+    assert not _fails(rows), _fails(rows)
+    for r in records:
+        for y in (r.get("layout") or {}).get("axis_yielded") or []:
+            assert y["rule"] == graphics.AXIS_YIELD_RULE and y["reason"] and y["text"]
+    sec = [row for r in records if r["kind"] == "section" for row in fm.section_rows(r)]
+    assert not [x for x in _fails(sec) if "outside the text box" in x[3]]
+    # with a ledger open the yield is on it, named with its rule; without one the drawing is still made
+    from src.refusal import collecting
+    with collecting() as rows_:
+        graphics.yield_axis_figure("scale x.mp4", "300", "it would crowd the floor's stated figure")
+    assert rows_ and rows_[0]["omitted"] == "the axis figure 300" and rows_[0]["rule"] == graphics.AXIS_YIELD_RULE
+    graphics.yield_axis_figure("scale x.mp4", "300", "no ledger: logged, not refused")
+
+
+def test_a_region_line_that_yields_is_recorded():
+    from src.refusal import collecting
+    lay = graphics.MarkerLayout("pin", (540.0, 900.0), (("OUADANE", (540.0, 780.0), "ms"),), 60,
+                                (480.0, 730.0, 600.0, 780.0), "above", None, (520.0, 830.0, 560.0, 900.0))
+    why: list = []
+    out = graphics.with_region_line(lay, "ADRAR PLATEAU, MAURITANIA", *TALL, lay.label_box, why)
+    assert out is lay and why and why[-1] == graphics.LAST_REGION_LINE["reason"]
+    with collecting() as rows_:
+        graphics.yield_part("map m.mp4", "the region line ADRAR PLATEAU, MAURITANIA", graphics.REGION_YIELD_RULE,
+                            why[-1])
+    assert rows_ and rows_[0]["rule"] == graphics.REGION_YIELD_RULE
+    rec = {"run": "r", "kind": "map", "format": "916", "elements": [{"text": "OUADANE"}], "drawn": True,
+           "omissions": rows_}
+    assert fm.region_line_rows(rec, "ADRAR PLATEAU, MAURITANIA")[0][4] == "RECORDED"
+    assert fm.region_line_rows(dict(rec, omissions=[]), "ADRAR PLATEAU, MAURITANIA")[0][4] == "FAIL"

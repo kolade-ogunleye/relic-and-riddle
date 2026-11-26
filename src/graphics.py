@@ -1204,6 +1204,17 @@ def yield_axis_figure(surface: str, text: str, reason: str, yielded: list | None
         log.info("%s: drawn without the axis figure %r: %s (rule: %s).", surface, text, reason, AXIS_YIELD_RULE)
 
 
+def yield_part(surface: str, element: str, rule: str, reason: str) -> None:
+    """A secondary label a layout rule left out (a map's region line): on the omission ledger when one is open
+    (record_drop, the rule named), else logged. Like an axis figure it is not a stated quantity, so with no ledger
+    open the drawing is still made (a stated quantity left out with no ledger refuses the surface: record_drop)."""
+    from .refusal import ledger_open
+    if ledger_open():
+        record_drop(surface, element, rule, reason)
+    else:
+        log.info("%s: drawn without %s: %s (rule: %s).", surface, element, reason, rule)
+
+
 def surface_of(kind: str, out: Path | str | None) -> str:
     """The ledger's name for a lane A surface: its kind and its file ("timeline graphic_timeline.mp4")."""
     return f"{kind} {Path(out).name}" if out else kind
@@ -3083,15 +3094,20 @@ def region_line(place: dict[str, Any]) -> str:
     return ", ".join(dict.fromkeys(x for x in (area, country) if x and x != label))
 
 
+REGION_YIELD_RULE = ("a site's region line is drawn under its name, inside the text box and clear of the marker, or "
+                     "not at all; a line that yields is recorded (lane A cycle 2 ruling 1; freeze cycle 5, FIGURES)")
+
+
 def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
-                     box: tuple[float, float, float, float]) -> MarkerLayout:
+                     box: tuple[float, float, float, float], why_out: list | None = None) -> MarkerLayout:
     """`lay` with the region line `text` as its extra row (see region_line), ALWAYS UNDER the site's name (lander
     ruling, cycle 2: a map's place hierarchy reads name first, then region, and one position gives one form across
     maps; above the name it read as a kicker), on the rows' own x and anchor, at the largest place step under the
     site's whose ink fits the label measure. A label that sits over its marker keeps its foot where the name's foot
     was (the label's air to the marker is unchanged): the name rises by the region line's step and the line takes the
     name's old place. The line and the label stay inside `box` (the text box) and clear of the marker's box; else the
-    next step down, else `lay` unchanged and the reason recorded in LAST_REGION_LINE. Never above the name."""
+    next step down, else `lay` unchanged and the reason recorded in LAST_REGION_LINE (and appended to `why_out`, which
+    the map records on the omission ledger once its framing is final: freeze cycle 5). Never above the name."""
     LAST_REGION_LINE.clear()
     LAST_REGION_LINE.update({"text": text, "shown": False, "reason": ""})
     if not text or not lay.rows:
@@ -3134,6 +3150,8 @@ def with_region_line(lay: MarkerLayout, text: str, width: int, height: int,
                                    extra=((text, (x, base), anchor, px),))
     LAST_REGION_LINE["reason"] = why
     log.info("Map: the region line %r is not drawn: %s.", text, why)
+    if why_out is not None:
+        why_out.append(why)
     return lay
 
 
@@ -5634,8 +5652,9 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                             ground=ground_word(part_f, home_f, land_f))
         if style == "leader":
             lay = leader_marker(anchor, label, width, height, land_f, part_f, k)
+    region_why: list[Any] = []      # freeze cycle 5: the parts that yielded (recorded once the framing is final)
     if not area:      # lane A cycle 2 (ruling 1): the region line, a member row of the site's label
-        lay = with_region_line(lay, region_line(place), width, height, (sx0, sy0, sx1, sy1))
+        lay = with_region_line(lay, region_line(place), width, height, (sx0, sy0, sx1, sy1), region_why)
     # the country's name never stacks on the site's name like a title over it: it keeps out of the run beyond the
     # label on its side (to 200 px past it), as well as the label's own air
     lb = lay.label_box
@@ -5902,6 +5921,7 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     if bad_base:
         for t_, f_ in sorted(bad_base.items()):
             log.info("Map: name check: the neighbour %r drawn on the base is %s; dropped.", t_, f_)
+            region_why.append(("neighbour", t_, f_))  # freeze cycle 5: recorded with the region line, framing final
         weak = set(weak) | set(bad_base) | {t_.title() for t_ in bad_base}
         dropped |= set(bad_base)
         base, labels = build(weak | {str(lab["name"]) for lab in labels if str(lab["name"]).upper() in bad_base})
@@ -6027,6 +6047,17 @@ def _render_map(place: dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             log.warning("Map: name check: the %s name %r at (%.0f, %.0f) is %s; not drawn.", c_.kind, c_.text,
                         c_.box[0], c_.box[1], c_.fault)
             record_name_check(surface_of("map", out), c_)
+    # freeze cycle 5: the parts that yielded, recorded once the framing is final (an abandoned framing records none):
+    # the base's neighbour names the name check dropped, and the region line
+    drawn_names = {c_.text.replace(" ", "").upper() for c_ in checks if c_.ok}
+    for t_, f_ in sorted({w_[1:] for w_ in region_why if isinstance(w_, tuple)}):
+        if t_.replace(" ", "").upper() in drawn_names:
+            continue                                      # named again on the close-up (round 10's far-name rule)
+        yield_part(surface_of("map", out), f"{NAME_ELEMENT['neighbour']} {t_.upper()}",
+                   "a map's names pass the name check (round 13)", f"its place on the base is {f_}")
+    region_text = [w_ for w_ in region_why if isinstance(w_, str)]
+    if region_text:
+        yield_part(surface_of("map", out), f"the region line {region_line(place)}", REGION_YIELD_RULE, region_text[-1])
     LAST_NAME_CHECKS[:] = checks
     # freeze lane A cycle 3 (lander ruling): the scale bar now, in the room every name leaves: the lower-left corner
     # of the content box first (furniture_scale_bar), never on a word, the pin, the home's outline or a coast; a thin
@@ -12937,13 +12968,21 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     f_ruler = data_font(data_floored(g.f(L.small_px - 2), width, height))   # round 3: data face; cycle 3: its floor
     surface_spans = [(0.0, X(L.surface_gap)), (X(ruler_x - 16), float(width))]   # the surface line, gapped for "0 FT"
     ruler_rows = []
+    axis_out: list[dict[str, Any]] = []                     # the axis figures that yielded (yield_axis_figure)
+    safe = get_text_box(width, height)
     for j, ft in enumerate(range(0, int(axis_end) + 1, tick)):
-        if ft and 0 <= total - ft < tick * 0.3:
-            continue                                                 # the deepest level names the bottom
         text = f"{ft} FT" if ft == 0 else f"{ft:,}"
+        if ft and 0 <= total - ft < tick * 0.3:                      # the deepest level names the bottom
+            yield_axis_figure(surface_of("section", out), text, "it would stand by the deepest level's stated figure",
+                              axis_out)
+            continue
         # F11: every axis figure's ink centred on its tick, "0 FT" on the surface line (PIL's "rm" anchor centred
         # the em box, not the figures); F25: the unit joined by data.unit_gap
         plate = ruler_label(final, X(ruler_x - 24), Y(dy(ft)), text, f_ruler, getattr(brand, L.ruler_fill), "r", track=0)
+        # freeze cycle 5: an axis figure never crosses title-safe (the 16:9 '1,250' past a 1,073 ft floor); it yields
+        if not plate.empty and (plate.box[0] < safe[0] - 2 or plate.box[2] > safe[2] + 2 or plate.box[3] > safe[3] + 2):
+            yield_axis_figure(surface_of("section", out), text, "it would cross the title-safe text box", axis_out)
+            continue
         timed.append((f"ruler{j}", plate, 0.25 + 0.05 * j, None, None))
         ruler_rows.append(ruler_record(f"ruler{j}", plate, float(ft), Y(dy(ft)), surface_spans if ft == 0 else ()))
     for k, (lv, b) in enumerate(zip(levels, blocks)):
@@ -13017,7 +13056,8 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                   "leaders": [{"level": k, "datum": round(Y(dy(levels[k]["depth_ft"])), 2),
                                "datum_tol": round(S(plan[k]["passage_h"]), 2),
                                "path": [[round(x, 1), round(y, 1)] for x, y in pts]}
-                              for k, pts in enumerate(leader_paths)]}
+                              for k, pts in enumerate(leader_paths)],
+                  "axis_yielded": [dict(r) for r in axis_out]}
         for fault in section_layout_faults(layout):
             log.warning("%s: label layout: %s", Path(out).name, fault)
         record_contrast(out, last[0], [(name, dim if dim is not None else plate) for name, plate, _a, _b, dim in timed],

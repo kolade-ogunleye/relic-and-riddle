@@ -119,6 +119,19 @@ def _rgb(p: Path):
         return im.convert("RGB")
 
 
+def stable_rows(rows: list[dict[str, Any]], work: Path) -> None:
+    """A drawing's omission rows name the drawing they belong to by its path (multi_format.record_drawing_omissions),
+    and the board draws into a temporary folder: the path is rewritten, in place, relative to that folder
+    (graphics_redrawn/<brand + code key>/graphic_<kind>.jpg), so the record is the same on every render of the same
+    tree and names no machine folder. Done once the deck is drawn (the generator reads the path while it draws)."""
+    for r in rows:
+        if isinstance(r, dict) and r.get("drawing"):
+            try:
+                r["drawing"] = Path(str(r["drawing"])).resolve().relative_to(Path(work).resolve()).as_posix()
+            except (OSError, ValueError):
+                r["drawing"] = Path(str(r["drawing"])).name
+
+
 def recorded_recipes(run: Path, folder: str) -> dict[str, dict[str, Any]]:
     """{frame file name: the run's recorded recipe} of one copy ({} when the run kept none)."""
     p = Path(run) / folder / "still_layout.json"
@@ -154,11 +167,14 @@ def production_deck(run: Path, payload: dict[str, Any], work: Path, generator: A
     for the vision match (photo_record).
 
     Returns {"own_copy", "choice": the picker's reason per slide (carousel_photos.json "choice" as the tree left it),
-    "copies": {kind: {"slides": [{"stem", "file", "image", "index", "archetype", "photo", "masthead", "recorded",
-    "omissions"}], "held": None}} or {"held": {"refused" ...} | {"error": traceback}, "stems": the run's recorded
-    frame stems}}. A copy production would not ship (the Instagram copy refused or failed: the carousel is held and no
-    Facebook copy is drawn; the Facebook copy refused or failed: Facebook gets the Instagram slides) is `held`, never
-    drawn another way."""
+    "copies": {kind: {"slides": [{"stem", "file", "image", "index", "archetype" (as drawn), "routed" (today's
+    archetype routing of the card, before a drawing takes the slide), "photo", "masthead", "recorded", "omissions",
+    and on the Facebook copy "facebook_post": its place in the multi-photo post or None}], "held": None}} or
+    {"held": {"refused" ...} | {"error": traceback}, "stems": the run's recorded frame stems}}. The Facebook copy
+    also carries "post": the files multi_format.facebook_pick posts, in order (the publisher's own pick, over the
+    copy as drawn). A copy production would not ship (the Instagram copy refused or failed: the carousel is held and
+    no Facebook copy is drawn; the Facebook copy refused or failed: Facebook gets the Instagram slides) is `held`,
+    never drawn another way."""
     from src import multi_format as mf
     from src import still_layout
     try:
@@ -177,6 +193,10 @@ def production_deck(run: Path, payload: dict[str, Any], work: Path, generator: A
     (work / mf.CAROUSEL_PHOTOS).write_text(json.dumps(got["record"], indent=1, ensure_ascii=False), encoding="utf-8",
                                            newline="\n")
     gen = generator if generator is not None else mf.MultiFormatGenerator()
+    try:   # today's routing of the run's cards (a drawing may then take one slide: the slide's own `archetype`)
+        routed = list(mf.MultiFormatGenerator.sequence_archetypes(payload["carousel_slides"]))
+    except Exception:  # noqa: BLE001  a tree without the routing: nothing is said about it
+        routed = []
     kw: dict[str, Any] = {"graphics": sorted((run / "graphics").glob("graphic_*.jpg"))}   # as carousel_lazy.draw
     if "strict_match" in inspect.signature(gen.generate_carousel_sequence).parameters:
         kw["strict_match"] = True
@@ -212,6 +232,7 @@ def production_deck(run: Path, payload: dict[str, Any], work: Path, generator: A
                 except Exception:  # noqa: BLE001  production holds the carousel on any failure to draw (carousel_lazy)
                     held = {"error": traceback.format_exc()[-1200:]}
                     paths = None
+                stable_rows(_ledger()[n0:], work)   # the ledger's own rows (the job's record) and the copies below
                 rows_by_copy[kind] = [dict(r) for r in _ledger()[n0:]]
                 if not paths:
                     held = held if paths is None else {"refused": "no slide was drawn", "class": "CarouselHeld",
@@ -228,12 +249,25 @@ def production_deck(run: Path, payload: dict[str, Any], work: Path, generator: A
                     entry = layouts.get(p.name) or {}
                     r = entry.get("recipe") or {}
                     meta = metas.get((folder, p.name)) or {}
-                    slides.append({"stem": p.stem, "file": p, "image": _rgb(p), "index": r.get("index"),
+                    k = r.get("index")
+                    slides.append({"stem": p.stem, "file": p, "image": _rgb(p), "index": k,
                                    "archetype": r.get("archetype"), "photo": r.get("photo"),
+                                   # only while the deck kept every card (a dropped slide renumbers the rest)
+                                   "routed": routed[int(k)] if k is not None and len(routed) == len(paths) else None,
                                    "masthead": entry["masthead"] if entry.get("masthead") is not None
                                    else meta.get("masthead"),
                                    "recorded": recorded.get(p.name) or {}, "omissions": []})
                 out["copies"][kind] = {"slides": slides, "stems": stems, "held": None}
+                if fb:   # what the publisher posts of this copy (publisher.py: facebook_pick over the copy's slides)
+                    try:
+                        post = [Path(x).name for x in mf.facebook_pick([str(p) for p in paths])]
+                    except Exception:  # noqa: BLE001  recorded as unknown; the board then says the pick is not known
+                        post = None
+                    out["copies"][kind]["post"] = post
+                    for s in slides:
+                        name = Path(s["file"]).name
+                        s["facebook_post"] = "unknown" if post is None else (
+                            post.index(name) + 1 if name in post else None)
     finally:
         still_layout.save = real_save
     # the drawing's rows are recorded once for the deck's two copies (record_drawing_omissions): each copy's diagram
@@ -261,8 +295,9 @@ def production_deck(run: Path, payload: dict[str, Any], work: Path, generator: A
 
 def choice_record(deck: dict[str, Any], slide: dict[str, Any]) -> dict[str, Any]:
     """render_surfaces.py's photo_choice record for one slide of a production-drawn deck: the picker's reason for the
-    slide (by its 1-based slide number, else its index), the photograph the run recorded there, whether the slide
-    shows a drawing in the photograph's place, and the path that drew it."""
+    slide (by its 1-based slide number, else its index), the photograph the run recorded there, the archetype the
+    slide is drawn with and whether that is a drawing in the photograph's place, the path that drew it, and for a
+    Facebook slide its place in the multi-photo post (None: not posted; "unknown": the pick could not be made)."""
     index = slide.get("index")
     rows = deck.get("choice") or []
     row = next((c for c in rows if index is not None and c.get("slide") == int(index) + 1), None)
@@ -270,7 +305,10 @@ def choice_record(deck: dict[str, Any], slide: dict[str, Any]) -> dict[str, Any]
         row = rows[int(index)]
     rec = {k: (str(v) if isinstance(v, Path) else v) for k, v in (row or {}).items()}
     rec.update({"recorded": str((slide.get("recorded") or {}).get("photo") or ""),
-                "diagram": slide.get("archetype") == "diagram", "drawn_through": PATH})
+                "archetype": slide.get("archetype"), "diagram": slide.get("archetype") == "diagram",
+                "drawn_through": PATH})
+    if "facebook_post" in slide:
+        rec["facebook_post"] = slide["facebook_post"]
     return rec
 
 

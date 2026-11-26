@@ -635,9 +635,11 @@ def main() -> None:
                 continue
             for s in made["slides"]:
                 key = f"social__{tag}__{kind}_{s['stem']}"
-                was = (s["recorded"] or {}).get("archetype")
-                if was and was != s["archetype"]:
-                    result.setdefault("rerouted", {})[key] = {"recorded": was, "current": s["archetype"]}
+                # "rerouted" stays what it was: the recorded archetype against today's routing of the card. The
+                # archetype the slide is DRAWN with (a drawing may take a routed photo slide) is photo_choice's
+                was, now = (s["recorded"] or {}).get("archetype"), s.get("routed")
+                if was and now and was != "diagram" and was != now:
+                    result.setdefault("rerouted", {})[key] = {"recorded": was, "current": now}
                 result.setdefault("photo_choice", {})[key] = board_decks.choice_record(deck, s)
                 if s["masthead"] is not None:
                     result.setdefault("masthead_records", {})[key] = dict(s["masthead"])

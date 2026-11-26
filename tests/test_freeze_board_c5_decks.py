@@ -88,9 +88,10 @@ class StandInGenerator:
     saves one small JPEG per card with its layout record, and writes the picker's choice. `diagram`: the slide index
     it draws as a diagram slide (today's deck, where the run recorded a photo slide). `fail`: the copy that raises."""
 
-    def __init__(self, diagram: int | None = None, fail: dict | None = None, match: bool = False):
+    def __init__(self, diagram: int | None = None, fail: dict | None = None, match: bool = False,
+                 omit: bool = False):
         self.calls: list[dict] = []
-        self.diagram, self.fail, self.match = diagram, fail or {}, match
+        self.diagram, self.fail, self.match, self.omit = diagram, fail or {}, match, omit
 
     def generate_carousel_sequence(self, scene_images, script_payload, output_dir, facebook=False, graphics=None,
                                    strict_match=False):
@@ -110,6 +111,11 @@ class StandInGenerator:
         assert len(kept["photos"]) == len(cards)
         kept["choice"] = [{"slide": k + 1, "photo": kept["photos"][k], "reason": "matched"} for k in range(len(cards))]
         (Path(output_dir) / CAROUSEL_PHOTOS).write_text(json.dumps(kept), encoding="utf-8", newline="\n")
+        if self.omit and not facebook:   # the drawing's row, once for the deck's two copies, naming its drawing
+            from src import refusal
+            from src.multi_format import DIAGRAM_SLIDE_SURFACE
+            row = refusal.omit(f"{DIAGRAM_SLIDE_SURFACE} (map graphic_map.mp4)", "a name", "a.rule", "no room")
+            row["drawing"] = str(Path(output_dir) / "graphics_redrawn" / "abc123" / "graphic_map.jpg")
         out = Path(output_dir) / ("carousel_fb" if facebook else "carousel")
         out.mkdir(parents=True, exist_ok=True)
         paths = []
@@ -161,7 +167,18 @@ def test_a_deck_is_drawn_by_generate_carousel_sequence_as_the_lazy_carousel_call
             rec = bd.choice_record(deck, s)
             assert rec["drawn_through"] == bd.PATH and rec["reason"] == "matched" and rec["slide"] == k + 1
             assert rec["diagram"] is (k == 2) and Path(rec["recorded"]).name == f"{k:02d}_photo.jpg"
-        assert [s["archetype"] for s in made["slides"]][2] == "diagram"
+            assert rec["archetype"] == s["archetype"] and ("facebook_post" in rec) is fb
+            # today's routing of the card is kept beside the archetype drawn (a drawing took slide 3)
+            assert s["routed"] == MultiFormatGenerator.sequence_archetypes(payload["carousel_slides"])[k]
+        assert [s["archetype"] for s in made["slides"]][2] == "diagram" != made["slides"][2]["routed"]
+    # the Facebook copy says what the publisher posts of it: facebook_pick over the copy as drawn
+    from src.multi_format import FACEBOOK_PHOTOS, facebook_pick
+    fb_made = deck["copies"]["fb"]
+    assert fb_made["post"] == [Path(p).name for p in facebook_pick(
+        [str(tmp_path / "work" / "carousel_fb" / f"{s['stem']}.jpg") for s in fb_made["slides"]])]
+    places = [s["facebook_post"] for s in fb_made["slides"]]
+    assert sorted(p for p in places if p) == list(range(1, min(slides, FACEBOOK_PHOTOS) + 1))
+    assert places.count(None) == max(0, slides - FACEBOOK_PHOTOS)
 
 
 def test_a_copy_set_keeps_the_runs_photographs_and_never_reaches_the_matcher(mods, tmp_path):
@@ -238,6 +255,22 @@ def test_a_diagram_slides_omissions_go_to_that_slide_and_the_rest_stay_with_the_
     assert [r["omitted"] for r in got["after"]] == ["its own"]
 
 
+def test_a_drawings_rows_reach_both_copies_diagram_slide_and_name_no_temporary_folder(mods, tmp_path):
+    from src import refusal
+    bd = mods["board_decks"]
+    run, payload = make_run(tmp_path, 5, "PLAIN")
+    with refusal.collecting() as ledger:
+        deck = bd.production_deck(run, payload, tmp_path / "work", generator=StandInGenerator(diagram=3, omit=True))
+    for kind in ("carousel", "fb"):
+        by_stem = {s["stem"]: s["omissions"] for s in deck["copies"][kind]["slides"]}
+        assert [r["omitted"] for r in by_stem["carousel_slide_04"]] == ["a name"]
+        assert all(not rows for stem, rows in by_stem.items() if stem != "carousel_slide_04")
+        assert by_stem["carousel_slide_04"][0]["drawing"] == "graphics_redrawn/abc123/graphic_map.jpg"
+    # the job's own record (the ledger's rows) is the same on every render: no temporary path in it
+    assert [r["drawing"] for r in ledger] == ["graphics_redrawn/abc123/graphic_map.jpg"]
+    assert str(tmp_path) not in json.dumps(ledger)
+
+
 def _function(src: str, name: str) -> str:
     """The source of the (nested) function `name`: from its def to the next line at or left of its indent."""
     m = re.search(rf"^(?P<pad> *)def {name}\(", src, re.M)
@@ -285,8 +318,13 @@ def test_the_drawn_archetype_is_the_trees_where_it_differs_from_the_runs(mods, t
     run, _payload = make_run(tmp_path, 5, "PLAIN")
     stem = f"social__{RUN[4:]}__carousel_carousel_slide_03"
     assert bx.recipe_archetype(tmp_path, stem) == "immersive"
-    assert bx.recipe_archetype(tmp_path, stem, {stem: {"recorded": "immersive", "current": "diagram"}}) == "diagram"
-    assert bx.recipe_archetype(tmp_path, stem, {"other": {"current": "diagram"}}) == "immersive"
+    assert bx.recipe_archetype(tmp_path, stem, {"photo_choice": {stem: {"archetype": "diagram"}}}) == "diagram"
+    assert bx.recipe_archetype(tmp_path, stem, {"rerouted": {stem: {"recorded": "x", "current": "blueprint"}}}) == "blueprint"
+    assert bx.recipe_archetype(tmp_path, stem, {"photo_choice": {"other": {"archetype": "diagram"}}}) == "immersive"
+    # "rerouted" keeps its meaning (recorded archetype against today's routing); the drawn kind is photo_choice's
+    src = (QF35A / "render_surfaces.py").read_text(encoding="utf-8")
+    assert 'if was and now and was != "diagram" and was != now:' in src
+    assert 'result.setdefault("rerouted", {})[key] = {"recorded": was, "current": now}' in src
 
 
 # ------------------------------------------------------------------------------------------------ item 6: tiers

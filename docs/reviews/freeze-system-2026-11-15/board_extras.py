@@ -362,11 +362,14 @@ def near_white_slides(dev: Path) -> list[dict[str, Any]]:
     return out
 
 
-def recipe_archetype(dev: Path, stem: str, rerouted: dict[str, Any] | None = None) -> str | None:
+def recipe_archetype(dev: Path, stem: str, surfaces: dict[str, Any] | None = None) -> str | None:
     """A recipe surface's archetype (social__<run>__carousel_carousel_slide_NN / __fb_...): the one the tree drew
-    where render_surfaces.py recorded that it differs from the run's (`rerouted`: surfaces.json "rerouted", cycle 5:
-    production's entry draws a diagram slide where an older run recorded a photo slide), else the run's record."""
-    now = ((rerouted or {}).get(stem) or {}).get("current")
+    where render_surfaces.py recorded it (`surfaces`: surfaces.json; cycle 5: photo_choice "archetype" of a deck
+    drawn by production's entry, which draws a diagram slide where an older run recorded a photo slide; else
+    "rerouted", today's routing of a replayed slide), else the run's record."""
+    s = surfaces or {}
+    now = ((s.get("photo_choice") or {}).get(stem) or {}).get("archetype") or (
+        (s.get("rerouted") or {}).get(stem) or {}).get("current")
     if now:
         return str(now)
     try:

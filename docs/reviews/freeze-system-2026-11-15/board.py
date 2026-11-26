@@ -1324,20 +1324,30 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     for n in sorted(x for x in surf if x.startswith("social__") and "__fb_carousel_slide_" in x):
         decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
     sj_ = out / "surfaces.json"
-    rerouted = (json.loads(sj_.read_text(encoding="utf-8")).get("rerouted") or {}) if sj_.is_file() else {}
+    sj_rec = json.loads(sj_.read_text(encoding="utf-8")) if sj_.is_file() else {}
+    rerouted = sj_rec.get("rerouted") or {}
+    choice = sj_rec.get("photo_choice") or {}
     collages, posted = [], {}
     for deck, names in decks.items():
         tag = deck[len("social__"):]
-        current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
-                   if k.startswith(f"{deck}__fb_carousel_slide_")}
-        try:
-            picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
-        except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
-            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
-            picked = []
-        order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
+        # cycle 5: a deck drawn by production's entry carries the publisher's own pick over the copy as drawn
+        # (photo_choice "facebook_post", board_decks.production_deck); a replayed deck is picked as before
+        places = {n: (choice.get(n) or {}).get("facebook_post") for n in names if "facebook_post" in (choice.get(n) or {})}
+        if places and all(v != "unknown" for v in places.values()):
+            order = sorted((n for n, v in places.items() if v), key=lambda n: places[n])
+            over = "the Facebook copy as drawn"
+        else:
+            current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
+                       if k.startswith(f"{deck}__fb_carousel_slide_")}
+            try:
+                picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
+            except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
+                manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
+                picked = []
+            order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
+            over = "the run's recorded Facebook copy with today's archetypes"
         order = [n for n in order if n in surf]
-        how = (f"publisher's set: facebook_pick posts {len(order)} of {len(names)} Facebook slides "
+        how = (f"publisher's set: facebook_pick over {over} posts {len(order)} of {len(names)} Facebook slides "
                f"({', '.join(n.rsplit('_', 1)[-1] for n in order)})" if order else
                f"NOT publisher's set (facebook_pick unavailable): the first {min(len(names), 5)} of {len(names)}")
         order = order or names[:5]
@@ -1827,7 +1837,7 @@ def main() -> None:
             return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
                     f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
         def drawn_arch(stem: str):   # cycle 5: the archetype the tree drew (the run's, or today's where they differ)
-            return bx.recipe_archetype(dev, stem, (surfaces_rec or {}).get("rerouted"))
+            return bx.recipe_archetype(dev, stem, surfaces_rec)
 
         def note(stem: str) -> str:   # cycle 4: the ladder's rung and any recorded omission, on the tile's label
             diagram = "diagram slide" if r == 5 and drawn_arch(stem) == "diagram" else ""   # its tier is 2

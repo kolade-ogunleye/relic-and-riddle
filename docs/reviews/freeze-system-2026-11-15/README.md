@@ -300,7 +300,32 @@ both clips with the per-frame difference. Row sheets are listed and paired only 
   deck's `layout_holds` rows are in the refusal table; surfaces.json `pointer_records` and the Story tile's label
   carry the pointer decision; row 13's masthead table adds `reach`, `margin step`, `margin short`.
 - board.json `case_tiers` / `tiers`: each case's production tier (`board_evidence.tier`; T1 published or every run,
-  T2 data-gated, T3 documentary / 16:9 flag, T4 internal or unreachable), so scores can be reported by tier.
+  T2 data-gated, T3 behind a flag that is off by default, T4 internal or with no production caller), so scores can
+  be reported by tier.
+
+### Review fixes (cycle 5, fix round 1): the decks and the tiers
+
+- The carousel decks are production's own draw. `render_surfaces.py`'s social job draws both copies of every recipe
+  run through `MultiFormatGenerator.generate_carousel_sequence`, called as `src/carousel_lazy.draw` calls it
+  (`board_decks.production_deck`: the run's verified script, its posters, `strict_match=True`), and the surface is
+  the JPEG that call delivers, decoded. The photo match is the one input production makes with a vision call: the
+  board gives the run's own `carousel_photos.json` as the kept match and blocks the matcher (`board_decks.no_vision`),
+  so nothing paid and nothing on the network runs. Surface names and record keys are the same as before
+  (`photo_choice`, `masthead_records`, `rerouted`, `surface_omissions`); `photo_choice[<surface>].drawn_through` says
+  which path drew the slide.
+- A run whose saved data cannot drive that entry (no `carousel_photos.json`, a photograph gone from disk, another
+  slide count, an AI-made picture in the match) is redrawn from its saved recipe as before, and every such tile says
+  `REPLAY, not production's draw` with the missing input. A copy production would hold (a refusal) is a REFUSED tile.
+- Story frames are still redrawn from their recorded recipe (`_render_story_frame`), and two single slides stay
+  direct `_render_carousel_slide` calls on a chosen ground, not decks: row 2's cover slide (the masthead probe) and
+  the near-white stand-in's two slides (labelled so). Neither has a run's photo match to drive a deck with.
+- The tier is drawn. Every tile's label strip starts with its tier line (`sheet()`, `board_evidence.tile_tier`), in
+  the tier's colour, and every sheet saved whole (tables, curves, specimens) gets a one-line strip above it
+  (`tier_sheets`); a sheet's PNG text chunk `board_tier` marks it. The surfaces and cases (the judged pixels) are
+  never touched. An evidence sheet is T4 and says which tier's surface it measures (board.json `sheet_measures`).
+  Every case of every row has a `case_tiers` entry (`board_evidence.case_tiers`).
+- Tiers follow the usage inventory (queue SURFACE-USAGE-2026-11-26): the 16:9 end screen is T4 (`end_card.frames`
+  has no caller in `src/`), the photo callout is T3 (`CALLOUTS_ENABLED`, code default false; no run drew one).
 
 ### Wall-clock
 

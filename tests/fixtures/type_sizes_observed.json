@@ -347,6 +347,9 @@
  "graphics:_render_scale_vertical.compose": [
   28.0
  ],
+ "graphics:_render_scale_wide": [
+  38.0
+ ],
  "graphics:_render_timeline_tall": [
   42.0
  ],
@@ -791,6 +794,9 @@
  "graphics:scale_figure_lines": [
   92.0,
   94.0
+ ],
+ "graphics:subject_figure_font": [
+  38.0
  ],
  "graphics:water_labels": [
   21.0,

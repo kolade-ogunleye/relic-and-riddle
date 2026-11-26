@@ -112,7 +112,7 @@ def test_span_helpers_round_4() -> None:
     f = graphics.get_font("Montserrat", graphics.span_font_px(38), weight=600)
     band, air = graphics.span_band(38, f)
     assert air == round(38 * graphics.SPAN_AIR) and band == graphics.cap_height(f) + 2 * air
-    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 27    # hierarchy spec 30 -> 24; cycle 0 r7 floor 27
+    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 28    # hierarchy spec 30 -> 24; cycle 0 r7 floor 27
 
 
 def test_spacing_reports_whether_compressed_gaps_stay_honest() -> None:
@@ -226,7 +226,7 @@ def test_height_carries_the_shared_ruler_and_the_landmark_note(tmp_path, monkeyp
     assert marks >= {"0 FT", "100", "200"} and (size[0] < size[1] or "300" in marks)   # 9:16: 300 meets the heading's air
     note = " ".join(p.text for n, p in st["plates"] if n.startswith("ref_note"))
     assert note == "GROUND TO TORCH TIP"
-    assert all(p.font.size >= (graphics.SCALE_RULER_PX - 4 if size[0] < size[1] else 20)
+    assert all(p.font.size >= (graphics.SCALE_REFERENT_NOTE_PX if size[0] < size[1] else 20)
                for n, p in st["plates"] if n.startswith("ref_note"))
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in st["plates"])
     assert rows["meaning0"].text.startswith("Kailasa Temple")

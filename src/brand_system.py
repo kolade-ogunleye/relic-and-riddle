@@ -500,7 +500,8 @@ TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
 FIGURE_STEPS: tuple[int, ...] = (300, 260, 220, 190, 160)
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
-    "tall": MappingProxyType({"label": 27, "data_label": 27, "credit": 22}),
+    # freeze cycle 5 (FIGURES, FIG-06): 28 on 1080 wide is 10 pt at a 390 pt delivered frame (27 was 9.75 pt)
+    "tall": MappingProxyType({"label": 28, "data_label": 28, "credit": 22}),
     "carousel": MappingProxyType({"label": 36, "data_label": 36, "credit": 22 * 4 / 3}),
     "wide": MappingProxyType({"label": 30, "data_label": 30, "credit": 22}),
 })
@@ -635,6 +636,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:country_spot": "A",
     "graphics:data_font": "A",          # cycle 0 round 7: the data, figure and place roles' fonts
     "graphics:figure_font": "A",
+    "graphics:subject_figure_font": "A",
     "graphics:label_plates_for": "A",
     "graphics:marker_label_lines": "A",
     "graphics:neighbour_plates": "A",

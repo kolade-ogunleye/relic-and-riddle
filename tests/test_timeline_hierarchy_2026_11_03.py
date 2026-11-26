@@ -317,7 +317,7 @@ def test_two_row_labels_keep_the_years_at_least_at_the_least_ratio(tmp_path, mon
 def test_circa_font_is_half_the_year_with_its_own_floor() -> None:
     assert graphics.circa_font(graphics.get_font("Anton", 84)).size == 42
     assert graphics.circa_font(graphics.get_font("Anton", 40)).size == graphics.CIRCA_MIN_PX == 30
-    assert graphics.CIRCA_MIN_PX > graphics.SPAN_MIN_PX == 27        # cycle 0 r7 (F16): the 9:16 label floor (24 before)
+    assert graphics.CIRCA_MIN_PX > graphics.SPAN_MIN_PX == 28        # cycle 0 r7 (F16): the 9:16 label floor (24 before)
 
 
 def test_span_font_px_and_the_air_rules() -> None:

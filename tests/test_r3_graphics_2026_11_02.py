@@ -250,7 +250,8 @@ def test_depth_ruler_marks() -> None:
     assert graphics._depth_ruler(280.0, "ABOUT ") == [(0.0, "0 FT", False), (100.0, "100", False),
                                                       (200.0, "200", False), (280.0, "ABOUT 280 FT", True)]
     assert [t for _, t, _ in graphics._depth_ruler(120.0, "")] == ["0 FT", "50", "100", "120 FT"]
-    assert [t for _, t, _ in graphics._depth_ruler(105.0, "")] == ["0 FT", "50", "105 FT"]   # none just above
+    # freeze cycle 5 (review D3): the tick just above the floor is planned; the renderer yields it, on the record
+    assert [t for _, t, _ in graphics._depth_ruler(105.0, "")] == ["0 FT", "50", "100", "105 FT"]
 
 
 @pytest.mark.parametrize("size", FORMATS)
@@ -272,7 +273,9 @@ def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, mo
     assert [(p.text, tuple(p.fill)) for p in floor.plates] == [("ABOUT", tuple(brand.BONE)), ("280 FT", tuple(brand.GOLD))]
     assert all(Path(p.font.path) == Path(graphics.figure_font(40).path) for p in floor.plates)
     assert not any("ABOUT" in p.text or tuple(p.fill) == tuple(brand.GOLD) for p in rulers)
-    assert rows["ref_label"].text == "305 FT" and rows["bracket"].derived["rule"] == "difference"
+    # freeze cycle 5 (review D2): the landmark's height is stated by the line of meaning, never beside the ruler
+    assert "ref_label" not in rows and rows["bracket"].derived["rule"] == "difference"
+    assert "305 ft" in " ".join(p.text for n, p in st["plates"] if n.startswith("meaning"))
     figure = " ".join(p.text for n, p in st["plates"] if re.fullmatch(r"figure\d*", n))
     assert figure == "ABOUT 280 FT DEEP" and rows["figure_metric"].text == "85 M"
     assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"]), st["record"]["elements"]

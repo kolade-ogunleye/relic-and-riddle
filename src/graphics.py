@@ -9949,6 +9949,7 @@ SCALE_RULER_PX = 28           # the rulers' data-face figures on 9:16 (round 4: 
 # in the figure face) against their 28 (9:16) / 30 (16:9). Where it has no room at that step it takes the others'
 # ladder (the hierarchy measure, fig_answer_hierarchy.py, names it).
 SCALE_SUBJECT_FIGURE_PX = 38
+SCALE_REFERENT_NOTE_PX = 30   # a landmark's referent note on 9:16 (it was SCALE_RULER_PX - 4 when the ruler was 34)
 SCALE_SETTLE = 2.6            # s: the landmark lands (a depth) or finishes rising (a height)
 SCALE_MEANING_AT = 2.75       # round 4: the line of meaning on the impact, not 0.6 s after it (3.2 before)
 SCALE_HOLD_PUSH = 0.025       # round 4: the drawing pushes in 1.0 -> 1.025 about its tip over the hold
@@ -10295,7 +10296,8 @@ def _depth_ruler(feet: float, hedge: str, unit: str = "FT",
                  fact: dict[str, Any] | None = None) -> list[tuple[float, str, bool]]:
     """The depth ruler's marks (round 3, 2026-11-02; it replaces five unlabelled strata that suggested levels
     that do not exist): (feet, label, is the floor) for "0 FT" at the ground, the round hundreds above the floor
-    (fifties under 200, tens under 40, in the ruler's `unit`), none within a fifth of a step of it, and the payload
+    (fifties under 200, tens under 40, in the ruler's `unit`), every one short of it (freeze cycle 5, review D3: the
+    renderer yields one too near the floor's figure, FLOOR_TICK_YIELD, and records it; none is planned out), and the payload
     figure, hedged like the figure, at the floor (at its signed precision given the `fact`: signed_lead). A metre fact's
     ruler counts metres (cycle 0 round 7, F12)."""
     k = per_ft(unit)
@@ -10303,7 +10305,7 @@ def _depth_ruler(feet: float, hedge: str, unit: str = "FT",
     step = _ruler_step(depth)
     marks = [(0.0, f"0 {unit}", False)]
     v = step
-    while v < depth - step * 0.2:
+    while v < depth - 1e-9:
         marks.append((v / k, f"{v:,}", False))
         v += step
     marks.append((feet, f"{hedge}{_short(feet, unit, fact)}", True))
@@ -10800,7 +10802,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         ref_note = reference_note(ref_label) if drawing else ""
         if drawing:
             fig_pl, rows_n, tick_d, rec_n = referent_block(ground, _short(ref_feet, unit), f_note, 2, ref_note,
-                                                           max(SCALE_RULER_PX - 4, floor), ref_cx + reach_d,
+                                                           max(SCALE_REFERENT_NOTE_PX, floor), ref_cx + reach_d,
                                                            ref_cx - reach_d, top_y, 1.0, clear_d)
         else:
             fig_pl, rows_n, tick_d, rec_n = None, [], None, {"form": "meaning",
@@ -10912,7 +10914,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
         fig_pl, rows_n, tick, rec_n = referent_block(ground, _short(ref_feet, unit), f_blk, 2, note,
-                                                     max(SCALE_RULER_PX - 4, floor), tick_r, tick_l, ref_top, 1.0,
+                                                     max(SCALE_REFERENT_NOTE_PX, floor), tick_r, tick_l, ref_top, 1.0,
                                                      clear_n)
         LAST_REFERENT_NOTE.update(rec_n)
         if fig_pl is not None:

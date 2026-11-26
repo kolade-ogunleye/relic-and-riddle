@@ -138,7 +138,8 @@ def test_the_signed_facts_unit_leads():
     # the line of meaning in the same unit (the landmark's sourced figure converted, never more precise)
     lines = graphics.scale_meaning_lines(WIELICZKA, 327 * graphics.FT_PER_M, "Great Pyramid (original)",
                                          480.6430446, True)
-    assert lines == ["The Great Pyramid would vanish:", "its top about 181 m below the surface."]
+    # freeze cycle 5 (review D2): the landmark is named with its own figure (the operand, on the drawing)
+    assert lines == ["The Great Pyramid, 146 m, would vanish:", "its top about 181 m below the surface."]
     assert "ft" not in " ".join(lines)
 
 
@@ -300,9 +301,10 @@ def test_no_place_label_is_planned_outside_the_role():
 # ------------------------------------------------------------------------------------- F16 the 9:16 floor
 
 def test_the_floor_token():
-    assert graphics.label_floor(*TALL) == 27 == brand_system.TYPE_FLOOR["tall"]["label"]
+    # freeze cycle 5 (FIG-06): the token is 10 pt at a 390 pt delivered frame (28 on 1080; it was 27)
+    assert graphics.label_floor(*TALL) == 28 == brand_system.TYPE_FLOOR["tall"]["label"]
     assert graphics.label_floor(*WIDE) == 0
-    assert graphics.SPAN_MIN_PX == 27
+    assert graphics.SPAN_MIN_PX == 28
 
 
 SMALL_CARDS = [{"value": "about 1,200,000 tonnes (1.1 million metric tonnes)", "label": "Salt carved out of the "

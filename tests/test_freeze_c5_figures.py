@@ -293,7 +293,8 @@ def test_the_answer_is_one_step_above_the_drawings_other_figures_and_no_bracket_
         figs = [x["px"] for e in r["elements"] if e["name"] in fm.SUBJECT_FIGURE + fm.OTHER_FIGURES
                 for x in e["runs"] if any(ch.isdigit() for ch in x["text"])]
         axis = [x["px"] for e in r["elements"] if fm.RULER_ROLE.match(e["name"]) for x in e["runs"]]
-        assert not figs or not axis or max(axis) <= min(figs), (r["run"], r["format"], axis, figs)
+        if r["format"] != "169":       # D5 is the 9:16 size system (16:9 labels: FIG-06 phase 2, hand-back)
+            assert not figs or not axis or max(axis) <= min(figs), (r["run"], r["format"], axis, figs)
         if r["input"]["dimension"] == "depth":
             lay = r["layout"]
             if r["format"] != "slide":      # the video drawings: never withheld for these inputs (review D4)

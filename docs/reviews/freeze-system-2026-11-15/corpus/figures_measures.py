@@ -244,10 +244,19 @@ NUMBER = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?")
 
 
 def _numbers(text: str) -> list[str]:
+    """The numbers `text` states; a feet-and-inches figure ("10 FT 8 IN") is ONE number in feet (10.667, its last
+    place an inch: marked "#")."""
+    ftin = re.search(r"(\d[\d,]*)\s*FT\s+(\d+)\s*IN\b", text, re.I)
+    if ftin:
+        v = float(ftin.group(1).replace(",", "")) + int(ftin.group(2)) / 12
+        rest = text[:ftin.start()] + text[ftin.end():]
+        return [f"{v:.4f}#"] + _numbers(rest)
     return [m.group(0).rstrip(",") for m in NUMBER.finditer(text)]
 
 
 def _rounded_once(shown: str, true: float) -> bool:
+    if shown.endswith("#"):                   # feet and inches: its last place is an inch
+        return abs(float(shown[:-1]) - true) <= 0.5 / 12 + 0.01
     raw = shown.replace(",", "")
     return abs(float(raw) - true) <= 0.5 * 10 ** -len(raw.partition(".")[2]) + 1e-9
 

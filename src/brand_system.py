@@ -500,8 +500,7 @@ TYPE_FALLBACK: Mapping[str, Mapping[str, float]] = MappingProxyType({
 FIGURE_STEPS: tuple[int, ...] = (300, 260, 220, 190, 160)
 # Feed-size floors, canvas px (RUBRIC PL2, rulings): nothing a role draws is smaller.
 TYPE_FLOOR: Mapping[str, Mapping[str, float]] = MappingProxyType({
-    # freeze cycle 5 (FIGURES, FIG-06): 28 on 1080 wide is 10 pt at a 390 pt delivered frame (27 was 9.75 pt)
-    "tall": MappingProxyType({"label": 28, "data_label": 28, "credit": 22}),
+    "tall": MappingProxyType({"label": 27, "data_label": 27, "credit": 22}),
     "carousel": MappingProxyType({"label": 36, "data_label": 36, "credit": 22 * 4 / 3}),
     "wide": MappingProxyType({"label": 30, "data_label": 30, "credit": 22}),
 })

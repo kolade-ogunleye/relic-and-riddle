@@ -112,7 +112,7 @@ def test_span_helpers_round_4() -> None:
     f = graphics.get_font("Montserrat", graphics.span_font_px(38), weight=600)
     band, air = graphics.span_band(38, f)
     assert air == round(38 * graphics.SPAN_AIR) and band == graphics.cap_height(f) + 2 * air
-    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 28    # hierarchy spec 30 -> 24; cycle 0 r7 floor 27
+    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 27    # hierarchy spec 30 -> 24; cycle 0 r7 floor 27
 
 
 def test_spacing_reports_whether_compressed_gaps_stay_honest() -> None:

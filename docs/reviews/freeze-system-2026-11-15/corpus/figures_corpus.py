@@ -44,7 +44,10 @@ SLIDE = (1280, 652, "slide")
 
 
 def formats(kind: str) -> tuple:
-    return FORMATS + ((SLIDE,) if kind == "scale" else ())
+    """The formats a kind is captured in; FIGURES_CORPUS_FORMATS (e.g. "916") limits them (a partial re-capture after
+    a change that only one format draws differently, named in the hand-back)."""
+    only = [f for f in os.environ.get("FIGURES_CORPUS_FORMATS", "").split(",") if f]
+    return tuple(f for f in FORMATS + ((SLIDE,) if kind == "scale" else ()) if not only or f[2] in only)
 KINDS = ("scale", "section", "numbers", "timeline", "route", "map")
 
 # Committed stress inputs (FIXTURE): real signed shapes the dev corpus does not carry. No topic list drives any code;

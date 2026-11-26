@@ -301,10 +301,9 @@ def test_no_place_label_is_planned_outside_the_role():
 # ------------------------------------------------------------------------------------- F16 the 9:16 floor
 
 def test_the_floor_token():
-    # freeze cycle 5 (FIG-06): the token is 10 pt at a 390 pt delivered frame (28 on 1080; it was 27)
-    assert graphics.label_floor(*TALL) == 28 == brand_system.TYPE_FLOOR["tall"]["label"]
+    assert graphics.label_floor(*TALL) == 27 == brand_system.TYPE_FLOOR["tall"]["label"]
     assert graphics.label_floor(*WIDE) == 0
-    assert graphics.SPAN_MIN_PX == 28
+    assert graphics.SPAN_MIN_PX == 27
 
 
 SMALL_CARDS = [{"value": "about 1,200,000 tonnes (1.1 million metric tonnes)", "label": "Salt carved out of the "

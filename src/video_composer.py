@@ -3627,6 +3627,9 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
             lay = reel_caption_lines(ws)
             return " ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]) if lay else " ".join(ws)
         faulty = {drawn(p): line_rule_faults(p) for p in out if line_rule_faults(p)}
+        # and every break taken against a rule at the clip's size (an article end, a figure group parted)
+        faulty.update({row["text"]: row["faults"] for row in _clip_state()["no_legal_form"]
+                       if row["faults"] and row["text"] not in faulty})
         line_split[:] = [e for e in line_split if e.get("into") is not None or e.get("text") in faulty]
         have = {e.get("text") for e in line_split if e.get("into") is None}
         clip = _clip_state()

@@ -166,7 +166,8 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter, collections.Cou
             named = {" ".join(str(x).replace(" / ", " ").split()) for x in (
                 [e.get("text") for e in rate.get("never_end_lines") or []] + list(rate.get("line_defect") or [])
                 + list(rate.get("name_split") or []) + [e.get("text") for e in log if e.get("into", 0) is None]
-                + [e.get("text") for e in rate.get("bond_extra") or []] + list(rate.get("range_seam") or [])) if x}
+                + [e.get("text") for e in rate.get("bond_extra") or []] + list(rate.get("range_seam") or [])
+                + [e.get("text") for e in (rate.get("clip_size") or {}).get("no_legal_form") or []]) if x}
             ends = set(rate.get("never_end") or [])
             fs = [b["fs"] for b in bursts]
             if fmt == "916":

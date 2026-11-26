@@ -162,6 +162,7 @@ def test_no_legal_break_is_recorded_only_of_a_burst_drawn_with_the_fault(name, t
         lay = vc.reel_caption_lines(ws)
         return " ".join(ws[:lay[0]]) + " / " + " ".join(ws[lay[0]:]) if lay else " ".join(ws)
     faulty = {drawn(p) for p in phrases if vc.line_rule_faults(list(_raw(p)))}
+    faulty |= {row["text"] for row in rate["clip_size"]["no_legal_form"] if row["faults"]}   # every break against a rule
     unsplit = {e["text"] for e in rate["line_split"] if e.get("into") is None}
     assert unsplit == faulty, (unsplit ^ faulty)
     budget = vc._ink_budget()

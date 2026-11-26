@@ -126,7 +126,10 @@ def steepest(luma_column: np.ndarray) -> float:
     return float(np.abs(np.diff(c)).max()) if c.size > 1 else 0.0
 
 
-HOLD_POWER = 6.0   # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
+# 10 (was 6): over every photograph of every dev topic (361) six plate grade-outs still drifted 5.1-5.6 degrees at
+# the 95th percentile against the 5 degree rule with 6 (the band colour's 26 % share at 0.8 of full); the luma is
+# the same at any power
+HOLD_POWER = 10.0  # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
 
 
 def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None) -> Image.Image:

@@ -277,8 +277,11 @@ def test_a_burst_shorter_than_0_6_s_joins_a_neighbour(tmp_path):
     # across the sentence end (SPACE. | OK. was a cut HEAD does not make), so one plate, as at HEAD (was 2 in round 2)
     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the four words draw on two lines (VISIBLE FROM | SPACE. OK), one
     # event per line in each of the four reveal intervals (was 4 one-line events)
+    # lane C cycle 4 (lander ruling 2026-11-25, LINE_RULE): neither two-line break is legal (VISIBLE FROM / ends on
+    # a preposition, VISIBLE FROM SPACE. / OK leaves a one-word line), so the burst is split at the sentence end,
+    # recorded (_line_split): two plates, one line each, OK. up its half second (was one two-line plate, 8 events)
     texts = _events(ass, "CapText")
-    assert len(_events(ass, "CapBox")) == 1 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 8
+    assert len(_events(ass, "CapBox")) == 2 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 4
     paused = [dict(w) for w in words]
     paused[3]["start"] = 2.5                                             # after a long pause it stays alone
     assert len(merge_short_bursts(partition_words_grammatical(paused), _fits_caption_width, 5)) == 2

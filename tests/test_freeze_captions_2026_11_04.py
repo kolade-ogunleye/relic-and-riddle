@@ -1460,7 +1460,8 @@ def test_adversarial_long_names_stay_whole(text, name, wide):
     assert len(name.split()) > vc.NAME_MAX_WORDS
     texts = [_plain(t) for t in _texts(phrases)]
     assert not any(t.split()[-1] in ("OF", "THE") for t in texts[:-1]), texts
-    assert set(_ends(phrases)[:-1]) == _head_cuts(words, None, wide), texts   # gate: HEAD's phrasing
+    # gate: HEAD's phrasing, before the LINE_RULE pass (lane C cycle 4: its splits are recorded and held apart)
+    assert set(_ends(_pre_line_rule(words, None, wide))[:-1]) == _head_cuts(words, None, wide), texts
     if not wide:
         for p in phrases:
             if len(p) > 1:
@@ -1765,6 +1766,19 @@ LONE_FORCED: dict = {("run:gol_gumbaz_whispering_gallery", "travel"): ("travel",
                      ("run:richat_structure_sahara_eye", "ago,"): ("years", "ago,")}
 
 
+def _pre_line_rule(words, emphasis=None, wide=False):
+    """The bursts before the LINE_RULE pass (lane C cycle 4, lander ruling 2026-11-25: _line_split splits a 9:16
+    burst with no legal two-line break into consecutive bursts, after the gated phrasing). The HEAD gate, the lone-word
+    list and the dangling-end count hold this phrasing; every change the pass makes is recorded and held by
+    tests/test_lane_c_cycle4_line_rule.py (only inside the bursts it records, every word kept, no D1 burst added)."""
+    orig = vc._line_split
+    vc._line_split = lambda phrases, *a, **k: phrases
+    try:
+        return caption_phrases(words, emphasis, wide)
+    finally:
+        vc._line_split = orig
+
+
 def _gate_cases():
     """(case, words, emphasis, HEAD cuts) for every case of head_0036b18_cuts.json."""
     head = json.loads(HEAD_CUTS_FILE.read_text("utf-8"))
@@ -1816,7 +1830,7 @@ def test_head_regression_gate():
     new = {}
     for case, words, emph, h in _gate_cases():
         raw = [w["word"] for w in words]
-        now = {"9:16": _ends(caption_phrases(words, emph))[:-1], "16:9": _ends(caption_phrases(words, emph, True))[:-1],
+        now = {"9:16": _ends(_pre_line_rule(words, emph))[:-1], "16:9": _ends(caption_phrases(words, emph, True))[:-1],
                "cues": _ends([t.split() for _, _, t in partition_sidecar_cues(words)])[:-1]}
         for fmt, cuts in now.items():
             spans, a = [], 0
@@ -1839,7 +1853,7 @@ def test_head_regression_gate():
                     links = vc._figure_bonds(raw) | vc.unit_links(raw)
                     assert any(e in links for e in h[fmt] if abs(e - k) <= 4), key
                 if kind == "range":   # QF-87 review 1: the burst the new cut ends holds a whole figure range
-                    ends = _ends(caption_phrases(words, emph))
+                    ends = _ends(_pre_line_rule(words, emph))
                     start = max([e + 1 for e in ends if e < k] + [0])
                     burst = [vc._norm(x) for x in raw[start:k + 1]]
                     joins = [i for i, x in enumerate(burst) if x in vc.RANGE_JOINERS]
@@ -1880,7 +1894,7 @@ def test_lone_word_bursts_are_head_or_forced():
             a = e + 1
         head_lone = {a for a, e in spans if a == e}
         at = -1
-        for p in caption_phrases(words, emph):
+        for p in _pre_line_rule(words, emph):   # lane C cycle 4: a LINE_RULE split's lone word is recorded instead
             at += len(p)
             if len(p) == 1 and at not in head_lone:
                 found.add((case, p[0]["word"]))
@@ -1902,8 +1916,9 @@ def test_fewer_dangling_ends_on_the_real_runs():
     # which are HEAD's own ends)
     ends = []
     for topic in RUNS:
-        words, phrases = run_layout(topic)
-        found = _mid_dangles(phrases)
+        words, _ = run_layout(topic)
+        # lane C cycle 4: before the LINE_RULE pass (a split's soft end is recorded: test_lane_c_cycle4_line_rule.py)
+        found = _mid_dangles(_pre_line_rule(words, list(RUNS[topic].get("emphasis_words") or []), RUN_WIDE[topic]))
         head, spans, a = sorted(_head_cuts(words, list(RUNS[topic].get("emphasis_words") or []), RUN_WIDE[topic])), [], 0
         for e in head + [len(words) - 1]:
             spans.append(words[a:e + 1])
@@ -1936,7 +1951,10 @@ def test_m1_pre_modifiers_and_proper_modifiers():
     # (was: no burst ends on POLISH or BRITISH)
     assert "IS NAMED AFTER POLISH" in voy, voy
     # soft (M1): AMERICAN AND BRITISH | MILITARY CRYPTOGRAPHERS stays, every split avoiding it leaves a lone word
-    assert "AMERICAN AND BRITISH" in voy
+    # lane C cycle 4 (lander ruling 2026-11-25): in the gated phrasing; it draws AMERICAN / AND BRITISH (a one-word
+    # line), so the LINE_RULE pass then splits it, recorded (test_lane_c_cycle4_line_rule.py)
+    c = RUNS["voynich_manuscript"]
+    assert "AMERICAN AND BRITISH" in _texts(_pre_line_rule(_fx.words(c), list(c.get("emphasis_words") or [])))
 
 
 # ---------------------------------------------------------------- D1: half a second on screen
@@ -2014,7 +2032,10 @@ def test_amber_bursts_over_the_timeline_graphic_get_an_opaque_plate(tmp_path):
     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): MOSAIC WAS RECOVERED draws on two lines (plate top y 1137), and
     # its guard (CAPTION_GUARD_PAD) reaches this run's committed timeline poster, drawn before QF-24 with text at
     # y 1140-1160: that one burst is flagged and drawn near-opaque, as the guard is meant to (was none flagged)
-    assert [f["text"] for f in flagged] == ["mosaic was recovered"]
+    # lane C cycle 4 (lander ruling 2026-11-25): MOSAIC WAS / RECOVERED left a one-word line, so its sentence is
+    # re-cut (_line_split) and AN ORIGINAL STONE MOSAIC is the burst whose plate reaches the poster (was MOSAIC WAS
+    # RECOVERED)
+    assert [f["text"] for f in flagged] == ["an original stone mosaic"]
     span = next((a, b) for a, b, clip in gclips if clip.name == "graphic_timeline.mp4")
     plates = [l for l in ass.read_text("utf-8").splitlines() if ",CapBox," in l]
     assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 1

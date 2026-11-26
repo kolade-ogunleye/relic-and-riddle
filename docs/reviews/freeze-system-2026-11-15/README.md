@@ -261,3 +261,22 @@ both clips with the per-frame difference. Row sheets are listed and paired only 
   delivery encoder), `row07_captions_run__<topic>__<tag>.png` (the caption band at 1:1 on the frame 0.08 s before
   each burst leaves) and `..._bursts.png/json` (per burst: seconds on screen, characters, characters per second).
 - `exp_cases.py` expects cycle 5's files (`--drop-cycle5` for a tree before them).
+
+### Requests from the other cycle-5 streams, and tiers
+
+- SYS-photo-c5-1: `render_surfaces.py` passes each recipe deck's recorded photographs through
+  `multi_format.deck_photo_guard` with the run's own photo pool (`carousel_photos.json` `key.stills`) before it
+  draws, as production does; surfaces.json `photo_choice` records each slide's reason (a drawing slide keeps its
+  poster). On integration 4 the guard replaces no photograph of the four recipe runs.
+- SYS-plates-c5-1: a frame's masthead record is read from the tree's own `still_layout.json` `masthead` where it
+  keeps one (else from the layout the draw returned); a withheld masthead is a RECORDED OMISSION on the tile and the
+  deck's `layout_holds` rows are in the refusal table; surfaces.json `pointer_records` and the Story tile's label
+  carry the pointer decision; row 13's masthead table adds `reach`, `margin step`, `margin short`.
+- board.json `case_tiers` / `tiers`: each case's production tier (`board_evidence.tier`; T1 published or every run,
+  T2 data-gated, T3 documentary / 16:9 flag, T4 internal or unreachable), so scores can be reported by tier.
+
+### Wall-clock
+
+`run_palette.sh` takes `BOARD_PREV=<the previous integration's out root>`: its job times balance the shards
+(`--timings`) and, when that board has the code record and a manifest, it is the `--reuse` base. The measurements
+(what limits a board, how many workers, whether palettes may overlap) are in the hand-back.

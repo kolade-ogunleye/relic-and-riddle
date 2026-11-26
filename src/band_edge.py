@@ -118,7 +118,7 @@ def steepest(luma_column: np.ndarray) -> float:
     return float(np.abs(np.diff(c)).max()) if c.size > 1 else 0.0
 
 
-HOLD_POWER = 2.0   # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
+HOLD_POWER = 4.0   # hold_hue: the band colour's share of the layer's own colour grows as (alpha / full) ** HOLD_POWER
 
 
 def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None) -> Image.Image:

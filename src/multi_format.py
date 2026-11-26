@@ -103,6 +103,17 @@ STORY_BODY_PX = 46      # the Story body's size; never shrunk below it (2026-10-
                         # the overhaul of 2026-10-29, which sets it at the critic's measured 46-48 px, ~16 pt)
 STORY_BODY_LINES = 3
 STORY_POINTER = "FULL STORY ON OUR PROFILE"   # the hook frame's pointer to the Reel (lane D cycle 4: no link sticker)
+# Lander ruling 2026-11-26 (panel 6 PL r1 / r2: the pointer is drawn text with no tap target): a pointer line is drawn
+# only when the publisher can attach a tap target to the frame (a link sticker). The Story API posts none today, so
+# the line is withheld (recorded on the frame: lay.meta["pointer"], kept in stories/still_layout.json) and the block
+# is laid without its row, as every later frame of the Story is. The publisher that can attach one sets this.
+STORY_TAP_TARGET = False
+STORY_POINTER_RULE = "a Story pointer is drawn only with a tap target the publisher can attach (ruling 2026-11-26)"
+
+
+def story_tap_target() -> bool:
+    """Whether the publisher can attach a tap target (a link sticker) to a Story frame today."""
+    return bool(STORY_TAP_TARGET)
 STORY_BODY_WEIGHT = 600  # Montserrat SemiBold (2026-11-02 round 2: stated, so a default elsewhere cannot thin it)
 STORY_TITLE_W = 860      # the title's measure: three lines at its design size before it shrinks (2026-11-02)
 STORY_TITLE_LINES = 3
@@ -1376,6 +1387,7 @@ class MultiFormatGenerator:
         b_step = round(STORY_BODY_PX * 1.36)
         b_gap = round(STORY_BODY_PX * tok("band.body_gap_tall"))  # title's last baseline to the body's first (F3)
         font_p = get_font(brand.TEXT_FONT, 32 if tight else 36, weight=800)
+        pointer = i == 0 and story_tap_target()   # ruling 2026-11-26: no pointer line without a tap target
         sticker = STORY_STICKER_H if asks_poll else 0
         room = text_floor - (sy0 + 30)                           # the height the whole block may take
 
@@ -1484,7 +1496,7 @@ class MultiFormatGenerator:
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
 
         def choose(sticker_h: int, lines: int):
-            fixed_ = (cap_k + k_gap if kicker else 0) + (110 if i == 0 else 0) + (
+            fixed_ = (cap_k + k_gap if kicker else 0) + (110 if pointer else 0) + (
                 sticker_h + 2 * STORY_STICKER_GAP if sticker_h else 0)
             need = (lines - 1) * b_step + b_gap + 12 if lines else 0
             for size_, wrap_ in trials:
@@ -1518,7 +1530,7 @@ class MultiFormatGenerator:
         got = got or (t_min, False, None, 0)   # one line a field at the floor: drawn whole or refused below
         size, wrap, fixed, fig_from = got
         if fixed is None:
-            fixed = (cap_k + k_gap if kicker else 0) + (110 if i == 0 else 0) + (
+            fixed = (cap_k + k_gap if kicker else 0) + (110 if pointer else 0) + (
                 sticker + 2 * STORY_STICKER_GAP if sticker else 0)
         if asks_poll and not sticker:
             lay.meta_room = [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]
@@ -1562,7 +1574,13 @@ class MultiFormatGenerator:
         for j, line in enumerate(body_lines):
             y = title_base + b_gap + j * b_step
             rows.append(("body", y, line, font_b, brand.BONE, 0, 0))
-        if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
+        pointer_rec = None
+        if i == 0 and not pointer:
+            pointer_rec = {"shown": False, "by_rule": True, "text": STORY_POINTER,
+                           "reason": f"pointer line {STORY_POINTER!r} not drawn: the publisher can attach no tap "
+                                     f"target to a Story frame (rule: {STORY_POINTER_RULE})"}
+        if pointer:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
+            pointer_rec = {"shown": True, "text": STORY_POINTER}
             y += 96
             # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
             # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
@@ -1630,6 +1648,7 @@ class MultiFormatGenerator:
                     "safe_box": [sx0, sy0, sx1, sy1],
                     **({"poll_sticker_room": getattr(lay, "meta_room", None)} if asks_poll else {}),
                     "ground": ground,
+                    **({"pointer": pointer_rec} if pointer_rec else {}),
                     **({"hero_figure": hero["number"]} if hero else {})}
         return base, lay
 
@@ -3145,6 +3164,7 @@ class MultiFormatGenerator:
                 if hedges:   # lane B c3c: the figures drawn with their signed hedge, on the slide's own record
                     lay.meta["figure_hedged"] = hedges
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
+            record_masthead_withheld(script_payload, gate_surface, i + 1, lay)   # freeze c5: never an unrecorded drop
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
@@ -3195,6 +3215,7 @@ class MultiFormatGenerator:
                         hedges = slide_hedged(gate_hedged, gate_surface, j + 1)
                         if hedges:
                             lay.meta["figure_hedged"] = hedges
+                    record_masthead_withheld(script_payload, gate_surface, j + 1, lay)
                     self._save_slide(im, path)
                     _delivered_contrast(lay, path)
                     still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide",
@@ -3449,6 +3470,34 @@ def record_comparator_omitted(script_payload: dict[str, Any], surface: str, comp
         log.warning("%s: %s", name, reason)
     with contextlib.suppress(refusal.Declined):
         refusal.omit(name, comparator["line"], COMPARATOR_RULE, reason)
+
+
+MASTHEAD_RULE = "a masthead under its gate is not drawn (contrast.masthead_gate, src/masthead.py)"
+
+
+def record_masthead_withheld(script_payload: dict[str, Any] | None, surface: str, slide: int, lay) -> dict | None:
+    """A slide delivered WITHOUT its masthead because the gate withheld it (freeze cycle 5, stream PLATES; panel 6
+    AD r2 / BC r2: on the second palettes a bright interior slide lost its masthead and its scrim, and nothing but
+    the slide's in-memory layout said so) on the run's ledger, as a drawn-without row (payload["layout_holds"]: the
+    review card and the release gate name it) and on the open omissions ledger when one is open (the evidence
+    board's surfaces.json). A masthead a rule leaves off (a Facebook interior slide) is no omission: its own record
+    says so. Returns the row, None when the masthead was drawn or left off by rule."""
+    from . import refusal
+    m = (getattr(lay, "meta", None) or {}).get("masthead") or {}
+    if not m or m.get("shown") or m.get("fb_interior") or m.get("by_rule"):
+        return None
+    name, omitted = f"{surface} slide {slide}", "the masthead"
+    why = str(m.get("reason") or "its record gives no reason")
+    row = {"surface": name, "omitted": omitted, "rule": MASTHEAD_RULE, "drawn": True, "slide": slide,
+           "reason": f"drawn without {omitted!r}: {why} (rule: {MASTHEAD_RULE})"}
+    if script_payload is not None:
+        holds = script_payload.setdefault("layout_holds", [])
+        if not any(h.get("surface") == name and h.get("omitted") == omitted for h in holds if isinstance(h, dict)):
+            holds.append(row)
+            log.warning("%s: %s", name, row["reason"])
+    with contextlib.suppress(refusal.Declined):   # no ledger open: the run's own ledger above holds the record
+        refusal.omit(name, omitted, MASTHEAD_RULE, why)
+    return row
 
 
 REDRAWN_DIR = "graphics_redrawn"   # <run>/graphics_redrawn/<brand+code key>/graphic_<kind>.jpg (cycle 0 round 8)

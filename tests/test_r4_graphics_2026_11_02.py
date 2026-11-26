@@ -39,6 +39,9 @@ CARDS = [{"value": "about 1,200,000 tons", "label": "Rock removed by hand"},
 LIBERTY = "Statue of Liberty (total)"
 
 
+LAST_OMITTED: list = []   # the ledger rows of the last _render, refused or drawn (freeze lane A cycle 4)
+
+
 def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any]:
     """One render at `fps`: its frames, the plates it records and the sidecar it writes (no graded pass)."""
     state: dict[str, Any] = {}
@@ -60,7 +63,10 @@ def _render(monkeypatch: pytest.MonkeyPatch, job, fps: int = 4) -> dict[str, Any
     # graphics.make_all opens it; the rows ride along for the tests that read them
     from src.refusal import collecting
     with collecting() as omitted:
-        assert job() is not None
+        try:
+            assert job() is not None
+        finally:   # lane A c4: a refused render's rows stay readable (LAST_OMITTED) for the refusal's checks
+            LAST_OMITTED[:] = omitted
     state["omitted"] = list(omitted)
     side = Path(str(state["path"]) + graphics.CONTRAST_SIDECAR)
     state["record"] = json.loads(side.read_text(encoding="utf-8")) if side.exists() else {}
@@ -1652,7 +1658,7 @@ def _render_checked(monkeypatch, caplog, tmp_path, events, size, refusal_ok: boo
         assert str(e).startswith("Checked copy does not fit the ") and "timeline" in str(e), e
         assert not list(tmp_path.glob("t.mp4*")), "a refused timeline writes nothing"
         # freeze lane A cycle 4: an event left out before the refusal is still recorded, by name
-        assert_timeline_drops_recorded(refusal_rows(), events, tmp_path / "t.mp4")
+        assert_timeline_drops_recorded(LAST_OMITTED, events, tmp_path / "t.mp4")
         return {"refused": str(e)}
     assert_timeline_drops_recorded(got["omitted"], events, tmp_path / "t.mp4")   # lane A c4: drops on the ledger
     got["spine"] = st.get("spine")

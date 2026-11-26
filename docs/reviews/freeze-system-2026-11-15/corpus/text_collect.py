@@ -10,10 +10,13 @@ Per run (its own verified_script.json / words.json, read-only):
 - captions, 9:16 and 16:9: the caption file as the composer builds it (VideoComposer.build_subtitles), parsed: each
   burst's lines, show / hide, drawn size, plate width, the first word's alpha on the show frame; the burst's own words
   with their punctuation (caption_phrases); the composer's record (reading_rates);
-- body copy: every carousel body (typography.fit_text at the carousel body size and measure, then
-  multi_format.even_rag, as MultiFormatGenerator._body sets it) and every Story body (the Story body size and width);
-- headings: every carousel heading (heading.set_heading on the content ladder) and every cover lockup (thumbnail
-  line1 + line2 and the Story title fields, one heading at the locked cover size).
+- every other drawn text through its renderer's own call path (text_surfaces.py: carousel body and heading, Story
+  frame, graphic labels, end card and end screen, YouTube headline; the chapter, myth and hook cards on the committed
+  card fields, since no dev run holds one), each with the surface's own persisted record;
+- two rows still set by an engine call with assumed arguments (marked approx): the Reel cover lockup and the
+  carousel share line.
+
+    --surfaces carousel,story,graphics,endcard,youtube,cards   (default all)     --runs <substring of the run name>
 """
 from __future__ import annotations
 
@@ -27,6 +30,14 @@ from pathlib import Path
 tree, dev, out = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve(), Path(sys.argv[3]).resolve()
 only = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else ""
 sys.path.insert(0, str(tree))
+sys.path.insert(1, str(Path(__file__).resolve().parent))
+
+import text_surfaces  # noqa: E402
+
+# --surfaces carousel,story,graphics,endcard,youtube,cards (default: all); --runs <substring> limits the runs
+WANT = tuple((sys.argv[sys.argv.index("--surfaces") + 1].split(",")) if "--surfaces" in sys.argv
+             else text_surfaces.SURFACES)
+RUNS = sys.argv[sys.argv.index("--runs") + 1] if "--runs" in sys.argv else ""
 
 from PIL import Image, ImageDraw  # noqa: E402
 
@@ -111,8 +122,10 @@ def _notes() -> list:
     return lp.take_notes() if lp is not None and hasattr(lp, "take_notes") else []
 
 
-def lines_of_run(run: Path, d) -> list[dict]:
-    j = json.loads((run / "verified_script.json").read_text(encoding="utf-8"))
+def approx_rows(j: dict, d) -> list[dict]:
+    """The two rows still set by an engine call with assumed arguments, not by their renderer's layout (marked
+    approx; the Reel cover needs the run's hero photo, which only 7 runs kept): the Reel cover lockup and the
+    carousel's share line."""
     gen = mf.MultiFormatGenerator
     rows: list[dict] = []
     width = 1080 - 2 * gen.MARGIN
@@ -120,60 +133,42 @@ def lines_of_run(run: Path, d) -> list[dict]:
     def anton(text: str, size: float) -> float:
         return d.textlength(text, font=typography.get_font(brand.DISPLAY_FONT, size))
 
-    def body(surface: str, text: str, size: int, w: int, max_lines: int, even: bool, weight=None) -> None:
-        text = " ".join(str(text or "").split())
-        if len(text.split()) < 2:
-            return
+    th = j.get("thumbnail") or {}
+    if isinstance(th, dict):
+        title = " ".join(" ".join(str(th.get(k) or "") for k in ("line1", "line2")).split()).upper()
+        if title:
+            form = heading.set_heading(title, anton, 1080 - 2 * 84, (brand_system.type_px("display_xl", "tall"),),
+                                       max_lines=2, lockup=True, locked_lines=3)
+            if form is None:
+                rows.append({"surface": "cover_lockup", "text": title, "refused": True, "approx": True})
+            else:
+                rows.append({"surface": "cover_lockup", "text": title, "lines": list(form.lines), "size": form.size,
+                             "widths": [round(anton(t, form.size), 1) for t in form.lines],
+                             "record": dict(form.record), "heading": True, "approx": True})
+    share = " ".join(str(j.get("share_line") or "").split())
+    if len(share.split()) >= 2:
         _notes()
-        for n in range(max_lines, max_lines + 4):
+        lines = None
+        for n in range(3, 7):
             try:
-                lines, font, _ = typography.fit_text(d, text, brand.TEXT_FONT, size, w, n, size, quiet=True,
-                                                     **({"weight": weight} if weight else {}))
+                lines, font, _ = typography.fit_text(d, share, brand.TEXT_FONT, 36, width, n, 36, quiet=True)
                 break
             except Exception:   # noqa: BLE001 - one more line, as the renderers try
                 lines = None
         if not lines:
-            rows.append({"surface": surface, "text": text, "refused": True})
-            return
-        if even:
-            lines = mf.even_rag(d, lines, font, w, gen.BODY_MEASURE)
-        rows.append({"surface": surface, "text": text, "lines": lines, "size": size, "notes": _notes()})
-
-    def head(surface: str, text: str, sizes, w: int, lockup: bool, max_lines: int = 2, **kw) -> None:
-        text = " ".join(str(text or "").split()).upper()
-        if not text:
-            return
-        form = heading.set_heading(text, anton, w, tuple(sizes), max_lines=max_lines, lockup=lockup, **kw)
-        if form is None:
-            rows.append({"surface": surface, "text": text, "refused": True})
-            return
-        rows.append({"surface": surface, "text": text, "lines": list(form.lines), "size": form.size,
-                     "widths": [round(anton(t, form.size), 1) for t in form.lines], "record": dict(form.record),
-                     "heading": True})
-
-    xl = brand_system.type_px("display_xl", "carousel") * 3 / 4   # the carousel cover's locked size, design px
-    for i, s in enumerate(j.get("carousel_slides") or [], 1):
-        if not isinstance(s, dict):
-            continue
-        if i == 1:
-            head(f"carousel_s{i:02d}_cover_heading", s.get("heading"), (xl,), width, True, locked_lines=4)
+            rows.append({"surface": "carousel_share_line", "text": share, "refused": True, "approx": True})
         else:
-            head(f"carousel_s{i:02d}_heading", s.get("heading"), gen.CONTENT_HEADING, width, False)
-        body(f"carousel_s{i:02d}_body", s.get("body"), gen.BODY_SPEC[0], width, 4, True)
-    for i, s in enumerate(j.get("story_slides") or [], 1):
-        if not isinstance(s, dict):
-            continue
-        title = " ".join(str(s.get(k) or "") for k in ("line1", "line2")).strip()
-        head(f"story_{i:02d}_title", title, brand_system.display_steps("tall", 120)[:2] or (150, 138),
-             mf.story_body_width(), True)
-        body(f"story_{i:02d}_body", s.get("body"), mf.STORY_BODY_PX, mf.story_body_width(), mf.STORY_BODY_LINES, False,
-             mf.STORY_BODY_WEIGHT)
-    th = j.get("thumbnail") or {}
-    if isinstance(th, dict):
-        title = " ".join(str(th.get(k) or "") for k in ("line1", "line2")).strip()
-        head("cover_lockup", title, (brand_system.type_px("display_xl", "tall"),), 1080 - 2 * 84, True, locked_lines=3)
-    if j.get("share_line"):
-        body("carousel_share_line", j["share_line"], 36, width, 3, True)
+            lines = mf.even_rag(d, lines, font, width, max([gen.BODY_MEASURE] + [len(ln) for ln in lines]))
+            rows.append({"surface": "carousel_share_line", "text": share, "lines": lines, "size": 36,
+                         "notes": _notes(), "approx": True})
+    return rows
+
+
+def lines_of_run(run: Path, d, want) -> list[dict]:
+    j = json.loads((run / "verified_script.json").read_text(encoding="utf-8"))
+    rows = text_surfaces.rows_of_run(run, j, want)
+    if "carousel" in want:
+        rows += approx_rows(j, d)
     return rows
 
 
@@ -182,17 +177,25 @@ def main() -> None:
     data: dict = {"tree": str(tree), "runs": {}}
     t0 = time.time()
     for run in sorted(dev.glob("output/run_*")):
+        if RUNS and RUNS not in run.name:
+            continue
         row: dict = {}
         if (run / "words.json").is_file() and only in ("", "captions"):
             row["captions"] = captions(run)
         if (run / "verified_script.json").is_file() and only in ("", "lines"):
             try:
-                row["lines"] = lines_of_run(run, d)
+                row["lines"] = lines_of_run(run, d, WANT)
             except Exception as ex:   # noqa: BLE001
                 row["lines_error"] = f"{type(ex).__name__}: {ex}"[:300]
         if row:
             data["runs"][run.name] = row
         print(run.name, round(time.time() - t0, 1), flush=True)
+    if only in ("", "lines") and "cards" in WANT:
+        try:
+            data["runs"][text_surfaces.CARD_RUN] = {"lines": text_surfaces.card_rows()}
+        except Exception as ex:   # noqa: BLE001
+            data["runs"][text_surfaces.CARD_RUN] = {"lines_error": f"{type(ex).__name__}: {ex}"[:300]}
+        print(text_surfaces.CARD_RUN, round(time.time() - t0, 1), flush=True)
     out.write_text(json.dumps(data, indent=0, ensure_ascii=True), encoding="utf-8", newline="\n")
 
 

@@ -2987,6 +2987,7 @@ class MultiFormatGenerator:
                 log.warning("Carousel diagram slide %d withheld: its labels would draw under the carousel label "
                             "floor (%s); the slide keeps its photo.", diagram[0] + 1, why_small)
                 withheld = {"slide": diagram[0] + 1, "poster": str(diagram[1]), **why_small}
+                retract_drawing_omissions(script_payload, diagram[1])   # SYS-A-c4-4: no slide shows that drawing
                 diagram = None
         if diagram:
             archetypes = [("diagram" if i == diagram[0] else a) for i, a in enumerate(archetypes)]
@@ -3457,6 +3458,64 @@ _DIAGRAM_FIELDS = {"scale": ("scale_fact", "render_scale"), "section": ("cross_s
 
 
 DRAWING_SIDECAR = ".drawing.json"   # beside a slide drawing's poster: {"drawing_floor", "size"}
+# SYS-A-c4-4 (freeze integration 4): beside every redrawn diagram poster, the omission ledger rows its drawing recorded
+# ({"rows": [refusal.omit rows]}; [] when it left nothing out), so a cache hit records them again
+OMISSIONS_SIDECAR = ".omissions.json"
+DIAGRAM_SLIDE_SURFACE = "carousel diagram slide"
+
+
+def drawing_omissions(poster: Path) -> list[dict[str, Any]] | None:
+    """The omission ledger rows recorded when the redrawn diagram `poster` was drawn (OMISSIONS_SIDECAR), or None when
+    it carries no record (drawn before the record existed, or unreadable): such a poster is drawn again."""
+    side = Path(str(poster) + OMISSIONS_SIDECAR)
+    try:
+        rec = json.loads(side.read_text(encoding="utf-8")) if side.is_file() else None
+    except (OSError, ValueError):
+        return None
+    rows = rec.get("rows") if isinstance(rec, dict) else None
+    return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else None
+
+
+def record_drawing_omissions(payload: dict[str, Any] | None, rows: list[dict[str, Any]],
+                             outer: list | None = None, poster: Path | None = None) -> list[dict[str, Any]]:
+    """The parts a redrawn diagram slide's drawing left out (its renderer's refusal.omit rows) handed on as make_all
+    hands the graphics' rows on: payload["layout_holds"] drawn-without rows (refusal.hold_rows), named as the carousel
+    diagram slide's drawing ("carousel diagram slide (scale graphic_scale.mp4)") so the review card never reads them
+    as the video graphic's; on `outer` (the omissions ledger open round the caller, when one is) too. One row per
+    surface and part (the deck's two copies draw it once and reuse it). Each row names the `poster` it belongs to
+    ("drawing"), so a drawing the deck then withholds takes its rows back (retract_drawing_omissions). Returns the
+    rows as recorded."""
+    from . import refusal
+    out = []
+    for r in refusal.hold_rows(rows):
+        row = dict(r)
+        if not str(row["surface"]).startswith(DIAGRAM_SLIDE_SURFACE):
+            row["surface"] = f"{DIAGRAM_SLIDE_SURFACE} ({row['surface']})"
+        if poster is not None:
+            row["drawing"] = str(poster)
+        out.append(row)
+    ledgers = [payload.setdefault("layout_holds", [])] if payload is not None and out else []
+    for ledger in ledgers + ([outer] if outer is not None else []):
+        seen = {(h.get("surface"), h.get("omitted")) for h in ledger if isinstance(h, dict)}
+        for row in out:
+            if (row["surface"], row.get("omitted")) not in seen:
+                seen.add((row["surface"], row.get("omitted")))
+                ledger.append(dict(row))
+    return out
+
+
+def retract_drawing_omissions(payload: dict[str, Any] | None, poster: Path | str) -> int:
+    """The rows record_drawing_omissions recorded for `poster` taken off payload["layout_holds"] when the deck does not
+    show that drawing after all (diagram_legible withholds it; the slide keeps its photo): the card never names a part
+    left out of a drawing no slide shows. Returns how many were taken off."""
+    holds = (payload or {}).get("layout_holds")
+    if not isinstance(holds, list):
+        return 0
+    keep = [h for h in holds if not (isinstance(h, dict) and h.get("drawing") == str(poster)
+                                     and str(h.get("surface", "")).startswith(DIAGRAM_SLIDE_SURFACE))]
+    gone = len(holds) - len(keep)
+    holds[:] = keep
+    return gone
 
 
 def slide_drawing(poster: Path) -> dict[str, Any] | None:
@@ -3519,11 +3578,22 @@ def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | Non
                                      default=str).encode("utf-8")).hexdigest()
     key = stamp["brand"][:12] + stamp["code"][:12] + what[:12]
     out = Path(output_dir) / REDRAWN_DIR / key / f"graphic_{kind}.mp4"
+    from . import refusal
+    outer = refusal._LEDGER.get()   # the ledger open round this caller (the evidence board), if any
+    cached = drawing_omissions(out.with_suffix(".jpg"))
     if out.with_suffix(".jpg").is_file() and graphics.poster_current(out.with_suffix(".jpg")) and (
-            floor is None or slide_drawing(out.with_suffix(".jpg"))):
+            floor is None or slide_drawing(out.with_suffix(".jpg"))) and cached is not None:
+        # SYS-A-c4-4: the parts the cached drawing left out are recorded again, never dropped on a cache hit
+        record_drawing_omissions(payload, cached, outer, out.with_suffix(".jpg"))
         return out.with_suffix(".jpg"), "redrawn under the active brand (cached)"
+    # SYS-A-c4-4 (freeze integration 4): the redraw runs with the omission ledger open, as graphics.make_all runs the
+    # graphics: a part the renderer leaves out (refusal.omit: a scale's refused referent note, a map's scale bar or
+    # name, a route stop) is recorded and the slide keeps its drawing; with no ledger open the renderer is refused
+    # (Declined) and the slide fell back to its photo with the omission on no card
+    with contextlib.suppress(OSError):   # a record from an earlier drawing is never read as this one's
+        Path(str(out.with_suffix(".jpg")) + OMISSIONS_SIDECAR).unlink(missing_ok=True)
     try:
-        with graphics.poster_only():
+        with refusal.collecting() as omitted, graphics.poster_only():
             if kind == MAP_KIND:
                 made = graphics.render_map(spec, out, width=size[0], height=size[1], narration=narration)
             elif floor is not None:
@@ -3535,6 +3605,13 @@ def current_poster(output_dir: Path, poster: Path, payload: dict[str, Any] | Non
         return None, f"the {kind} diagram could not be redrawn ({type(e).__name__})"
     if not made or not out.with_suffix(".jpg").is_file():
         return None, f"the {kind} renderer drew nothing from the signed field"
+    rows = refusal.hold_rows(omitted)
+    try:
+        Path(str(out.with_suffix(".jpg")) + OMISSIONS_SIDECAR).write_text(
+            json.dumps({"rows": rows}, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
+    except OSError as e:   # the drawing is used; its rows are recorded below (a later call draws it again)
+        log.warning("Diagram slide: the %s drawing's omissions not stored beside it (%s).", kind, e)
+    record_drawing_omissions(payload, rows, outer, out.with_suffix(".jpg"))
     if floor is not None:
         Path(str(out.with_suffix(".jpg")) + DRAWING_SIDECAR).write_text(
             json.dumps({"drawing_floor": floor, "size": list(size)}, indent=1, ensure_ascii=False),

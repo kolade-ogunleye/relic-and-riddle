@@ -681,11 +681,24 @@ def main() -> None:
         grounds = {"richat": fx.still("richat_structure_sahara_eye_01_commons_960.jpg"),
                    "amber": heroes["amber_room_heist"], "obelisk": heroes["unfinished_obelisk_aswan"]}
         richat = fc.real_sheet("richat_structure_sahara_eye")
+
+        def chapter(size, number, ph):
+            """A chapter card as the video sets it (cycle 5, TEXT stream's request): with its video's chapter set
+            (ChapterCard.set_titles, as card_composition.make_all passes it), so the board shows the size production
+            ships, never the size the title would take alone; a tree without the set draws it alone, as before."""
+            import dataclasses
+            try:
+                spec = fc.T.chapter(sheet=fc.SHEET, number=number, total=fc.ACTS, title=fc.RICHAT_ACTS[number - 1],
+                                    photo=ph)
+                spec = dataclasses.replace(spec, set_titles=tuple(fc.RICHAT_ACTS))
+            except (AttributeError, TypeError):
+                return fc.chapter_plan(size, number, fc.ACTS, fc.RICHAT_ACTS[number - 1], photo=ph)
+            return dc.plan_chapter_card(spec, fc.SHEET, *size)
         makers = {
             "myth_richat": lambda ph, size: fc.richat_myth(richat, photo=ph, size=size),
             "myth_long_et": lambda ph, size: fc.plan_myth(fc.LONG_ET, size=size, photo=ph),
-            "chapter_act1": lambda ph, size: fc.chapter_plan(size, 1, fc.ACTS, fc.RICHAT_ACTS[0], photo=ph),
-            "chapter_act4": lambda ph, size: fc.chapter_plan(size, 4, fc.ACTS, fc.RICHAT_ACTS[3], photo=ph),
+            "chapter_act1": lambda ph, size: chapter(size, 1, ph),
+            "chapter_act4": lambda ph, size: chapter(size, 4, ph),
             "hook": lambda ph, size: fc.hook_plan(ph) if size == fc.TALL else None,
         }
         for name, make in makers.items():

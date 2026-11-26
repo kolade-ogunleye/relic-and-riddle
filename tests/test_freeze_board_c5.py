@@ -626,6 +626,11 @@ def test_the_other_streams_records_reach_the_tile_and_the_table(mods):
     assert 'r.get("archetype") != "diagram":   # a drawing slide keeps its poster' in rs
     bx = (BOARD / "board_extras.py").read_text(encoding="utf-8")
     assert '(rec.get(p.name) or {}).get("masthead")' in bx and 'payload.get("layout_holds")' in bx
+    # TEXT's request: a chapter card is drawn with its video's chapter set, as card_composition.make_all passes it
+    assert "dataclasses.replace(spec, set_titles=tuple(fc.RICHAT_ACTS))" in rs
+    assert '"chapter_act1": lambda ph, size: chapter(size, 1, ph)' in rs
+    sh = (BOARD / "run_palette.sh").read_text(encoding="utf-8")
+    assert 'prev=(--timings "$BOARD_PREV/$palette/surfaces.json")' in sh and 'prev+=(--reuse "$BOARD_PREV/$palette")' in sh
 
 
 TIERS = {

@@ -1,7 +1,8 @@
 """Corpus proof of the PHOTO classes (design-freeze cycle 5; ledger PHOTO-01..08): is every photograph the dev runs
 place fit for the window it is put in?
 
-    python photo_fitness.py <dev checkout> [--rule tip|base] [--json OUT] [--cache DIR] [--distribution] [--quiet]
+    python photo_fitness.py <dev checkout> [--rule tip|base] [--json OUT] [--cache DIR] [--seed-cache DIR]
+                            [--records DIR] [--distribution] [--quiet]
 
 Measures every placement of every dev run that has the surface's inputs, with the ONE measure the surfaces use
 (src/photo_fitness.py of the tree this script lies in), and prints a table (run, surface, photo, measure, verdict).
@@ -25,7 +26,15 @@ The placements:
 Reel cover's immersive / contained layouts and the shared then-and-now window. --rule tip asks the tree's own pickers
 and croppers. Both are judged by the same measure, so the two counts differ only by what the croppers do.
 
-Cheap by construction: one analysis per photograph at 256 px (kept in --cache), layout calls and image statistics; no
+"Recorded" is READ, not assumed (review of cycle 5, D2): a POOL row is recorded when the record the tree's own
+call returns for it (photo_fitness.place's, the hook ground's drawn record, the cover's photo_fit) says it is unfit
+and names its problems; a blurred ground returns none. A DECK row, with --records DIR (the slides and Story frames
+redrawn by the tree from their kept recipes: DIR/<run>/<carousel|carousel_fb|stories>/still_layout.json and
+stories/layout.json), is the window record written on disk for that slide; without --records the recorded slides are
+measured as the tree would draw them and counted as NOT recorded.
+
+Cheap by construction: one analysis per photograph at 256 px (kept in --cache; --seed-cache rebuilds the maps from an
+earlier cache's 256 px pictures, which is what analysing the file gives), layout calls and image statistics; no
 render. No network, no model.
 """
 from __future__ import annotations
@@ -56,8 +65,9 @@ MEASURES = ("matte", "upscale", "subject", "flat", "protected")
 
 # ---------------------------------------------------------------- analyses, kept per file
 class Photos:
-    def __init__(self, cache: Path | None):
+    def __init__(self, cache: Path | None, seed: Path | None = None):
         self.cache = cache
+        self.seed = seed
         self.mem: dict[str, tuple] = {}
         if cache:
             cache.mkdir(parents=True, exist_ok=True)
@@ -71,7 +81,7 @@ class Photos:
             st = path.stat()
         except OSError:
             return None
-        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|9".encode()).hexdigest()[:24]
+        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|11".encode()).hexdigest()[:24]
         f = self.cache / f"{tag}.pkl" if self.cache else None
         a = None
         if f is not None and f.is_file():
@@ -79,6 +89,16 @@ class Photos:
                 a = pickle.loads(f.read_bytes())
             except Exception:
                 a = None
+        if a is None and self.seed is not None:   # an earlier cache's 256 px picture: the maps made again from it
+            old = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|9".encode()
+                                 ).hexdigest()[:24]
+            g = self.seed / f"{old}.pkl"
+            if g.is_file():
+                try:
+                    o = pickle.loads(g.read_bytes())
+                    a = pf.analyse_maps(o.rgb, tuple(o.size), o.focus, False, o.thumb)
+                except Exception:
+                    a = None
         if a is None:
             try:
                 clean, kept = pf.load(path)
@@ -171,6 +191,14 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
             return {"problems": [], "outcome": "refused", "upscale": round(max(window.size[0] / a.size[0],
                                                                                   window.size[1] / a.size[1]), 3)}
         rec = pf.place(None, window, cen, analysis=a, fixed=a.focus is not None)
+        if not (rec["moved"] and rec["fit"]):   # design_cards draws cover_crop's window then, and records THAT box
+            frame_only = pf.Window(window.size, checks=("matte",), name=window.name)
+            got = pf.place(None, frame_only, cen, analysis=a) if a.matte_share > 0 else None
+            box = got["box"] if got and got["fit"] and got["moved"] else pf.fit_box(a.size, window.size, cen)
+            if any(abs(x - y) >= 1.0 for x, y in zip(box, rec["box"])):
+                m = pf.measure(a, tuple(box), window)
+                m["problems"] = pf.problems(m, window)
+                rec = {**m, "fit": not m["problems"], "moved": True, "window": window.name, "drawn": "cover crop"}
     elif kind == "ground":   # typography.cover_crop: the frame only
         frame_only = pf.Window(window.size, checks=("matte",), name=window.name)
         got = pf.place(None, frame_only, cen, analysis=a) if a.matte_share > 0 else None
@@ -236,6 +264,9 @@ def cover_tip(a: pf.Analysis) -> dict:
     INK (the designed alternative, recorded in lay.meta["photo_fit"])."""
     from src import cover_design as cd
     tried = []
+    if a.focus is None and a.size[1] > a.size[0]:   # cover_design._filled: an unreviewed portrait stays whole
+        return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": ["portrait"],
+                "shown": 1.0, "fit": False}
     for mode, window in cd.cover_windows():
         rec = pf.place(None, window, analysis=a)
         tried.append(rec["problems"])
@@ -246,7 +277,31 @@ def cover_tip(a: pf.Analysis) -> dict:
                     "density": rec.get("density"), "flat": rec.get("flat"), "focus": rec.get("focus"),
                     "shown": rec.get("shown")}
     # the contained window on INK shows the photograph whole (shown 1.0 by construction: ImageOps.contain)
-    return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": tried[-1], "shown": 1.0}
+    return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": tried[-1], "shown": 1.0,
+            "fit": False}
+
+
+def recorded_in(rec: dict) -> bool:
+    """Whether the record the tree's own call returned says this placement is unfit ("fit": False, with its
+    problems: the record the surface writes); a blurred ground's cover_crop returns none."""
+    return rec.get("fit") is False
+
+
+def on_disk(records: Path | None, run: str, sub: str, name: str) -> dict | None:
+    """The window record a redraw by the tree wrote for one slide or Story frame (--records), or None."""
+    if records is None:
+        return None
+    try:
+        if sub == "stories":
+            for e in json.loads((records / run / sub / "layout.json").read_text(encoding="utf-8")):
+                if e.get("frame") == name and isinstance(e.get("window"), dict):
+                    return (e["window"].get("fit") or None)
+            return None
+        rec = json.loads((records / run / sub / "still_layout.json").read_text(encoding="utf-8")).get(name) or {}
+        wins = (rec.get("recipe") or {}).get("windows") or []
+        return (wins[0].get("fit") or None) if wins else None
+    except (OSError, ValueError):
+        return None
 
 
 # ---------------------------------------------------------------- the corpus
@@ -284,11 +339,13 @@ def main() -> int:
     ap.add_argument("--rule", choices=("tip", "base"), default="tip")
     ap.add_argument("--json", type=Path)
     ap.add_argument("--cache", type=Path, default=Path(tempfile.gettempdir()) / "rr_photo_fitness_corpus")
+    ap.add_argument("--seed-cache", type=Path, help="an earlier cache whose 256 px pictures are analysed again")
+    ap.add_argument("--records", type=Path, help="the tree's redraw of the recorded slides (redraw output folder)")
     ap.add_argument("--distribution", action="store_true", help="print each measure's percentiles per window")
     ap.add_argument("--quiet", action="store_true", help="print the failing rows and the totals only")
     a = ap.parse_args()
     dev = a.dev.resolve()
-    photos = Photos(a.cache)
+    photos = Photos(a.cache, a.seed_cache)
     crop = crop_tip if a.rule == "tip" else crop_base
     cover = cover_tip if a.rule == "tip" else cover_base
     rows: list[dict] = []
@@ -319,10 +376,11 @@ def main() -> int:
                 if key not in memo:
                     memo[key] = crop(an, window, kind)
                 # a blurred ground records nothing: a frame left in it is a violation, never an excused one
-                add(run.name, "POOL", surface, p.name, memo[key], recorded=a.rule == "tip" and kind != "ground")
+                add(run.name, "POOL", surface, p.name, memo[key], recorded=a.rule == "tip" and recorded_in(memo[key]))
             if (str(p), "cover") not in memo:
                 memo[(str(p), "cover")] = cover(an)
-            add(run.name, "POOL", "reel cover + grid", p.name, memo[(str(p), "cover")], recorded=a.rule == "tip")
+            add(run.name, "POOL", "reel cover + grid", p.name, memo[(str(p), "cover")],
+                recorded=a.rule == "tip" and recorded_in(memo[(str(p), "cover")]))
         # ---- DECK: the recorded slides
         from src.multi_format import MultiFormatGenerator as G
         for sub, copy in (("carousel", False), ("carousel_fb", True), ("stories", None)):
@@ -339,17 +397,20 @@ def main() -> int:
                 an = photos.get(photo)
                 if an is None:
                     continue
+                disk = on_disk(a.records, run.name, sub, name) if a.rule == "tip" else None
                 if copy is None:
-                    add(run.name, "DECK", f"story {name}", photo.name, crop(an, pf.Window((1080, 1920), name="story"),
-                                                                             "story"), recorded=a.rule == "tip")
+                    got = disk or crop(an, pf.Window((1080, 1920), name="story"), "story")
+                    add(run.name, "DECK", f"story {name}", photo.name, got,
+                        recorded=disk is not None and (disk.get("fit") is True or bool(disk.get("problems"))))
                     continue
                 arch = r.get("archetype") or "editorial_split"
                 if arch == "diagram" or not hasattr(G, "photo_window"):
                     continue
                 k = seen[str(photo)]
                 seen[str(photo)] += 1
-                add(run.name, "DECK", f"{'fb' if copy else 'ig'} {name} {arch}", photo.name,
-                    crop(an, G.photo_window(arch, copy), "carousel", k), recorded=a.rule == "tip")
+                got = disk or crop(an, G.photo_window(arch, copy), "carousel", k)
+                add(run.name, "DECK", f"{'fb' if copy else 'ig'} {name} {arch}", photo.name, got,
+                    recorded=disk is not None and (disk.get("fit") is True or bool(disk.get("problems"))))
         # ---- DECK: what the photo guard chooses (the kept match)
         kept = run / "carousel_photos.json"
         if kept.is_file() and a.rule == "tip":

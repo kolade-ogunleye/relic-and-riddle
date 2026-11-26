@@ -62,7 +62,11 @@ def plan_only(monkeypatch):
         init(self, *a, **k)
         made.append(self)
     monkeypatch.setattr(typography.TextPlate, "__init__", recording)
-    return made
+    # freeze lane A cycle 4: a part the drawing leaves out is recorded on the omission ledger, opened round each
+    # render as graphics.make_all opens it (with none open the surface is refused)
+    from src.refusal import collecting
+    with collecting():
+        yield made
 
 
 def _record(out: Path) -> dict:

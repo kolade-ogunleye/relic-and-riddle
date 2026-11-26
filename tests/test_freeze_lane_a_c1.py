@@ -66,7 +66,12 @@ def plan_only(monkeypatch):
         made.append(self)
     monkeypatch.setattr(typography.TextPlate, "__init__", recording)
     marks["_plates"] = made
-    return marks
+    # freeze lane A cycle 4: a part the drawing leaves out (a refused referent note) is recorded on the omission
+    # ledger, opened round each render as graphics.make_all opens it (with none open the surface is refused)
+    from src.refusal import collecting
+    with collecting() as omitted:
+        marks["_omitted"] = omitted
+        yield marks
 
 
 def _record(out: Path) -> dict:
@@ -412,6 +417,8 @@ def test_a_landmarks_referent_note_is_drawn_whole_at_its_floor_or_recorded_refus
         return
     got = graphics.LAST_REFERENT_NOTE
     assert got.get("note") == note
+    if not got.get("shown"):     # lane A cycle 4: refused is recorded on the ledger, never a log line alone
+        assert any(r["omitted"] == f"the referent note {note.upper()}" for r in plan_only["_omitted"])
     real = fact in (OBELISK,)          # the board's real height/length scale fact: must be drawn
     if real or got.get("shown"):
         assert got["shown"], got

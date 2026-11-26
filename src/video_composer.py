@@ -569,6 +569,13 @@ REEL_PLATE_H = round(REEL_CAP_H + 2 * REEL_PAD_Y)   # one plate height per Reel
 MAX_CAPTION_WIDTH = min(CAPTION_REEL_TEXT_WIDTH, _REEL_UI.box()[2] - _REEL_UI.box()[0] - 2 * REEL_PAD_X)
 
 
+def act_dissolve_transition() -> str:
+    """The act dissolve's xfade transition (freeze cycle 4, SYS-E-c4-1): a true crossfade on the system's curve,
+    tok("motion.act_dissolve_ease") (brand_system.xfade_transition: "fade" for linear, else a custom mix)."""
+    from .brand_system import tok, xfade_transition
+    return xfade_transition(tok("motion.act_dissolve_ease"))
+
+
 def act_dissolve_s() -> float:
     """The act dissolve's length (cycle 0 round 8): tok("motion.act_dissolve") in whole frames, ONE source for the
     composer's xfade (a true crossfade, transition=fade: "dissolve" is ffmpeg's per-pixel random dither)."""
@@ -5810,7 +5817,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             out = f"[x{k}]" if k < n - 2 else f"[{timeline}]"
             if fades[k]:
                 off = boundaries[k] - fades[k] / 2
-                filter_parts.append(f"{curr}[c{k + 1}]xfade=transition=fade:duration={fades[k]:.9f}:offset={off:.9f}{out}")
+                filter_parts.append(f"{curr}[c{k + 1}]xfade={act_dissolve_transition()}:duration={fades[k]:.9f}"
+                                    f":offset={off:.9f}{out}")
             else:
                 filter_parts.append(f"{curr}[c{k + 1}]concat=n=2:v=1:a=0,fps={VIDEO_FPS},settb=AVTB{out}")
             curr = out

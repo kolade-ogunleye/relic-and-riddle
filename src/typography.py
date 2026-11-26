@@ -1237,17 +1237,26 @@ class _BackingBand:
         return self.parent.record()
 
 
-def label_ladder(colours, ink: bool = True) -> list[tuple[str, int]]:
+def label_ladder(colours, ink: bool = True, colour_held: bool = False) -> list[tuple[str, int]]:
     """The overlay-label rule's steps, least intrusive first, as (stage, colour index) pairs: each colour on the
     label halo ("halo", k), then INK type ("ink", -1) unless `ink` is False, then each colour on the held INK plate
-    ("plate", k). A step names a treatment exactly (its backing and its fill), so two labels on one step look alike."""
+    ("plate", k). A step names a treatment exactly (its backing and its fill), so two labels on one step look alike.
+    `colour_held` (freeze cycle 4, SYS item 3: the ONE kicker colour rule): the label's own colour is its meaning (a
+    kicker's accent), so the ground is answered by the backing before the colour gives way to another colour: its
+    first colour on the halo, then INK type where `ink` allows it (the binding ink rule, ruling 2026-11-17: a bright
+    or paper ground takes INK type, no halo and no plate, before any held plate), then its first colour on the held
+    plate, and only then the other colours (a palette whose colour misses the gate even on the plate; recorded by the
+    step drawn). So a kicker never gives way to bone while its colour holds on the plate."""
     n = len(colours)
+    if colour_held and n:
+        return ([("halo", 0)] + ([("ink", -1)] if ink else []) + [("plate", 0)]
+                + [("halo", k) for k in range(1, n)] + [("plate", k) for k in range(1, n)])
     return ([("halo", k) for k in range(n)] + ([("ink", -1)] if ink else []) + [("plate", k) for k in range(n)])
 
 
 def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: int | None = None,
                halo_max: float | None = None, dark_ground: Image.Image | None = None, extra=(),
-               ink: bool = True, start: str = "colour", only: tuple | None = None,
+               ink: bool = True, start: str = "colour", only: tuple | None = None, colour_held: bool = False,
                ) -> tuple[list[TextPlate], dict[str, Any]]:
     """An overlay label's rows ((xy, text, font, anchor, track) each) planned by the ONE rule above, every row in one
     variant: (plates, record). `colours` are the label's own fills in order (a kicker: gold, then bone); `ground` is
@@ -1258,7 +1267,8 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
     the light-ground INK variant (a label whose colour carries meaning there, or a ground with line art under it).
     A `colours` entry may be a list, one colour per row (a then-and-now marker: its kicker and its year). `start`
     skips the variants before it (LABEL_VARIANTS order). `only` (a label_ladder step) tries that one step and no
-    other: the set planner's (plan_label_set) way to give every member of a set one treatment. The record names the
+    other: the set planner's (plan_label_set) way to give every member of a set one treatment. `colour_held`: the
+    label's first colour holds before any other (label_ladder; a kicker). The record names the
     step drawn ("step": [stage, k]). No variant: ([], record with shown False and the reason; the caller draws
     nothing)."""
     from .brand import BONE, INK
@@ -1304,7 +1314,7 @@ def plan_label(ground: Image.Image, rows, colours, *, target: float, halo_px: in
     order_of = {v: i for i, v in enumerate(LABEL_VARIANTS)}
     skip_before = order_of.get(start, 0)
     many = [ground] if dark is ground else [ground, dark]
-    steps = label_ladder(colours, ink)
+    steps = label_ladder(colours, ink, colour_held)
     if only is not None:
         steps = [s for s in steps if s == (str(only[0]), int(only[1]))]
     else:   # `start` skips the variants before it (a halo step by its variant's name, INK and the plate by theirs)
@@ -1387,10 +1397,11 @@ def set_step(ladder, passes) -> tuple[str, int] | None:
     return None
 
 
-def label_passes(ground: Image.Image, rows, colours, *, ink: bool = True, **kw) -> list[tuple[str, int]]:
+def label_passes(ground: Image.Image, rows, colours, *, ink: bool = True, colour_held: bool = False,
+                 **kw) -> list[tuple[str, int]]:
     """Every label_ladder step that holds `rows` at the gate on `ground` (plan_label's own test, step by step)."""
-    return [s for s in label_ladder(colours, ink)
-            if plan_label(ground, rows, colours, ink=ink, only=s, **kw)[1]["shown"]]
+    return [s for s in label_ladder(colours, ink, colour_held)
+            if plan_label(ground, rows, colours, ink=ink, only=s, colour_held=colour_held, **kw)[1]["shown"]]
 
 
 def plan_label_set(members: list[dict[str, Any]]) -> tuple[list[tuple[list[TextPlate], dict[str, Any]]], dict[str, Any]]:
@@ -1408,7 +1419,8 @@ def plan_label_set(members: list[dict[str, Any]]) -> tuple[list[tuple[list[TextP
         rec = {"members": len(members), "drawn": len(shown), "uniform": True,
                "step": list(next(iter(steps))) if steps else None}
         return own, rec
-    ladders = [label_ladder(members[i]["colours"], members[i].get("ink", True)) for i in shown]
+    ladders = [label_ladder(members[i]["colours"], members[i].get("ink", True), members[i].get("colour_held", False))
+               for i in shown]
     common = [s for s in ladders[0] if all(s in L for L in ladders[1:])]
     lowest = max(common.index(s) if s in common else 0 for s in steps)   # no member holds a step below its own
     for s in common[lowest:]:

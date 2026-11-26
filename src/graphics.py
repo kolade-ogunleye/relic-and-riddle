@@ -69,7 +69,7 @@ log = logging.getLogger(__name__)
 CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 from . import brand
-from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out, tok
+from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out, ease_out_back, tok
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground. Read as brand.<ROLE>
 # when drawn (QF-35a role tokens): the names this module bound at import before, for its readers, are served from the
@@ -2113,7 +2113,6 @@ PIN_SQUASH = (1.10, 0.86)
 PIN_SQUASH_FRAMES = 3
 PIN_SQUASH_FPS = 30            # the squash's three frames, in seconds at the delivery rate
 PIN_SETTLE_S = 0.18
-PIN_OVERSHOOT = 1.4
 PIN_RIPPLE = (20.0, 120.0, 0.6)       # from, to (diameter, px) and seconds
 DOT_D, DOT_CORE_D, DOT_RING_W, DOT_KEY_W = 24.0, 14.0, 4.0, 1.0
 DOT_POP_S = 0.3
@@ -2164,12 +2163,6 @@ def _ease_in(t: float) -> float:
     return t ** 3
 
 
-def _ease_out_back(t: float, overshoot: float = PIN_OVERSHOOT) -> float:
-    t = min(1.0, max(0.0, t))
-    c3 = overshoot + 1
-    return 1 + c3 * (t - 1) ** 3 + overshoot * (t - 1) ** 2
-
-
 @dataclass(frozen=True)
 class PinPose:
     """The pin at one moment: its drop (px, negative is above its rest), its scale about the tip (sx, sy), its
@@ -2186,7 +2179,8 @@ class PinPose:
 def pin_motion(t: float, t0: float | None = None) -> PinPose:
     """The pin's pose at `t` (round 6): it falls PIN_FALL_PX over PIN_FALL_S from `t0` (MAP_PIN_AT) on a cubic ease-in,
     its shadow growing from 0.4 to full width; on impact it squashes (PIN_SQUASH) for PIN_SQUASH_FRAMES frames, then
-    settles to 1.0 on an ease-out-back (PIN_OVERSHOOT) by impact + PIN_SETTLE_S; one GOLD ripple runs from the tip
+    settles to 1.0 on the system's ease-out-back (brand_system.ease_out_back, tok("motion.back"): freeze cycle 4,
+    SYS-E-c4-1, one curve) by impact + PIN_SETTLE_S; one GOLD ripple runs from the tip
     over PIN_RIPPLE's seconds; no looping pulse."""
     t0 = MAP_PIN_AT if t0 is None else t0
     if t < t0:
@@ -2200,7 +2194,7 @@ def pin_motion(t: float, t0: float | None = None) -> PinPose:
     if dt < hold:
         sx, sy = PIN_SQUASH
     elif dt < PIN_SETTLE_S:
-        f = _ease_out_back((dt - hold) / (PIN_SETTLE_S - hold))
+        f = ease_out_back((dt - hold) / (PIN_SETTLE_S - hold))
         sx, sy = PIN_SQUASH[0] + (1 - PIN_SQUASH[0]) * f, PIN_SQUASH[1] + (1 - PIN_SQUASH[1]) * f
     else:
         sx = sy = 1.0
@@ -2222,13 +2216,14 @@ def marker_label_motion(t: float, style: str, t0: float | None = None) -> tuple[
 
 
 def dot_motion(t: float, t0: float | None = None) -> tuple[float, float, float]:
-    """(scale, ripple diameter, ripple opacity) of a dot: 0 -> 1.15 -> 1.0 over DOT_POP_S (ease-out-back) from `t0`,
-    then one GOLD ring from DOT_RIPPLE's start to its end diameter, fading, over its seconds."""
+    """(scale, ripple diameter, ripple opacity) of a dot: 0 -> 1.15 -> 1.0 over DOT_POP_S (the system's ease-out-back
+    at tok("motion.back_mark"), a small mark's larger pop: freeze cycle 4, SYS-E-c4-1) from `t0`, then one GOLD ring
+    from DOT_RIPPLE's start to its end diameter, fading, over its seconds."""
     t0 = MAP_PIN_AT if t0 is None else t0
     u = (t - t0) / DOT_POP_S
     if u <= 0:
         return 0.0, 0.0, 0.0
-    s = _ease_out_back(u, 2.2) if u < 1 else 1.0
+    s = ease_out_back(u, tok("motion.back_mark")) if u < 1 else 1.0
     d0, d1, dur = DOT_RIPPLE
     v = (t - t0 - DOT_POP_S) / dur
     rd, ra = (d0 + (d1 - d0) * _ease(v), 0.8 * (1 - v)) if 0 <= v < 1 else (0.0, 0.0)
@@ -6355,6 +6350,12 @@ def tracked_wrap(text: str, font, width: float, track: float, lines: int | None 
         count = lines
 
     never = label_never_cuts(words, range(1, n))
+    from .heading import predicate
+    # freeze cycle 4 (SYS item 2): the heading engine's no-lone-row rule on the LAST row ("GROUND TO TORCH / TIP"):
+    # a break before the last word of a label of three words or more, unless that word completes a phrase of its own
+    # (heading.predicate: a participle, a dimension word after a figure), weighs STOP_LONE: under a hard cut, over a
+    # conjunction end, so the fewest rows still come first and a valid form of that many rows is taken where one is
+    lone_last = n - 1 if n >= 3 and not predicate(words[-1], " ".join(words[-3:-1])) else None
 
     def stop_end(j: int) -> int:
         # round 6 review: a row (not the last) ending on an article or a preposition ("BUILDS A / ROYAL ESTATE");
@@ -6364,7 +6365,8 @@ def tracked_wrap(text: str, font, width: float, track: float, lines: int | None 
             return 0
         if j in never:
             return STOP_HARD
-        return 1 if words[j - 1].upper().strip(",.;:") in TALL_STOP_WORDS else 0
+        lone = STOP_LONE if j == lone_last else 0
+        return lone + (1 if words[j - 1].upper().strip(",.;:") in TALL_STOP_WORDS else 0)
 
     @cache
     def rest(i: int, lines: int) -> tuple[int, float, float, tuple[int, ...]] | None:
@@ -6624,6 +6626,7 @@ def _system_stop_words() -> frozenset:
 
 TALL_STOP_WORDS = _system_stop_words()   # no label row but the last ends on one of these (2026-11-03; cycle 3: system)
 STOP_HARD = 1000                         # tracked_wrap: a hard cut's weight, above any count of soft ends
+STOP_LONE = 10                           # and a one-word last row's (freeze cycle 4, SYS item 2), above a conjunction end
 
 
 def label_never_cuts(words: Sequence[str], cuts: Iterable[int]) -> set[int]:
@@ -6818,7 +6821,17 @@ def ruled_rows(lines: list[str], font, width: float, track: float = 0.0, source:
     if not obeyed:
         log.info("Label %r: no break of its %d rows keeps the word rule within %.0f px; set as fitted.",
                  " ".join(lines), len(lines), width)
-        return list(lines)
+        got = list(lines)
+    # freeze cycle 4 (SYS item 2, SYS-A-c4-2): the heading engine's one line rule for labels (heading.label_ok: no
+    # one-word last or middle row, no never-word end) over the same number of rows, where a form within `width` holds
+    # it; else the rows as they were (the cross-section's label column, the number cards' labels: "AMBER / IN
+    # COMPLETED ROOM")
+    from .heading import label_fault, set_lines
+    if label_fault(got):
+        n = len(got)
+        ruled = set_lines(" ".join(got), lambda t: _tracked_w(t, font, track), width, n, min_lines=n)
+        if ruled is not None:
+            return list(ruled)
     return got
 
 
@@ -10607,9 +10620,15 @@ def scale_figure_lines(probe, figure: str, px: int, one_line_min: int, two_line_
             return [figure], f
     words = figure.split()
     splits = [(" ".join(words[:k]), " ".join(words[k:])) for k in range(1, len(words))]
-    # never a short word alone on the last line, never a figure split from its unit ("ABOUT 280 / FT DEEP")
-    splits = [sp for sp in splits if (len(sp[1].split()) > 1 or len(words) == 2)
-              and not sp[0].split()[-1][-1:].isdigit()] or splits
+    # never a short word alone on the last line, never a figure split from its unit ("ABOUT 280 / FT DEEP"), never a
+    # hedge from its figure nor a line ending on a never word: the heading engine's one line rule (freeze cycle 4,
+    # SYS item 2: heading.label_ok); then a split that keeps the hedge and the unit with the figure though a dimension
+    # word stands alone (truth before rhythm: "ABOUT 280 FT / DEEP", never "ABOUT / 280 FT DEEP"); then round 4's own
+    # filter; then any split
+    from .heading import label_ok as _ok, valid as _valid
+    kept = [sp for sp in splits if (len(sp[1].split()) > 1 or len(words) == 2) and not sp[0].split()[-1][-1:].isdigit()]
+    whole = [sp for sp in splits if _valid(sp, lone_ok=True)]
+    splits = [sp for sp in splits if _ok(sp)] or whole or kept or splits
     for size in range(px, two_line_min - 1, -2):
         f = figure_font(size)
         best = min(splits, key=lambda sp: max(probe.textlength(x, font=f) for x in sp)) if splits else (figure,)

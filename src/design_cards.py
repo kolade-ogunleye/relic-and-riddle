@@ -3634,20 +3634,20 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         measure = TALL_RIGHT - TALL_LEFT
         sp_px, sp_track = 40, 6
         ci_px = 30
-    f_ci = get_font(brand.DATA_FONT, geo.px(ci_px), weight=500)
+    f_ci = get_font(brand.DATA_FONT, geo.px(ci_px), weight=_mtok("credit.weight"))   # cycle 4: the credit token
     f_sp = get_font(brand.TEXT_FONT, geo.px(sp_px), weight=800)
     sp_lines, sp_track = _speaker_lines(speaker, f_sp, sp_track, geo.k, geo.px(measure))
     if sp_lines is None:
         raise CardRefused("the speaker does not fit two lines at the kicker floor")
     sp_step = SPEAKER_STEP[geo.wide]
     sp_extra = sp_step * (len(sp_lines) - 1)
-    cite = _citation_lines(parts, host, get_font(brand.DATA_FONT, ci_px, weight=500), measure)
+    cite = _citation_lines(parts, host, get_font(brand.DATA_FONT, ci_px, weight=_mtok("credit.weight")), measure)
     if cite is not None and geo.k != 1 and any(_width(c, f_ci) > geo.px(measure) for c in cite):
         cite = _citation_lines(parts, host, f_ci, geo.px(measure))
     if cite is None:
         raise CardRefused("the citation does not fit two lines, even without its source")
     for c in cite:
-        _glyphs_ok(c, brand.DATA_FONT, 500)
+        _glyphs_ok(c, brand.DATA_FONT, _mtok("credit.weight"))
     citation = cite[0] if cite else ""
     # review 2026-11-03 (4): the largest size that fits, full stop. A smaller size is never taken to save a line
     # (the 25 % "unwrap" rule set a 75-character quote at 58 px); an extra line is preferred, down to the floor.
@@ -3725,7 +3725,8 @@ def plan_quote_card(spec: QuoteCard, sheet: dict, width: int = 1080, height: int
         card.text("speaker" if j == 0 else f"speaker_{j}", sl, brand.TEXT_FONT, 800, sp_px, brand.GOLD, x_text,
                   sp_base + j * sp_step, ("ease", 0.30, REVEAL), "kicker", track=sp_track)
     for j, c in enumerate(cite):
-        card.text("citation" if j == 0 else f"citation_{j}", c, brand.DATA_FONT, 500, ci_px, brand.STONE_LT, x_text,
+        card.text("citation" if j == 0 else f"citation_{j}", c, brand.DATA_FONT, _mtok("credit.weight"), ci_px,
+                  brand.STONE_LT, x_text,
                   sp_base + sp_extra + ci_drop + j * ci_step, ("ease", 0.30, REVEAL), "data")
     if not geo.wide:
         bottom = max(e.box[3] for e in card.elements)

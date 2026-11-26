@@ -167,6 +167,10 @@ class BrandConfig:
                 continue   # derived at read time (src/brand_system.py TOKEN_DERIVED)
             if not (isinstance(value, (int, float)) and not isinstance(value, bool) and lo <= value <= hi):
                 raise ValueError(f"brand {self.name!r}: {key} = {value!r} is outside its range {lo}..{hi}")
+        from .brand_system import XFADE_EASES   # freeze cycle 4: the act dissolve's curve names a crossfade ease
+        if self.system.get("motion.act_dissolve_ease") not in XFADE_EASES:
+            raise ValueError(f"brand {self.name!r}: motion.act_dissolve_ease = "
+                             f"{self.system.get('motion.act_dissolve_ease')!r} is not one of {sorted(XFADE_EASES)}")
         from .brand_system import TOKEN_JOINT
         for key, factor, other in TOKEN_JOINT:
             if self.system[key] > factor * self.system[other] + 1e-12:

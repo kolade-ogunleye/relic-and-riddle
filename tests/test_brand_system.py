@@ -286,6 +286,14 @@ def _end_screen_kicker():
     return (round(k["font"].getlength(k["text"]), 2), round(k["track"], 3), k["rule"], k["text_xy"])
 
 
+def _credits_ink():
+    """Freeze cycle 4 (credit.weight read): the end screen's credits line as drawn, its ink (a mono face keeps its
+    advances across weights, so the ink, not the width, shows the weight)."""
+    from src import end_card
+    c = end_card.end_screen_extras()["credits"]
+    return int(np.asarray(c["font"].getmask(c["text"])).sum())
+
+
 def _masthead_pixels(ground=(120, 170, 225), size=53.3):
     out, _, rec, _ = masthead.draw(Image.new("RGB", (900, 400), ground), 40, 100, size, reach=500)
     return np.asarray(out).tobytes(), rec.get("halo"), rec.get("variant")
@@ -561,6 +569,11 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "globe.limb_dark": (0.05, _globe_sum),
     "masthead.youtube_px": (56, _youtube_mast_px),
     "lockup.line_gap": (0.25, lambda: __import__("src.youtube_thumbnail", fromlist=["x"]).line_pitch()),
+    "credit.weight": (600, _credits_ink),   # freeze cycle 4 (SYS item 4): a SPEC value, now read
+    # freeze cycle 4 (SYS-E-c4-1): the dot's pop on the one curve, and the act dissolve's curve
+    "motion.back_mark": (1.0, lambda: __import__("src.graphics", fromlist=["x"]).dot_motion(0.6, 0.5)[0]),
+    "motion.act_dissolve_ease": ("linear", lambda: __import__("src.video_composer",
+                                                              fromlist=["x"]).act_dissolve_transition()),
 }
 
 

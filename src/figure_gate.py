@@ -132,9 +132,12 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
 # thumbnail's and the YouTube thumbnail's lines) must equal a signed statement: its hedge, both span ends, in the run's
 # unit (a bare ton is a tonne in a metric run, a US short ton in a US customary one). A floor ("1,000+ TONNES", "OVER
 # 1,000 TONNES") stands only where the signed statement is itself a floor, drawn as the same kind of hedge. Covers are
-# not exempt from hedges. Evidence is any signed field of the run (the verified body: narration, slides, Stories,
-# graphics fields, the fact sheet; the fact audits and the second check of those) and never derived copy (titles,
-# thumbnail lines, comments, captions, nor an audit OF one of them). The dev Aswan run 1792985912 drew 'THE 1,200-TON'
+# not exempt from hedges. Evidence is any signed field of the run (the verified body: narration, the acts, the stat
+# cards, graphics fields, the fact sheet; the fact audits and the second check of those) and never derived copy (titles,
+# thumbnail lines, comments, captions, the carousel slides and Story frames, nor an audit OF one of them). Freeze cycle 4
+# (SYS-lane-c-c4-1): the slides and Stories are derived copy here as at draw time (visual_engine.EVIDENCE_KEYS, lane B
+# c3 lander ruling), so a headline figure only a slide states is withheld by the draw gate AND refused by this one (the
+# production sample: 2 of 34 runs' unhedged titles passed on a slide's unhedged figure while the body hedged it). The dev Aswan run 1792985912 drew 'THE 1,200-TON'
 # over "nearly 1,090 tonnes to 1,168 tonnes" (source: "nearly 1,200 short tons"), in a metric run.
 HEADLINE_KEYS = ("title", "thumbnail", "thumbnail_youtube", "youtube_title")
 # the rule as the writer, the copy edit and the checkers are told it (script_engine, trace_check prompts carry it verbatim)
@@ -142,7 +145,7 @@ HEADLINE_FIGURE_RULE = ('A figure in a title or a cover line is a signed stateme
 # copy derived from the headline or written to promote it, never evidence for it (the Aswan first comment repeated
 # "1,200 tons")
 DERIVED_COPY_KEYS = ("first_comment", "emphasis_words", "poll", "share_line", "end_card", "caption", "carousel_caption",
-                     "description")
+                     "description", "carousel_slides", "story_slides")
 _DERIVED_WHERE = re.compile(r"title|cover|thumbnail|caption|comment|description|poll|share", re.IGNORECASE)
 _AUDIT_KEYS = ("fact_audits", "final_fact_audits")
 

@@ -107,7 +107,11 @@ re-encode leaves 4.5), masthead gate 5.5 and target 6.5, high 7.0 (an ink figure
 3.0 (WCAG 1.4.11 non-text).
 
 Kicker (KICKER): text face 800, tracked 0.15 em capitals, GOLD, led by a flat gold rule one cap long at mid-cap
-height, 0.55 cap from the words; one gap to the heading (kicker.gap em). Round 7 (F20): the one kicker on the
+height, 0.55 cap from the words; one gap to the heading (kicker.gap em). One colour rule (freeze cycle 4, panel 5
+BC-02 / TY: a deck drew every kicker bone, its pure INK slide's too): the kicker is kicker.colour on every ground,
+the ground answered by its backing, the label halo and then the held INK plate (typography.label_ladder colour_held),
+before the colour gives way to bone or INK type (a palette whose colour misses the kicker gate even on the plate;
+the step drawn is recorded); a set (a deck, a Story, a then-and-now pair) still takes one step. Round 7 (F20): the one kicker on the
 carousel, the Story, the cards (the rule-above retired), the Reel covers (the gold tab retired), the end screen's
 WATCH NEXT and YouTube (the bone Anton fill line retired; there at the feed floor), the number cards' prefix
 ("EST. OVER": the rule above retired) and then-and-now's THEN / NOW over its year (round 8: the data-face label
@@ -141,7 +145,9 @@ Label floor (TYPE_FLOOR, label_floor_px): on 9:16 no graphic label is drawn unde
 Motion (MOTION, ease): ease_out = cubic ease-out (an element arriving), ease_in_out = smoothstep / the Hermite
 family (a camera or a field moving between rests), ease_out_back (a callout's pop, 8 % overshoot), linear (a
 constant push only). Reveals 0.40 s, rises by element size, words staggered 0.055 s; hard cuts inside a Reel,
-a dissolve only at an act change; captions <= 17 cps shown.
+a dissolve only at an act change (a crossfade on tok("motion.act_dissolve_ease"), ease_in_out since freeze cycle 4);
+one overshoot curve, ease_out_back, at motion.back (a callout's pop, a pin's settle) or motion.back_mark (a small
+mark's pop); captions <= 17 cps shown.
 """
 from __future__ import annotations
 
@@ -249,13 +255,19 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # never past the graphics box's foot (design_cards._chapter_tall_block)
     "card.tall_centre": 0.45,
     # ---- motion
-    "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop
+    "motion.back": 1.5,               # ease_out_back's constant (8 % overshoot): a callout's pop, a map pin's settle
+    # freeze cycle 4 (SYS-E-c4-1): a small mark's pop (the map's 24 px dot: 0 -> 1.15 -> 1, 15 %; 8 % of it is 2 px),
+    # its own named constant on the one curve (graphics.dot_motion), never a private copy of ease_out_back
+    "motion.back_mark": 2.2,
     "motion.rise_s": 8,               # px a kicker rises while it enters (the end screen's WATCH NEXT)
     # ---- figures (operator ruling 3, 2026-11-16): a stated quantity's face and colour, and its conversion's size
     "figure.face": "display",         # a brand font role
     "figure.colour": "GOLD",          # a palette role
     "figure.conversion": 0.5,         # the conversion's px, at most this share of its lead figure's
-    "data.unit_gap": 0.2,             # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6)
+    # em: the ink gap joining a drawing's number to its unit (the mono space is 0.6). Freeze cycle 4 (SYS-A-c4-1, panel
+    # 5 TY MG-2: "0FT" read as one word at 0.2 em = 0.29 of the data face's cap): 0.25 em = 0.36 cap in IBM Plex Mono
+    # and in Cinzel (cap 0.70 em each), a thin space inside TY's 0.3-0.4 cap
+    "data.unit_gap": 0.25,
     "figure.dash_gap_em": 0.06,       # em: a range's en dash keeps at least this ink gap to each figure (font_engine
                                       # opens a face's span dash by the least spacing that holds it; SYS batch 1)
     # ---- place labels: a map's site name and a route's stop names (one role)
@@ -284,6 +296,9 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # ---- the act dissolve (cycle 0 round 8, lander's scope: production drew 8 frames of xfade "dissolve", a per-pixel
     # dither, against the written 0.5 s): the only dissolve in a Reel or a master, at an act change, a true crossfade
     "motion.act_dissolve": 0.5,       # seconds (video_composer.act_dissolve_s, rounded to whole frames)
+    # freeze cycle 4 (SYS-E-c4-1, panel 5 MO): the dissolve's curve, a name in XFADE_EASES (it was xfade's linear fade:
+    # a one-frame onset and stop; a field moving between rests is ease_in_out: video_composer.act_dissolve_transition)
+    "motion.act_dissolve_ease": "ease_in_out",
     # ---- the reveal and the camera (freeze SYS batch 2, SYS-E-1 / SYS-F-1: written in SPEC until now; values
     # unchanged): read at draw time by end_card (the 9:16 card, the 16:9 end screen, the loop bridge), design_cards
     # (the hook) and video_composer (the hook's handover), and the composer's push (still_camera "push" / "hook")
@@ -299,6 +314,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "motion.push_cap": 1.24,          # the furthest that push goes
     "motion.hook_hold": 1.07,         # s: the hook's type hold (frames 0-32 whole)
     "motion.hook_fade": 0.16,         # s: the hook type's fade (the ground leaves with it: one frame longer)
+    # ---- credits (freeze cycle 4, SYS item 4, panel 5 BC-06: a written SPEC value no renderer read): the credit
+    # role's weight in the data face, read by the end screen's credits line, the Story's photo credit and the cards'
+    # citation (each drew a literal 500 until now; the value is unchanged)
+    "credit.weight": 500,
 })
 
 # The range a brand may set each numeric runtime token to (BrandConfig refuses a value outside it), so "any value the
@@ -330,6 +349,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "lockup.line_gap": (0.10, 0.30),      # of the lower line's cap: never touching, never a paragraph
     "card.tall_centre": (0.30, 0.60),
     "motion.back": (0.0, 4.0),
+    "motion.back_mark": (0.0, 4.0),
     "motion.rise_s": (0, 24),             # px (round 7: at 40 the WATCH NEXT kicker entered the video slot; the gap is 37)
     "figure.conversion": (0.3, 1.0),
     "data.unit_gap": (0.0, 0.6),          # em
@@ -361,6 +381,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.push_cap": (1.05, 1.5),
     "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
     "motion.hook_fade": (0.1, 0.3),       # s
+    "credit.weight": (500, 600),          # the data face's bundled weights (IBM Plex Mono Medium / SemiBold)
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
 # accepts the named word or a value in TOKEN_RANGES.
@@ -379,8 +400,8 @@ TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
 SPEC: Mapping[str, Any] = MappingProxyType({
     "plate.opaque": 1.0,              # a callout's plate
     "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
-    # ---- credits and the AI-reconstruction badge (one style each; ported by their groups)
-    "credit.weight": 500,             # the data face
+    # ---- credits and the AI-reconstruction badge (one style each; ported by their groups; credit.weight is a
+    # runtime token since freeze cycle 4)
     "credit.track": 0.04,             # em
     "credit.colour": "STONE_LT",
     "badge.weight": 600,              # the badge role (the data face by default)
@@ -414,8 +435,36 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
     "rule.weight": 4,
     "rule.hairline": 1,
-    # ---- motion (seconds unless named; the reveal and push tokens drive since SYS batch 2: SYSTEM_TOKENS)
-    "motion.pop_scale": 1.4,          # a pin / lantern's pop: 1 -> this -> 1
+    # (motion.pop_scale 1.4, "a pin's pop", retired in freeze cycle 4, SYS-E-c4-1: no reader; the pin settles on
+    # motion.back and the dot pops on motion.back_mark, one curve)
+})
+
+# Freeze cycle 4 (SYS item 4, panel 5 BC-06 / TY: "tokens written but unread"): every SPEC value is either read by a
+# renderer (heading.balance_min) or DECLARED here with why it is written but not drawn from, and who would port it, so
+# no written value reads as a rule the pixels follow when they do not. tests/test_freeze_sys_c4.py holds every SPEC
+# key to one of the two (a new SPEC value needs a reader or a line here).
+SPEC_DECLARED: Mapping[str, str] = MappingProxyType({
+    # "not read": no src module names the key (the test checks it); what the surfaces draw instead is named where it
+    # was measured for this table, else left to the owner lane's port
+    "plate.opaque": "not read: the callout plate's alpha is callouts' own (lane F)",
+    "plate.panel": "not read: map and chart panels set their own alphas (lane A)",
+    "credit.track": "not read: the end screen tracks its credits line 0.08 em by its own constant (lane E)",
+    "credit.colour": "not read: the credits name brand.STONE_LT themselves (the same colour; lanes D, E, F)",
+    "badge.weight": "not read: 600 everywhere it is drawn, but the captions' badge is libass's, whose style sets bold "
+                    "on or off only (lane C), and the Pillow provenance badges draw a literal 600 (lanes B, F)",
+    "badge.track": "not read: libass spaces the captions' badge 1.5 px, the cover's provenance badge tracks 1 px "
+                   "(lanes B, C, F)",
+    "badge.colour": "not read, and open: the captions' libass badge draws BONE, the cover's and YouTube's provenance "
+                    "badges STONE_LT (lanes B, C, F; a SPEC decision, not a rule either follows)",
+    "badge.plate": "not read: the badge plates set their own INK alphas (lanes B, C, F)",
+    "lead.display": "not read: the display lines step by their surfaces' own constants (lanes B, D); the YouTube "
+                    "lockup's step is the lockup.line_gap token",
+    "lead.body": "not read: bodies set their own line steps (lanes D, E, F)",
+    "lead.label": "not read: labels set their own line steps (lane A)",
+    "heading.cover_over_interior": "declared, SYS batch 2 item 7 (the comment in SPEC)",
+    "figure.dash_centre_em": "declared, SYS batch 2 item 7 (the comment in SPEC)",
+    "rule.weight": "not read: rules are drawn at their surfaces' own widths (every lane)",
+    "rule.hairline": "not read: hairlines are drawn at their surfaces' own widths (lanes A, E)",
 })
 
 # One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3): the system's
@@ -800,6 +849,25 @@ def ease_in(t: float) -> float:
 
 EASES = {"ease_out": ease_out, "ease_in_out": ease_in_out, "ease_out_back": ease_out_back,
          "ease_out_expo": ease_out_expo, "ease_in": ease_in, "linear": lambda t: min(1.0, max(0.0, t))}
+
+# The eases a crossfade may run on (freeze cycle 4, SYS-E-c4-1), as ffmpeg xfade's custom mix: the incoming picture's
+# weight as a function of xfade's P (1 at the start, 0 at the end), the same curve as EASES[name] of (1 - P). None:
+# xfade's own linear "fade". Measured on the bundled ffmpeg 9.0.2 (black to white, 0.5 s at 30 fps): ease_in_out
+# runs 3, 12, 26 ... 251 (monotonic; its peak step 1.5x the linear fade's 16-17, smoothstep's peak slope).
+XFADE_EASES: Mapping[str, str | None] = MappingProxyType({
+    "linear": None,
+    "ease_in_out": "(1-P)*(1-P)*(1+2*P)",
+    "ease_out": "1-P*P*P",
+    "ease_in": "(1-P)*(1-P)*(1-P)",
+})
+
+
+def xfade_transition(ease: str) -> str:
+    """xfade's transition option for a crossfade on `ease` (XFADE_EASES)."""
+    if ease not in XFADE_EASES:
+        raise ValueError(f"no crossfade ease {ease!r} (src/brand_system.py XFADE_EASES)")
+    weight = XFADE_EASES[ease]
+    return "transition=fade" if weight is None else f"transition=custom:expr='A+(B-A)*({weight})'"
 
 
 def masthead_spec(size: float) -> dict[str, Any]:

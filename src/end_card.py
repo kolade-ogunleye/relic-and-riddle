@@ -27,7 +27,6 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable
-from itertools import combinations
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -244,18 +243,14 @@ def _tracked_width(font, text: str, spacing: float) -> float:
 
 
 def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[List[List[str]]]:
-    """`words` on the fewest lines (up to max_lines) that fit `width`, the most even break of those."""
+    """`words` on the fewest lines (up to max_lines) that fit `width`, the most even break of those, by the heading
+    engine's one line rule (freeze cycle 4, SYS item 2: heading.set_lines; no line but the last ends on an article or
+    a preposition, no one-word last line, a value kept with its unit); None when no such break fits (the caller then
+    takes a smaller size or another line)."""
+    from .heading import set_lines
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    for n in range(1, min(max_lines, len(words)) + 1):
-        best = None
-        for cuts in combinations(range(1, len(words)), n - 1):
-            parts = [words[a:b] for a, b in zip((0, *cuts), (*cuts, len(words)))]
-            ws = [probe.textlength(" ".join(p), font=font) for p in parts]
-            if max(ws) <= width and (best is None or max(ws) - min(ws) < best[0]):
-                best = (max(ws) - min(ws), parts)
-        if best:
-            return best[1]
-    return None
+    got = set_lines(" ".join(words), lambda t: probe.textlength(t, font=font), width, max_lines)
+    return [ln.split() for ln in got] if got else None
 
 
 _FOLLOW_WORD = re.compile(r"\bfollow", re.IGNORECASE)
@@ -652,7 +647,7 @@ def end_screen_extras(width: int = LANDSCAPE_WIDTH, lay: dict[str, Any] | None =
     rule_w, rule_gap = max(8, round(ch * tok("kicker.rule"))), round(ch * tok("kicker.rule_gap"))
     thick = max(3, round(ch * tok("kicker.rule_thick")))
     mid = kick_baseline - ch / 2
-    cfont = get_font(brand.DATA_FONT, CREDITS_SIZE, weight=500)
+    cfont = get_font(brand.DATA_FONT, CREDITS_SIZE, weight=tok("credit.weight"))   # freeze cycle 4: the token
     return {"kicker": {"text": KICKER, "font": kfont, "xy": (kx, kick_baseline), "track": tok("kicker.track") * size,
                        "text_xy": (kx + rule_w + rule_gap, kick_baseline),
                        "rule": (kx, round(mid - thick / 2), kx + rule_w - 1, round(mid - thick / 2) + thick - 1),

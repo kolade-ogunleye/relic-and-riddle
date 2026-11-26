@@ -304,6 +304,13 @@ def on_disk(records: Path | None, run: str, sub: str, name: str) -> dict | None:
         return None
 
 
+def disk_outcome(rec: dict | None) -> dict | None:
+    """A record read from disk with the table's outcome: fit as asked, a fit crop, or unfit (recorded)."""
+    if rec is None:
+        return None
+    return {**rec, "outcome": "unfit" if rec.get("problems") else "crop" if rec.get("moved") else "fit"}
+
+
 # ---------------------------------------------------------------- the corpus
 def run_pool(dev: Path, run: Path) -> list[Path]:
     rec = run / "carousel_photos.json"
@@ -397,7 +404,7 @@ def main() -> int:
                 an = photos.get(photo)
                 if an is None:
                     continue
-                disk = on_disk(a.records, run.name, sub, name) if a.rule == "tip" else None
+                disk = disk_outcome(on_disk(a.records, run.name, sub, name)) if a.rule == "tip" else None
                 if copy is None:
                     got = disk or crop(an, pf.Window((1080, 1920), name="story"), "story")
                     add(run.name, "DECK", f"story {name}", photo.name, got,

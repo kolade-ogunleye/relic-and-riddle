@@ -656,8 +656,8 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._content_frame": "D",
     "multi_format:MultiFormatGenerator._deck_heading_tier": "D",   # SYS-D-5: the deck's one content tier
     "multi_format:MultiFormatGenerator._fit_text": "D",
+    "multi_format:MultiFormatGenerator._masthead_box": "D",   # freeze c5: the masthead's box (its ladder size, read)
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
-    "multi_format:MultiFormatGenerator.photo_window": "D",   # freeze c5: the masthead's box (its ladder size, read)
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
     "multi_format:MultiFormatGenerator._render_story_frame.title_plan": "D",

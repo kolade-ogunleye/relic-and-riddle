@@ -26,7 +26,8 @@ numbers):
   reach a size: a crop that would need a pad is a crop that needs a larger enlargement, and is refused the same way.
 - subject: the photograph's SALIENCE is where it differs from itself: local luma detail and distance from its own
   dominant colour (`salience`, summing to 1 over the content). No detector is claimed: where a subject was REVIEWED
-  (cover_design.reviewed_focus) its box is the subject and "focus" is the share of it in view. Otherwise the measure
+  (cover_design.reviewed_focus) its box is the subject and "focus" is the share of it in view (all of it,
+  FOCUS_KEEP; a window with a `hold` box asks for all of it there and Window.focus_min of it in the view). Otherwise the measure
   is relative to what the photograph itself offers this window: "keep" is the salience in the crop's view over the
   most any crop of the same shape holds in its view (SUBJECT_KEEP). A crop that keeps the photograph's emptiest half
   fails it whatever the subject is.
@@ -115,6 +116,8 @@ class Window:
     upscale_max: float = UPSCALE_MAX
     zoom_max: float = ZOOM_MAX
     checks: tuple[str, ...] = ("matte", "upscale", "subject", "flat", "protected")   # the measures that can fail it
+    hold: Box | None = None   # output px box a reviewed subject must lie whole in (None: the view)
+    focus_min: float = FOCUS_KEEP   # the share of a reviewed subject the VIEW must show (with `hold`: under 1)
 
     def view_box(self) -> Box:
         w, h = self.size
@@ -420,6 +423,8 @@ def measure(a: Analysis, box: Box, window: Window, best_view: float | None = Non
         rec["keep"] = round(min(1.0, subject / best_view), 3) if best_view > 1e-9 else 1.0
     if a.focus is not None:
         rec["focus"] = round(_overlap(a.focus, view), 3)
+        if window.hold is not None:
+            rec["held"] = round(_overlap(a.focus, _sub(box, out, window.hold)), 3)
     prot = [protected_measure(a, _sub(box, out, p)) for p in window.protected]
     if prot:
         rec["protected"] = prot
@@ -434,7 +439,7 @@ def problems(rec: dict[str, Any], window: Window) -> list[str]:
     if rec["upscale"] > window.upscale_max + 1e-6:
         out.append("upscale")
     if "focus" in rec:
-        if rec["focus"] < FOCUS_KEEP:
+        if rec["focus"] < window.focus_min or rec.get("held", 1.0) < FOCUS_KEEP:
             out.append("subject")
     elif rec.get("keep", 1.0) < SUBJECT_KEEP or rec["density"] < DENSITY_MIN:
         out.append("subject")

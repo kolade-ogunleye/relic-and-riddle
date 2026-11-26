@@ -613,6 +613,7 @@ COVER_GRID_TOP = 420        # the profile grid's 1:1 square starts here (PLATE_S
 COVER_INK_FADE = 120        # px over which a photograph that ends above the type fades into the INK field under it
 
 
+COVER_GRID_FOCUS = 0.80     # of a reviewed feature inside the profile square (y from COVER_GRID_TOP), at least
 COVER_TYPE_TOP = 1180       # where the type's stack usually starts (1434 less a three-row stack): the hero pick's
 
 
@@ -623,9 +624,13 @@ def cover_windows(top=COVER_TYPE_TOP):
     begins."""
     from . import photo_fitness as pf
     foot = min(1920, int(top) + 10)
+    # a reviewed feature lies whole above the type or the fade (`hold`: it is whole on the Reel cover and no type is
+    # set on it), and COVER_GRID_FOCUS of it inside the profile square (the grid tile may trim its top, never more)
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
+                                     hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
                                      name="reel cover full_bleed")),
             ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
+                                         hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
                                          name="reel cover photo_over_ink")))
 
 

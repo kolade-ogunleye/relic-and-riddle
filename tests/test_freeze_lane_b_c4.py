@@ -35,7 +35,9 @@ def test_a_framed_window_stands_on_one_ink_field_no_gutter_no_band(kind, style) 
     comp = lay.meta["composition"]
     if comp["mode"] == "contain":
         x0, y0, x1, y1 = comp["image_box"]
-        assert np.abs(rgb[:y0 - 1] - plate).max() <= 1.5           # INK from the canvas top to the window: one field
+        # INK from the canvas top to the window, read beside the type's column (minimal sets its title above it)
+        assert np.abs(rgb[:y0 - 1, :40] - plate).max() <= 1.5 and np.abs(rgb[:y0 - 1, 1040:] - plate).max() <= 1.5
+        assert np.abs(rgb[:400] - plate).max() <= 1.5              # and above the profile square: one field
         assert np.abs(rgb[1900:] - plate).max() <= 1.5
     else:
         assert style == "badge" and comp["mode"] in ("full_bleed", "photo_over_ink")

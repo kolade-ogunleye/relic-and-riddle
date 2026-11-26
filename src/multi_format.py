@@ -1605,21 +1605,29 @@ class MultiFormatGenerator:
     PHOTO_VIEW = {"cover": 0.55, "immersive": 0.66, "debate": 0.42}
 
     @classmethod
+    def _masthead_box(cls, cw: int, facebook: bool, archetype: str, inset: bool) -> tuple[int, int, int, int]:
+        """The masthead's box on a slide (canvas px, 16 design px of air around the mark and the name): what the deck
+        window rule and the photo-fitness rule keep clear. `inset`: the Facebook cover's margin (FB_COVER_MARGIN)."""
+        from . import masthead as _mh
+        px = cls._px(cw)
+        size = type_px("masthead", "carousel") * cw / 1440
+        header = cls.FB_HEADER_Y if facebook and archetype == "cover" else cls.HEADER_Y
+        mx = px(cls.FB_COVER_MARGIN) if inset else px(80)
+        base = px(header) + cap_height(_mh.font_for(size))
+        return (mx - px(16), px(header) - px(16), mx + _mh.group_width(size) + px(16), base + px(16))
+
+    @classmethod
     def photo_window(cls, archetype: str, facebook: bool = False, second: bool = False):
         """The photo-fitness Window (src/photo_fitness.py) of a slide's photograph: its size on the canvas, the part
         of it that shows clear of the text stack and the fade, and the masthead's box where the picture runs under
         it. `second`: a comparison slide's lower photograph. The pickers (deck_photo_guard) and the renderer
         (_fill) ask the same question of the same window."""
-        from . import masthead as _mh
         from . import photo_fitness as pf
         from .brand_system import tok
         cw, chh = cls.CAROUSEL_SIZE
         px = cls._px(cw)
-        size_px = type_px("masthead", "carousel") * cw / 1440
-        header = cls.FB_HEADER_Y if facebook and archetype == "cover" else cls.HEADER_Y
-        mx = px(cls.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
-        base = px(header) + cap_height(_mh.font_for(size_px))
-        mbox = (mx - px(16), 0, mx + _mh.group_width(size_px) + px(16), base + px(16))   # up to the frame's edge
+        box = cls._masthead_box(cw, facebook, archetype, inset=facebook and archetype == "cover")
+        mbox = (box[0], 0, box[2], box[3])   # up to the frame's edge (_fill)
         if archetype in cls.PHOTO_VIEW:
             return pf.Window((cw, chh), view=(0, 0, cw, round(chh * cls.PHOTO_VIEW[archetype])), protected=(mbox,),
                              name=f"carousel {archetype}")
@@ -2815,16 +2823,11 @@ class MultiFormatGenerator:
         cw, chh = self.CAROUSEL_SIZE
         # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
         # this deck show the same photograph; the masthead's box (top-left, HEADER_Y) is kept off foreign objects
-        from . import masthead as _mh
-        _px = self._px(cw)
-        _size = type_px("masthead", "carousel") * cw / 1440
         # lane D cycle 3: the deck's posted collage decides the Facebook cover's inset (_fb_cover_inset)
         _render_state.fb_hero_tile = bool(facebook) and total <= 4
-        _mx = _px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else _px(80)
-        _base = _px(self._header_y(facebook, archetype)) + cap_height(_mh.font_for(_size))
         _render_state.window_k = max(0, int(window or 0))
-        _render_state.masthead_box = (_mx - _px(16), _px(self._header_y(facebook, archetype)) - _px(16),
-                                      _mx + _mh.group_width(_size) + _px(16), _base + _px(16))
+        _render_state.masthead_box = self._masthead_box(cw, bool(facebook), archetype,
+                                                        inset=self._fb_cover_inset() and archetype == "cover")
         _render_state.window_rec = []
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])

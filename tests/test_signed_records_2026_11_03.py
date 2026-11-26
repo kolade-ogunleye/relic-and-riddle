@@ -432,7 +432,23 @@ def test_the_long_9x16_myth_sets_at_84_px_or_more_and_the_ground_below_is_the_ph
     # review 2026-11-03 (round 4; changed deliberately from "one rising curve" under the block, which read as a
     # muddy grey field): the photo below the panel is the photo itself under a light veil, as bright as it is
     veiled = (1 - dc.MYTH_OUT_SHADE) * np.array([190, 232, 240]) + dc.MYTH_OUT_SHADE * np.array(dc.INK)
-    assert np.abs(low - veiled).max() < 8, (low, veiled)
+    # freeze cycle 5 (PLATES-01; changed deliberately from "within 8 of the veiled photo over rows 1500-1900"): the
+    # panel's foot is a floating band edge laid inside the one band-edge limit (band_edge.feather: on this flat
+    # bright ground the field gate, 0.5 luma / px, less the floating headroom), so its ramp is as long as this
+    # ground's step asks and no longer ends by row 1500. What holds is the round-4 statement itself, where the ramp
+    # has ended: the feather the rule gives this ground ends inside the frame, and every row past it is the veiled
+    # photograph, even and as bright as it is (tighter than the old 8: no part of the ramp is inside the measure)
+    from src import band_edge
+    foot = dc.MYTH_PANEL[1]
+    ground = np.zeros((1920, 1080, 3), np.float32) + rest[-10:].mean(axis=(0, 1))
+    reach = band_edge.feather(band_edge.luma_rows(ground), foot, "down",
+                              rest[foot - 12:foot].reshape(-1, 3).mean(axis=0), 1.0, dc.MYTH_EDGE_MIN, 1080,
+                              floating=True)
+    assert foot + reach < 1920 - dc.MYTH_EDGE_MIN, reach                  # the photograph does come back, in frame
+    past = rest[foot + reach:]
+    assert np.abs(past.mean(axis=(0, 1)) - veiled).max() < 4, (past.mean(axis=(0, 1)), veiled)
+    assert np.ptp(past.mean(axis=(1, 2))) < 1, reach                      # even: nothing of the ramp is left in it
+    assert np.diff(rest[foot:].mean(axis=(1, 2))).min() > -0.5            # and one ramp up to it, never a dip
 
 
 def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):

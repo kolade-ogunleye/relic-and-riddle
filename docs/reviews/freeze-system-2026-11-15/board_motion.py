@@ -771,8 +771,19 @@ def act_dissolve_spec() -> dict[str, Any]:
             out.update(seconds=int(m.group(1)) / FPS, source="video_composer.py literal `fades = [N / VIDEO_FPS`")
     if out["seconds"] is not None:
         out["frames"] = round(out["seconds"] * FPS)
+    tr = getattr(vc, "act_dissolve_transition", None)
+    if callable(tr):   # freeze cycle 4 (SYS-E-c4-1): the composer's own xfade option, token-driven ease
+        try:
+            opt = str(tr())
+            out.update(xfade=opt, transition=opt.split("=", 1)[1].split(":", 1)[0] if "=" in opt else opt,
+                       transition_source="video_composer.act_dissolve_transition()")
+        except Exception as e:  # noqa: BLE001
+            out["transition_source"] = f"not found (act_dissolve_transition raised {type(e).__name__}: {e})"
+        return out
     m = re.search(r"xfade=transition=(\w+)", text)
     out["transition"] = m.group(1) if m else None
+    if m:
+        out["xfade"] = f"transition={m.group(1)}"
     return out
 
 
@@ -799,10 +810,10 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any] | None:
         p = clips / f"_dissolve_{k}.png"
         ImageOps.fit(Image.open(s).convert("RGB"), size, Image.LANCZOS).save(p)
         paths.append(p)
-    fade, tr = spec["seconds"], spec["transition"]
+    fade, tr, xopt = spec["seconds"], spec["transition"], spec["xfade"]
     hold = 0.5
     path = clips / f"act_dissolve__{run[4:]}__916.mp4"
-    graph = (f"[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]xfade=transition={tr}:duration={fade:.9f}:"
+    graph = (f"[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]xfade={xopt}:duration={fade:.9f}:"
              f"offset={hold:.9f},{_graph()}[v]")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-framerate", str(FPS), "-t", f"{hold + fade:.4f}",
                     "-i", str(paths[0]), "-loop", "1", "-framerate", str(FPS), "-t", f"{hold + fade + hold:.4f}",
@@ -810,7 +821,7 @@ def act_dissolve(dev: Path, clips: Path, run: str) -> dict[str, Any] | None:
                     "-pix_fmt", "yuv420p", "-color_range", "tv", "-color_primaries", "bt709", "-color_trc", "bt709",
                     "-colorspace", "bt709", "-r", str(FPS), str(path)], check=True, capture_output=True, timeout=300)
     clip = {"path": path, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-            "encoder": f"xfade=transition={tr}:duration={fade:.4f} then " + " ".join(delivery_video_encoder())}
+            "encoder": f"xfade={xopt}:duration={fade:.4f} then " + " ".join(delivery_video_encoder())}
     a = np.asarray(Image.open(paths[0]).resize((270, 480)), np.float32)
     b = np.asarray(Image.open(paths[1]).resize((270, 480)), np.float32)
     seq = Seq("act_dissolve", clip, size, None,

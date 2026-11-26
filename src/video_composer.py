@@ -5634,7 +5634,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             clip_px = caption_clip_size(fits)
             held = [min(f, clip_px) for f in fits]
             rates["clip_size"] = {
-                "px": clip_px, "ass": FONT_SIZE_ASS if clip_px >= FONT_SIZE else round(clip_px / 0.5625),
+                "px": clip_px, "ass_px": FONT_SIZE_ASS if clip_px >= FONT_SIZE else round(clip_px / 0.5625),
                 "ladder": list(CAPTION_LADDER),
                 "set_by": [" ".join(_phrase_words(p)) for p, f in zip(phrases, fits)
                            if clip_px < FONT_SIZE and _rung_at(f) == clip_px][:12],

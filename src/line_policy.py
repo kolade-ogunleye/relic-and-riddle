@@ -198,7 +198,7 @@ def range_seams(words: Sequence[str]) -> set[int]:
 # ------------------------------------------------------------------------------------------------ phrase unit
 _NOT_ADVERBS = frozenset(("only", "early", "family", "italy", "july", "supply", "reply", "holy", "assembly", "rally",
                           "fly", "ally", "belly", "bully", "daily", "likely", "lonely", "ugly", "friendly", "elderly",
-                          "costly", "deadly", "lively", "lovely", "orderly", "apply", "multiply", "butterfly",
+                          "costly", "deadly", "lively", "lovely", "orderly", "apply", "butterfly",
                           "anomaly", "monopoly", "homily", "lily", "jelly", "folly"))
 
 

@@ -11031,12 +11031,16 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     ground = Image.new("RGB", (width, height), brand.SEA)
     width_per_px = _silhouette_width(ref_label)
     top_d, draw_bottom = WIDE_TITLE_SAFE[1], WIDE_TITLE_SAFE[3] - 14  # round 4: title-safe's height (210-790 before)
+    if depth:   # cycle 5: the floor's figure is centred on the floor's tick; half its cap stays inside title-safe
+        draw_bottom = WIDE_TITLE_SAFE[3] - max(14.0, math.ceil(cap_height(figure_font(g.f(30))) / g.k / 2) + 3)
     if depth:
         line_y = top_d + 60
         above = max(0.0, ref_feet - feet)
         px_ft = (draw_bottom - line_y) / max(feet, 1.0)
-        if above * px_ft > line_y - top_d:
-            px_ft = (draw_bottom - top_d) / (feet + above)
+        # cycle 5: a landmark rising past the ground carries its own figure centred on its top: half its cap of room
+        top_ref = top_d + math.ceil(cap_height(figure_font(g.f(30))) / g.k / 2) + 2
+        if above * px_ft > line_y - top_ref:
+            px_ft = (draw_bottom - top_ref) / (feet + above)
         px_ft = min(px_ft, (dx1 - dx0 - 160) / max(1.0, ref_feet * width_per_px))
         floor_y = draw_bottom
         line_y = floor_y - feet * px_ft
@@ -11251,7 +11255,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         lim = X(cx0 - 20)
         taken = [pl.box for _n, pl in plates]
         foot_y = floor_y if depth else base_y
-        c_box = (X(WIDE_TITLE_SAFE[0]), Y(top_d) - S(40), lim, Y(foot_y) - 4)
+        c_box = (X(WIDE_TITLE_SAFE[0]), Y(top_d) - (0 if depth else S(40)), lim, Y(foot_y) - 4)
         lm = landmark_mask((width, height), ref_label, X(ref_cx), Y(foot_y), S(ref_feet * px_ft), round(S(6)))
         if depth:   # off the shaft's walls, the ground line and the bracket (frame px); the figure alone (see 9:16)
             note = ""
@@ -12685,12 +12689,11 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                                "text_x": label_x})
         return out_blocks
 
-    def build_rows(lab_px: int, line_step: float, labcol: float) -> tuple[list[dict[str, Any]], float] | None:
+    def build_rows(f, lab_px: int, line_step: float, labcol: float) -> tuple[list[dict[str, Any]], float] | None:
         """The ROW form (freeze cycle 5): a level's figure and its label side by side, the label's rows centred on
         the figure's cap band, in a label column `labcol` design px wide; the city gives the width up (never under
         SECTION_ROW_CITY_MIN of its span: None). (blocks, the label column's x); an empty list of blocks when a
-        label does not sit in two rows of this column."""
-        f = get_font(brand.TEXT_FONT, g.f(lab_px), weight=600)
+        label does not sit in two rows of this column. `f`: the label's font at `lab_px`."""
         cap_lab = cap_height(f) / g.k
         figcol = math.ceil(inline_w) / g.k
         lx = L.right - figcol - SECTION_ROW_GUTTER - labcol
@@ -12712,27 +12715,35 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                                "text_x": lx + figcol + SECTION_ROW_GUTTER})
         return out_blocks, lx
 
-    def stacked(blocks: list[dict[str, Any]], group_gap: float) -> list[float] | None:
+    def stacked(blocks: list[dict[str, Any]], group_gap: float) -> tuple[list[float], float] | None:
+        """The blocks' tops with the held group gap, and how far (design px) the worst level with room above it
+        stands off its own floor; None when the stack does not hold the gap."""
         wants = [b["want"] - (b["fig_dy"] - b["cap"] / 2) for b in blocks]     # the figure's cap band on its floor
-        anchored = [k > 0 and blocks[k]["want"] - blocks[k - 1]["want"] >= blocks[k - 1]["h"] + group_gap
+        anchored = [k > 0 and blocks[k]["want"] - blocks[k - 1]["want"] >= blocks[k - 1]["h"]
                     for k in range(len(blocks))]
-        return label_stack(wants, [b["h"] for b in blocks], lo, hi, group_gap,
-                           weights=[1000.0 if a else 1.0 for a in anchored], hold=True)
+        tops_ = label_stack(wants, [b["h"] for b in blocks], lo, hi, group_gap,
+                            weights=[1000.0 if a else 1.0 for a in anchored], hold=True)
+        if tops_ is None:
+            return None
+        return tops_, max([abs(t - w) for t, w, a in zip(tops_, wants, anchored) if a] or [0.0])
     # Freeze cycle 5 (FIGURES, panel 6: the blocks ran into one another and read as one list; the stack kept its
     # first rung unless a tighter one put a level on its floor, and label_stack shrank the gaps to 4 px): the blocks are
     # GROUPS. The clear air between one block's last row and the next block's figure is at least SECTION_GROUP_RATIO
     # times the widest clear air inside a block (section_group_gap), a hard gap (label_stack hold); the ladder
     # (leading, then one 2 px step of label type) is climbed until the stack holds it, and a stack no rung holds is
     # refused (9:16: once more in the box column, with_box_column), never drawn as one list.
-    best, form = None, "stack"
+    best, form, best_off = None, "stack", 0.0
     for lgap, dpx in SECTION_STACK_LADDER:
         label_gap, line_step = L.label_gap * lgap, L.line_step - dpx * 1.2
         blocks = build(L.lab_px - dpx, label_gap, line_step)
         group_gap = section_group_gap(label_gap, line_step,
                                       cap_height(get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)) / g.k)
-        tops = stacked(blocks, group_gap)
-        if tops is not None:
-            best = (blocks, tops, label_gap, line_step, dpx, group_gap)
+        got = stacked(blocks, group_gap)
+        # the first rung that holds the gap; a tighter one only where it puts a level with room above it nearer its
+        # own floor (round 3's rule, kept: a figure reads against its own depth before the stack reads loose)
+        if got is not None and (best is None or got[1] < best_off - 4):
+            best, best_off = (blocks, got[0], label_gap, line_step, dpx, group_gap), got[1]
+        if got is not None and got[1] <= 4:
             break
     if best is None:
         # the designed alternative before a refusal: the row form (build_rows), the city narrowed for its column;
@@ -12742,13 +12753,15 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
             if best is not None:
                 break
             line_step = L.line_step - dpx * 1.2
-            cap_lab = cap_height(get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)) / g.k
-            rows = build_rows(L.lab_px - dpx, line_step, labcol)
+            f_row = get_font(brand.TEXT_FONT, g.f(L.lab_px - dpx), weight=600)
+            cap_lab = cap_height(f_row) / g.k
+            rows = build_rows(f_row, L.lab_px - dpx, line_step, labcol)
             if rows is None or not rows[0]:
                 continue
             group_gap = section_group_gap(cap_lab, line_step, cap_lab)
-            tops = stacked(rows[0], group_gap)
-            if tops is not None:
+            got = stacked(rows[0], group_gap)
+            if got is not None:
+                tops = got[0]
                 best, form = (rows[0], tops, 0.0, line_step, dpx, group_gap), "row"
                 span = (rows[1] - (L.label_x - L.rooms_x1) - shaft_x) / max(1.0, rooms_x1 - shaft_x)
                 label_x = rows[1]

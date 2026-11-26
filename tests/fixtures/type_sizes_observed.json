@@ -338,8 +338,12 @@
  ],
  "graphics:_render_scale_vertical": [
   28.0,
+  35.0,
   38.0,
   76.0
+ ],
+ "graphics:_render_scale_vertical.compose": [
+  28.0
  ],
  "graphics:_render_timeline_tall": [
   42.0

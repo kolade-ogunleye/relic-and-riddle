@@ -68,8 +68,12 @@ def test_an_inset_window_cuts_no_band_for_a_masthead_the_cover_does_not_draw() -
     # Freeze lane B c4 (panel 5, Richat Reel cover: a blur-to-sharp seam at y ~540): the window's top was cut
     # INSET_CLEAR px under the masthead's foot, leaving 26 px to fade before the feature. Operator ruling 2 draws no
     # masthead on a Reel cover, so the photograph keeps its context above the feature and fades over all of it.
-    from src.cover_design import INSET_FEATHER_MAX, _cover_masthead_drawn
-    assert not _cover_masthead_drawn()
+    # The clear band and its foot measurement are gone with the masthead: should a cover ever draw one again, this
+    # guard fails first and the band must come back with it (the r5 rule, 2026-11-02).
+    from src.cover_design import INSET_FEATHER_MAX, _brand
+    probe = Layout("cover", (1080, 1920), (60, 440, 1020, 1480))
+    _brand(None, probe, grid_delivery=True)
+    assert probe.meta["masthead"]["shown"] is False
     grey, comp = _inset()
     assert not comp["full_width"]
     room = comp["protected_box"][1] - comp["image_box"][1]
@@ -84,22 +88,6 @@ def test_an_inset_window_cuts_no_band_for_a_masthead_the_cover_does_not_draw() -
                        np.ones(8) / 8, mode="valid")
     # per 8 rows, no steeper than a smoothstep over the recorded fade (+ noise); the 24 px join was ~0.5
     assert (rise[8:] - rise[:-8]).max() < (1.5 * 8 / comp["edge_fade_top"] + 0.08) * feature
-
-
-def test_an_inset_window_keeps_its_clear_gap_while_a_cover_draws_a_masthead(monkeypatch) -> None:
-    # The r5 rule (2026-11-02: RELIC & RIDDLE sat on the photo's edge) stands whenever a cover draws the masthead.
-    from src import cover_design
-    from src.cover_design import INSET_CLEAR, _brand_foot
-    monkeypatch.setattr(cover_design, "_cover_masthead_drawn", lambda: True)
-    grey, comp = _inset()
-    foot = _brand_foot()
-    assert comp["image_box"][1] >= foot + INSET_CLEAR
-    x0, x1 = comp["image_box"][0] + 160, comp["image_box"][2] - 160
-
-    def texture(y):
-        return np.abs(np.diff(grey[y, x0:x1])).mean()
-    feature = texture(comp["protected_box"][1] + 20)
-    assert all(texture(y) < 0.1 * feature for y in range(foot + 4, foot + INSET_CLEAR))   # no photo in the gap
 
 
 def _hero(kind, size, focus_box):

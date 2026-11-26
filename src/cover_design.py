@@ -600,7 +600,7 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     """Operator ruling 2 (2026-11-16): a Reel cover (and its grid tile) carries NO masthead; the brand lives on the
     profile, carousel, YouTube and end card. Cycle 0 round 7 removed the drawing path (it was unreached since QF-87:
     every caller passes `grid_delivery`, where the 64 px masthead is 5.2 px at the 124 px tile). `im` comes back
-    untouched and lay.meta["masthead"] says why; the band the covers lay out under (BRAND_TOP, _brand_foot) stays."""
+    untouched and lay.meta["masthead"] says why. No photograph is cut back to clear a band for it (_immersive)."""
     font = get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700)
     if lay is not None:
         lay.meta["masthead"] = {"shown": False, "cap_124": round(cap_h_of(font) * GRID_SCALE[0], 1),
@@ -704,7 +704,6 @@ def _immersive(source, aperture, focus, lay, full_width=False):
         im = Image.alpha_composite(im, raw)
     # Feather just the physical photograph's outer edge into that backdrop.
     # Limit the fade to the margin outside the explicitly reviewed feature.
-    clear = 0   # rows of the photograph's top left to the ambient field (the inset window only)
     if full_width:   # only the top edge can end inside the canvas; the shade below does the bottom fade
         feather = top_fade = own_fade
         if feather > 1:
@@ -718,18 +717,17 @@ def _immersive(source, aperture, focus, lay, full_width=False):
         # left the top edge 26 px of room to fade over before the feature. Operator ruling 2 (2026-11-16) removed the
         # masthead from the Reel cover (_brand draws none), so nothing sits in that band any more: the photograph
         # keeps the context it has above the feature and the top fades over all of it (_edge_fade). The clear band
-        # stands only while a cover draws a masthead (_cover_masthead_drawn).
-        clear = max(0, min(fy0 * sy, (_brand_foot() + INSET_CLEAR) - top)) if _cover_masthead_drawn() else 0
-        margins = (fx0 * sx, fy0 * sy - clear, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
+        # and its foot measurement (_brand_foot) went with it: no band is cut (lander CI, r4 site observation).
+        margins = (fx0 * sx, fy0 * sy, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
         f = [min(INSET_FEATHER_MAX, int(max(0, m) * 0.8)) for m in margins]
         f[1] = top_fade = _edge_fade(margins[1])   # the top fades over all its room: soft edge
-        yy =np.arange(size[1], dtype=np.float32)[:, None] - clear
+        yy = np.arange(size[1], dtype=np.float32)[:, None]
         xx = np.arange(size[0], dtype=np.float32)[None, :]
 
         def ramp(dist, width):
             return np.clip(dist / width, 0, 1) if width > 1 else (dist >= 0).astype(np.float32)
         mask = np.minimum(np.minimum(ramp(xx, f[0]), ramp(size[0] - 1 - xx, f[2])),
-                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - clear - yy, f[3])))
+                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - yy, f[3])))
         photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
     visible = photo.crop((-left, -top, 1080 - left, 1920 - top))
     im = Image.alpha_composite(im, visible)
@@ -741,13 +739,13 @@ def _immersive(source, aperture, focus, lay, full_width=False):
             "version": DESIGN_VERSION, "mode": "reviewed_focus", "source_size": [sw, sh],
             "source_box": [max(0, -left / sx), max(0, -top / sy),
                            min(sw, (1080 - left) / sx), min(sh, (1920 - top) / sy)],
-            "image_box": [max(0, left), max(0, top + clear), min(1080, left + size[0]), min(1920, top + size[1])],
+            "image_box": [max(0, left), max(0, top), min(1080, left + size[0]), min(1920, top + size[1])],
             "focus_box": focus["focus_box"], "protected_box": protected,
             "aperture": list(aperture), "reviewed": focus["reviewed"], "source_sha256": focus["sha256"],
             "full_width": bool(full_width),
             # the px the photograph's top edge fades over where it ends inside the canvas (0 where it runs off the
             # top), so a short join (a photograph ending at its reviewed feature) is on the record
-            "edge_fade_top": int(top_fade) if top + clear > 0 else 0,
+            "edge_fade_top": int(top_fade) if top > 0 else 0,
         }
     return im
 
@@ -756,19 +754,9 @@ BADGE_FOOT = (40, 0.6, 220)   # Discovery: 40 px under the deck the shade eases 
 IMMERSIVE_MAX_SCALE = 3.0   # Discovery full width: the most a reviewed feature is enlarged
 FULL_WIDTH_TOP = 580       # Discovery full width: the reviewed feature's band starts below the masthead's halo
 FULL_WIDTH_BLEND = 220      # px above a full-width photo over which its continued top row eases into the field
-INSET_CLEAR = 24            # Discovery inset window: px of clear field between the masthead's foot and the
-                            # photo's first row (which then fades in to the feature: half strength ~45 px down)
 INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge within its own margin)
 FULL_WIDTH_OWN_FADE = 96    # lane B c4: a full-width photograph whose top fades over at least this many px of its
                             # own context needs no continued top row above it (_immersive)
-
-
-def _cover_masthead_drawn():
-    """Whether a Reel cover draws the masthead. Operator ruling 2 (2026-11-16): it never does (_brand records why),
-    so no photograph is cut back to clear a band for it."""
-    probe = type("_Probe", (), {"meta": {}})()
-    _brand(None, probe, grid_delivery=True)
-    return bool(probe.meta.get("masthead", {}).get("shown"))
 
 
 def _edge_fade(margin):
@@ -777,11 +765,6 @@ def _edge_fade(margin):
     itself is never faded. Under 2 px of room it is a cut (ramp treats width <= 1 as a step); the composition
     record keeps the fade, so a short one is visible there (_immersive's "edge_fade")."""
     return min(INSET_FEATHER_MAX, int(max(0, margin) - 2))
-
-
-def _brand_foot():
-    """The masthead's ink foot (y) on every style."""
-    return BRAND_TOP + get_font(brand.MASTHEAD_FONT, BRAND_PX, weight=700).getbbox(brand.MASTHEAD, anchor="lt")[3]
 
 
 def _photograph(im, source, aperture, lay, bottom=False):

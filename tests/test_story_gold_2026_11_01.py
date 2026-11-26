@@ -6,7 +6,8 @@ from src import brand
 from src.multi_format import MultiFormatGenerator
 
 
-def test_the_reel_pointer_is_bone_and_the_title_keeps_its_gold(tmp_path) -> None:
+def test_the_reel_pointer_is_bone_and_the_title_keeps_its_gold(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("src.multi_format.STORY_TAP_TARGET", True)   # the pointer as drawn with a tap target (ruling 2026-11-26)
     photo = tmp_path / "p.jpg"
     Image.new("RGB", (1080, 1920), (120, 110, 95)).save(photo)
     slide = {"kicker": "Orbital mystery", "line1": "The desert eye", "line2": "seen from space",

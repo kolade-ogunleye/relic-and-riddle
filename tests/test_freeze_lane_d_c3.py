@@ -222,7 +222,10 @@ def test_the_lower_facebook_masthead_keeps_the_strength_of_its_ground(tmp_path):
     assert ig.meta["masthead"]["shown"] and "reach_matched" not in ig.meta["masthead"]
     m = fb.meta["masthead"]
     from src.brand_system import tok
-    assert m["shown"] and m["reach_matched"] and m["contrast"] >= tok("contrast.masthead_gate") and not fb.problems()
+    # freeze cycle 5 (PLATES-05): the same answer is now the masthead's own (a longer reach of the ruled gradient
+    # wherever the ruled order ends short), so the Facebook cover takes it there or, still withheld, by the match
+    assert m["shown"] and (m.get("reach_matched") or m.get("margin_step") or m["reach"] > 0)
+    assert m["contrast"] >= tok("contrast.masthead_gate") and not fb.problems()
 
 
 # --------------------------------------------------------------------------------- 6. cover over the collage's tile 2

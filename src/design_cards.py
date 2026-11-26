@@ -2852,7 +2852,13 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
         # review 2026-11-03 (round 4): the panel is the graphics box itself (MYTH_PANEL), dark edge to edge, the
         # block centred in it; the photograph shows as itself above and below its crisp edges
         y0, y1 = min(y0, MYTH_PANEL[0]), max(y1, MYTH_PANEL[1])
-    ground = toned_ground(photo, geo, MYTH_BLUR, band_levels(geo, y0, y1, inner, MYTH_ABOVE, MYTH_BELOW,
+    # freeze cycle 5 (PLATES-01): on 9:16 the photograph itself shows outside the panel (_photo_outside), eased in by
+    # the band-edge rule; the panel under it is dark from top to foot, with no opening of its own (the two ramps
+    # together stepped faster than the rule's one: 1.4-1.6 luma / px on a blurred ground). 16:9, and a card with no
+    # photograph, keep the toned ground's own opening.
+    own = geo.wide or not (photo and Path(photo).exists())
+    ground = toned_ground(photo, geo, MYTH_BLUR, band_levels(geo, y0, y1, inner, MYTH_ABOVE if own else inner,
+                                                             MYTH_BELOW if own else inner,
                                                              MYTH_FEATHER, MYTH_FEATHER_LOW))
     parts = None if geo.wide else _photo_outside(photo, geo, y1, top=y0, panel=ground,
                                                  foot0=opening[0] if opening is not None else None)

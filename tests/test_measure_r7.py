@@ -91,7 +91,8 @@ def test_a_mid_grey_fill_takes_the_worse_side_of_its_ground(grey):
     a = np.zeros((180, 900, 3), np.uint8)
     a[:, np.arange(900) % 8 < 4] = grey
     ground = Image.fromarray(a)
-    with brand.use(brand.DEFAULT_BRAND.derive("grey", palette={"BONE": grey})):
+    # validate=False: a test of the measure on a palette the configure-time masthead check refuses (PLATES-06)
+    with brand.use(brand.DEFAULT_BRAND.derive("grey", palette={"BONE": grey}), validate=False):
         p = _name_plate(ground)
         got = masthead.judge(ground, p)
         assert got < 1.5, got

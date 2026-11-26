@@ -457,12 +457,14 @@ def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
             # outward over the band-edge token's feather (at most edge_feather(255) px), never steeper than the token;
             # past the feather the photograph is itself, even, and the panel still stands > 80 luma below it
             from src import band_edge, brand_system
-            reach = brand_system.edge_feather(255, 1080) + 2
-            cap = brand_system.tok("edge.slope_max") + 1.0
-            assert rows[y1 + reach] - rows[y1 - 2] > 80 and rows[y0 - reach] - rows[y0 + 2] > 80, rgb
-            assert band_edge.steepest(rows[y1 - 2:y1 + reach]) <= cap, rgb
-            assert band_edge.steepest(rows[y0 - reach:y0 + 2]) <= cap, rgb
-            assert np.ptp(rows[y1 + reach:]) < 4 and np.ptp(rows[:y0 - reach]) < 4, rgb   # an even photo past it
+            # freeze cycle 5 (PLATES-01; panel 6: at the token's 2.0 the foot still read as a slab on the blurred
+            # ground): a floating panel on a ground with no detail of its own eases at the field gate, so its feather
+            # may run to the frame's edge; it opens all the way down and never steeper than the floating ceiling
+            cap = brand_system.tok("edge.slope_float") + 0.5
+            assert rows[-1] - rows[y1 - 2] > 80 and rows[0] - rows[y0 + 2] > 20, rgb
+            assert band_edge.steepest(rows[y1 - 2:]) <= cap, rgb
+            assert band_edge.steepest(rows[:y0 + 2]) <= cap, rgb
+            assert np.diff(rows[y1:]).min() > -0.5 and np.diff(rows[:y0]).max() < 0.5, rgb   # one ramp each way
         ink = [e.box for e in plan.elements if e.name.split("_")[0] in ("myth", "fact", "source") and e.box]
         top, foot = min(b[1] for b in ink), max(b[3] for b in ink)
         assert y0 < top and foot < y1                                 # the block inside the panel

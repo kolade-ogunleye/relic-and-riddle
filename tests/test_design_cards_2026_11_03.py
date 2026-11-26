@@ -1336,12 +1336,19 @@ def test_hook_scrim_sized_to_the_ground(tmp_path, photos):
             assert ratio.max() - ratio.min() <= 0.03, name            # one even plate under the whole block
             # freeze panel round 2 (H6 (4), deliberate change): the plate's edges feather over HOOK_PLATE_FEATHER (were
             # crisp), so the photograph is untouched from there
-            fe = dc.HOOK_PLATE_FEATHER
-            below = slice(y1 + fe + 3, min(1920, y1 + fe + 300))
-            assert np.abs(g0[below] - bg[below]).max() <= 2, name    # the photograph below it untouched
+            # freeze cycle 5 (PLATES-01): each edge's feather is the band-edge rule's for its ground (a floating
+            # band: on a flat bright ground far longer than HOOK_PLATE_FEATHER, the designed minimum)
+            fu, fd = sc["feathers"]
+            assert min(fu, fd) >= dc.HOOK_PLATE_FEATHER, (name, sc)
             a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]
-            assert a[y0 - fe - 3] < 30 < a[y0 + 3] and a[y1 + fe + 3] < 30 < a[y1 - 3], name   # feathered edges
-            assert 30 < a[y0 - fe // 2] < a[y0 + 3] and 30 < a[y1 + fe // 2] < a[y1 - 3], name
+            if y1 + fd + 8 < 1920:
+                below = slice(y1 + fd + 3, min(1920, y1 + fd + 300))
+                assert np.abs(g0[below] - bg[below]).max() <= 2, name    # the photograph below it untouched
+                assert a[y1 + fd + 3] < 30, name
+            if y0 - fu - 3 >= 0:
+                assert a[y0 - fu - 3] < 30, name
+            assert a[y0 + 3] > 30 and a[y1 - 3] > 30, name                 # feathered edges
+            assert 30 < a[max(0, y0 - fu // 4)] < a[y0 + 3] and 30 < a[min(1919, y1 + fd // 4)] < a[y1 - 3], name
     dark = dc.plan_hook_frame(hook(photos["dark"]), SHEET)
     assert dark.meta["scrim"]["mode"] == "wash" and dark.meta["scrim"]["strength"] == 0.0   # no scrim at all
 

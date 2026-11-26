@@ -1069,6 +1069,11 @@ def _union_box(boxes):
     return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
 
 
+def brand_system_tok(name):
+    from src import brand_system
+    return brand_system.tok(name)
+
+
 def test_h6_plate_flush_left_and_feathered(photos):
     """H6 (4); lane F cycle 3 (panel 4 BC r1 / CD r2: the alignment and band changed with the ground; operator ruling
     2 of 2026-11-16 removed the masthead the plate's claim was centred under): ONE rule. On the bright plate the
@@ -1091,8 +1096,12 @@ def test_h6_plate_flush_left_and_feathered(photos):
     for a_, b_ in ((y0 - 70, y0 + 2), (y1 - 2, y1 + 70)):
         seg = lum[a_:b_]
         assert np.abs(np.diff(seg)).max() <= 20, np.abs(np.diff(seg)).max()
-    top = lum[y0 - 64:y0]
-    assert (top[0] - top[-1]) > 0 and np.count_nonzero(np.abs(np.diff(top)) > 0.5) >= 40
+    # freeze cycle 5 (PLATES-01): each edge takes the band-edge rule's feather for its ground (a floating band),
+    # never under the designed one: a ramp, falling all the way, never steeper than the floating ceiling
+    up, down = plan.meta["scrim"]["feathers"]
+    assert min(up, down) >= dc.HOOK_PLATE_FEATHER
+    top = lum[max(0, y0 - up):y0]
+    assert (top[0] - top[-1]) > 0 and np.abs(np.diff(top)).max() <= brand_system_tok("edge.slope_float") + 0.5
 
 
 def test_h6_dissolve(photos):

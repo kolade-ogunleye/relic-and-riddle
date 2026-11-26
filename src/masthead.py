@@ -390,7 +390,7 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     if rec.get("shown") and float(rec.get("contrast") or 0.0) < MARGIN:
         rec["margin_short"] = True
         rec["margin_note"] = (f"drawn at {rec.get('contrast')}:1, under the {MARGIN}:1 margin: no ruled step on any "
-                              f"reach up to x{MARGIN_REACH[-1]:g} reaches it on this ground (best "
+                              f"reach up to x{(MARGIN_REACH or (1,))[-1]:g} reaches it on this ground (best "
                               f"{rec.get('best_tried')}:1, {rec.get('best_step')})")
     return best
 

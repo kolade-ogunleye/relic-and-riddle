@@ -915,5 +915,8 @@
  "youtube_thumbnail:_render": [
   44.0,
   116.0
+ ],
+ "video_composer:recon_badge_geometry": [
+  26.0
  ]
 }

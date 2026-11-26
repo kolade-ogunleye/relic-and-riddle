@@ -293,7 +293,10 @@ def test_a_burst_shorter_than_0_6_s_joins_a_neighbour(tmp_path):
     # a preposition, VISIBLE FROM SPACE. / OK leaves a one-word line), so the burst is split at the sentence end,
     # recorded (_line_split): two plates, one line each, OK. up its half second (was one two-line plate, 8 events)
     texts = _events(ass, "CapText")
-    assert len(_events(ass, "CapBox")) == 2 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 4
+    # freeze cycle 5 (lander ruling 2026-11-26, replacing the 2026-11-25 split): a line of one CONTENT word is legal
+    # (VISIBLE FROM SPACE. / OK.), so the burst is not split: one two-line plate again, one event per line in each
+    # of the four reveal intervals
+    assert len(_events(ass, "CapBox")) == 1 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 8
     paused = [dict(w) for w in words]
     paused[3]["start"] = 2.5                                             # after a long pause it stays alone
     assert len(merge_short_bursts(partition_words_grammatical(paused), _fits_caption_width, 5)) == 2

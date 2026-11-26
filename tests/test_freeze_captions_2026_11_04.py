@@ -828,7 +828,8 @@ def _chunk_cost(sent, off, bonds, i, j, named=frozenset()):
     txt = " ".join(vc._phrase_words(chunk))
     inner = all(linked(i + k) for k in range(1, size - 1))
     whole = size > 1 and all(linked(i + k) for k in range(size - 1))
-    two = size > 1 and vc.reel_caption_lines(chunk) is not None
+    # freeze cycle 5: the builder's own two-line forms (a joined form is the readable merge's, made after it)
+    two = size > 1 and vc._strict_two_line(chunk)
     figure = whole and any(c.isdigit() for c in txt)
     name_group = whole and bool(vc.name_bonds(raw[i:j])) and vc._fits_caption_bonded(chunk)
     if (size > MAX_BURST_WORDS or len(txt) > MAX_BURST_CHARS) and not two:
@@ -2047,7 +2048,9 @@ def test_amber_bursts_over_the_timeline_graphic_get_an_opaque_plate(tmp_path):
     # lane C cycle 4 (lander ruling 2026-11-25): MOSAIC WAS / RECOVERED left a one-word line, so its sentence is
     # re-cut (_line_split) and AN ORIGINAL STONE MOSAIC is the burst whose plate reaches the poster (was MOSAIC WAS
     # RECOVERED)
-    assert [f["text"] for f in flagged] == ["an original stone mosaic"]
+    # freeze cycle 5 (ruling 2026-11-26 moved the phrasing: the burst over the graphic's text is the one holding
+    # MOSAIC, whichever words it is cut with): one burst flagged, never pinned to a phrasing
+    assert len(flagged) == 1 and "mosaic" in flagged[0]["text"]
     span = next((a, b) for a, b, clip in gclips if clip.name == "graphic_timeline.mp4")
     plates = [l for l in ass.read_text("utf-8").splitlines() if ",CapBox," in l]
     assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 1

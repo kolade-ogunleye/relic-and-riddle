@@ -58,7 +58,7 @@ def test_the_stacked_lines_come_from_the_name_by_rule():
     assert masthead.stack_lines("SECOND TEST BRAND") in (("SECOND", "TEST BRAND"), ("SECOND TEST", "BRAND"))
     a, b = masthead.stack_lines("SECOND TEST BRAND")
     others = [("SECOND", "TEST BRAND"), ("SECOND TEST", "BRAND")]
-    widths = {o: abs(masthead._line_ink(o[0], 64)[1] - masthead._line_ink(o[1], 64)[1]) for o in others}
+    widths = {o: abs(masthead.group_width(64, text=o[0]) - masthead.group_width(64, text=o[1])) for o in others}
     assert widths[(a, b)] == min(widths.values())
     assert masthead.stack_lines("RELICS") is None                                # one word: no stacked form
     assert masthead.form_width(CANVAS, "stacked") < masthead.form_width(CANVAS, "line")

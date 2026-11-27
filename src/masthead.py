@@ -90,12 +90,13 @@ def fit_size(size: float, room: float, x0: float = 0.0) -> float | None:
     return next((s for s in fit_ladder(size) if group_width(s, x0) <= room + 1e-9), None)
 
 
-def group_width(size: float, x0: float = 0.0) -> float:
+def group_width(size: float, x0: float = 0.0, text: str | None = None) -> float:
     """The masthead's DRAWN width at `size`: from the diamond's left point `x0` to the right edge of the last pixel the
     group draws (measure sweep r7 #6: the tracked advance omitted the last glyph's overhang, and "AVAVAV" drew 1.8 px
     past the room it was accepted in). The name is rasterised as the plate draws it (font_engine.draw_run, tracked,
     at `x0`'s fraction), so its overhang, combining marks and antialiased edge are counted; the diamond spans 2 x
-    mark_r. Unrounded; the left edge is x0 unless an ink overhang reaches further left."""
+    mark_r. Unrounded; the left edge is x0 unless an ink overhang reaches further left. `text`: another line of the
+    name set in the group's place (freeze cycle 6: a line of the stacked form; default the whole name)."""
     import math
 
     from .font_engine import draw_run
@@ -104,10 +105,11 @@ def group_width(size: float, x0: float = 0.0) -> float:
     lead = 2 * spec["mark_r"] + spec["gap"]
     frac = float(x0) - math.floor(float(x0))
     margin = math.ceil(2 * size) + 8
-    adv = tracked_width(brand.MASTHEAD, font, spec["track"])
+    text = brand.MASTHEAD if text is None else text
+    adv = tracked_width(text, font, spec["track"])
     W, H = math.ceil(frac + lead + max(0.0, adv) + 2 * margin), math.ceil(4 * size) + 16
     m = Image.new("L", (W, H), 0)
-    draw_run(ImageDraw.Draw(m), (margin + frac + lead, 2 * size + 8), brand.MASTHEAD, font, 255, "ls", spec["track"])
+    draw_run(ImageDraw.Draw(m), (margin + frac + lead, 2 * size + 8), text, font, 255, "ls", spec["track"])
     bb = m.getbbox()
     left, right = margin + frac, margin + frac + 2 * spec["mark_r"]
     if bb is not None:
@@ -147,21 +149,6 @@ def ink_row(plates) -> float | None:
     return float(max(p.box[2] for p in row) - min(p.box[0] for p in row))
 
 
-def _line_ink(text: str, size: float) -> tuple[float, float]:
-    """(left, right) raster ink of one masthead line at `size`, its advance origin at 0 (as the plate draws it)."""
-    import math
-
-    from .font_engine import draw_run
-    spec = masthead_spec(size)
-    font = font_for(size)
-    margin = math.ceil(2 * size) + 8
-    adv = tracked_width(text, font, spec["track"])
-    m = Image.new("L", (math.ceil(max(0.0, adv) + 2 * margin), math.ceil(4 * size) + 16), 0)
-    draw_run(ImageDraw.Draw(m), (margin, 2 * size + 8), text, font, 255, "ls", spec["track"])
-    bb = m.getbbox()
-    return (0.0, 0.0) if bb is None else (float(bb[0] - margin), float(bb[2] - margin))
-
-
 def stack_lines(name: str | None = None, size: float = 64.0) -> tuple[str, str] | None:
     """The stacked form's two lines of the brand name (brand.MASTHEAD by default): the break between words that makes
     the two lines' drawn widths most even (a tie: the longer first line); None for a one-word name (no stacked form)."""
@@ -171,7 +158,7 @@ def stack_lines(name: str | None = None, size: float = 64.0) -> tuple[str, str] 
     best = None
     for k in range(1, len(words)):
         a, b = " ".join(words[:k]), " ".join(words[k:])
-        wa, wb = (_line_ink(t, size)[1] for t in (a, b))
+        wa, wb = (group_width(size, text=t) for t in (a, b))
         key = (abs(wa - wb), -wa)
         if best is None or key < best[0]:
             best = (key, (a, b))
@@ -190,8 +177,7 @@ def form_width(size: float, form: str = "line", x0: float = 0.0) -> float:
     lines = stack_lines(size=size) if form == "stacked" else None
     if lines is None:
         return group_width(size, x0)
-    spec = masthead_spec(size)
-    return 2 * spec["mark_r"] + spec["gap"] + max(_line_ink(t, size)[1] for t in lines)
+    return max(group_width(size, x0, text=t) for t in lines)
 
 
 def hook_ratio(group: float | None, row: float | None) -> float | None:

@@ -652,7 +652,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:with_region_line": "A",     # lane A c2: the map label's region line under the name
     "masthead:font_for": "system",
     "masthead:group_width": "system",
-    "masthead:_line_ink": "system",      # freeze c6 M1: a stacked line's ink at the masthead's size
     "masthead:stack_pitch": "system",    # freeze c6 M1: the stacked form's pitch, from the masthead's cap
     "masthead:mark_geometry": "system",
     "masthead:plan": "system",
@@ -731,7 +730,7 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:draw_plate": "A",
     "graphics:ink_box": "A",
     "graphics:quantity_plate": "A",          # cycle 0 round 8: a stated quantity's runs, drawn in a font sized by its caller
-    "masthead:plan_at.name": "system",      # SYS-B-2: lane B c2's masthead fit ladder on YouTube (sized at run time)
+    "masthead:plan_at.mk": "system",      # SYS-B-2: lane B c2's masthead fit ladder on YouTube (sized at run time)
     "masthead:plan_on.at": "system",
     "multi_format:MultiFormatGenerator._stack": "D",
 })

@@ -70,7 +70,7 @@ def cycle5_rows(tree: Path) -> list[dict]:
     for g in HOOK_GROUNDS:
         rows.append({"surface": "clips", "case": f"hook__{g}", "format": "916", "refused_as": f"card__hook__{g}__916"})
         for kind in ("", "_half", "_curves"):
-            rows.append({"surface": "row12_motion_hook", "case": f"row12_motion_hook__{g}{kind}", "format": "default",
+            rows.append({"surface": "row12_motion_hook", "case": f"{g}{kind}", "format": "default",
                          "refused_as": f"card__hook__{g}__916"})
     return rows
 

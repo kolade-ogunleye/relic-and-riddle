@@ -800,7 +800,7 @@ RELATION_FORMS: tuple[tuple[Any, str], ...] = (
 )
 UNREAD_COMPARISON = re.compile(r"\b(shorter|smaller|taller|larger|bigger|longer|deeper|shallower|higher|lower|less|more|"
                                r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|"
-                               r"nearly)\b", re.I)
+                               r"nearly|not|never|no|neither|nor|isn|aren|wouldn|almost|roughly|around|approximately|over|under)\b", re.I)
 
 
 def relations_drawn(text: str) -> tuple[list[str], list[str]]:

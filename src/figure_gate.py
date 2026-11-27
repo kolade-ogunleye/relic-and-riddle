@@ -602,23 +602,36 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
     got = figures.shown_value(shown) if shown else None
     ops_ = list(derived.get("operands") or [])
     d_unit = str((ops_[0] if ops_ else {}).get("unit") or "").upper()
-    # review 3b (N4): the comparison the element draws is read by figures.RELATION_FORMS and must be the record's
-    # relation, which is its operands' (which is larger); a comparison word no form reads fails closed
-    rels, unread = figures.relations_drawn(text)
+    # review 3c: each row's role comes from the renderer's own row record ("row": subject, landmark or comparison; a
+    # bracket by its name), never from a name read in the text; the relation scan reads the row with every recorded
+    # name masked, so no word of a subject's or a landmark's name is read as a comparison word
+    row = derived.get("row") if isinstance(derived.get("row"), Mapping) else {}
+    role = "bracket" if name == "bracket" else str(row.get("row") or "")
+    if role not in ("subject", "landmark", "comparison", "bracket"):
+        out.append(f"its row records no role (subject, landmark, comparison): {role or 'none'}")
+    masked = mask_names(text, row, ops_)
+    # review 3b (N4): the comparison is read by figures.RELATION_FORMS and must be the record's relation, which is its
+    # operands' (which is larger); a comparison word no form reads fails closed
+    rels, unread = figures.relations_drawn(masked)
     want_rel = figures.relation_of(str(derived.get("rule")), ops_, shown)
     if unread:
         out.append(f"it draws a comparison no relation form reads ({', '.join(unread)})")
+    if rels and role not in ("comparison", "bracket"):
+        out.append(f"its {role or 'unrecorded'} row draws a relation ({', '.join(rels)})")
     for rel in rels:
         if rel != want_rel or rel != derived.get("relation"):
             out.append(f"it draws the relation {rel!r}; its operands' is {want_rel!r}")
-    # review 3b (N5): each number in its ROLE: the comparison row (the one that draws a relation) and the bracket draw
-    # the derived figure and nothing else; any other row draws operands' figures, never the derived one
-    derived_slot = bool(rels) or name == "bracket"
-    row_role = None if derived_slot else _row_role(text, ops_)    # a row naming the landmark / led by the subject
-    for v, hedged, unit_, raw in drawn_quantities(text):
+    # review 3b (N5): each number in its ROLE: the comparison row and the bracket draw the derived figure and nothing
+    # else; the landmark row the landmark's figure (and it names the record's landmark), the subject row the subject's
+    derived_slot = role in ("comparison", "bracket")
+    row_role = {"landmark": "reference", "subject": "subject"}.get(role)
+    if role == "landmark" and drawn_quantities(text) and not _names_in(text, [row.get("landmark_name"),
+                                                                            str(row.get("landmark") or "").split(" (")[0]]):
+        out.append(f"its landmark row draws a figure without naming its landmark ({row.get('landmark_name')!r})")
+    for v, hedged, unit_, raw in drawn_quantities(masked):
         if row_role is not None and not any(abs(v - a) < 1e-9 for o in ops_ if o.get("role") == row_role
                                             for a in drawn_numbers(str(o.get("text") or ""))):
-            out.append(f"it draws {raw!r} in the {row_role}'s slot, which draws only the {row_role}'s figure")
+            out.append(f"it draws {raw!r} in the {role} row, which draws only that operand's figure")
             continue
         if derived_slot and not (got is not None and abs(v - got[0]) < 1e-9):
             out.append(f"it draws {raw!r} in the derived slot, which draws only its derivation's figure "
@@ -639,7 +652,8 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
             elif not _unit_ok(unit_, d_unit):
                 out.append(f"it draws its derived figure {raw!r} in {unit_.upper()}, not its record's {d_unit}")
             continue
-        same = [o for o in ops_ if any(abs(v - a) < 1e-9 for a in drawn_numbers(str(o.get("text") or "")))]
+        same = [o for o in ops_ if any(abs(v - a) < 1e-9 for a in drawn_numbers(str(o.get("text") or "")))
+                and (row_role is None or o.get("role") == row_role)]
         # a figure two operands share (a 60 ft subject beside a 60 ft landmark) holds if it holds for one of them
         op = next((o for o in same if hedged or not o.get("hedged")), same[0] if same else None)
         if op is not None:
@@ -651,8 +665,26 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
         out.append(f"it draws {v:g}, which is neither its derivation's figure ({shown or 'none'}) nor an operand's")
     if name == "bracket" and shown and not any(got and abs(v - got[0]) < 1e-9 for v in drawn_numbers(text)):
         out.append(f"it draws {text!r}, not its derivation's {derived.get('text')!r}")
-    if got is not None and re.search(r"\bnearly\b", text, re.IGNORECASE):
+    if got is not None and re.search(r"\bnearly\b", masked, re.IGNORECASE):   # names masked (review 3c)
         out.append(f"it says {text!r}, a word form, for a derivation that draws {shown}")
+    return out
+
+
+def _names_in(text: str, names: Sequence[Any]) -> bool:
+    low = " ".join(str(text or "").lower().split())
+    return any(str(n or "").strip() and " ".join(str(n).lower().split()) in low for n in names)
+
+
+def mask_names(text: str, row: Mapping[str, Any], operands: Sequence[Mapping[str, Any]]) -> str:
+    """Review 3c: `text` with every recorded name (the subject's, the landmark's, as recorded and as drawn) blanked,
+    longest first, so a name's own words ("Times Square Tower", "Lower Manhattan", "Taller of the two") are never
+    read as comparison words or as figures ("Tower 42", "Level 7 Bunker")."""
+    names = {str(row.get(k) or "") for k in ("subject", "subject_name", "landmark", "landmark_name")}
+    names |= {str(o.get("name") or "") for o in operands}
+    names |= {n.split(" (")[0] for n in list(names)}
+    out = str(text or "")
+    for n in sorted((n.strip() for n in names if n.strip()), key=len, reverse=True):
+        out = re.sub(re.escape(n), " ", out, flags=re.IGNORECASE)
     return out
 
 
@@ -780,6 +812,24 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
             continue
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
             continue
+        srole = e.get("scale_role") if isinstance(e.get("scale_role"), Mapping) else None
+        if srole is not None and isinstance(payload.get("scale_fact"), Mapping):
+            # review 3c: a row of a withheld comparison, by its own row record: its names masked; a landmark row is
+            # judged against its reference (scale-graphic scope only) and names its landmark; a subject row as a figure
+            text = mask_names(text, srole, [])
+            if srole.get("row") == "landmark":
+                from .reference_facts import selected_reference
+                derived += 1
+                raw_text = str(e.get("text") or "")
+                for fault in landmark_faults(text, selected_reference(payload["scale_fact"])):
+                    faults.append(f"{surface} ({name}): drew {raw_text!r}: {fault}")
+                if drawn_quantities(text) and not _names_in(raw_text, [srole.get("landmark_name"),
+                                                                    str(srole.get("landmark") or "").split(" (")[0]]):
+                    faults.append(f"{surface} ({name}): drew {raw_text!r}: a landmark row that does not name its "
+                                  "landmark")
+                continue
+            if not any(ch.isdigit() for ch in text):
+                continue
         if LANDMARK_NAMES.match(name) and isinstance(payload.get("scale_fact"), Mapping):
             # review 3 (B3 and the scope ruling): a scale graphic's landmark figure, judged against its reference only
             from .reference_facts import selected_reference

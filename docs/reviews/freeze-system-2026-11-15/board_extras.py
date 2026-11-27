@@ -27,6 +27,7 @@ from __future__ import annotations
 import contextlib
 import copy as _copy
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -476,12 +477,20 @@ def caption_frames(tree: Path, work: Path, clips: Path | None = None) -> list[di
         if got is None:
             continue
         ground, note = got
+        # cycle 6 (panel 7 C4): a graphic ground is passed as production passes it (compose_video's graphic_clips:
+        # the clip with its poster still), so the composer's caption guard and badge keep-out see what is under them
+        gclips = None
+        gm = re.search(r"graphic_([a-z_]+) re-drawn", note)
+        if gm:
+            gclip = work / f"graphic_{gm.group(1)}_{case['topic']}_board.mp4"
+            ground.convert("RGB").save(gclip.with_suffix(".jpg"), quality=95)
+            gclips = [(0.0, end + 1.0, gclip)]
         for suffix, recon in (("", None), ("__badge", [(0.0, end)])):
             ass = work / f"enc_{case['topic']}{suffix}.ass"
             kw = {"width": 1920, "height": 1080} if wide else {}
             comp = vc.VideoComposer()
             comp.build_subtitles(words, ass, emphasis=case.get("emphasis_words") or None,
-                                 reconstruction_intervals=recon, **kw)
+                                 reconstruction_intervals=recon, graphic_clips=gclips, **kw)
             text = ass.read_text(encoding="utf-8")
             bursts = be.ass_bursts(text)
             seconds = min(6.0, max(t + 0.5, bursts[min(CAPTION_CLIP_BURSTS, len(bursts)) - 1]["hide"] if bursts else 3.0))

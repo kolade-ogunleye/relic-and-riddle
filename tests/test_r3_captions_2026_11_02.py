@@ -255,7 +255,9 @@ def test_widescreen_bursts_are_shown_whole_and_still(tmp_path):
     gold = [w for _, _, t in texts for c, w in re.findall(r"\\c(&H[0-9A-F]+&)\}([^{ ]+)", t) if c == COL_EMPHASIS]
     # Round 4 (caption panel): one gold span a still 16:9 line, the figure with its hedge (single_gold_span); this
     # burst carried two spans, DERINKUYU and ROUGHLY 280 FEET, until then.
-    assert gold == ["roughly", "280", "feet"]
+    # freeze cycle 6 (panel 7 TY3, ruling R8-8; 2026-11-27): the accent is the figure with its unit, the hedge is
+    # bone (was ROUGHLY 280 FEET)
+    assert gold == ["280", "feet"]
     # the 9:16 reveal is unchanged: word by word with placeholders
     _, reel = _build(tmp_path, words)
     assert any(CAPTION_HIDDEN in t for _, _, t in _events(reel, "CapText"))
@@ -294,7 +296,11 @@ def test_a_hedge_turns_gold_only_when_its_figure_is_revealed(tmp_path):
         if "roughly" not in words:     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the narration's case (was ROUGHLY)
             continue
         seen += 1
-        assert (words["roughly"] == COL_EMPHASIS) == ("280" in words)    # bone alone, gold beside 280
+        # freeze cycle 6 (panel 7 TY3, ruling R8-8; 2026-11-27): a quantity's hedge is never gold, beside its figure
+        # or not (was: bone alone, gold beside 280); the figure is gold once revealed
+        assert words["roughly"] != COL_EMPHASIS
+        if "280" in words:
+            assert words["280"] == COL_EMPHASIS
     assert seen >= 2
 
 

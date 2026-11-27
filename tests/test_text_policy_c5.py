@@ -198,10 +198,16 @@ def test_one_caption_size_per_clip_and_no_empty_first_frame(tmp_path):
     events = [ln for ln in text.splitlines() if ln.startswith("Dialogue:") and ",CapText," in ln]
     sizes = {m.group(1) for ln in events for m in [re.search(r"\\fs(\d+)", ln)] if m}
     plain = [ln for ln in events if not re.search(r"\\fs(\d+)", ln)]
-    assert len(sizes) <= 1 and not (sizes and plain), sizes               # one size: all tagged the same, or none
     clip = comp.last_reading_rate["clip_size"]
-    assert clip["px"] in vc.CAPTION_LADDER and clip["px"] >= vc.CAPTION_BOND_MIN_SIZE and not clip["under"]
-    assert (clip["px"] == vc.FONT_SIZE) == (not sizes)
+    # round 2 ruling, freeze cycle 6 (rule 4; 2026-11-27): one size per clip, but for at most
+    # CAPTION_FORCED_RUNG_MAX bursts set alone one rung under it (recorded forced_rung, also listed under)
+    rung = clip.get("forced_rung") or []
+    assert len(rung) <= vc.CAPTION_FORCED_RUNG_MAX and all(r in clip["under"] for r in rung)
+    one = sizes - {str(round(r["px"] / 0.5625)) for r in rung}
+    assert len(one) <= 1 and not (one and plain), one
+    assert clip["px"] in vc.CAPTION_LADDER and clip["px"] >= vc.CAPTION_BOND_MIN_SIZE
+    assert not [u for u in clip["under"] if u not in rung]
+    assert (clip["px"] == vc.FONT_SIZE) == (not one)
     # the first word of a burst is never fully transparent on the plate's first frame
     shows = {ln.split(",")[1] for ln in text.splitlines() if ln.startswith("Dialogue:") and ",CapBox," in ln}
     firsts = [ln.split(",", 9)[9] for ln in events if ln.split(",")[1] in shows]
@@ -236,16 +242,24 @@ def test_the_readable_merge_adds_no_function_word_end_and_cuts_no_bond(monkeypat
     no further burst on a function word, makes no cut inside a bond, a name or a figure and its unit, and leaves no
     more bursts under 0.8 s."""
     words = [dict(w) for w in AMBER["words"]]
-    after = vc.caption_phrases(words, AMBER["emphasis_words"])
+    rec: list = []
+    after = vc.caption_phrases(words, AMBER["emphasis_words"], recut=rec)
     monkeypatch.setattr(vc, "_readable_merge", lambda phrases, *a, **k: phrases)
     before = vc.caption_phrases(words, AMBER["emphasis_words"])
     assert [w for p in after for w in p] == [w for p in before for w in p] == words
-    assert set(vc.never_end_bursts(after)) <= set(vc.never_end_bursts(before))
+    # lander ruling, freeze cycle 6 (panel 7 C1, refining R1; 2026-11-27): a burst may end on the stranded function
+    # word the strand pass moved to it (remedy 1: GERMAN SOLDIERS OF | ARMY GROUP NORTH), recorded; no other
+    strand = {e["into"].split(" | ")[0] for e in rec if e.get("strand_remedy") and e.get("function_end")}
+    assert set(vc.never_end_bursts(after)) - strand <= set(vc.never_end_bursts(before))
+    assert strand <= set(vc.never_end_bursts(after))
     assert set(vc.figure_split_cuts(after)) <= set(vc.figure_split_cuts(before))
     raw = [w["word"] for w in words]
     bonds = vc.unit_links(words) | vc.name_bonds(raw) | vc.caption_bonds(words)
     pos = {id(w): k for k, w in enumerate(words)}
-    assert not {pos[id(p[-1])] for p in after[:-1]} & bonds - {pos[id(p[-1])] for p in before[:-1]}
+    moved = {pos[id(p[-1])] for p in after[:-1] if " ".join(w["word"] for w in p) in strand}
+    # the moved word's own lead-in bond (OF to ARMY GROUP NORTH) is the one bond remedy 1 parts (same ruling)
+    assert not {pos[id(p[-1])] for p in after[:-1]} & bonds - {pos[id(p[-1])] for p in before[:-1]} - (
+        moved & (vc.caption_bonds(words) - vc.caption_bonds(words, names=False) - vc.name_bonds(raw)))
 
     def short(ph):
         return sum(h - s < vc.CAPTION_SPLIT_MIN_S - 1e-6 for s, h, _ in vc.burst_timings(ph, dwell=True))

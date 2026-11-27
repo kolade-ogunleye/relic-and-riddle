@@ -6,8 +6,10 @@ reconstruction stood before and after it, in the clip's own format (its poster's
 - the measure (written here, not imported): the badge plate's box grown by 12 px at 1080 wide against the clip's
   element boxes (<clip>.contrast.json), else the bright pixels of its poster still in that box; overlap area in px;
 - the tree's answer: video_composer.clear_badge_intervals (a tree without it keeps the badge on, as it did).
-Table: run, clip, format, evidence, overlap px, badge kept over the clip, pass. A violation: the corner is taken (or
-nothing shows it free) and the badge stays over the clip.
+Table: run, clip, format, evidence, overlap px, badge kept over the clip, pass. A violation: the corner the badge is
+drawn in is taken (or nothing shows it free) and the badge stays over the clip. Freeze cycle 6 (panel 7 C4): the tree
+draws the badge in its place, else in its documented alternative corner (vc.badge_corner_for), else it yields; the
+proof measures the corner the tree draws in, by its own statement of that corner's box (badge_box).
 """
 from __future__ import annotations
 
@@ -25,24 +27,35 @@ from src import video_composer as vc  # noqa: E402
 from src.typography import get_font  # noqa: E402
 
 
-def badge_box(w: int, h: int) -> tuple[int, int, int, int]:
-    """The badge plate's box as build_subtitles has drawn it since the caption review of 2026-11-02 (its own
-    statement of the geometry: a tree that moves the badge must move this proof with it)."""
+def badge_box(w: int, h: int, corner: str = "top_left") -> tuple[int, int, int, int]:
+    """The badge plate's box as build_subtitles draws it (its own statement of the geometry: a tree that moves the
+    badge must move this proof with it). Freeze cycle 6 (panel 7 C4): padding 14 / 10 px at 1080 (the badge tokens);
+    the documented alternative corner "top_right": the same inset from the right edge, on 9:16 on two lines broken at
+    the separator (AI ILLUSTRATION / NOT A PHOTO), 1.75 cap heights baseline to baseline."""
     wide = w > h
     px = round(vc.RECON_SIZE_WIDE * h / 1080) if wide else vc.RECON_SIZE_PORTRAIT
     fs = vc.ass_font_size(vc._brand.BADGE_FONT, px, 600)
     scale = h / 1080 if wide else 1
-    pad_x, pad_y = round(14 * scale), round(8 * scale)
+    pad_x, pad_y = round(14 * scale), round(10 * scale)
     top, bottom = vc._ink_band(vc._brand.BADGE_FONT, px, fs, 600)
+    font = get_font(vc._brand.BADGE_FONT, px, weight=600)
     label = vc.RECON_BADGE_LABEL
-    tw = vc.unkerned_length(get_font(vc._brand.BADGE_FONT, px, weight=600), label) + 1.5 * len(label)
+    lines = label.split(" · ") if (corner == "top_right" and not wide) else [label]
+    tw = max(vc.unkerned_length(font, ln) + 1.5 * len(ln) for ln in lines)
+    hb = font.getbbox("H")
+    step = round(1.75 * (hb[3] - hb[1]))
     if wide:
         from src.graphics import WIDE_TITLE_SAFE
         x0, y0 = round(WIDE_TITLE_SAFE[0] * w / 1920), round(WIDE_TITLE_SAFE[1] * h / 1080)
+        right = round(WIDE_TITLE_SAFE[2] * w / 1920)
     else:
-        rx, ry, _, _ = vc._REEL_UI.box(w, h)
+        rx, ry, rx1, _ = vc._REEL_UI.box(w, h)
         x0, y0 = rx + round(19 * w / 1080), ry + round(12 * h / 1920)
-    return x0, y0, x0 + round(tw + 2 * pad_x), y0 + round(bottom - top + 2 * pad_y)
+        right = rx1 - round(19 * w / 1080)
+    pw = round(tw + 2 * pad_x)
+    if corner == "top_right":
+        x0 = right - pw
+    return x0, y0, x0 + pw, y0 + round(bottom - top + 2 * pad_y + (len(lines) - 1) * step)
 
 
 def occupied(clip: Path, rect, w: int, h: int) -> tuple[str, int | None]:
@@ -76,7 +89,9 @@ for run in pc.runs(dev):
         else:
             wide = False
         w, h = (1920, 1080) if wide else (1080, 1920)
-        box = badge_box(w, h)
+        # the corner the tree draws the badge in over this clip (cycle 6: its place, else its documented alternative)
+        corner = vc.badge_corner_for(clip, w, h)[0] if hasattr(vc, "badge_corner_for") else "top_left"
+        box = badge_box(w, h, corner or "top_left")
         clear = round(12 * w / (1920 if wide else 1080))
         rect = (box[0] - clear, box[1] - clear, box[2] + clear, box[3] + clear)
         evidence, px = occupied(clip, rect, w, h)
@@ -87,7 +102,8 @@ for run in pc.runs(dev):
             intervals, _ = vc.clear_badge_intervals(intervals, scenes, durations, w, h)
         over = round(sum(max(0.0, min(e, 9.0) - max(s, 4.0)) for s, e in intervals), 3)
         ok = not (taken and over > 0)
-        row = {"run": run.name[4:], "clip": clip.name, "format": "16:9" if wide else "9:16", "evidence": evidence,
+        row = {"run": run.name[4:], "clip": clip.name, "format": "16:9" if wide else "9:16", "corner": corner,
+               "evidence": evidence,
                "overlap_px": px, "badge_over_clip_s": over, "ok": ok}
         rows.append(row)
         if not ok:

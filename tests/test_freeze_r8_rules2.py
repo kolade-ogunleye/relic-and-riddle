@@ -268,9 +268,15 @@ NARRATION = ("Echoes travel across the vast stone hall without fading. The sound
 @pytest.mark.parametrize("widescreen", [False, True])
 def test_no_burst_ends_on_a_never_end_word_on_either_path(widescreen):
     words = _timed(NARRATION)
-    phrases = vc.caption_phrases(words, None, widescreen)
+    rec: list = []
+    phrases = vc.caption_phrases(words, None, widescreen, recut=rec)
     assert [w for p in phrases for w in p] == words
-    assert vc.never_end_bursts(phrases) == [], [" ".join(w["word"] for w in p) for p in phrases]
+    # lander rulings, freeze cycle 6 rounds 2-3 (2026-11-27): a burst may end on a PREPOSITION where the strand
+    # remedies (re-cut or move) put it there under rule 3's conditions, recorded "strand_remedy"; no other
+    ruled = {part for e in rec if e.get("strand_remedy") for part in e["into"].split(" | ")[:-1]
+             if vc._is_preposition(part.split()[-1])}
+    assert [b for b in vc.never_end_bursts(phrases) if b not in ruled] == [], [
+        " ".join(w["word"] for w in p) for p in phrases]
 
 
 def test_the_record_counts_what_the_breaker_sees():

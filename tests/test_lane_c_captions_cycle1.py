@@ -170,8 +170,13 @@ def _valid_window(phrases, i, words) -> list | None:
 @pytest.mark.parametrize("name,words,emph,wide", CASES, ids=[c[0] for c in CASES])
 def test_a_never_end_end_or_line_stays_only_where_no_valid_break_exists(name, words, emph, wide):
     forced: list = []
+    strands: list = []
     if not wide:   # the delivered clip's record of bursts drawn on a forced break (no legal form, no legal split)
-        vc.caption_phrases([dict(w) for w in words], emph or None, wide, line_split=forced)
+        vc.caption_phrases([dict(w) for w in words], emph or None, wide, line_split=forced, recut=strands)
+    # lander ruling, freeze cycle 6 (panel 7 C1, refining R1; 2026-11-27): the previous burst takes a stranded function
+    # word (GERMAN SOLDIERS OF | ARMY GROUP NORTH) before a forced break is drawn: that burst end is the ruling's,
+    # recorded (recut "strand_remedy")
+    moved = {e["into"].split(" | ")[0] for e in strands if e.get("strand_remedy") and e.get("function_end")}
     phrases = _phrases(name, words, emph, wide)
     recorded = {" ".join(e["text"].replace(" / ", " ").split()) for e in forced if e.get("into") is None}
     rec = _record(phrases, wide)
@@ -183,6 +188,8 @@ def test_a_never_end_end_or_line_stays_only_where_no_valid_break_exists(name, wo
             # lander ruling 2026-11-26 (round 4, delivered phrasing): a line defect the clip draws on a forced break
             # is recorded there; the relaxed window below predates the clause rule (D6: no burst straddles a
             # clause) and the phrase units, which its windows break (BURST, THOUGH NO CELESTIAL | METEOR AIR)
+            continue
+        if burst_end and not line and " ".join(w["word"] for w in p) in moved:
             continue
         if burst_end or line:
             assert _valid_window(phrases, i, words) is None, (name, [w["word"] for w in p], _valid_window(

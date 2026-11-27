@@ -301,6 +301,34 @@ def test_frames_are_judged_by_shape_and_content():
         assert not (story["fit"] and story["matte"] > pf.MATTE_MAX), case["name"]   # never fit over a frame
 
 
+@pytest.mark.parametrize("case", json.loads((ROOT / "tests/fixtures/photo_fitness_c5/frame_moves.json").read_text(
+    encoding="utf-8")), ids=lambda c: c["name"])
+def test_a_move_off_a_frame_is_the_minimal_one(case):
+    """Third review, B7: a window moved only to clear the source's frame is the nearest crop that clears it (shifted
+    along the frame's axis just far enough, or made closer about the asked centre), never the most salient one: the
+    salient choice slid Richat 14's Story 230 px sideways off a 15 px scan edge and cut the Eye's ring, halved a
+    Memnon colossus and cut the Voynich plant."""
+    an = pf.analyse(Image.open(ROOT / "tests/fixtures/photo_fitness_c5" / case["file"]).convert("RGB"))
+    assert an.matte_share > 0
+    x0, y0, x1, y1 = an.content_box
+    for window in (pf.Window((1080, 1920), name="story"),
+                   pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground"),
+                   pf.Window((1080, 1920), checks=("matte",), name="9:16 ground")):
+        rec = pf.place(None, window, analysis=an)
+        asked = pf.fit_box(an.size, window.size)
+        if not rec["moved"]:
+            assert "matte" in rec["problems"], (case["name"], window.name)
+            continue
+        assert rec["basis"] == "minimal frame move" and rec["matte"] <= pf.MATTE_MAX
+        b = rec["box"]
+        w, h = asked[2] - asked[0], asked[3] - asked[1]
+        need_x = max(0.0, x0 - asked[0]) + max(0.0, asked[2] - x1)
+        need_y = max(0.0, y0 - asked[1]) + max(0.0, asked[3] - y1)
+        dx = abs((b[0] + b[2]) / 2 - (asked[0] + asked[2]) / 2)
+        dy = abs((b[1] + b[3]) / 2 - (asked[1] + asked[3]) / 2)
+        assert dx <= need_x + 0.01 * w and dy <= need_y + 0.01 * h, (case["name"], window.name, b, asked)
+
+
 def test_every_move_keeps_most_of_what_was_asked_for():
     """Second review, B5: a frame-only window (typography.cover_crop's, under cards and graphics) moved off a frame
     with no keep check and lost the subject; every window keeps MOVE_KEEP of the asked view's salience or stays."""
@@ -341,6 +369,18 @@ def test_a_blurred_ground_records_its_fit(tmp_path):
     assert grounds["plain.png"]["fit"] is True
     assert json.loads(Path(str(out) + graphics.CONTRAST_SIDECAR).read_text(encoding="utf-8"))["grounds"]
     assert pf.take_grounds() == []                          # taken by the clip's record
+
+
+def test_a_cover_crop_must_hold_the_photographs_central_half():
+    """The cover's central-half condition (lander ruling, second review), alone: a crop that shows the subject and
+    passes the Reel's and the tile's salience shares but leaves part of the photograph's central half out is unfit."""
+    wide = Image.fromarray(_drawn(with_subject(ground(3000, 1600, grain=1), 0.5, 0.6, 0.12)))
+    an = pf.analyse(wide)
+    window = pf.Window((1080, 1920), view=(0, 420, 1080, 1440), hold=(0, 0, 1080, 1440), shown_min=0.5,
+                       tile=(0, 420, 1080, 1440), centre_half=True)
+    rec = pf.place(None, window, analysis=an, fixed=True)
+    assert rec["shown"] >= 0.5 and rec["shown_tile"] >= pf.TILE_SHARE * rec["shown"]
+    assert rec["centre_half"] is False and "subject" in rec["problems"]
 
 
 def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():
@@ -742,6 +782,42 @@ def test_a_move_stands_unless_text_falls_under_its_floor_or_the_lowest_ratio_fal
     im, lay = drawing(135, 115, True)                        # the lowest falls (4.8 -> 4.6): refused
     got = mf.keep_text_contrast(lambda: drawing(135, 120, False), im, lay)
     assert got[1] is not lay and "lowest" in got[1].meta["windows"][0]["fit"]["move_refused"]
+
+
+def test_a_move_that_leaves_text_under_its_floor_and_lower_is_refused_one_that_raises_it_stands():
+    """The floor half of the guard (third review): an element that ends under 4.5:1 AND lower than as asked refuses
+    the move even when the slide's lowest ratio rises; an element already under its floor as asked that rises (with
+    every other) lets the move stand."""
+    from types import SimpleNamespace
+
+    from src import multi_format as mf
+
+    class Plate:
+        empty = False
+
+        def __init__(self, box):
+            self.box = box
+
+        def measure(self, im):
+            x0, y0, x1, y1 = self.box
+            return float(np.asarray(im.convert("L"))[y0:y1, x0:x1].mean()) / 25.0
+
+    def drawing(masthead, body, moved):
+        a = np.zeros((80, 64, 3), np.uint8)
+        a[:40] = masthead
+        a[40:] = body
+        lay = SimpleNamespace(meta={"windows": [{"fit": {"moved": moved, "fit": True, "problems": []}}]},
+                              plates={"masthead": [Plate((0, 4, 64, 36))], "body": [Plate((0, 44, 64, 76))]})
+        return Image.fromarray(a), lay
+
+    # masthead 4.60 -> 4.40 (under 4.5 and lower), body 4.20 -> 4.48: the lowest rises, the masthead refuses it
+    im, lay = drawing(110, 112, True)
+    got = mf.keep_text_contrast(lambda: drawing(115, 105, False), im, lay)
+    assert got[1] is not lay and "masthead" in got[1].meta["windows"][0]["fit"]["move_refused"]
+    # body 4.00 -> 4.30 (under 4.5 as asked, and higher), masthead 6.0 -> 6.1: every element rises, the move stands
+    im, lay = drawing(152, 107, True)
+    got = mf.keep_text_contrast(lambda: drawing(150, 100, False), im, lay)
+    assert got[1] is lay
 
 
 def test_the_slide_and_story_renderers_are_held_to_the_text_guard():

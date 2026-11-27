@@ -1,6 +1,1424 @@
 [
  {
   "run": "amber_room_heist_1792790550",
+  "surface": "IG cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 654.0,
+   "ratio": 0.829,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 49.33,
+    "platform_contrast": [
+     4.5,
+     4.12
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.83 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "amber_room_heist_1792790550",
+  "surface": "FB cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 501.0,
+  "mast_size": 49.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 501.0,
+   "first_row_px": 654.0,
+   "ratio": 0.766,
+   "holds": true,
+   "size_px": 49.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "amber_room_heist_1792801257",
+  "surface": "IG cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 654.0,
+   "ratio": 0.829,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 49.33,
+    "platform_contrast": [
+     5.93,
+     5.86
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.83 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "amber_room_heist_1792801257",
+  "surface": "FB cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 501.0,
+  "mast_size": 49.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 501.0,
+   "first_row_px": 654.0,
+   "ratio": 0.766,
+   "holds": true,
+   "size_px": 49.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "amber_room_heist_1792805842",
+  "surface": "IG cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 654.0,
+   "ratio": 0.829,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 49.33,
+    "platform_contrast": [
+     4.5,
+     4.12
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.83 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "amber_room_heist_1792805842",
+  "surface": "FB cover",
+  "first_row": "THE LOST",
+  "title_px": 150.0,
+  "row_px": 654.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 654.0,
+   "ratio": 0.829,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 49.33,
+    "platform_contrast": [
+     4.67,
+     4.53
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.83 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "damascus_steel_nanotubes_1792732472_short",
+  "surface": "IG cover",
+  "first_row": "DAMASCUS",
+  "title_px": 150.0,
+  "row_px": 806.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 806.0,
+   "ratio": 0.672,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "damascus_steel_nanotubes_1792732472_short",
+  "surface": "FB cover",
+  "first_row": "DAMASCUS",
+  "title_px": 150.0,
+  "row_px": 806.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 806.0,
+   "ratio": 0.672,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "surface": "IG cover",
+  "first_row": "THE WHISPERING",
+  "title_px": 150.0,
+  "row_px": 1196.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1196.0,
+   "ratio": 0.453,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "surface": "FB cover",
+  "first_row": "THE WHISPERING",
+  "title_px": 150.0,
+  "row_px": 1196.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1196.0,
+   "ratio": 0.453,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "greek_fire_siphon_1792735284_short",
+  "surface": "IG cover",
+  "first_row": "MEDIEVAL",
+  "title_px": 150.0,
+  "row_px": 716.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 716.0,
+   "ratio": 0.757,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "greek_fire_siphon_1792735284_short",
+  "surface": "FB cover",
+  "first_row": "MEDIEVAL",
+  "title_px": 150.0,
+  "row_px": 716.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 716.0,
+   "ratio": 0.757,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "hal_saflieni_hypogeum_1792949304",
+  "surface": "IG cover",
+  "first_row": "HAL SAFLIENI",
+  "title_px": 150.0,
+  "row_px": 932.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 932.0,
+   "ratio": 0.582,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "hal_saflieni_hypogeum_1792949304",
+  "surface": "FB cover",
+  "first_row": "HAL SAFLIENI",
+  "title_px": 150.0,
+  "row_px": 932.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 932.0,
+   "ratio": 0.582,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "surface": "IG cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     5.59,
+     5.48
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "surface": "FB cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     4.26,
+     4.93
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "surface": "IG cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 407.0,
+  "mast_size": 40.0,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 407.0,
+   "first_row_px": 389.0,
+   "ratio": 1.046,
+   "holds": false,
+   "size_px": 40.0,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (40.0 px) is 1.05 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "surface": "FB cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     4.07,
+     4.05
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793262388",
+  "surface": "IG cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     4.9,
+     5.6
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793262388",
+  "surface": "FB cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     5.07,
+     5.35
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793267092",
+  "surface": "IG cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     5.22,
+     4.92
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793267092",
+  "surface": "FB cover",
+  "first_row": "LINES",
+  "title_px": 150.0,
+  "row_px": 389.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 389.0,
+   "ratio": 1.393,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "LINES",
+     "IN THE SAND"
+    ],
+    "first_row_px": 389.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     4.81,
+     4.35
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.39 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "odessa_catacombs_1792970549",
+  "surface": "IG cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "odessa_catacombs_1792970549",
+  "surface": "FB cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "odessa_catacombs_1793098390",
+  "surface": "IG cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "odessa_catacombs_1793098390",
+  "surface": "FB cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "odessa_catacombs_1793100750",
+  "surface": "IG cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "odessa_catacombs_1793100750",
+  "surface": "FB cover",
+  "first_row": "THE ODESA",
+  "title_px": 150.0,
+  "row_px": 773.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 773.0,
+   "ratio": 0.701,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792737039_short",
+  "surface": "IG cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 558.0,
+   "ratio": 0.971,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 41.33,
+    "platform_contrast": [
+     4.78,
+     4.45
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a higher scrim peak): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.97 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a higher scrim peak): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792737039_short",
+  "surface": "FB cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 558.0,
+   "ratio": 0.971,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 41.33,
+    "platform_contrast": [
+     3.99,
+     4.02
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a higher scrim peak): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.97 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a higher scrim peak): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792778206",
+  "surface": "IG cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 421.0,
+  "mast_size": 41.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 421.0,
+   "first_row_px": 558.0,
+   "ratio": 0.754,
+   "holds": true,
+   "size_px": 41.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792778206",
+  "surface": "FB cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 558.0,
+   "ratio": 0.971,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 41.33,
+    "platform_contrast": [
+     5.09,
+     5.13
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a longer scrim): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.97 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a longer scrim): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "surface": "IG cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 421.0,
+  "mast_size": 41.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 421.0,
+   "first_row_px": 558.0,
+   "ratio": 0.754,
+   "holds": true,
+   "size_px": 41.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "surface": "FB cover",
+  "first_row": "THE EYE",
+  "title_px": 150.0,
+  "row_px": 558.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 558.0,
+   "ratio": 0.971,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 41.33,
+    "platform_contrast": [
+     4.85,
+     4.53
+    ],
+    "reason": "the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.97 of the first title row; the step that holds it was not taken (the smaller step needs a stronger ground treatment (more of the photograph darkened or lifted: a stronger light lift): the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793474843",
+  "surface": "IG cover",
+  "first_row": "EYE",
+  "title_px": 150.0,
+  "row_px": 244.0,
+  "mast_px": 407.0,
+  "mast_size": 40.0,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 407.0,
+   "first_row_px": 244.0,
+   "ratio": 1.668,
+   "holds": false,
+   "size_px": 40.0,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "EYE",
+     "OF THE SAHARA"
+    ],
+    "first_row_px": 244.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (40.0 px) is 1.67 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793474843",
+  "surface": "FB cover",
+  "first_row": "EYE",
+  "title_px": 150.0,
+  "row_px": 244.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 244.0,
+   "ratio": 2.221,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "title_remedy": {
+    "kind": "none",
+    "lines": [
+     "EYE",
+     "OF THE SAHARA"
+    ],
+    "first_row_px": 244.0,
+    "need_px": 521.8,
+    "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size (display_xl, F2: no smaller title size)"
+   },
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     7.04,
+     6.86
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 2.22 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "roman_self_healing_concrete_1793163918",
+  "surface": "IG cover",
+  "first_row": "ROMAN",
+  "title_px": 150.0,
+  "row_px": 524.0,
+  "mast_px": 407.0,
+  "mast_size": 40.0,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 407.0,
+   "first_row_px": 524.0,
+   "ratio": 0.777,
+   "holds": true,
+   "size_px": 40.0,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "roman_self_healing_concrete_1793163918",
+  "surface": "FB cover",
+  "first_row": "ROMAN",
+  "title_px": 150.0,
+  "row_px": 524.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 524.0,
+   "ratio": 1.034,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 40.0,
+    "platform_contrast": [
+     6.17,
+     5.98
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 1.03 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "singing_colossi_of_memnon_1792952878",
+  "surface": "IG cover",
+  "first_row": "THE SINGING",
+  "title_px": 150.0,
+  "row_px": 878.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 878.0,
+   "ratio": 0.617,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "singing_colossi_of_memnon_1792952878",
+  "surface": "FB cover",
+  "first_row": "THE SINGING",
+  "title_px": 150.0,
+  "row_px": 878.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 878.0,
+   "ratio": 0.617,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "trepanation_miracle_1792995462",
+  "surface": "IG cover",
+  "first_row": "ANCIENT SKULL",
+  "title_px": 150.0,
+  "row_px": 1082.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1082.0,
+   "ratio": 0.501,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "trepanation_miracle_1792995462",
+  "surface": "FB cover",
+  "first_row": "ANCIENT SKULL",
+  "title_px": 150.0,
+  "row_px": 1082.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1082.0,
+   "ratio": 0.501,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "tunguska_event_1908_1792930600",
+  "surface": "IG cover",
+  "first_row": "THE TUNGUSKA",
+  "title_px": 150.0,
+  "row_px": 1054.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1054.0,
+   "ratio": 0.514,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "tunguska_event_1908_1792930600",
+  "surface": "FB cover",
+  "first_row": "THE TUNGUSKA",
+  "title_px": 150.0,
+  "row_px": 1054.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1054.0,
+   "ratio": 0.514,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792985912",
+  "surface": "IG cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792985912",
+  "surface": "FB cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792993374",
+  "surface": "IG cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792993374",
+  "surface": "FB cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1793056896",
+  "surface": "IG cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1793056896",
+  "surface": "FB cover",
+  "first_row": "THE UNFINISHED",
+  "title_px": 150.0,
+  "row_px": 1139.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 1139.0,
+   "ratio": 0.476,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "voynich_manuscript_1792965308",
+  "surface": "IG cover",
+  "first_row": "THE UNREAD",
+  "title_px": 150.0,
+  "row_px": 869.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 869.0,
+   "ratio": 0.624,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "voynich_manuscript_1792965308",
+  "surface": "FB cover",
+  "first_row": "THE UNREAD",
+  "title_px": 150.0,
+  "row_px": 869.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 869.0,
+   "ratio": 0.624,
+   "holds": true,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "wieliczka_salt_mine_1792974672",
+  "surface": "IG cover",
+  "first_row": "THE SALT",
+  "title_px": 150.0,
+  "row_px": 648.0,
+  "mast_px": 542.0,
+  "mast_size": 53.333333333333336,
+  "record": {
+   "surface": "carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 542.0,
+   "first_row_px": 648.0,
+   "ratio": 0.836,
+   "holds": false,
+   "size_px": 53.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0,
+   "size_kept": {
+    "step_px": 49.33,
+    "platform_contrast": [
+     5.78,
+     5.47
+    ],
+    "reason": "the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its canvas size (53.3 px) is 0.84 of the first title row; the step that holds it was not taken (the smaller step reads lower after the platform re-encode on this ground: the canvas size stays (legibility and the photograph outrank hierarchy)), and no legal re-break gives a longer first row: drawn, recorded at its ceiling"
+  }
+ },
+ {
+  "run": "wieliczka_salt_mine_1792974672",
+  "surface": "FB cover",
+  "first_row": "THE SALT",
+  "title_px": 150.0,
+  "row_px": 648.0,
+  "mast_px": 501.0,
+  "mast_size": 49.333333333333336,
+  "record": {
+   "surface": "Facebook carousel cover",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 501.0,
+   "first_row_px": 648.0,
+   "ratio": 0.773,
+   "holds": true,
+   "size_px": 49.33,
+   "canvas_px": 53.33,
+   "floor_px": 40.0
+  }
+ },
+ {
+  "run": "amber_room_heist_1792790550",
   "surface": "YouTube",
   "first_row": "VANISHED",
   "title_px": [

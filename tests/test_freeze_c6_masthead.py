@@ -208,6 +208,26 @@ def test_slide_one_draws_no_strip_part_the_grid_crop_would_cut():
     assert "box" not in rec and "grid crop" in rec["skipped"] and np.asarray(out).max() == 30
 
 
+# ------------------------------------------------------------------------------------------------------------- M3
+
+def test_the_second_colour_set_is_refused_on_the_bright_stress_ground_and_the_default_is_not():
+    """Panel 7 BC (BC7-R2-01): the second colours' masthead withheld at 5.41:1 on the board's bright Aswan cover; the
+    four uniform grounds accepted the palette. The split stress ground refuses it at configure, with the value."""
+    sys.path.insert(0, str(ROOT / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
+    import render_surfaces
+    cfg = render_surfaces.second_brand(brand, None)
+    fails = masthead.palette_problems(cfg)
+    assert fails and all("bright stress" in f for f in fails) and all(":1" in f for f in fails)
+    with pytest.raises(brand.BrandRefused):   # (its map fills are refused first; palette_problems runs after them)
+        brand.configure(cfg)
+    w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME
+    _, _, rec = masthead.plan(masthead.stress_ground(*masthead.BRIGHT_STRESS[1:]), x0, base, size, reach=reach,
+                              max_width=room)
+    assert rec["shown"] and rec["contrast"] >= brand_system.tok("contrast.masthead_gate")   # the default draws there
+    with brand.use(cfg, validate=False):                                   # the board draws it unvalidated: no break
+        assert brand.active() is cfg
+
+
 # ------------------------------------------------------------------------------------------------------------- M4
 
 def test_the_wordmark_rule_is_the_token():

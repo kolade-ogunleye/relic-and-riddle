@@ -82,7 +82,7 @@ class Photos:
             st = path.stat()
         except OSError:
             return None
-        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|12".encode()).hexdigest()[:24]
+        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|13".encode()).hexdigest()[:24]
         f = self.cache / f"{tag}.pkl" if self.cache else None
         a = None
         if f is not None and f.is_file():
@@ -206,12 +206,28 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
         rec = pf.place(None, window, cen, analysis=a)
     rec["outcome"] = ("fit" if not rec["problems"] and not rec.get("moved") else
                       "crop" if not rec["problems"] else "unfit")
+    if rec.get("moved") and isinstance(rec.get("base"), dict) and a.matte_share > 0:
+        rec["excess"] = excess_move(a, rec["base"]["box"], rec["box"])
+        rec["cause"] = "frame" if rec.get("basis") == "minimal frame move" else ",".join(
+            p for p in rec["base"].get("problems", ()) if p not in pf.SOFT) or "soft"
     if kind in ("carousel", "story") and rec.get("moved"):
         # a slide's or a Story frame's move is drawn only when the text guard passes it (keep_text_contrast: no
         # element under its floor, the lowest ratio not lower); that needs the drawn slide, so a POOL row is a
         # proposed move and DECK (the redrawn records, --records) is what a deck draws
         rec["outcome"] = "crop proposed" if not rec["problems"] else "unfit proposed"
     return rec
+
+
+def excess_move(a: pf.Analysis, asked, box) -> float:
+    """How far a moved crop's centre went beyond what clearing the frame needs, as a share of the window (the larger
+    axis; third review, B7): 0 for a minimal frame move."""
+    x0, y0, x1, y1 = a.content_box
+    w, h = asked[2] - asked[0], asked[3] - asked[1]
+    need_x = max(0.0, x0 - asked[0]) + max(0.0, asked[2] - x1)
+    need_y = max(0.0, y0 - asked[1]) + max(0.0, asked[3] - y1)
+    dx = abs((box[0] + box[2]) / 2 - (asked[0] + asked[2]) / 2)
+    dy = abs((box[1] + box[3]) / 2 - (asked[1] + asked[3]) / 2)
+    return round(max(max(0.0, dx - need_x) / w, max(0.0, dy - need_y) / h), 3)
 
 
 # ---------------------------------------------------------------- the windows
@@ -371,7 +387,7 @@ def main() -> int:
                      "recorded": bool(recorded),
                      **{k: rec.get(k) for k in ("upscale", "matte", "flat", "subject", "density", "keep", "focus",
                                                 "zoom", "layout", "pad", "in_view", "registered", "extreme", "shown",
-                                                "moved", "move_refused") if k in rec},
+                                                "moved", "move_refused", "excess", "cause") if k in rec},
                      **({"busy": rec["protected"][0].get("busy"), "line": rec["protected"][0].get("line"),
                          "step": rec["protected"][0].get("step"),
                          "foreign": rec["protected"][0].get("foreign")} if rec.get("protected") else {})})
@@ -545,6 +561,13 @@ def main() -> int:
         hg = [r for r in hard if r["group"] == gname]
         print(f"    {gname:5s} certain {len(hg)}: " + ", ".join(f"{k} {v}" for k, v in sorted(
             Counter(p for r in hg for p in certain(r)).items())))
+    frame_moves = [r for r in rows if r["group"] == "POOL" and r.get("cause") is not None]
+    by_cause = defaultdict(lambda: [0, 0])
+    for r in frame_moves:
+        by_cause[r["cause"]][0] += 1
+        by_cause[r["cause"]][1] += (r.get("excess") or 0) > 0.05
+    print("  moves on framed photographs, by cause (moves, beyond the frame's need by more than 5 % of the "
+          "window): " + ", ".join(f"{k} {v[0]} / {v[1]}" for k, v in sorted(by_cause.items())))
     moved = [r for r in rows if r["group"] == "DECK" and r.get("moved")]
     print(f"  DECK windows moved as drawn: {sum(1 for r in moved if r['outcome'] != 'asked (text guard)')}, "
           f"refused by the text guard: {sum(1 for r in rows if r['outcome'] == 'asked (text guard)')}; POOL moves "

@@ -751,6 +751,8 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     due = [p for p in base["problems"] if p not in SOFT or (p == "subject" and a.focus is not None)]
     if fixed or (not due and not crowded(base)):
         return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
+    if due == ["matte"] and a.focus is None and not earlier:
+        return _minimal_move(a, window, asked, base, judged, kept, keeps)
 
     def near(r: dict[str, Any]) -> float:
         b = r["box"]
@@ -797,6 +799,38 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     if least is not None:
         return {**least[1], "fit": False, "moved": True, "window": window.name, "base": asked_rec, "basis": basis}
     return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
+
+
+def _minimal_move(a: Analysis, window: Window, asked: Box, base: dict[str, Any], judged, kept, keeps
+                  ) -> dict[str, Any]:
+    """A move caused ONLY by the source's frame is the minimal one (third review, B7: the most salient clearing crop
+    slid a Story window 230 px sideways off a 15 px scan edge and cut the Eye's ring): the asked crop shifted along
+    the axis the frame lies on just far enough to leave it, and, where the content box is narrower than the crop,
+    made closer about the asked centre by the least zoom that fits (no shift on the other axis). It is taken when it
+    shows no frame, holds MOVE_KEEP of the asked view and adds no problem the asked crop did not have; otherwise the
+    asked crop stays, recorded."""
+    rx0, ry0, rx1, ry1 = _region(a)
+    cx, cy = (asked[0] + asked[2]) / 2, (asked[1] + asked[3]) / 2
+    w, h = asked[2] - asked[0], asked[3] - asked[1]
+    asked_rec = {k: v for k, v in base.items() if k != "zoom"}
+    z = 1.0
+    while z <= window.zoom_max + 1e-9:
+        bw, bh = w / z, h / z
+        if bw <= rx1 - rx0 + 1e-6 and bh <= ry1 - ry0 + 1e-6:
+            x0 = min(max(cx - bw / 2, rx0), rx1 - bw)
+            y0 = min(max(cy - bh / 2, ry0), ry1 - bh)
+            box = (x0, y0, x0 + bw, y0 + bh)
+            if window.size[0] / bw > window.upscale_max + 1e-6:
+                break
+            best = max([a.total("salience", _sub(b, window.size, window.view_box()))
+                        for b in [box, *_candidates(a, window, z)]])
+            r = kept(judged(box, round(z, 3), best, base))
+            if keeps(r) and "matte" not in r["problems"] and set(r["problems"]) < set(base["problems"]):
+                return {**r, "fit": not r["problems"], "moved": True, "window": window.name, "base": asked_rec,
+                        "basis": "minimal frame move"}
+            break
+        z += 0.005
+    return {**base, "fit": False, "moved": False, "window": window.name}
 
 
 def crop(image: Image.Image, box: Iterable[float], size: tuple[int, int]) -> Image.Image:
@@ -856,7 +890,7 @@ def ground_fit(a: Analysis, size: tuple[int, int], centering: Sequence[float] = 
                 "matte": 0.0}
     rec = place(None, window, tuple(centering), analysis=a)
     if rec["fit"] and rec["moved"]:
-        return {k: v for k, v in rec.items() if k != "base"} | {"window": "ground"}
+        return {**rec, "window": "ground"}
     got = measure(a, asked, window)
     got["problems"] = problems(got, window)
     out = {**got, "fit": not got["problems"], "moved": False, "window": "ground"}

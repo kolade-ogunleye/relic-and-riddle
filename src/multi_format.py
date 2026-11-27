@@ -569,7 +569,14 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
     import numpy as np
 
-    from . import band_edge
+    from . import band_edge, plate_form
+    if plain and plate_form.active() != "base":
+        # design freeze cycle 6 (PLATEFORM design stream): a candidate ground form, by switch only (default "base")
+        shaded, rec = plate_form.lay(im, plain)
+        if out is not None:
+            out["strength"] = 0.0
+            out["plate_form"] = rec
+        return shaded
     W, H = im.size
     colour = colour or brand.INK
     lum = band_edge.luma_rows(im)
@@ -700,7 +707,8 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float,
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
             break
     record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False,
-              "text_band": text_band_record(need, got.get("strength", 0.0))}
+              "text_band": text_band_record(need, got.get("strength", 0.0)),
+              **({"plate_form": got["plate_form"]} if "plate_form" in got else {})}
     if clash >= GOLD_CLASH_SHARE:
         rows = [(r[0], r[1], r[2], r[3], brand.BONE if r[4] == brand.GOLD else r[4], r[5], r[6]) for r in rows]
         record["gold_to_bone"] = True
@@ -1450,7 +1458,8 @@ class MultiFormatGenerator:
             # not graded (ruling N2): the credit's small data face sits in the band's fall-off, and a graded ground there
             # read 0.05-0.25 lower after the platform re-encode
             base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
-                         grade=False)
+                         grade=False, plain=[(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"), c_fill)
+                                             for k, ln in enumerate(c_drawn)])
             credit["text_band"] = text_band_record(need_c, got_c.get("strength", 0.0))
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
@@ -2682,6 +2691,8 @@ class MultiFormatGenerator:
                        cap=cap, out=got, plain=text_band_boxes(d, drawn, px(margin), stack_bottom))
             if lay is not None:
                 lay.meta["text_band"] = text_band_record(need, got.get("strength", 0.0))
+                if "plate_form" in got:
+                    lay.meta["plate_form"] = got["plate_form"]
             if lay is not None and deep:
                 lay.meta["ink_band"] = True
         elif drawn and lay is not None:

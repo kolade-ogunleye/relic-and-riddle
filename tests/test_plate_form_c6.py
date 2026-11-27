@@ -86,7 +86,7 @@ def _grounds():
     noise = Image.fromarray((rng.random((1800, 1440, 1)) * 255).repeat(3, 2).astype(np.uint8), "RGB")
     return {"real": real, "white": Image.new("RGB", (1440, 1800), (246, 244, 238)),
             "grey": Image.new("RGB", (1440, 1800), (128, 126, 120)), "dark": Image.new("RGB", (1440, 1800), (22, 20, 18)),
-            "dim": Image.new("RGB", (1440, 1800), (64, 62, 58)),
+            "dim": Image.new("RGB", (1440, 1800), (64, 62, 58)), "black": Image.new("RGB", (1440, 1800), (3, 3, 3)),
             "busy": noise}
 
 
@@ -126,7 +126,7 @@ def test_a_block_never_crosses_its_safe_box():
     assert x0 >= box[0] and x1 <= box[2] and y0 >= box[1] and y1 <= box[3]
 
 
-@pytest.mark.parametrize("ground", ["real", "white", "grey", "dark", "dim", "busy"])
+@pytest.mark.parametrize("ground", ["real", "white", "grey", "dark", "dim", "black", "busy"])
 def test_scrim_lays_the_block_only_where_it_darkens_no_more_than_the_shipped_band(monkeypatch, ground):
     """Rule 3 (darkened share never above integration 5), at the level production calls it (multi_format.scrim with
     the carousel's tagged items): the block is laid, or the band where the block would darken more."""
@@ -141,6 +141,9 @@ def test_scrim_lays_the_block_only_where_it_darkens_no_more_than_the_shipped_ban
         assert got["plate_form"]["laid"] == "block"
     if ground == "dim":   # the band darkens under 20 luma here, an INK block 50: the band stays
         assert got["plate_form"]["laid"] == "band"
+    # never a lighter ground under the type than the band's (a photograph darker than INK: the band stays)
+    boxes = [b for b, _f, _t in STACK]
+    assert plate_form.ground_under(out, boxes) <= plate_form.ground_under(band, boxes) + 0.5, got["plate_form"]
 
 
 def test_under_the_block_family_a_kicker_stands_on_its_held_plate_where_no_block_is(monkeypatch):

@@ -211,15 +211,21 @@ def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None)
 # goes opaque: it GRADES the photograph, each pixel the ground's own colour scaled to the luma the INK alpha would
 # give it (graded()), so hue and saturation stay the ground's and every luma (each edge slope, each contrast measured
 # on luma) is the INK alpha's, value for value. An opaque panel (the split's INK panel) stays its colour.
-def graded(ground: Image.Image, alpha: np.ndarray, colour) -> Image.Image:
-    """`ground` under a `colour` band of per-pixel `alpha` (H x W, 0-1), graded: each pixel scaled by
-    (1 - a) + a x min(1, luma(colour) / luma(pixel)), its luma the plain alpha composite's (a pixel darker than the
-    band colour is left as it is, never brightened). RGB out."""
+def graded(ground: Image.Image, alpha: np.ndarray, colour, full: float | None = None) -> Image.Image:
+    """`ground` under a `colour` band of per-pixel `alpha` (H x W, 0-1), graded where it grades out: each pixel scaled
+    by (1 - a) + a x min(1, luma(colour) / luma(pixel)), its luma the plain alpha composite's (a pixel darker than the
+    band colour is left as it is, never brightened). Where the band is at `full` strength or more (default: its own
+    maximum), under the type, it is the plain `colour` alpha, value for value: lander rulings R2 / N2 (2026-11-26,
+    review 2): the type's ground is the palette's INK and its contrast never changes. RGB out."""
     g = np.asarray(ground.convert("RGB"), np.float32)
     a = np.clip(np.asarray(alpha, np.float32), 0.0, 1.0)
-    lc = float(np.dot(np.asarray(colour[:3], np.float32), LUMA))
+    c = np.asarray(colour[:3], np.float32)
+    lc = float(np.dot(c, LUMA))
     k = np.minimum(1.0, lc / np.maximum(g @ LUMA, 1e-3))
     out = g * ((1.0 - a) + a * k)[..., None]
+    top = float(a.max()) if full is None else float(full)
+    body = a >= top - 1.0 / 255.0
+    out[body] = (g * (1.0 - a)[..., None] + c * a[..., None])[body]
     return Image.fromarray(np.clip(out + 0.5, 0, 255).astype(np.uint8), "RGB")
 
 

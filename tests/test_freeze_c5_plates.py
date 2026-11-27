@@ -521,22 +521,24 @@ def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_
     assert multi_format.story_body_width() == (sx1 - inset) - (sx0 + inset + 1)
 
 
-def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():
-    """PLATES-03: a text band that never goes opaque grades the photograph (band_edge.graded) where a neutral INK
-    alpha left a grey-brown veil: on a saturated warm ground the band's interior keeps the ground's hue (<= 2 degrees)
-    and >= 0.95 of its saturation, at the plain alpha's luma; an opaque panel (cap 1) stays its colour."""
+def test_a_band_grades_the_photograph_where_it_falls_off_and_is_ink_under_the_type():
+    """PLATES-03 within rulings R2 / N2: where a text band falls off (its feather) it grades the photograph
+    (band_edge.graded: the ground's hue within 2 degrees, >= 0.95 of its saturation, the plain alpha's luma) where a
+    neutral INK alpha left a grey veil; its full-strength body, under the type, is the plain INK alpha value for value
+    (the type's ground and contrast unchanged); an opaque panel (cap 1) stays its colour."""
     ground = Image.new("RGB", (400, 600), (226, 150, 52))
     graded = multi_format.scrim(ground, 300, 600, feather=100, target=0.26)
     plain = multi_format.scrim(ground, 300, 600, feather=100, target=0.26, grade=False)
-    a = np.asarray(ground, np.float32)[500:560, 100:300]
-    g = np.asarray(graded, np.float32)[500:560, 100:300]
-    p = np.asarray(plain, np.float32)[500:560, 100:300]
-    hb, sb = pc._hue_sat(a)
-    hg, sg = pc._hue_sat(g)
-    _, sp = pc._hue_sat(p)
+    gb, gg, gp = (np.asarray(x.convert("RGB"), np.float32) for x in (ground, graded, plain))
+    fall = (slice(240, 295), slice(100, 300))                 # inside the feather above the band
+    hb, sb = pc._hue_sat(gb[fall])
+    hg, sg = pc._hue_sat(gg[fall])
+    _, sp = pc._hue_sat(gp[fall])
     assert np.abs(hg - hb).max() <= 2.0 and (sg / sb).min() >= 0.95
-    assert (sp / sb).mean() < (sg / sb).mean()                       # the plain alpha loses saturation
-    assert np.abs(pc.luma(Image.fromarray(g.astype(np.uint8))) - pc.luma(Image.fromarray(p.astype(np.uint8)))).max() <= 2
+    assert (sp / sb).mean() < (sg / sb).mean()                       # the plain alpha loses saturation there
+    assert np.abs(gg[fall] @ pc.LUMA - gp[fall] @ pc.LUMA).max() <= 2
+    body = (slice(400, 600), slice(0, 400))                   # under the type: the plain INK alpha
+    assert np.abs(gg[body] - gp[body]).max() <= 1
     panel = multi_format.scrim(ground, 300, 600, feather=40, target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
     assert tuple(np.asarray(panel)[590, 200]) == tuple(brand.INK2)
 

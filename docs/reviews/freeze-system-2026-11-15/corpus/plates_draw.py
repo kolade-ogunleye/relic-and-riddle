@@ -5,7 +5,7 @@ carousel, its two Story frames and its Reel cover and grid tile, each through th
 run's own copy and scene stills. Each slide's photo is the scene still that best matches the slide the run delivered
 (luma correlation, as the board's Aswan deck: the pipeline's own matcher is a paid vision call; never reached here).
 
-    python plates_draw.py <tree> <dev checkout> <out> [--brand default|second-colours] [--jobs N]
+    python plates_draw.py <tree> <dev checkout> <out> [--brand default|second|second-colours] [--jobs N]
                           [--kinds deck,story,cover] [--runs <substring>,...]
 
 Writes <out>/<brand>/<run>/ (carousel/, carousel_fb/, stories/, thumbnail_cover.jpg, still_layout.json sidecars with
@@ -34,7 +34,7 @@ def args():
     ap.add_argument("tree", type=Path)
     ap.add_argument("dev", type=Path)
     ap.add_argument("out", type=Path)
-    ap.add_argument("--brand", choices=("default", "second-colours"), default="default")
+    ap.add_argument("--brand", choices=("default", "second", "second-colours"), default="default")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--runs", default="")
@@ -109,7 +109,8 @@ def one(a) -> int:
     if a.brand != "default":
         sys.path.insert(0, str(tree / "docs/reviews/quality-fixes-2026-11/QF-35a"))
         import render_surfaces
-        brand.configure(render_surfaces.second_brand(brand, None), validate=False)
+        brand.configure(render_surfaces.second_brand(brand, "Montserrat" if a.brand == "second" else None),
+                        validate=False)
     from src.ai_label import real_stills
     from src.multi_format import CAROUSEL_PHOTOS, MultiFormatGenerator
     from src.visual_engine import VisualEngine

@@ -566,7 +566,8 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     the rest, line by line. `feather` is the designed minimum: each edge's feather grows with the luma step it
     crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid.
     `out`: a dict that receives the band's strength (PLATES-15 records its lines' ceiling against it).
-    `grade` (default: a band whose cap is under 1, never opaque): the band grades the photograph (band_edge.graded,
+    `grade` (default: a band whose cap is under 1, never opaque): the band grades the photograph where it grades out,
+    its full-strength body under the type the plain INK alpha (band_edge.graded,
     PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
     import numpy as np
 
@@ -586,7 +587,7 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
     if (cap < 1.0) if grade is None else grade:
-        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour)
+        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour, full=strength)
         return out.convert("RGBA") if im.mode == "RGBA" else out.convert(im.mode)
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
     layer.putalpha(mask)

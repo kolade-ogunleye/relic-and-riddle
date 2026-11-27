@@ -250,6 +250,7 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
     A recorded forced break with any remedy is a false record."""
     clip = (rate.get("clip_size") or {})
     px = clip.get("px")
+    form_fn = getattr(vc, "final_form", vc._clip_form)   # the clip's final forms (a lone closed-class line refused)
     if px is None:
         return []
     bursts = cap["bursts"]
@@ -283,7 +284,7 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
 
     def lines_of(q) -> int | None:
         raw = tuple(str(w["word"]) for w in q)
-        form = vc._clip_form(raw, px)
+        form = form_fn(raw, px)
         if form is None:
             return None
         return None if (form[0] == "one" and len(raw) > 1 and vc.over_caps(list(raw))) else (1 if form[0] == "one"
@@ -300,7 +301,7 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
 
     def unit_line(q) -> bool:
         raw = [str(w["word"]) for w in q]
-        form = vc._clip_form(tuple(raw), px)
+        form = form_fn(tuple(raw), px)
         return bool(form and form[0] == "two" and lp.phrase_unit(raw[:form[1] - 1], raw[form[1] - 1], raw[form[1]]))
 
     def linked(lo: int, hi: int) -> bool:
@@ -380,7 +381,7 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
                                                                      for p in parts)})
         used = len(clip.get("forced_rung") or []) - (1 if key in rung_rows else 0)
         if (key not in rung_rows and lower is not None and used < 2 and len(b["raw"]) > 1
-                and vc._clip_form(tuple(b["raw"]), lower) is not None):
+                and form_fn(tuple(b["raw"]), lower) is not None):
             found.append({"kind": "forced_rung", "form": f"alone at {lower} px"})
         out.append({"text": " / ".join(b["lines"]), "key": key, "faults": faults, "recorded": key in forced,
                     "forced_rung": key in rung_rows, "remedies": found})

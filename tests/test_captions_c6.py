@@ -124,7 +124,7 @@ def test_a_multi_word_hedge_line_above_its_figure_with_its_unit_is_legal():
     single word alone on a line is not (WITH / OVER 13,000 POUNDS, FROM NEARLY / 1,090 TONNES keeps FROM)."""
     assert vc._hedge_line_legal("more than 590 square feet".split(), 2)
     assert vc._hedge_line_legal("between roughly 41.75 metres".split(), 2)
-    assert not vc._break_faults("more than 590 square feet".split(), 2)
+    assert vc.hedge_line_form(tuple("more than 590 square feet".split()), vc.FONT_SIZE) == 2
     assert not vc._hedge_line_legal("with over 13,000 pounds".split(), 2)
     assert not vc._hedge_line_legal("from nearly 1,090 tonnes".split(), 2)
     assert not vc._hedge_line_legal("nearly 1,090 tonnes".split(), 1)
@@ -160,10 +160,12 @@ def test_every_forced_break_left_has_no_remedy(tmp_path):
 
 def test_a_line_of_one_closed_class_word_is_a_lone_function_line():
     """RECONSTRUCTION / INSIDE (dev Amber 1792781224) was drawn unrecorded: INSIDE is in the one closed-class
-    vocabulary (NEVER_END), not in the captions' older FUNCTION_WORDS."""
-    assert vc._lone_function_line(["reconstruction", "inside"], 1)
-    assert vc._lone_function_line(["of", "Acheulean", "artifacts", "alongside"], 3)
-    assert not vc._lone_function_line(["reconstruction", "inside,"], 1)
+    vocabulary (NEVER_END), not in the captions' older FUNCTION_WORDS. Round 2: judged on the clip's final forms
+    (final_form), so the phrasing before them and the clip's size are as at base."""
+    assert vc.lone_closed_line(["reconstruction", "inside"], 1)
+    assert vc.lone_closed_line(["of", "Acheulean", "artifacts", "alongside"], 3)
+    assert not vc.lone_closed_line(["reconstruction", "inside,"], 1)
+    assert not vc.lone_closed_line(["under", "expert", "supervision."], 2)
 
 
 # ------------------------------------------------------------------------------------------------ C3 (gold)

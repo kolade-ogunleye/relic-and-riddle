@@ -391,8 +391,9 @@ def test_a_graphic_with_no_record_of_its_corner_counts_as_taken(tmp_path):
     assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920) == ([(1.0, 6.0)], [])
     poster.paste((242, 182, 48), (box[0] + 10, box[1] + 4, box[0] + 120, box[3] + 80))
     poster.save(clip.with_suffix(".jpg"))
-    # freeze cycle 6 (panel 7 C4; 2026-11-27): the alternative corner is free, so the badge stays (drawn there)
-    assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920)[0] == [(1.0, 6.0)]
+    # freeze cycle 6 round 2 (lander ruling, 2026-11-27): the alternative corner is free, but the stretch starts
+    # inside the graphic, not on a cut: the badge does not change corner for it, it yields there as before
+    assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920)[0] == [(2.0, 6.0)]
     alt = video_composer.recon_badge_geometry(1080, 1920, "top_right")["box"]
     poster.paste((242, 182, 48), (alt[0] + 10, alt[1] + 4, alt[0] + 120, alt[3] + 80))
     poster.save(clip.with_suffix(".jpg"))

@@ -1590,9 +1590,16 @@ def test_world_war_one_and_two_stay_whole():
     # QF-87: AND WORLD WAR TWO draws 661 px at 80 on one line. lander ruling 2026-11-26 (D4, one size per clip; round 4 delivered):
     # the clip is at 80 px, so it draws on two legal lines there, each inside the ink budget (was one line at 74)
     lay = vc.reel_caption_lines(phrases[k + 1])
-    assert lay is not None and lay[1] == FONT_SIZE
+    # round 2 ruling, freeze cycle 6 (rule 4; 2026-11-27): a burst with no legal form at the clip's size and no
+    # re-cut or move sets alone one rung under it, recorded (AND / WORLD WAR TWO was a forced lone-AND line at 80):
+    # there it holds one line (661 px at 74 fits the budget)
     shown = vc._phrase_words(phrases[k + 1])
-    assert all(round(vc._caption_ink_width(part, lay[1])) <= 640 for part in (shown[:lay[0]], shown[lay[0]:]))
+    rung = {e["text"] for e in (vc._clip_state() or {}).get("forced_rung") or []}
+    if " ".join(shown) in rung:
+        assert vc.clip_forms()[tuple(w["word"] for w in phrases[k + 1])][2] == vc._rung_below(FONT_SIZE)
+    else:
+        assert lay is not None and lay[1] == FONT_SIZE
+        assert all(round(vc._caption_ink_width(part, lay[1])) <= 640 for part in (shown[:lay[0]], shown[lay[0]:]))
     for p in phrases:
         if len(p) > 1:
             assert vc._caption_fit_size(p) >= CAPTION_BOND_MIN_SIZE

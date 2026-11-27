@@ -87,6 +87,9 @@ for run in sorted(dev.glob("output/run_*")):
         dur, (cw, ch) = got
         w, h = (1920, 1080) if cw > ch else (1080, 1920)
         clear = round(12 * w / (1920 if w > h else 1080))
+
+        def corner_of(x0: int, w=w, h=h) -> str:   # the drawn plate's corner, by its own x (the tree's boxes)
+            return min(vc.RECON_BADGE_CORNERS, key=lambda c: abs(vc.recon_badge_geometry(w, h, c)["box"][0] - x0))
         with tempfile.TemporaryDirectory() as td:
             gen = Path(td) / "gen_01.png"
             photo = Path(td) / "07_commons.jpg"
@@ -112,7 +115,7 @@ for run in sorted(dev.glob("output/run_*")):
                     lo, hi = max(a, ga), min(b, gb)
                     if hi <= lo:
                         continue
-                    corner = "top_left" if x0 < w / 2 else "top_right"
+                    corner = corner_of(x0)
                     gx0, gy0, gx1, gy1 = vc.recon_badge_geometry(w, h, corner)["box"]
                     rect = (gx0 - clear, gy0 - clear, gx1 + clear, gy1 + clear)
                     n = max(1, round((hi - lo) * vc.VIDEO_FPS))
@@ -125,12 +128,12 @@ for run in sorted(dev.glob("output/run_*")):
                 for a, b in ivs:
                     mine = sorted((s, e, x) for s, e, x, _ in drawn if s >= a - 1e-3 and e <= b + 1e-3)
                     for (s1, e1, x1), (s2, e2, x2) in zip(mine, mine[1:]):
-                        if (x1 < w / 2) != (x2 < w / 2) and e2 - s2 < MIN_S - 1e-3:
+                        if corner_of(x1) != corner_of(x2) and e2 - s2 < MIN_S - 1e-3:
                             faults.append(f"corner change for {e2 - s2:.2f} s")
                     if len(mine) > 1 or (mine and b - a > MIN_S):
                         faults += [f"stretch of {e - s:.2f} s" for s, e, _ in mine if e - s < MIN_S - 1e-3]
                 ok = worst <= INK_SHARE and not faults
-                corners = sorted({("top_left" if x < w / 2 else "top_right") for s, e, x, _ in drawn
+                corners = sorted({corner_of(x) for s, e, x, _ in drawn
                                   if max(s, ga) < min(e, gb)})
                 row = {"run": run.name[4:], "clip": clip.name, "case": name, "format": "16:9" if w > h else "9:16",
                        "badge_over_graphic_s": round(sum(max(0.0, min(e, gb) - max(s, ga)) for s, e, _, _ in drawn), 2),

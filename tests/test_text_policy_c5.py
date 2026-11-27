@@ -198,10 +198,16 @@ def test_one_caption_size_per_clip_and_no_empty_first_frame(tmp_path):
     events = [ln for ln in text.splitlines() if ln.startswith("Dialogue:") and ",CapText," in ln]
     sizes = {m.group(1) for ln in events for m in [re.search(r"\\fs(\d+)", ln)] if m}
     plain = [ln for ln in events if not re.search(r"\\fs(\d+)", ln)]
-    assert len(sizes) <= 1 and not (sizes and plain), sizes               # one size: all tagged the same, or none
     clip = comp.last_reading_rate["clip_size"]
-    assert clip["px"] in vc.CAPTION_LADDER and clip["px"] >= vc.CAPTION_BOND_MIN_SIZE and not clip["under"]
-    assert (clip["px"] == vc.FONT_SIZE) == (not sizes)
+    # round 2 ruling, freeze cycle 6 (rule 4; 2026-11-27): one size per clip, but for at most
+    # CAPTION_FORCED_RUNG_MAX bursts set alone one rung under it (recorded forced_rung, also listed under)
+    rung = clip.get("forced_rung") or []
+    assert len(rung) <= vc.CAPTION_FORCED_RUNG_MAX and all(r in clip["under"] for r in rung)
+    one = sizes - {str(round(r["px"] / 0.5625)) for r in rung}
+    assert len(one) <= 1 and not (one and plain), one
+    assert clip["px"] in vc.CAPTION_LADDER and clip["px"] >= vc.CAPTION_BOND_MIN_SIZE
+    assert not [u for u in clip["under"] if u not in rung]
+    assert (clip["px"] == vc.FONT_SIZE) == (not one)
     # the first word of a burst is never fully transparent on the plate's first frame
     shows = {ln.split(",")[1] for ln in text.splitlines() if ln.startswith("Dialogue:") and ",CapBox," in ln}
     firsts = [ln.split(",", 9)[9] for ln in events if ln.split(",")[1] in shows]

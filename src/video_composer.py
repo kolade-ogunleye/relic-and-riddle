@@ -2180,11 +2180,27 @@ def _hedge_line_legal(shown: list[str], k: int) -> bool:
     return any(_norm(w) in units for w in shown[k + 1:])
 
 
+def hedge_line_form(raw: tuple[str, ...], size: int) -> int | None:
+    """Round 2 ruling (rule 2, a remedy in the ruled order): the break k of a burst with no legal form at `size` that
+    sets a multi-word hedge alone on line 1 above its figure with its unit on line 2 (_hedge_line_legal), both lines
+    inside the ink budget and the plate inside the caption band at `size`; None where there is none."""
+    shown = _phrase_words(list(raw))
+    budget, band = _ink_budget(), _caption_band_height()
+    if len(shown) < 3 or not _two_line_clears_graphics(size):
+        return None
+    for k in range(2, len(shown)):
+        if not _hedge_line_legal(list(shown), k) or k - 1 in name_bonds(list(shown)):
+            continue
+        a, b = shown[:k], shown[k:]
+        if (max(_caption_ink_width(a, size), _caption_ink_width(b, size)) <= budget
+                and _caption_two_line_geometry([a, b], size)[1] <= band):
+            return k
+    return None
+
+
 def _break_faults(shown: list[str], k: int) -> list[str]:
     """Why a two-line break before shown word k breaks LINE_RULE (line_rule_faults' names), [] for a legal break."""
     out = []
-    if _hedge_line_legal(shown, k):
-        return out
     if _hedge_break(shown, k):
         out.append("qualifier_line")
     elif never_end_end(shown[k - 1]):
@@ -2198,6 +2214,10 @@ def _break_faults(shown: list[str], k: int) -> list[str]:
 
 @lru_cache(maxsize=32768)
 def _clip_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
+    return _clip_form_impl(raw, size)
+
+
+def _clip_form_impl(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
     """How a 9:16 burst sets at the clip's size `size` on legal lines: ("one", 0) where its ink fits one line there
     (a burst that fits one line is never broken for its own sake); else ("two", k): the best legal break that sets at
     `size`: both lines inside the ink budget, the plate inside the caption band, line 1 never ending on a function
@@ -2233,14 +2253,13 @@ def _clip_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
     best = None
     for k in range(1, n):
         a, b = shown[:k], shown[k:]
-        hedge_ok = _hedge_line_legal(list(shown), k)   # round 2 rule 2: the hedge's own bond to its figure may part
-        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k) or (k in kept and not hedge_ok):
+        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k) or k in kept:
             continue
         # the burst's own break (the builder's form: a figure group's seam, a line past the caps) stands where legal;
         # any other break keeps each line within one burst's caps and parts no bond
         if k != own and (
                 max(len(a), len(b)) > MAX_BURST_WORDS or max(len(" ".join(a)), len(" ".join(b))) > MAX_BURST_CHARS
-                or ((k - 1) in held and not hedge_ok) or _is_atomic_boundary(shown[k - 1], shown[k]) or _bare(shown[k - 1]) in _ARTICLES
+                or (k - 1) in held or _is_atomic_boundary(shown[k - 1], shown[k]) or _bare(shown[k - 1]) in _ARTICLES
                 or any(TERMINAL_PUNCT.search(w) for w in shown[:k - 1] + shown[k:-1])):
             continue
         got = widths(k)
@@ -3861,13 +3880,31 @@ CAPTION_SPLIT_MIN_S = 0.8   # no burst a split or a merge forms is on screen for
 
 
 def _lone_function_line(shown: list[str], k: int) -> bool:
-    """A two-line break before word k that leaves a line of one function word (WHEN / KÖNIGSBERG CASTLE). Freeze cycle 6
-    (panel 7 C1): the function words are the one vocabulary every caption line end is judged by (NEVER_END, the
-    derived closed class: RECONSTRUCTION / INSIDE, ARTIFACTS / ALONGSIDE), with the auxiliaries of FUNCTION_WORDS."""
-    def lone(w: str) -> bool:
-        b = _bare(w)
-        return b in FUNCTION_WORDS or (b in NEVER_END and not CLAUSE_PUNCT.search(w) and not TERMINAL_PUNCT.search(w))
-    return (k == 1 and lone(shown[0])) or (k == len(shown) - 1 and lone(shown[-1]))
+    """A two-line break before word k that leaves a line of one function word (WHEN / KÖNIGSBERG CASTLE)."""
+    return (k == 1 and _bare(shown[0]) in FUNCTION_WORDS) or (
+        k == len(shown) - 1 and _bare(shown[-1]) in FUNCTION_WORDS)
+
+
+def lone_closed_line(raw: Any, k: int) -> bool:
+    """Freeze cycle 6 (panel 7 C1; round 2): a two-line break before word k leaving a line of one word of the ONE
+    closed-class vocabulary (NEVER_END: RECONSTRUCTION / INSIDE, ARTIFACTS / ALONGSIDE), which the captions' older
+    FUNCTION_WORDS did not hold. Judged on the clip's final forms (final_form), so the phrasing before them stays."""
+    shown = [w if isinstance(w, str) else str(w.get("word", "")) for w in raw]   # with its punctuation
+    if not 0 < k < len(shown):
+        return False
+    for w in ((shown[0],) if k == 1 else ()) + ((shown[-1],) if k == len(shown) - 1 else ()):
+        if (_bare(w) in FUNCTION_WORDS or _bare(w) in NEVER_END) and not CLAUSE_PUNCT.search(w)                 and not TERMINAL_PUNCT.search(w):
+            return True
+    return False
+
+
+def final_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
+    """The burst's legal form at the clip's size for the clip's final forms: _clip_form, and no line of one
+    closed-class word (lone_closed_line)."""
+    form = _clip_form(raw, size)
+    if form is not None and form[0] == "two" and lone_closed_line(raw, form[1]):
+        return None
+    return form
 
 
 def phrase_unit_cut(words: list[Any], k: int) -> str | None:
@@ -4687,7 +4724,13 @@ def _clip_size_capacity(phrases: list[list[dict[str, Any]]], words: list[dict[st
         if CAPTION_SIZE_AFTER_RUNS:
             built = _capacity_pass(built, words, emphasis, rung)
         multi = [tuple(str(w.get("word", "")) for w in p) for p in built if len(p) > 1]
-        shares[rung] = (sum(_clip_form(r, rung) is not None for r in multi) / len(multi)) if multi else 1.0
+        # round 2 ruling: a burst rules 1-4 cure counts as fitting. The share is base's (_clip_form at the rung, the
+        # cycle-5 line vocabulary): a burst whose only fault at the rung is a line of one closed-class word (refused
+        # on the final forms only: final_form) fits, so no clip is smaller than at base;
+        # counting the re-cut / move / rung remedies too (measured) lifted Amber 790550 and Richat 1793468053 a rung
+        # and re-phrased them (AN EXTRATERRESTRIAL | IMPACT CRATER, a one-word KÖNIGSBERG.): not taken
+        fit = sum(_clip_form(r, rung) is not None for r in multi)
+        shares[rung] = (fit / len(multi)) if multi else 1.0
         if shares[rung] >= CAPTION_CLIP_MAJORITY - 1e-9:
             return rung, shares
     return min(CAPTION_LADDER), shares
@@ -4749,7 +4792,7 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
 
     def lines_of(q: list[dict[str, Any]]) -> int | None:
         raw = raw_of(q)
-        form = _clip_form(raw, size)
+        form = final_form(raw, size)
         if form is None:
             return None
         if form[0] == "one":
@@ -4763,7 +4806,7 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
 
     def unit_line(q: list[dict[str, Any]]) -> bool:
         raw = raw_of(q)
-        form = _clip_form(raw, size)
+        form = final_form(raw, size)
         return bool(form and form[0] == "two" and _line_policy.phrase_unit(
             list(raw[:form[1] - 1]), raw[form[1] - 1], raw[form[1]]) is not None)
 
@@ -4875,10 +4918,12 @@ def _strand_pass(out: list[list[dict[str, Any]]], words: list[dict[str, Any]], e
                  | emphasis_bonds(words, emphasis))
     for _ in range(len(out)):
         bad = [i for i, p in enumerate(out)
-               if len(p) > 1 and _clip_form(tuple(str(w.get("word", "")) for w in p), size) is None]
+               if len(p) > 1 and final_form(tuple(str(w.get("word", "")) for w in p), size) is None]
         took = False
         for i in bad:
             rem = strand_remedies(out, i, words, emphasis, size, protected)
+            if hedge_line_form(tuple(str(w.get("word", "")) for w in out[i]), size) is not None:
+                rem = [r for r in rem if r["kind"] == "recut"]   # rule 2 stands before rule 3 (the move)
             if not rem:
                 continue
             r = rem[0]
@@ -4954,7 +4999,9 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
                 # round 2: never a one-word burst of a function word (TOOLS DATING | FROM | ROUGHLY 145,000 ...): the
                 # burst goes on to the strand remedies instead
                 and not any(len(q) == 1 and _bare(q[0]) in NEVER_END for q in (raw[:j], raw[j:]))]
-        if not cuts:
+        if not cuts or min(cuts)[0]:
+            # round 2: no split that parts a bond (ROUGHLY 145,000 | TO 29,000): the burst goes on to the strand
+            # remedies, then its recorded form
             done.append(p)
             continue
         j = min(cuts)[-1]
@@ -4968,29 +5015,37 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
     out = _strand_pass(done, words, emphasis, size, record)
     for p in out:   # a burst the strand pass formed on two lines names its rule (the two-line record stays whole)
         t = " ".join(raw_of(p))
-        form = _clip_form(raw_of(p), size)
+        form = final_form(raw_of(p), size)
         if t not in before and form is not None and form[0] == "two":
             two_line.append({"text": t, "why": ["strand_remedy"]})
     for p in out:
         raw = raw_of(p)
-        form = _clip_form(raw, size)
+        form = final_form(raw, size)
         if form is not None:
             forms[raw] = (form[0], form[1], size)
             continue
         lower = next(((r, f) for r in CAPTION_LADDER if r < size for f in [_clip_form(raw, r)] if f is not None
                       and len(raw) > 1 and CAPTION_MISFIT_OWN_SIZE), None)
+        hk = hedge_line_form(raw, size) if lower is None else None
+        if hk is not None:
+            # round 2 ruling (rule 2): a multi-word hedge on its own line above its figure with its unit is legal
+            forms[raw] = ("two", hk, size)
+            two_line.append({"text": " ".join(raw), "why": ["hedge_line"]})
+            continue
         rung = _rung_below(size)
         if (lower is None and len(raw) > 1 and rung is not None and len(forced_rung) < CAPTION_FORCED_RUNG_MAX
-                and _clip_form(raw, rung) is not None):
+                and final_form(raw, rung) is not None):
             # round 2 ruling (rule 4): the burst ALONE one rung under the clip's size, where that gives it a legal form,
             # at most CAPTION_FORCED_RUNG_MAX a clip, recorded "forced_rung" (and as a burst under the clip's size)
-            f = _clip_form(raw, rung)
+            f = final_form(raw, rung)
             forms[raw] = (f[0], f[1], rung)
             row = {"text": " ".join(_phrase_words(list(raw))), "px": rung, "clip_px": size, "rule": STRAND_RULE,
                    "why": "no legal form at the clip's size and no remedy (re-cut, hedge line, move); legal one rung "
                           "under"}
             forced_rung.append(row)
             under.append(dict(row))
+            if f[0] == "two":   # the two-line record names every two-line burst's rule
+                two_line.append({"text": " ".join(raw), "why": ["forced_rung"]})
             continue
         if lower is not None:
             # no legal form at the clip's size and no legal split: the burst STAYS (the split's own recorded
@@ -5005,6 +5060,8 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
             forms[raw] = ("two", k, size)
             forced.append({"text": " ".join(raw[:k]) + " / " + " ".join(raw[k:]),
                            "faults": _break_faults(_phrase_words(list(raw)), k)
+                           + (["one_word_line"] if lone_closed_line(raw, k)
+                              and "one_word_line" not in _break_faults(_phrase_words(list(raw)), k) else [])
                            + (["article_line_end"] if _bare(raw[k - 1]) in _ARTICLES else [])
                            + (["keep_together_split"] if k in _policy_bonds(raw) else [])
                            + (["figure_group_split"] if (k - 1) in _figure_bonds(_phrase_words(list(raw))) else [])
@@ -6822,7 +6879,11 @@ def single_gold_span(shown: list[str], gold: list[int]) -> list[int]:
     runs: list[list[int]] = []
     for ji in sorted(gold):
         # round 2 (review C3): a range is one span though its joiner is bone (1,090 TONNES to 1,168 TONNES)
-        if runs and (ji == runs[-1][-1] + 1 or (ji == runs[-1][-1] + 2 and _norm(shown[ji - 1]) in ACCENT_NEVER)):
+        toks = [_norm(w) for w in shown]
+        if runs and (ji == runs[-1][-1] + 1 or (   # a range: TO between figures, or AND after BETWEEN
+                ji == runs[-1][-1] + 2 and _is_figure_at(toks, ji) and any(_is_figure_at(toks, j) for j in runs[-1])
+                and (toks[ji - 1] == "to" or (toks[ji - 1] == "and" and runs[-1][0] > 0
+                                              and toks[runs[-1][0] - 1] == "between")))):
             runs[-1].append(ji)
         else:
             runs.append([ji])

@@ -320,7 +320,9 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # freeze cycle 6 (THENNOW T1, panel 7 MO-T1): the then-and-now divider's one wipe, from the far edge straight to
     # the split on ease_in_out, at most this many px a frame at its steepest (1080 short side); its length is derived
     # from it (then_now.wipe_seconds). It was then_now.SETTLE_MAX_STEP, a module constant restating a motion value.
-    "motion.wipe_step": 30.0,
+    # Review round 1 (D6): 36, so that with the NOW marker's entry on motion.reveal the split still holds the longest
+    # pair of markers for its reading time (then_now.timing_problems, gated at configure); at 30 it held 2.20 s of 2.35.
+    "motion.wipe_step": 36.0,
     # ---- credits (freeze cycle 4, SYS item 4, panel 5 BC-06: a written SPEC value no renderer read): the credit
     # role's weight in the data face, read by the end screen's credits line, the Story's photo credit and the cards'
     # citation (each drew a literal 500 until now; the value is unchanged)
@@ -390,7 +392,8 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.push_cap": (1.05, 1.5),
     "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
     "motion.hook_fade": (0.1, 0.3),       # s
-    "motion.wipe_step": (16.0, 48.0),     # px a frame (1080 short side): 1.2-3.6 s for the 9:16 wipe
+    "motion.wipe_step": (33.0, 48.0),     # px a frame (1080 short side): 1.2-1.77 s for the 9:16 wipe; under 33 the
+                                          # split no longer reads the longest pair of markers (then_now.timing_problems)
     "credit.weight": (500, 600),          # the data face's bundled weights (IBM Plex Mono Medium / SemiBold)
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig

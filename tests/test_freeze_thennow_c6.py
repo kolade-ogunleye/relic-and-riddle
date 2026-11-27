@@ -9,6 +9,7 @@ the subject to fill a panel.
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -70,9 +71,9 @@ def test_the_divider_travels_once_straight_to_the_split(size):
 def test_the_wipe_reads_the_motion_tokens():
     """BC: no local constant restates a motion value; a brand that moves the tokens moves the wipe."""
     base = then_now.wipe_seconds(*TALL), then_now.then_dwell("THEN 1876")
-    with brand.use(brand.DEFAULT_BRAND.derive("probe wipe", system={"motion.wipe_step": 20.0, "motion.reveal": 0.6})):
+    with brand.use(brand.DEFAULT_BRAND.derive("probe wipe", system={"motion.wipe_step": 40.0, "motion.reveal": 0.45})):
         moved = then_now.wipe_seconds(*TALL), then_now.then_dwell("THEN 1876")
-    assert moved[0] > base[0] and moved[1] == pytest.approx(base[1] + 0.2, abs=1 / FPS)
+    assert moved[0] < base[0] and moved[1] == pytest.approx(base[1] + 0.05, abs=1 / FPS)
     assert then_now.wipe_progress(0.0, *TALL) == 0 and then_now.wipe_progress(then_now.CLIP_SECONDS, *TALL) == 1
 
 
@@ -115,6 +116,7 @@ def test_the_encoded_reveal_is_monotonic_and_the_markers_stay(tmp_path, size):
         new = _memnon_like(tmp_path)[1]
     else:
         old, new = _memnon_like(tmp_path)
+    old, new = _registered(tmp_path, old, new)          # the pair production draws (source() -> register())
     fr, meta = _encoded(tmp_path, old, new, size)
     w, h = size
     axis = 0 if w > h else 1
@@ -144,53 +146,58 @@ def test_the_encoded_reveal_is_monotonic_and_the_markers_stay(tmp_path, size):
     assert max(mad) <= end_card.DIM_STEP_MAX
 
 
-# --------------------------------------------------------------------------------- T2b: the 9:16 panels' crops
-def test_an_unregistered_916_pair_is_laid_out_per_panel_at_full_width(tmp_path):
-    """Lander ruling 2026-11-27 (T2b): each panel keeps its photograph's central region, at least the share of its
-    height the 16:9 frame shows, and here its whole width (the NOW photo's larger figure stands at 16-48 % of its
-    width and the other at 62-92 %: a narrower crop cuts one). The shared window this replaced showed the NOW
-    photo's foot only (the Memnon base, panel 7 CD-A1)."""
+# ---------------------------------------------------------------------- T2: what production draws (review round 1)
+def _registered(tmp_path: Path, old: Path, new: Path, name: str = "reg") -> tuple[Path, Path]:
+    """A registered pair as production's source() returns it: through then_now.register (here the identity matrix,
+    the recent photo cover-fitted to the old one's frame: no real registered pair exists in dev)."""
+    from PIL import ImageOps
+    o = Image.open(old).convert("RGB")
+    fit = tmp_path / f"{name}_fit.png"
+    ImageOps.fit(Image.open(new).convert("RGB"), o.size, Image.LANCZOS).save(fit)
+    pair = then_now.register(old, fit, np.array([[1.0, 0, 0], [0, 1.0, 0]]), tmp_path / name)
+    assert pair is not None
+    return pair
+
+
+def test_an_unregistered_pair_is_refused_by_production_and_recorded(tmp_path, monkeypatch):
+    """Review round 1 (lander ruling 2026-11-27): an unregistered pair is not a then-and-now. make() draws nothing
+    when source() finds no registered pair and writes why beside the run; render() of an unregistered pair (a
+    board stand-in) is drawn as at base, recorded "unregistered" (the 9:16 'panels' layout is withdrawn)."""
+    monkeypatch.setattr(then_now, "source", lambda topic, wd: then_now.LAST_REFUSAL.append(
+        {"old": 1, "reason": "not registered: the pair does not share a viewpoint"}) or None)
+    clip, credits = then_now.make({"location": {"name": "x"}}, tmp_path)
+    assert clip is None and credits == []
+    rec = json.loads((tmp_path / then_now.REFUSAL_SIDECAR).read_text(encoding="utf-8"))
+    assert rec["drawn"] is False and "not registered" in rec["refused"][0]["reason"]
     old, new = _memnon_like(tmp_path)
-    a, b, info = then_now.frame_pair(old, new, *TALL)
-    assert info["registered"] is False and info["layout"] == "panels"
-    _, _, wide = then_now.frame_pair(old, new, *WIDE)
-    for which, path in (("then", old), ("now", new)):
-        shown = info["panels"][which]["shown"]
-        assert shown["centre_half"] and shown["w"] >= 0.96 - 1e-3                   # across: the whole width
-        with Image.open(path) as im:
-            share16 = min(1.0, (im.width / im.height) / (16 / 9)) / (1 + then_now.PUSH)
-        assert shown["h"] >= share16 - 0.005                                       # at least 16:9's share
-    # the NOW photograph's figures are both whole in its panel at rest (dark blocks against the sky)
-    rest = then_now.compose(then_now.pushed(a, then_now.CLIP_SECONDS, TALL),
-                            then_now.pushed(b, then_now.CLIP_SECONDS, TALL), then_now._split_at(*TALL))
-    now = np.asarray(rest.convert("L"))[then_now._split_at(*TALL) + 10:, :]
-    figure = (now > 35) & (now < 95)                                                # the figures (INK is darker)
-    cols = np.flatnonzero(figure.mean(axis=0) > 0.15)
-    runs = np.split(cols, np.flatnonzero(np.diff(cols) > 1) + 1)
-    assert len(runs) == 2 and runs[0][0] > 20 and runs[-1][-1] < 1060               # both whole, neither cut
-    assert "panels" not in wide                                                     # 16:9: the reference, unchanged
+    for size in (TALL, WIDE):
+        a, b, info = then_now.frame_pair(old, new, *size)
+        assert info["registered"] is False and "not registered" in info["unregistered"]
+        assert "panels" not in info and info.get("layout") is None
+        assert not hasattr(then_now, "panel_geometry")
 
 
-def test_each_photograph_keeps_its_panel_place_through_the_clip(tmp_path):
-    """Only the shared push moves a panel's photograph: the old one opens where it rests (a builder's trial that slid
-    it from whole to its panel with the wipe stepped the mean luma 13-15 a frame on Roman 9:16, over the 8.0 limit)."""
-    old = _photo(tmp_path / "then_tall.png", 1000, 1160, [(0.3, 0.2, 0.7, 0.9)], seed=3)     # a 0.86 portrait
-    new = _photo(tmp_path / "now_w.png", 1500, 1000, [(0.3, 0.3, 0.6, 0.8)], seed=4)
-    a, b, info = then_now.frame_pair(old, new, *TALL)
-    g = info["panels"]["then"]
-    assert g["mode"] == "rows" and g["y"] < 0 and set(g) >= {"x", "y", "w", "h", "shown"} and "slide_px" not in g
-    assert a.size == b.size == (round(1080 * (1 + then_now.PUSH)), round(1920 * (1 + then_now.PUSH)))
-
-
-def test_a_photograph_too_tall_for_its_panel_is_contained(tmp_path):
-    """Where a panel cannot hold the photograph's central half (a 0.45 portrait in the 9:16 THEN panel), it stands
-    whole in its panel, centred, the INK field beside it: the designed alternative, recorded."""
-    old = _photo(tmp_path / "then_pillar.png", 900, 2000, [(0.3, 0.1, 0.7, 0.95)], seed=5)
-    new = _photo(tmp_path / "now.png", 1400, 1000, seed=6)
-    a, b, info = then_now.frame_pair(old, new, *TALL)
-    g = info["panels"]["then"]
-    assert g["mode"] == "contained" and g["w"] < a.width and g["x"] > 0
-    assert g["shown"]["centre_half"]
+@pytest.mark.parametrize("size", [TALL, WIDE])
+def test_a_registered_window_keeps_the_pictures_central_region(tmp_path, size):
+    """Review round 1 (ruling 2026-11-27): a registered pair is one picture on one shared window. The window keeps
+    the picture's central region: here a 4:3 picture whose top is empty sky, which the T7 search would zoom and lift
+    (base: the window went up to 1.6x round the subject's top, holding under 0.3 of the picture's width at 9:16)."""
+    rng = np.random.default_rng(21)
+    a = np.full((1500, 2000, 3), 220, np.float32) + rng.normal(0, 2, (1500, 2000, 1))   # an empty sky
+    a[700:] = rng.integers(30, 200, (800, 2000, 1))                                     # a busy lower half
+    old = tmp_path / "old.png"
+    Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(old)
+    reg = _registered(tmp_path, old, old)
+    _, _, info = then_now.frame_pair(reg[0], reg[1], *size)
+    assert info["registered"] is True
+    big = (round(size[0] * (1 + then_now.PUSH)), round(size[1] * (1 + then_now.PUSH)))
+    with Image.open(reg[0]) as im:
+        psize = im.size
+    win = then_now._cover_window(psize, big, info.get("zoom", 1.0), info.get("v_centre", 0.5), info.get("u_centre", 0.5))
+    assert then_now.keeps_centre(win, psize, big), info
+    r = then_now.central_region(psize, big)
+    if size == TALL:
+        assert r[2] - r[0] < 0.5 and info.get("zoom", 1.0) == 1.0     # a 4:3 picture at 9:16: centred, unzoomed
 
 
 def test_a_registered_916_pair_keeps_the_shared_window(tmp_path):
@@ -200,7 +207,6 @@ def test_a_registered_916_pair_keeps_the_shared_window(tmp_path):
     assert info["registered"] is True and "panels" not in info
 
 
-# -------------------------------------------------------------------------- T2a: each plate in its calmest place
 def _plan_only(monkeypatch, tmp_path, old, new, size, years=(1876, 2011)):
     monkeypatch.setattr(then_now, "_encode", lambda frames, out, n, **k: out)
     then_now.render(old, years[0], new, years[1], tmp_path / "x.mp4", size[0], size[1])
@@ -245,3 +251,89 @@ def test_ground_detail_reads_structure_not_tone():
 
 # The real dev pairs (Memnon, Roman, every then_k x now_k_j, both formats) are measured by the corpus scripts
 # docs/reviews/freeze-system-2026-11-15/corpus/thennow_t1_motion.py and thennow_t2_layout.py (CI has no dev runs).
+
+
+# ------------------------------------------------------------------------ review round 1: B2, B3, D5, D6
+PALETTES = ("default", "second", "second-colours")
+
+
+def _palette(name: str):
+    sys.path.insert(0, str(ROOT / "docs/reviews/freeze-system-2026-11-15"))
+    import board
+    board.configure_palette(ROOT, name)
+
+
+@pytest.fixture
+def default_brand_after():
+    yield
+    brand.configure(None)
+
+
+@pytest.mark.parametrize("size", [TALL, WIDE])
+def test_the_place_is_the_same_in_every_palette_and_every_plate_holds_contrast_high(
+        monkeypatch, tmp_path, size, default_brand_after):
+    """B3: the place is chosen on the photographs' own pixels (no divider, INK or plate in a candidate box), so it is
+    the same in the three palettes. B2: each plate's text holds contrast.high (7.0) through its tiers (held, then
+    opaque INK); the second palettes' held plates read 5.99-6.25 at the cycle-6 first tip."""
+    old, new = _registered(tmp_path, *_memnon_like(tmp_path))
+    sides, worst = {}, {}
+    for pal in PALETTES:
+        _palette(pal)
+        meta = _plan_only(monkeypatch, tmp_path, old, new, size)
+        sides[pal] = (meta["side"]["then"]["side"], meta["side"]["now"]["side"])
+        for w in ("then", "now"):
+            t = meta["side"][w]["tier"]
+            assert t["contrast"] is not None and t["contrast"] >= brand_system.tok("contrast.high") - 1e-9, (pal, w, t)
+            worst[pal, w] = t
+    assert len(set(sides.values())) == 1, sides
+
+
+def test_a_held_plate_under_the_margin_goes_opaque(monkeypatch, tmp_path, default_brand_after):
+    """B2's tier: on a bright ground the held plate (plate.held 0.875) lets light through; under contrast.high plus
+    the re-encode margin it is drawn opaque INK, and its text then reads its fill against INK."""
+    _palette("second-colours")
+    bright = _photo(tmp_path / "bright.png", 1600, 1200, sky=(250, 248, 240), seed=31)
+    old, new = _registered(tmp_path, bright, bright)
+    meta = _plan_only(monkeypatch, tmp_path, old, new, TALL)
+    tiers = {w: meta["side"][w]["tier"] for w in ("then", "now")}
+    assert any(t["tier"] == "opaque" for t in tiers.values()), tiers
+    for t in tiers.values():
+        assert t["contrast"] >= brand_system.tok("contrast.high") - 1e-9
+        if t["tier"] == "opaque":
+            assert t["held_contrast"] < brand_system.tok("contrast.high") + then_now.HIGH_MARGIN
+
+
+@pytest.mark.parametrize("size", [TALL, WIDE])
+def test_the_now_marker_enters_on_the_tokens_after_the_landing(monkeypatch, tmp_path, size):
+    """D5: the NOW marker enters over motion.reveal on ease_out, never before the divider has landed, on every
+    placement (16:9 "outer" showed at 2.3 s while the divider landed at 3.07 s)."""
+    if size == WIDE:   # NOW busy against the divider, calm at its outer edge: it takes "outer"
+        old = _photo(tmp_path / "t.png", 1920, 1080, [(0.05, 0.1, 0.3, 0.6)], seed=41)
+        new = _photo(tmp_path / "n.png", 1920, 1080, [(0.5, 0.1, 0.72, 0.6)], seed=42)
+    else:
+        old, new = _memnon_like(tmp_path)
+    old, new = _registered(tmp_path, old, new)
+    meta = _plan_only(monkeypatch, tmp_path, old, new, size)
+    if size == WIDE:
+        assert meta["side"]["now"]["side"] == "outer"
+    t1 = then_now.wipe_window(*size, then_now.then_text(1876))[1]
+    reveal = brand_system.tok("motion.reveal")
+    from src.brand_system import ease_out
+    for i, a in enumerate(meta["schedule"]["now"]):
+        t = i / FPS
+        assert a == pytest.approx(0.0 if t < t1 - 1e-9 else ease_out((t - t1) / reveal), abs=1e-4), (i, a)
+
+
+def test_the_split_reads_both_markers_at_both_ends_of_the_wipe_range():
+    """D6: the split's hold after the NOW marker's entry covers both markers' reading time (the longest pair,
+    'THEN 0000 LATER 0000') at both ends of motion.wipe_step's range; a brand breaking it is refused at configure."""
+    lo, hi = brand_system.TOKEN_RANGES["motion.wipe_step"]
+    assert then_now.timing_problems(brand.DEFAULT_BRAND.system) == []
+    for step in (lo, hi):
+        cfg = brand.DEFAULT_BRAND.derive(f"wipe {step}", system={"motion.wipe_step": step})
+        assert then_now.timing_problems(cfg.system) == []
+        for size in (TALL, WIDE):
+            t = then_now.timing(brand_system.tok("motion.reveal"), step, brand_system.tok("motion.caption_cps"), *size)
+            assert t["hold"] >= t["need"]
+    with pytest.raises(ValueError, match="then-and-now"):
+        brand.DEFAULT_BRAND.derive("slow reveal", system={"motion.reveal": 0.8})

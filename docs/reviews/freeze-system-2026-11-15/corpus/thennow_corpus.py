@@ -48,6 +48,43 @@ def pairs(tree: Path, dev: Path) -> list[dict[str, Any]]:
     return out
 
 
+# Pool pairs the cycle-6 review constructed (REVIEW-thennow-c6.md C1-C4): photographs of four other runs, each a
+# then_k / now_k_j pool pair of its run, with the years the review drew them with. Registered only (below).
+POOL = (("run_wieliczka_salt_mine_1792974672", "then_1", "now_1_0", 1890, 2015),
+        ("run_odessa_catacombs_1792970549", "then_3", "now_3_1", 1900, 2016),
+        ("run_kailasa_temple_monolith_1792524470", "then_0", "now_0_0", 1870, 2012),
+        ("run_amber_room_heist_1792805842", "then_2", "now_2_5", 1917, 2017))
+
+
+def registered_pairs(tree: Path, dev: Path, cache: Path, then_now) -> list[dict[str, Any]]:
+    """REGISTERED test pairs, the only kind production draws (make -> source -> register): no dev pair passes
+    shares_viewpoint, so each dev pair above and each POOL pair is put through then_now.register with the identity
+    matrix (the recent photograph cover-fitted to the old one's frame: one picture at one size, as register writes
+    it). A stand-in for a real registration (whose warp is the matched view's), stated as such in the hand-back."""
+    import numpy as np
+    from PIL import Image, ImageOps
+    src = [dict(p) for p in pairs(tree, dev)]
+    for run, o, n, oy, ny in POOL:
+        g = dev / "output" / run / "graphics"
+        topic = run.split("_17")[0].replace("run_", "")
+        src.append({"run": run, "topic": topic, "old": g / f"{o}.jpg", "new": g / f"{n}.jpg", "old_year": oy,
+                    "new_year": ny, "id": f"{topic}__{o}__{n}"})
+    out = []
+    for p in src:
+        d = cache / p["id"]
+        reg = (d / "reg" / "old_reg.png", d / "reg" / "new_fit_reg.png")
+        if not all(x.is_file() for x in reg):
+            d.mkdir(parents=True, exist_ok=True)
+            o = Image.open(p["old"]).convert("RGB")
+            ImageOps.fit(Image.open(p["new"]).convert("RGB"), o.size, Image.LANCZOS).save(d / "new_fit.png")
+            o.save(d / "old.png")
+            reg = then_now.register(d / "old.png", d / "new_fit.png", np.array([[1.0, 0, 0], [0, 1.0, 0]]), d / "reg")
+            if reg is None:
+                raise SystemExit(f"{p['id']}: register() refused the identity pair")
+        out.append({**p, "old": reg[0], "new": reg[1], "id": "reg__" + p["id"], "registered": True})
+    return out
+
+
 def use_tree(tree: Path):
     sys.path.insert(0, str(tree))
     import os
@@ -104,6 +141,13 @@ def shown_boxes(then_now, info: dict, sizes: list[tuple[int, int]], width: int, 
         out[which] = {"w": round(box[2] - box[0], 4), "h": round(box[3] - box[1], 4), "box": box,
                       "centre_half": bool(half), "mode": "shared window"}
     return out
+
+
+def rest_view(window, size, push: float) -> tuple[float, float, float, float]:
+    """The part of a picture (shares) a source `window` shows at rest: its central 1 / (1 + push)."""
+    x0, y0, x1, y1 = window
+    cx, cy, hw, hh = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 / (1 + push), (y1 - y0) / 2 / (1 + push)
+    return (cx - hw) / size[0], (cy - hh) / size[1], (cx + hw) / size[0], (cy + hh) / size[1]
 
 
 def trimmed_sizes(then_now, pair: dict, info: dict) -> list[tuple[int, int]]:

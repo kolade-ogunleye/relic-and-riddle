@@ -37,7 +37,7 @@ IN_FULL, IN_KEEP, IN_STEP = 0.9, 0.8, 0.05
 
 def render_one(tree: Path, dev: Path, out: Path, pid: str, w: int, h: int) -> None:
     then_now = tc.use_tree(tree)
-    pair = next(p for p in tc.pairs(tree, dev) if p["id"] == pid)
+    pair = next(p for p in all_pairs(tree, dev, out, then_now) if p["id"] == pid)
     tag = "916" if h > w else "169"
     clip = out / f"thennow__{pid}__{tag}.mp4"
     then_now.render(pair["old"], pair["old_year"], pair["new"], pair["new_year"], clip, w, h)
@@ -52,6 +52,12 @@ def render_one(tree: Path, dev: Path, out: Path, pid: str, w: int, h: int) -> No
     meta.update({"size": [w, h], "split": then_now._split_at(w, h), "fps": then_now.VIDEO_FPS,
                  "pair": pid, "years": [pair["old_year"], pair["new_year"]]})
     clip.with_suffix(".meta.json").write_text(json.dumps(meta, default=str), encoding="utf-8", newline="\n")
+
+
+def all_pairs(tree: Path, dev: Path, out: Path, then_now) -> list[dict]:
+    """Every dev pair (unregistered stand-ins) and every registered test pair (thennow_corpus.registered_pairs, built
+    once into <dir>/../thennow_reg_pairs)."""
+    return tc.pairs(tree, dev) + tc.registered_pairs(tree, dev, out.parent / "thennow_reg_pairs", then_now)
 
 
 def frames_of(clip: Path, size: tuple[int, int]):
@@ -194,7 +200,8 @@ def main() -> int:
     if "--render" in sys.argv:
         jobs = int(sys.argv[sys.argv.index("--jobs") + 1]) if "--jobs" in sys.argv else 4
         out.mkdir(parents=True, exist_ok=True)
-        todo = [(p["id"], w, h) for p in tc.pairs(tree, dev) for w, h, _ in tc.FORMATS]
+        then_now = tc.use_tree(tree)
+        todo = [(p["id"], w, h) for p in all_pairs(tree, dev, out, then_now) for w, h, _ in tc.FORMATS]
 
         def run(job):
             pid, w, h = job

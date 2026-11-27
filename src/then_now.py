@@ -375,9 +375,18 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
             if pair:
                 return pair[0], {**old, "file": str(op)}, pair[1], {**new, "file": str(np_)}
             log.info("Then-and-now: old photo %d and its pick do not share a viewpoint; not shown.", k + 1)
+            LAST_REFUSAL.append({"old": k + 1, "reason": "not registered: the pair does not share a viewpoint "
+                                 "(shares_viewpoint / register); an unregistered pair is not a then-and-now"})
             continue
         log.info("Then-and-now: no honest match for old photo %d: %s", k + 1, pick.note[:160])
+        LAST_REFUSAL.append({"old": k + 1, "reason": f"no honest match: {pick.note[:160]}"})
     return None
+
+
+# Review round 1 (lander ruling 2026-11-27): production draws REGISTERED pairs only; source() refuses every other
+# pairing and says why, per old photograph (LAST_REFUSAL, written beside the run by make() as REFUSAL_SIDECAR).
+LAST_REFUSAL: list[dict[str, Any]] = []
+REFUSAL_SIDECAR = "graphic_thennow.refused.json"
 
 
 # The comparison ends on both photographs (panel round 2, 2026-11-02: the last frame showed only the recent one,
@@ -466,12 +475,50 @@ DIVIDER_W = 5
 #     which must leave both markers' text its reading time (hold_seconds; recorded in the clip's meta).
 
 
-def read_seconds(text: str) -> float:
+def read_seconds(text: str, cps: float | None = None) -> float:
     """Seconds `text` needs on screen: twice its characters at tok("motion.caption_cps") (MO1: read twice), never
     under the composer's own reading need for it (config.CAPTION_READ_PER_CHAR a character + CAPTION_READ_BASE)."""
     from .brand_system import tok
     n = len(text)
-    return max(2.0 * n / float(tok("motion.caption_cps")), n * config.CAPTION_READ_PER_CHAR + config.CAPTION_READ_BASE)
+    cps = float(tok("motion.caption_cps")) if cps is None else float(cps)
+    return max(2.0 * n / cps, n * config.CAPTION_READ_PER_CHAR + config.CAPTION_READ_BASE)
+
+
+# Review round 1 (D6, lander ruling 2026-11-27): the split's hold is never under the reading need of both markers, as a
+# gate at configuration (BrandConfig refuses a brand whose motion tokens break it), not a log line. The worst case is
+# the longest pair of markers the clip draws ("THEN 1876 LATER 1999": four-figure years, the longer kicker) on the
+# format with the longer wipe (9:16: 1152 px from the foot to the split).
+WORST_THEN, WORST_BOTH = "THEN 0000", "THEN 0000 LATER 0000"
+
+
+def timing(reveal: float, step: float, cps: float, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+           then: str = WORST_THEN, both: str = WORST_BOTH) -> dict[str, float]:
+    """The clip's timing for these motion values: the old photo's dwell (its marker's entry and reading time, whole
+    frames), the wipe (whole frames at a smoothstep peak of `step` px a frame at 1080), the NOW marker's entry (the
+    same reveal, after the divider lands) and the split's hold after it, against both markers' reading time."""
+    import math
+    dwell = math.ceil((reveal + read_seconds(then, cps)) * VIDEO_FPS - 1e-9) / VIDEO_FPS
+    axis = 0 if width > height else 1
+    dist = abs((width, height)[axis] - _split_at(width, height))
+    wipe = math.ceil(1.5 * dist / (step * min(width, height) / 1080.0) - 1e-9) / VIDEO_FPS
+    hold = CLIP_SECONDS - dwell - wipe - reveal
+    return {"dwell": dwell, "wipe": wipe, "land": dwell + wipe, "now_in": dwell + wipe + reveal, "hold": hold,
+            "need": read_seconds(both, cps)}
+
+
+def timing_problems(system: Any) -> list[str]:
+    """The then-and-now clip's reading rule broken by a brand's motion tokens (`system`: its token values), on both
+    formats: [] when the split holds both markers for their reading time."""
+    from .brand_system import GATES
+    cps = float(GATES["motion.caption_cps"])
+    out = []
+    for w, h in ((1080, 1920), (1920, 1080)):
+        t = timing(float(system["motion.reveal"]), float(system["motion.wipe_step"]), cps, w, h)
+        if t["hold"] + 1e-9 < t["need"]:
+            out.append(f"then-and-now {w}x{h}: the split holds {t['hold']:.2f} s after the NOW marker's entry, under "
+                       f"the {t['need']:.2f} s both markers need (motion.reveal {system['motion.reveal']}, "
+                       f"motion.wipe_step {system['motion.wipe_step']})")
+    return out
 
 
 def then_text(year: int) -> str:
@@ -479,23 +526,22 @@ def then_text(year: int) -> str:
     return f"{kicker_word('then', year)} {year}"
 
 
+def _timing_now(width: int, height: int, then: str = WORST_THEN, both: str = WORST_BOTH) -> dict[str, float]:
+    from .brand_system import tok
+    return timing(float(tok("motion.reveal")), float(tok("motion.wipe_step")), float(tok("motion.caption_cps")),
+                  width, height, then, both)
+
+
 def then_dwell(text: str = "THEN 0000") -> float:
     """Seconds the old photo holds alone: its marker's entry (motion.reveal) and then its reading time, rounded up
     to the frame. The default is a four-figure year's marker."""
-    import math
-    from .brand_system import tok
-    return math.ceil((float(tok("motion.reveal")) + read_seconds(text)) * VIDEO_FPS - 1e-9) / VIDEO_FPS
+    return _timing_now(VIDEO_WIDTH, VIDEO_HEIGHT, then=text)["dwell"]
 
 
 def wipe_seconds(width: int, height: int) -> float:
     """The wipe's length on this format: the least whole number of frames over which the smoothstep from the far
     edge to the split steps at most tok("motion.wipe_step") px a frame (scaled to the canvas's short side)."""
-    import math
-    from .brand_system import tok
-    axis = 0 if width > height else 1
-    dist = abs((width, height)[axis] - _split_at(width, height))
-    step = float(tok("motion.wipe_step")) * min(width, height) / 1080.0
-    return math.ceil(1.5 * dist / step - 1e-9) / VIDEO_FPS
+    return _timing_now(width, height)["wipe"]
 
 
 def wipe_window(width: int, height: int, text: str = "THEN 0000") -> tuple[float, float]:
@@ -505,8 +551,9 @@ def wipe_window(width: int, height: int, text: str = "THEN 0000") -> tuple[float
 
 
 def hold_seconds(width: int, height: int, text: str = "THEN 0000") -> float:
-    """Seconds the split holds whole after the NOW marker's entry (GROUP_RAMP frames after the divider lands)."""
-    return CLIP_SECONDS - wipe_window(width, height, text)[1] - GROUP_RAMP / VIDEO_FPS
+    """Seconds the split holds whole after the NOW marker's entry (motion.reveal, from the divider's landing)."""
+    from .brand_system import tok
+    return CLIP_SECONDS - wipe_window(width, height, text)[1] - float(tok("motion.reveal"))
 
 
 def _utc_year() -> int:
@@ -771,6 +818,37 @@ def _cover_window(size: tuple[int, int], big: tuple[int, int], z: float = 1.0, v
 # its edges. No topic, no photo list.
 FRAME_U = (0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9)
 FRAME_MIDDLE = 0.6                  # the share of a pane's columns read as its middle
+# Freeze cycle 6 (THENNOW T2, review round 1, lander ruling 2026-11-27): production draws only REGISTERED pairs (make()
+# -> source() -> register(): one picture, both photographs at one size, one shared window, the divider across it). The
+# window must keep that picture's central region: on each axis the photograph's central half (photo_fitness's
+# centre_half), or, where the frame's aspect cannot hold half of that axis even at the least zoom, all of what the
+# centred least-zoom window holds of it. A window the search (T7) would move or zoom past that is not taken: the
+# centred window is kept and the reason recorded. (A registered 4:3 picture at 9:16 holds 0.42 of its width at the
+# least zoom: its window stays centred and unzoomed.) An unregistered pair is not a then-and-now (production refuses
+# it, source()); render() draws one as before, recorded "unregistered", for stand-in evidence only.
+CENTRE_HALF = 0.25
+
+
+def central_region(size: tuple[int, int], big: tuple[int, int]) -> tuple[float, float, float, float]:
+    """The part of a picture `size` every shared window must keep in view at rest (shares of its width and height)."""
+    rest = _rest_view(_cover_window(size, big), size)
+    out = []
+    for lo, hi in ((rest[0], rest[2]), (rest[1], rest[3])):
+        out.append((lo, hi) if hi - lo < 2 * CENTRE_HALF else (CENTRE_HALF, 1 - CENTRE_HALF))
+    return out[0][0], out[1][0], out[0][1], out[1][1]
+
+
+def _rest_view(window: tuple[float, ...], size: tuple[int, int]) -> tuple[float, float, float, float]:
+    """The part of the picture (shares) a source `window` shows at rest: its central 1 / (1 + PUSH) (pushed)."""
+    x0, y0, x1, y1 = window
+    cx, cy, hw, hh = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 / (1 + PUSH), (y1 - y0) / 2 / (1 + PUSH)
+    return (cx - hw) / size[0], (cy - hh) / size[1], (cx + hw) / size[0], (cy + hh) / size[1]
+
+
+def keeps_centre(window: tuple[float, ...], size: tuple[int, int], big: tuple[int, int]) -> bool:
+    """Does `window` keep the picture's central region (central_region) in view at rest?"""
+    r, v = central_region(size, big), _rest_view(window, size)
+    return v[0] <= r[0] + 1e-3 and v[1] <= r[1] + 1e-3 and v[2] >= r[2] - 1e-3 and v[3] >= r[3] - 1e-3
 
 
 def _middle_density(pane: Any) -> float:
@@ -849,8 +927,6 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
                                 "src/then_now.py register)")
         log.info("Then-and-now: the pair is not registered (%s and %s px); drawn through the shared window.",
                  ims[0].size, ims[1].size)
-    if not info["registered"] and height > width:
-        return _panels(ims, masks, width, height, info, subjects)
     # both photos graded as the master grades a bare photo, before anything is drawn on them (QF-86)
     srcs = [grade(ImageOps.fit(im, big, Image.LANCZOS)) for im in ims]
 
@@ -911,6 +987,9 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
             if not SUBJECT_TOP[0] * split <= row <= SUBJECT_TOP[1] * split:
                 log.debug("Then-and-now 9:16 window: zoom %.2f at %.2f puts the subject at row %.0f.", z, u, row)
                 continue
+            if info["registered"] and not keeps_centre(_cover_window(old_im.size, big, z, v, u), old_im.size, big):
+                info["centre_kept"] = info.get("centre_kept", 0) + 1     # windows the rule set aside
+                continue
             cand = [im.resize(big, Image.LANCZOS, box=_cover_window(im.size, big, z, v, u)).convert("RGB")
                     for im in ims]
             tp, lp = panes(*cand)
@@ -952,99 +1031,6 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
              z_max)
     info["window"] = "centred (no window found)"
     return _out(srcs[0], srcs[1], _fitted)
-
-
-# Freeze cycle 6 (THENNOW T2b; panel 7 AD-T1 / CD-A1, lander ruling 2026-11-27: on 9:16 Memnon the NOW panel showed
-# only the colossus' base and the THEN panel its head and torso). On 9:16 an UNREGISTERED pair is not one frame cut in
-# two: the shared window landed on different parts of two photographs of different framing (the head above, the
-# pedestal below). No subject box exists for these photographs (no detector is built), so each panel shows its own
-# photograph by a rule that needs none ("panels"):
-#   - at the frame's full width: the 16:9 layout shows each photograph's full width (a cover crop of a photograph
-#     narrower than 16:9), and a subject may sit anywhere across it (Memnon 2011's colossus spans 62-93 % of its
-#     width: any narrower crop cuts it), so the 9:16 panel never crops across;
-#   - its height: a photograph taller than its panel at that width is cut to the panel round its centre (the
-#     photograph's central region; it shows at least the share of the height the 16:9 frame shows, since a 9:16 panel
-#     is narrower than 16:9), only while the panel still holds the central half (photo_fitness's centre_half rule:
-#     [0.25, 0.75] on both axes); one shorter than its panel is shown whole against the divider, the rest of its panel
-#     the INK field; one so tall that the panel would hold less than its central half is CONTAINED in its panel
-#     (whole, at the panel's height, centred, INK beside it), the designed alternative, recorded.
-#   - each photograph stays where its panel puts it for the whole clip (only the shared push moves it): the old one
-#     opens in the frame as it will rest, its own rows below its panel showing until the divider covers them. A
-#     builder's trial that slid the old photograph from whole to its panel with the wipe stepped the frame's mean
-#     luma 13-15 a frame on Roman 9:16 (limit 8.0, end_card.DIM_STEP_MAX): withdrawn, recorded in the hand-back.
-# A registered pair keeps the shared window (one frame, two parts of it); 16:9 is unchanged (the reference layout).
-PANEL_LAYOUT = "panels"
-PANEL_CENTRE_HALF = 0.25            # the central half: the shown box covers [0.25, 0.75] of each axis
-
-
-def panel_geometry(size: tuple[int, int], which: str, width: int, height: int) -> dict[str, Any]:
-    """Where photograph `size` (w, h) sits in its 9:16 panel, in the push's source px (the frame x (1 + PUSH)): mode
-    ("rows": full width, cut to its panel round its centre; "whole": full width, whole against the divider;
-    "contained": whole at its panel's height), x, y, w, h (drawn size), and the part of the photograph the frame shows at rest (shown: shares of its width and height, box, centre_half)."""
-    import math
-    sw, sh = size
-    a = sw / sh
-    bw, bh = round(width * (1 + PUSH)), round(height * (1 + PUSH))
-    ox, oy = (bw - width) / 2, (bh - height) / 2          # the frame's window at rest (the push's end)
-    split = _split_at(width, height)
-    if which == "then":
-        top, bot = 0, math.ceil(oy + split) + 1           # the frame's top (t 0) to just past the split at rest
-        rest = (oy, oy + split)
-    else:
-        top, bot = math.floor(split * (1 + PUSH)) - 1, bh  # the split at t 0 (the wipe's first frames) to the foot
-        rest = (oy + split, oy + height)
-    span = bot - top
-    pw, ph = float(bw), bw / a
-    x = 0.0
-    if ph >= span:
-        mode = "rows"
-        y = min(max((rest[0] + rest[1]) / 2 - ph / 2, bot - ph), float(top))
-        if (rest[1] - rest[0]) / ph < 2 * PANEL_CENTRE_HALF:
-            mode, ph, pw = "contained", float(span), span * a
-            x, y = (bw - pw) / 2, float(top)
-    else:
-        mode = "whole"
-        y = (bot - ph) if which == "then" else float(top)
-    bx0, bx1 = (max(x, ox) - x) / pw, (min(x + pw, ox + width) - x) / pw
-    by0, by1 = (max(y, rest[0]) - y) / ph, (min(y + ph, rest[1]) - y) / ph
-    box = [round(max(0.0, v), 4) for v in (bx0, by0)] + [round(min(1.0, v), 4) for v in (bx1, by1)]
-    half = (box[0] <= PANEL_CENTRE_HALF + 1e-4 and box[2] >= 1 - PANEL_CENTRE_HALF - 1e-4
-            and box[1] <= PANEL_CENTRE_HALF + 1e-4 and box[3] >= 1 - PANEL_CENTRE_HALF - 1e-4)
-    return {"mode": mode, "x": round(x, 2), "y": round(y, 2), "w": round(pw, 2), "h": round(ph, 2),
-            "aspect": round(a, 4),
-            "shown": {"w": round(box[2] - box[0], 4), "h": round(box[3] - box[1], 4), "box": box,
-                      "centre_half": bool(half)}}
-
-
-def _panel_layer(im: Image.Image, geo: dict[str, Any], big: tuple[int, int], fill: Any,
-                 resample: Any = Image.LANCZOS) -> Image.Image:
-    """`im` drawn at `geo`'s size and place on a `fill` canvas of `big`."""
-    w, h = max(1, round(geo["w"])), max(1, round(geo["h"]))
-    canvas = Image.new(im.mode, big, fill)
-    canvas.paste(im if im.size == (w, h) else im.resize((w, h), resample), (round(geo["x"]), round(geo["y"])))
-    return canvas
-
-
-def _panels(ims: list, masks: list, width: int, height: int, info: dict[str, Any], subjects: list | None
-            ) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
-    """The 9:16 "panels" layout of an unregistered pair (above): each photograph at its own panel_geometry, graded as
-    the master grades a bare photo (QF-86), each on the INK field of its own layer."""
-    from .photo_grade import grade
-    big = (round(width * (1 + PUSH)), round(height * (1 + PUSH)))
-    geos = [panel_geometry(im.size, w, width, height) for im, w in zip(ims, ("then", "now"))]
-    ink = tuple(brand.INK)
-    graded = [grade(im.convert("RGB").resize((max(1, round(g["w"])), max(1, round(g["h"]))), Image.LANCZOS))
-              for im, g in zip(ims, geos)]
-    a, b = (_panel_layer(im, g, big, ink) for im, g in zip(graded, geos))
-    info.update({"layout": PANEL_LAYOUT, "window": "panels", "panels": {"then": geos[0], "now": geos[1]}})
-    for w, g in zip(("then", "now"), geos):
-        log.info("Then-and-now 9:16 panels: %s photograph %s, %.0f %% of its width and %.0f %% of its height shown "
-                 "at rest%s.", w, g["mode"], 100 * g["shown"]["w"], 100 * g["shown"]["h"],
-                 "" if g["shown"]["centre_half"] else " (NOT its central half)")
-    if subjects is not None:
-        subjects[:] = [None if m is None else _panel_layer(m.convert("L"), g, big, 0, Image.NEAREST)
-                       for m, g in zip(masks, geos)]
-    return a, b, info
 
 
 KEYLINE_W, KEYLINE_ALPHA = 2, 170   # the INK keyline either side of the bone divider (freeze panel 2026-11-04)
@@ -1751,6 +1737,36 @@ def marker_candidates(width: int, height: int, half_w: float) -> tuple[str, ...]
         return ("inner", "outer")
     return marker_sides(width, height, half_w)
 
+HIGH_MARGIN = PLACE_TARGET - 4.5     # the held tier's allowance for the platform re-encode (4.8 for a 4.5 gate)
+
+
+def plate_tier(plates: list, rec: dict[str, Any], grounds: list, high: float, high_held: float) -> dict[str, Any]:
+    """A planned marker's plate tier (B2): its held plate when every row plans `high_held` or more on its grounds,
+    else its plate made opaque INK (each row then reads its fill against INK, every ground hidden); the record:
+    {"tier": "held" | "opaque" | variant, "contrast": the least row's ratio (None when it is not drawn)}."""
+    if not rec.get("shown"):
+        return {"tier": "none", "contrast": None}
+    least = min((p.contrast or 0.0) for p in plates)
+    if rec.get("variant") != "plate" or getattr(plates[0], "backing", None) is None:
+        return {"tier": str(rec.get("variant")), "contrast": round(least, 3)}
+    if least + 1e-9 >= high_held:
+        return {"tier": "held", "contrast": round(least, 3)}
+    from .typography import plan_text
+    for p in plates:
+        p.backing.parent.alpha = 1.0
+    worst = None
+    for g in grounds:
+        backed = g
+        for p in plates:
+            backed = p.backing.draw(backed)
+        for p in plates:
+            c = plan_text(backed, p.xy, p.text, p.font, p.fill, p.anchor, p.track, target=high, halo_px=0).contrast
+            worst = c if worst is None else min(worst, c)
+    for p in plates:
+        p.contrast = worst
+    return {"tier": "opaque", "contrast": round(float(worst or 0.0), 3), "held_contrast": round(least, 3)}
+
+
 # What the last render() did (type modes, halo, glow steps, side, framing); also written into the contrast sidecar.
 last_meta: dict[str, Any] = {}
 
@@ -1810,6 +1826,11 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     split0 = compose(pushed(a_src, CLIP_SECONDS, size), pushed(b_src, CLIP_SECONDS, size), split)
     alone0 = {"then": compose(pushed(a_src, 0.0, size), pushed(b_src, 0.0, size), edge),
               "now": compose(pushed(a_src, t1, size), pushed(b_src, t1, size), split)}
+    # Review round 1 (B3, ruling 2026-11-27): a place is chosen on the PHOTOGRAPHS as placed, before any palette-
+    # coloured element (no divider, no INK, no plate in a candidate box), so the choice is the same in every palette.
+    photos0 = {"rest": compose(pushed(a_src, CLIP_SECONDS, size), pushed(b_src, CLIP_SECONDS, size), split,
+                               divider=False),
+               "open": compose(pushed(a_src, 0.0, size), pushed(b_src, 0.0, size), edge, divider=False)}
 
     def ink_boxes(which: str, ln: tuple) -> list:
         kxy, fxy, anchor = ln
@@ -1833,13 +1854,14 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         subj = compose(pushed(masks[0], CLIP_SECONDS, size), pushed(masks[1], CLIP_SECONDS, size), split,
                        divider=False)
     sides: dict[str, str] = {}
+    ranked: dict[str, list] = {}
     side_meta = {"rule": "calmest documented place per panel (ground_detail; SIDE_MARGIN)", "candidates": list(cands)}
     for w in ("then", "now"):
         details, shares = {}, {}
         for s in cands:
             box = padded(ink_boxes(w, marker_lines(w, years[w], width, height, words[w], s)), PAPER_PAD,
                          panel_box(w, width, height))
-            grounds = [split0] + ([alone0["then"]] if w == "then" else [])
+            grounds = [photos0["rest"]] + ([photos0["open"]] if w == "then" else [])
             details[s] = round(sum(ground_detail(g, box) for g in grounds) / len(grounds), 4)
             if subj is not None:
                 shares[s] = round(subject_share(subj, box), 4)
@@ -1849,13 +1871,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
             pool = {s: details[s] for s in cands if shares[s] <= best + SUBJECT_TIE}
         default = cands[0] if cands[0] in pool else min(pool, key=lambda s: (pool[s], cands.index(s)))
         sides[w] = quieter_side(pool, default)
+        # the places in the order the rule takes them: its choice, then the next calmest (B2's fallback)
+        ranked[w] = [sides[w]] + sorted((s for s in pool if s != sides[w]), key=lambda s: (pool[s], cands.index(s)))
         side_meta[w] = {"side": sides[w], "detail": details, **({"subject_share": shares} if shares else {})}
-    lines = {w: marker_lines(w, years[w], width, height, words[w], sides[w]) for w in years}
-    gate = {}
-    for w in years:
-        ok, st = paper_gate(ink_boxes(w, lines[w]), [(split0, panel_box(w, width, height)),
-                                                     (alone0[w], (0, 0, width, height))])
-        gate[w] = {"ok": ok, "split": st[0], "alone": st[1]}
 
     # Cycle 0 round 8 (operator ruling 2; panel consensus 7): each marker (its kicker and its year) is ONE overlay
     # label, planned by typography.plan_label on the lightest and the darkest of the pictures it sits on (its split
@@ -1866,28 +1884,67 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     # The halo up to 1.0 and the glows are retired.
     import numpy as np
 
-    from .brand_system import colour_of
+    from .brand_system import colour_of, tok
     from .typography import plan_label_set
-    rules = {w: marker_rule(lines[w][0], words[w], key, lines[w][2]) for w in years}
     lightest = {w: Image.fromarray(np.maximum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     darkest = {w: Image.fromarray(np.minimum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     fills = [colour_of("kicker.colour"), colour_of("figure.colour")]
 
-    def member(which: str) -> dict:
-        kxy, fxy, anchor = lines[which]
-        return {"ground": lightest[which], "rows": [(kxy, words[which], k_font, anchor, track),
-                                                    (fxy, str(years[which]), y_font, anchor, 0)],
-                "colours": ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), "target": PLACE_TARGET,
-                "dark_ground": darkest[which], "ink": INK_ON_PAPER and gate[which]["ok"], "extra": [rules[which]],
-                "colour_held": True}   # freeze cycle 4 (SYS item 3): the one kicker colour rule (typography.label_ladder)
+    # Review round 1 (B2, lander ruling 2026-11-27): a year plate's text holds contrast.high (7.0) in every palette,
+    # through the plate's own tiers: the held plate (plate.held), then the opaque tier (an opaque INK year plate).
+    # The held tier must plan HIGH_MARGIN over it (PLACE_TARGET's own allowance for the platform re-encode, 4.8 for
+    # 4.5); the opaque tier's ratio is its fill against INK itself. Where the chosen place cannot reach it at the
+    # opaque tier, the next calmest documented place that does is taken; a drop against the base place is then the
+    # cost of moving off the subject, recorded per marker ("tier", "contrast").
+    high = float(tok("contrast.high"))
+    high_held = high + HIGH_MARGIN
 
-    # Cycle 0 round 8 (R1, one treatment per set): THEN and NOW are one twin pair on one frame, so they are planned
-    # as ONE set (typography.plan_label_set): the least intrusive step that holds on both markers' grounds, the
-    # same on both (bare INK type beside a gold plate read as two systems); each keeps its own only when no one step
-    # holds both (the gate is never traded).
-    order = [w for w in ("then", "now") if w in years]
-    results, set_rec = plan_label_set([member(w) for w in order])
-    planned = dict(zip(order, results))
+    def plan(sides_now: dict[str, str]) -> tuple:
+        lines_ = {w: marker_lines(w, years[w], width, height, words[w], sides_now[w]) for w in years}
+        gate_ = {}
+        for w in years:
+            ok, st = paper_gate(ink_boxes(w, lines_[w]), [(split0, panel_box(w, width, height)),
+                                                          (alone0[w], (0, 0, width, height))])
+            gate_[w] = {"ok": ok, "split": st[0], "alone": st[1]}
+        rules_ = {w: marker_rule(lines_[w][0], words[w], key, lines_[w][2]) for w in years}
+
+        def member(which: str) -> dict:
+            kxy, fxy, anchor = lines_[which]
+            return {"ground": lightest[which], "rows": [(kxy, words[which], k_font, anchor, track),
+                                                        (fxy, str(years[which]), y_font, anchor, 0)],
+                    "colours": ([tuple(c) for c in fills], [tuple(brand.BONE)] * 2), "target": PLACE_TARGET,
+                    "dark_ground": darkest[which], "ink": INK_ON_PAPER and gate_[which]["ok"],
+                    "extra": [rules_[which]],
+                    "colour_held": True}   # freeze cycle 4 (SYS item 3): the one kicker colour rule
+        # Cycle 0 round 8 (R1, one treatment per set): THEN and NOW are one twin pair on one frame, so they are
+        # planned as ONE set (typography.plan_label_set): the least intrusive step that holds on both markers'
+        # grounds, the same on both; each keeps its own only when no one step holds both (the gate is never traded).
+        order_ = [w for w in ("then", "now") if w in years]
+        results, rec_ = plan_label_set([member(w) for w in order_])
+        return lines_, gate_, rules_, dict(zip(order_, results)), rec_
+
+    tiers: dict[str, dict] = {}
+    while True:
+        lines, gate, rules, planned, set_rec = plan(sides)
+        short = []
+        for w in years:
+            ps, rec = planned[w]
+            tiers[w] = plate_tier(ps, rec, [lightest[w], darkest[w]], high, high_held)
+            if tiers[w]["contrast"] is not None and tiers[w]["contrast"] + 1e-9 < high:
+                short.append(w)
+        moved = False
+        for w in short:            # the next calmest documented place, while one is left
+            k = ranked[w].index(sides[w])
+            if k + 1 < len(ranked[w]):
+                sides[w] = ranked[w][k + 1]
+                moved = True
+        if not moved:
+            break
+    for w in years:
+        side_meta[w].update({"side": sides[w], "tier": tiers[w]})
+        if tiers[w]["contrast"] is not None and tiers[w]["contrast"] + 1e-9 < high:
+            log.warning("Then-and-now: the %s marker holds %.2f:1 at its last place, under contrast.high %.1f.",
+                        w, tiers[w]["contrast"], high)
     plates: dict[str, list] = {}
     mode: dict[str, str] = {}
     for w in years:
@@ -1920,10 +1977,14 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     groups = {w: group(w) for w in years}
     positions = [divider_at(i / VIDEO_FPS, width, height, text0) for i in range(n)]
     sched = {w: group_alpha([group_clear(groups[w], w, positions[i], width, height) for i in range(n)]) for w in years}
-    from .brand_system import ease_out, tok
+    from .brand_system import ease_out
     reveal = float(tok("motion.reveal"))
     for i in range(n):
-        sched["then"][i] *= ease_out(i / VIDEO_FPS / reveal)     # the THEN marker arrives (motion.reveal, ease_out)
+        t = i / VIDEO_FPS
+        sched["then"][i] *= ease_out(t / reveal)                 # the THEN marker arrives (motion.reveal, ease_out)
+        # review round 1 (D5): the NOW marker arrives the same way, once the divider has landed, on every placement
+        sched["now"][i] = (ease_out((t - t1) / reveal) if t >= t1 - 1e-9 else 0.0) * (
+            1.0 if group_clear(groups["now"], "now", positions[i], width, height) else 0.0)
     hold = hold_seconds(width, height, text0)
     both = f"{text0} {words['now']} {years['now']}"
     timing = {"then_dwell": round(t0, 4), "wipe": [round(t0, 4), round(t1, 4)], "split_hold": round(hold, 4),
@@ -1998,8 +2059,13 @@ def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height
     """(clip, credits of both photos) or (None, []). `grade_bias`: the bias the master grades the run's photos with;
     the pair takes the same photo grade (QF-86, src/photo_grade.py)."""
     try:
+        LAST_REFUSAL.clear()
         found = source(topic, work_dir)
         if not found:
+            import json
+            refused = list(LAST_REFUSAL) or [{"reason": "no dated, licensed old/new pair to compare"}]
+            (work_dir / REFUSAL_SIDECAR).write_text(json.dumps({"drawn": False, "refused": refused},
+                                                               indent=1), encoding="utf-8", newline="\n")
             return None, []
         old, old_c, new, new_c = found
         from .photo_grade import using

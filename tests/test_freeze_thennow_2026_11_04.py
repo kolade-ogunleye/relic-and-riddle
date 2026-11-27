@@ -1246,7 +1246,7 @@ def test_the_916_markers_take_the_quieter_side(tmp_path, monkeypatch, busy_left,
     if side == "left":
         assert got == "left"
     else:
-        assert got != "left" and sums[got] <= min(sums.values()) / (1 - then_now.SIDE_MARGIN)
+        assert got != "left" and sums[got] == min(sums.values())   # a non-default pick is the calmest (exact)
         side = "right" if got == "right" else got
     x0, y0, x1, y1 = safe_zones.safe_box("reel", *PORTRAIT)
     for t in ("THEN", "1925", meta["kicker"]["now"], "2019"):

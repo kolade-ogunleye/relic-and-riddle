@@ -611,6 +611,11 @@ PICTURE_VISION_CHECK = os.getenv("PICTURE_VISION_CHECK", "true").lower() in ("tr
 # A picture check that fails (model overloaded, rate-limited, down) is asked once more after this wait before the
 # picture is left out (operator, 2026-10-27: the gate is enforced, but a good photo is not lost to a blip).
 PICTURE_CHECK_RETRY_SECONDS = max(0.0, float(os.getenv("PICTURE_CHECK_RETRY_SECONDS") or 15))
+# PROTOTYPE, OFF (design freeze c6, SUBJECT-VISION evaluation, src/subject_look.py): the picture check also says
+# where the subject is (name, box, scene or not, things that are not the subject, confidence). On, picture_look
+# returns a "subject" record beside its verdict; nothing consumes it. Off (the default), every request and answer
+# is byte-identical to the check without it. Not to be turned on before the evaluation has been measured.
+PICTURE_SUBJECT_LOOK = os.getenv("PICTURE_SUBJECT_LOOK", "false").lower() in ("true", "1", "yes")
 # A look at each rendered Story frame and carousel slide (quality step 5, 2026-10-25): findings are shown on
 # the review card and kept in the ledger; they do not block a release until the check is calibrated.
 STILL_VISION_CHECK = os.getenv("STILL_VISION_CHECK", "true").lower() in ("true", "1", "yes")

@@ -140,7 +140,8 @@ def _text_fields(verdict: "PictureVerdict") -> Dict[str, Any]:
 
 
 @llm_task("picture_check")   # the run's call log and timings name these calls (they were "other")
-def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = None) -> Dict[str, Any]:
+def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = None,
+                 context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """One look at the pixels: {"checked", "shows", "burned_in_text", "reason", "text_reason", "text_edge",
     "text_box", "edge_object", "object_edge", "object_box"}, the picture sent at `size` px on its long side. A
     check that fails is asked once more (not when the billed key has already been tried twice: the same wait
@@ -149,29 +150,38 @@ def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = N
     off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at. An answer that cannot stand as a
     look (look_problem) is asked once more at once; a second such answer is used for this run with "invalid"
     saying why, and is never cached (without_burned_in_text, line_fit). `ask` replaces the question put with the
-    picture (the line check before the render asks about a narration line, not a search)."""
+    picture (the line check before the render asks about a narration line, not a search). With
+    config.PICTURE_SUBJECT_LOOK on (a prototype, off by default) a search's look also asks where the subject is, with
+    `context` (topic, title, caption, credit, claim) beside the question, and the answer carries a validated
+    "subject" record (src/subject_look.py) that nothing consumes; off, the request and the answer are as without it."""
     if not config.PICTURE_VISION_CHECK:
         return {"checked": False, "shows": True, "burned_in_text": False, "reason": "not checked"}
     from . import free_llm
     from .llm import image_block
     import time
     question = ask or f"Searched for: {query}\nDoes this picture show it?"
+    system, schema, subject_on = PICTURE_SYSTEM, PictureVerdict, bool(config.PICTURE_SUBJECT_LOOK and ask is None)
+    if subject_on:   # the prototype: the same call also says where the subject is (src/subject_look.py)
+        from . import subject_look
+        system, schema = PICTURE_SYSTEM + subject_look.SUBJECT_SYSTEM, subject_look.verdict_schema(PictureVerdict)
+        question += subject_look.context_text(context)
+    tokens = 700 if subject_on else 400   # the subject fields add about 100 output tokens
     content = [{"type": "text", "text": question}, image_block(path, size)]
-    asked = PICTURE_SYSTEM + " " + (question.replace(query, " ") if query else question)  # the fixed wording only
+    asked = system + " " + (question.replace(query, " ") if query else question)  # the fixed wording only
     verdict, problem = None, ""
     for attempt in (1, 2):
         try:
             if free_llm.claude_engine():
-                answer = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
+                answer = structured_call(system, content, schema, effort="low", max_tokens=tokens,
                                          models=config.LIGHT_TASK_MODELS)
             else:
                 try:
-                    answer = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light",
+                    answer = free_llm.structured(system, content, schema, role="checker", task_class="light",
                                                  thinking="low", request_timeout=PICTURE_LOOK_TIMEOUT)
                 except free_llm.LLMError as err:
                     if free_llm.claude_fallback_ready():
                         log.warning("Gemini picture check failed (%s); using Claude fallback.", err)
-                        answer = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
+                        answer = structured_call(system, content, schema, effort="low", max_tokens=tokens,
                                                  models=config.LIGHT_TASK_MODELS)
                     else:
                         raise
@@ -194,7 +204,8 @@ def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = N
                  path.name, problem)
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
             # whole (the card folds it), less a model's stray working notes (verdict_reason)
-            "reason": verdict_reason(verdict.reason), **_text_fields(verdict), **({"invalid": problem} if problem else {})}
+            "reason": verdict_reason(verdict.reason), **_text_fields(verdict), **({"invalid": problem} if problem else {}),
+            **({"subject": subject_look.subject_record(verdict)} if subject_on else {})}
 
 
 UNCHECKED_FILE = "set_aside_unchecked.json"

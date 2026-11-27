@@ -749,6 +749,10 @@ def _filled(source, focus, top, lay):
         if fbox is not None:
             protected = [max(0, math.floor((fbox[0] - bx0) * k)), max(0, math.floor((fbox[1] - by0) * k)),
                          min(size[0], math.ceil((fbox[2] - bx0) * k)), min(size[1], math.ceil((fbox[3] - by0) * k))]
+            if rec.get("held", 1.0) < pf.FOCUS_KEEP and window.hold is not None:
+                # a subject larger than the hold (cycle 6: SUBJECT_CUT_MAX of it is held, the rest runs under the
+                # type's shade or the fade): the feature protected from the type is the part the hold shows
+                protected[3] = min(protected[3], int(window.hold[3]))
             lay.protected.append({"name": "reviewed photographic feature", "box": protected})
             comp.update({"focus_box": focus["focus_box"], "protected_box": protected,
                          "reviewed": focus.get("reviewed", ""), "source_sha256": focus.get("sha256", "")})

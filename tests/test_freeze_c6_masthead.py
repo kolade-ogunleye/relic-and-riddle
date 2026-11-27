@@ -99,14 +99,27 @@ def test_a_cover_whose_first_row_holds_the_ratio_keeps_the_canvas_size(tmp_path)
     assert rec["holds"] and rec["ratio"] <= brand_system.tok("masthead.hook_ratio_max")
 
 
-def test_a_first_row_no_size_or_rebreak_can_hold_is_drawn_at_the_floor_and_recorded_at_its_ceiling(tmp_path):
-    """LINES / IN THE SAND: no legal re-break with a longer first row at the locked cover size (display_xl, F2)."""
+@pytest.mark.parametrize("floor_reads_lower", [False, True])
+def test_a_first_row_no_size_or_rebreak_can_hold_is_recorded_at_its_ceiling(tmp_path, monkeypatch, floor_reads_lower):
+    """LINES / IN THE SAND: no legal re-break with a longer first row at the locked cover size (display_xl, F2), and
+    even the floor is over the token. The mark takes the largest size the re-encode guard allows (legibility over
+    hierarchy, 2026-11-27): the floor where it reads no lower after the platform re-encode, else the canvas size with
+    both values recorded. Either way the cover is recorded at its ceiling. The guard's reading is fixed here
+    (masthead.platform_contrast), so the test does not depend on how a synthetic ground re-encodes."""
+    canvas = brand_system.type_px("masthead", "carousel")
+    floor = masthead.fit_ladder(canvas)[-1]
+    monkeypatch.setattr(masthead, "platform_contrast", lambda drawn: None if not drawn[2].get("shown") else (
+        (5.0 if drawn[2]["size_px"] < canvas else 6.0) if floor_reads_lower else 6.0))
     _, lay = _cover(tmp_path, "LINES IN THE SAND")
     m, rec = lay.meta["masthead"], lay.meta["hook_ratio"]
     assert lay.meta["heading"]["lines"] == ["LINES", "IN THE SAND"]          # text and break as the engine set them
-    assert m["shown"] and abs(m["size_px"] - masthead.fit_ladder(brand_system.type_px("masthead", "carousel"))[-1]) < 1e-6
-    assert rec["at_ceiling"] and not rec["holds"] and "ceiling" in rec["reason"]
+    assert m["shown"] and rec["at_ceiling"] and not rec["holds"] and "ceiling" in rec["reason"]
     assert rec["title_remedy"]["kind"] == "none" and "locked" in rec["title_remedy"]["reason"]
+    if floor_reads_lower:
+        assert abs(m["size_px"] - canvas) < 1e-6 and rec["size_kept"]["platform_contrast"] == [6.0, 5.0]
+        assert abs(rec["size_kept"]["step_px"] - round(floor, 2)) < 1e-6 and "re-encode" in rec["reason"]
+    else:
+        assert abs(m["size_px"] - floor) < 1e-6 and "size_kept" not in rec
 
 
 def test_interiors_are_not_hook_surfaces(tmp_path):

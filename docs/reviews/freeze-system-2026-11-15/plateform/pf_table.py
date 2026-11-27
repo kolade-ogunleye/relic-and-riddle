@@ -7,7 +7,7 @@ import json
 import sys
 from statistics import median
 
-FORMS = ("base", "hug", "block", "field", "grade", "split", "type")
+FORMS = ("base", "block", "hug", "block_held", "field", "grade", "split", "type")
 
 
 def main():

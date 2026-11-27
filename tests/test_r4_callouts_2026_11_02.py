@@ -15,6 +15,9 @@ from src.brand import DATA_FONT
 from src.typography import get_font
 from tests import callout_fakes
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 
 def _photo(path, size=(1200, 2100), seed=1, lo=60, hi=240):
     rng = np.random.default_rng(seed)

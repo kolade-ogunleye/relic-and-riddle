@@ -16,6 +16,9 @@ from src import brand, config, safe_zones, then_now
 from src.brand import DATA_FONT, INK
 from src.typography import TextPlate, cover_crop, full_halo_pad, get_font
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 PORTRAIT, LANDSCAPE = (1080, 1920), (1920, 1080)
 FPS = config.VIDEO_FPS
 
@@ -1002,22 +1005,21 @@ def test_scan_trims_take_a_mount_and_keep_a_sky():
     assert t == (30, 0, 0, 0)
 
 
-def test_a_registered_pair_keeps_one_window(tmp_path):
+def test_a_registered_pair_keeps_one_window(tmp_path, monkeypatch):
+    # Changed pin, freeze cycle 6 (THENNOW round 3, R4, lander ruling 2026-11-27): a registered pair is drawn only on
+    # a window that keeps the picture's central half; there is no fallback window. This 4:3 picture holds 0.42 of its
+    # width at 9:16 even unzoomed: unfit for 9:16, recorded (it was drawn on a zoomed window round the subject's top).
+    monkeypatch.setattr(then_now, "is_registered", lambda a, b: tuple(a) == tuple(b))   # a real registration test
     rng = np.random.default_rng(3)
     a = np.full((3000, 4000, 3), 225, np.uint8)
     a[900:] = rng.integers(30, 200, (2100, 4000, 3), dtype=np.uint8)         # an empty sky over a busy lower 70%
     Image.fromarray(a).save(tmp_path / "o.png")
     Image.fromarray(a).save(tmp_path / "n.png")
     x, y, info = then_now.frame_pair(tmp_path / "o.png", tmp_path / "n.png", *PORTRAIT)
-    assert info["gate"] == "THEN pane empty"
+    assert info["registered"] is True and "central half" in info["unfit"]
     assert np.array_equal(np.asarray(x), np.asarray(y))                        # one window, both photos (T7b)
-    # Changed pin, freeze cycle 6 (THENNOW review round 1, lander ruling 2026-11-27): a registered picture's window
-    # keeps its central region. This 4:3 picture holds 0.42 of its width at 9:16 even unzoomed, so the T7 search's
-    # zoomed windows (up to FRAME_Z_MAX round the subject's top) are set aside and the centred window is kept.
-    assert info["window"] == "centred (no window found)" and info["zoom"] == 1.0 and info["centre_kept"] > 0
-    big = (round(PORTRAIT[0] * 1.04), round(PORTRAIT[1] * 1.04))
-    assert then_now.keeps_centre(then_now._cover_window((4000, 3000), big), (4000, 3000), big)
-
+    with pytest.raises(then_now.Unfit):
+        then_now.render(tmp_path / "o.png", 1925, tmp_path / "n.png", 2019, tmp_path / "x.mp4", *PORTRAIT)
 
 def test_the_real_colossi_framing(tmp_path):
     old, oy, new, ny = _real("colossi")

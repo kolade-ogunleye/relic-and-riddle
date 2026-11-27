@@ -14,6 +14,9 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps
 from src import brand, callouts, config, then_now
 from tests import callout_fakes
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 FFMPEG = shutil.which("ffmpeg") is not None
 POINTS_4 = [("ventilation shaft", 820, 600), ("rolling stone door", 200, 800), ("carved tuff wall", 700, 1150),
             ("stable trough", 300, 1500)]

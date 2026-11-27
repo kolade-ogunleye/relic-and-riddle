@@ -6,11 +6,15 @@ halo and no glow; every other ground keeps the bone/gold type, halo and glow exa
 import hashlib
 
 import numpy as np
+import pytest
 from PIL import Image, ImageDraw
 
 from src import then_now
 from src.brand import INK, PLACE_TARGET
 from src.typography import get_font
+
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
 
 
 def _flat(path, size=(1200, 2100), base=236, spread=10):

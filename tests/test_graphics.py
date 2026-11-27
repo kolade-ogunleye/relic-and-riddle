@@ -6,6 +6,9 @@ from src import geo, graphics
 from src.scene_planner import plan_scenes
 from omission_ledger import omission_ledger  # noqa: F401  (autouse: the ledger round each test, as make_all)
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 needs_geo = pytest.mark.skipif(not geo.available(), reason="Natural Earth data not downloaded")
 
 

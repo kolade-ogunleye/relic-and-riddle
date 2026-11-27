@@ -852,6 +852,11 @@ FRAME_MIDDLE = 0.6                  # the share of a pane's columns read as its 
 CENTRE_HALF = 0.25
 
 
+def is_registered(old_size: tuple[int, int], new_size: tuple[int, int]) -> bool:
+    """Is a pair one registered picture? register() writes both photographs at one size; source() returns no other."""
+    return tuple(old_size) == tuple(new_size)
+
+
 class Unfit(Exception):
     """A registered pair the rules refuse in this format (frame_pair's info["unfit"] says why)."""
 
@@ -944,7 +949,7 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
     # below). No crop made here can register them (a crop per pane by salience was tried and measured: it cut the
     # Memnon THEN statue's head at 16:9 and showed a fountain beside the Pantheon), so the pair is drawn through the
     # shared window as before and RECORDED as not registered, with the reason; the remedy is a registered input.
-    info["registered"] = ims[0].size == ims[1].size
+    info["registered"] = is_registered(ims[0].size, ims[1].size)
     if not info["registered"]:
         info["unregistered"] = (f"then-and-now: the photographs are not registered ({ims[0].size[0]}x{ims[0].size[1]} "
                                 f"and {ims[1].size[0]}x{ims[1].size[1]} px): one window does not show the same part "

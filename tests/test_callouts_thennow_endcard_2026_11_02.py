@@ -10,6 +10,9 @@ from PIL import Image, ImageDraw
 
 from src import brand, callouts, end_card, safe_zones, then_now
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 FFMPEG = shutil.which("ffmpeg") is not None
 POINTS_916 = [("stone door recess", 600, 900), ("carved tuff wall", 300, 1300), ("ventilation shaft", 1000, 420),
               ("rolling stone door", 70, 700)]

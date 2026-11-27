@@ -833,3 +833,48 @@ def drawn_record(photo: Path, window: Window, rec: dict[str, Any], drew: dict[st
     got["problems"] = problems(got, window)
     return {**got, "fit": not got["problems"], "moved": bool(drew.get("moved")), "window": window.name,
             "drawn": "cover crop", "measured": {k: v for k, v in rec.items() if k != "window"}}
+
+
+def ground_fit(a: Analysis, size: tuple[int, int], centering: Sequence[float] = (0.5, 0.5)) -> dict[str, Any]:
+    """The fit record of a GROUND crop (typography.cover_crop: the photograph under a card, a data graphic, a motion
+    still; usually blurred or dimmed): the asked fit at `centering`, or, where it shows the source's frame, the
+    nearest crop inside the content that keeps MOVE_KEEP of the asked view (place(), frame-only window). When none
+    does, the asked crop is drawn and the record says so: "fit" False, "problems" ["matte"], "reason" (second review
+    follow-up: a blurred ground wrote no record, so a plate's border under it was neither fixed nor recorded)."""
+    window = Window((int(size[0]), int(size[1])), checks=("matte",), name="ground")
+    asked = fit_box(a.size, window.size, tuple(centering))
+    if a.matte_share <= 0:
+        return {"window": "ground", "box": [round(v, 1) for v in asked], "fit": True, "moved": False, "problems": [],
+                "matte": 0.0}
+    rec = place(None, window, tuple(centering), analysis=a)
+    if rec["fit"] and rec["moved"]:
+        return {k: v for k, v in rec.items() if k != "base"} | {"window": "ground"}
+    got = measure(a, asked, window)
+    got["problems"] = problems(got, window)
+    out = {**got, "fit": not got["problems"], "moved": False, "window": "ground"}
+    if got["problems"]:
+        out["reason"] = reason(out, "the ground under the surface")
+    return out
+
+
+_grounds = threading.local()
+
+
+def note_ground(photo: Path, size: tuple[int, int], rec: dict[str, Any]) -> None:
+    """Keeps a drawn ground's fit record on this thread until the surface's record takes it (take_grounds)."""
+    kept = getattr(_grounds, "kept", None)
+    if kept is None:
+        kept = _grounds.kept = []
+    entry = {"photo": Path(photo).name, "size": [int(size[0]), int(size[1])],
+             **{k: rec.get(k) for k in ("box", "fit", "moved", "problems", "matte", "reason", "kept_asked")
+                if k in rec}}
+    if entry not in kept:
+        kept.append(entry)
+    del kept[:-64]
+
+
+def take_grounds() -> list[dict[str, Any]]:
+    """The ground records noted on this thread since the last take (and clears them)."""
+    kept = getattr(_grounds, "kept", None) or []
+    _grounds.kept = []
+    return kept

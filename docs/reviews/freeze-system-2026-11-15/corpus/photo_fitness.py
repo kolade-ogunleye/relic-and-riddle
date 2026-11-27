@@ -27,8 +27,9 @@ Reel cover's immersive / contained layouts and the shared then-and-now window. -
 and croppers. Both are judged by the same measure, so the two counts differ only by what the croppers do.
 
 "Recorded" is READ, not assumed (review of cycle 5, D2): a POOL row is recorded when the record the tree's own
-call returns for it (photo_fitness.place's, the hook ground's drawn record, the cover's photo_fit) says it is unfit
-and names its problems; a blurred ground returns none. A DECK row, with --records DIR (the slides and Story frames
+call returns for it (photo_fitness.place's, the hook ground's drawn record, the cover's photo_fit, a blurred
+ground's photo_fitness.ground_fit, which graphics.record_contrast writes beside the clip) says it is unfit and names
+its problems. A DECK row, with --records DIR (the slides and Story frames
 redrawn by the tree from their kept recipes: DIR/<run>/<carousel|carousel_fb|stories>/still_layout.json and
 stories/layout.json), is the window record written on disk for that slide; without --records the recorded slides are
 measured as the tree would draw them and counted as NOT recorded.
@@ -199,12 +200,8 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
                 m = pf.measure(a, tuple(box), window)
                 m["problems"] = pf.problems(m, window)
                 rec = {**m, "fit": not m["problems"], "moved": True, "window": window.name, "drawn": "cover crop"}
-    elif kind == "ground":   # typography.cover_crop: the frame only
-        frame_only = pf.Window(window.size, checks=("matte",), name=window.name)
-        got = pf.place(None, frame_only, cen, analysis=a) if a.matte_share > 0 else None
-        box = got["box"] if got and got["fit"] and got["moved"] else pf.fit_box(a.size, window.size, cen)
-        rec = judged(a, box, window)
-        rec["moved"] = bool(got and got["fit"] and got["moved"])
+    elif kind == "ground":   # typography.cover_crop: its own fit record (photo_fitness.ground_fit), as written
+        rec = pf.ground_fit(a, window.size, cen)
     else:
         rec = pf.place(None, window, cen, analysis=a)
     rec["outcome"] = ("fit" if not rec["problems"] and not rec.get("moved") else
@@ -288,7 +285,7 @@ def cover_tip(a: pf.Analysis) -> dict:
 
 def recorded_in(rec: dict) -> bool:
     """Whether the record the tree's own call returned says this placement is unfit ("fit": False, with its
-    problems: the record the surface writes); a blurred ground's cover_crop returns none."""
+    problems: the record the surface writes, a blurred ground's included)."""
     return rec.get("fit") is False
 
 

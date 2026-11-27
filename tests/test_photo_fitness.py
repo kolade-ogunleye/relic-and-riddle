@@ -317,6 +317,32 @@ def test_every_move_keeps_most_of_what_was_asked_for():
     assert not rec["moved"] and rec["problems"] == ["matte"]
 
 
+def test_a_blurred_ground_records_its_fit(tmp_path):
+    """Second review follow-up: the ground under a card or a graphic (typography.cover_crop) writes its fit record
+    like every other window: recorded unfit, with the reason, when no crop clears the frame and keeps MOVE_KEEP; the
+    clip's contrast record (graphics.record_contrast) carries it."""
+    from src import graphics
+    from src.typography import cover_crop
+    a = ground(3000, 1500)
+    a[:250] = 0
+    a[-250:] = 0
+    a = with_subject(with_subject(a, 1100 / 3000, 0.5, 0.03), 1900 / 3000, 0.5, 0.03, 2)
+    p = save(tmp_path, "letterboxed.png", a)
+    pf.take_grounds()
+    got: dict = {}
+    cover_crop(p, (1080, 1920), record=got)
+    assert got["fit"] is False and got["problems"] == ["matte"] and "rule: a photograph is fit" in got["reason"]
+    plain = save(tmp_path, "plain.png", with_subject(ground(3000, 1500), 0.5, 0.5, 0.2))
+    cover_crop(plain, (1080, 1920))
+    out = tmp_path / "graphic_test.mp4"
+    rec = graphics.record_contrast(out, Image.new("RGB", (1080, 1920), (20, 20, 20)), [])
+    grounds = {g["photo"]: g for g in rec["grounds"]}
+    assert grounds["letterboxed.png"]["fit"] is False and grounds["letterboxed.png"]["problems"] == ["matte"]
+    assert grounds["plain.png"]["fit"] is True
+    assert json.loads(Path(str(out) + graphics.CONTRAST_SIDECAR).read_text(encoding="utf-8"))["grounds"]
+    assert pf.take_grounds() == []                          # taken by the clip's record
+
+
 def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():
     """The no-regression guard of the cover's full-width crop: "keep" compares crops of one shape, so a 2:1 picture
     cut to 9:16 passed it showing a quarter of itself. "shown" is the share of the photograph's whole salience where

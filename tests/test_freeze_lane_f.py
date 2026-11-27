@@ -426,7 +426,10 @@ def test_lane_f_c4_disclosure_stands_inside_its_window(width):
     plate = rec["plate"]
     assert box[0] + cd.PROVENANCE_INSET <= plate[0] and plate[2] <= box[2] - cd.PROVENANCE_INSET, (plate, box)
     assert box[1] <= plate[1] and plate[3] <= box[3] - cd.PROVENANCE_INSET
-    assert " ".join(p.text for p in ps) == RECON_BADGE_LABEL == " ".join(rec["lines"])
+    # freeze cycle 6 (panel 7 TY / BC; 2026-11-27): on two lines the break replaces the separator (never
+    # "AI ILLUSTRATION · /"): the drawn words are the label's, the lines the label's own (video_composer.badge_lines)
+    from src.video_composer import badge_lines
+    assert [p.text for p in ps] == rec["lines"] and rec["lines"] in ([RECON_BADGE_LABEL], badge_lines())
     assert all(p.font.size >= min(cd.PROVENANCE_SIZES) for p in ps)
     assert all(plate[0] <= p.box[0] and p.box[2] <= plate[2] and plate[1] <= p.box[1] and p.box[3] <= plate[3]
                for p in ps)

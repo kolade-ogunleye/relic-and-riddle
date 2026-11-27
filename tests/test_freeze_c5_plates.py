@@ -365,6 +365,16 @@ def test_the_badge_yields_over_a_graphic_whose_element_is_in_its_corner(tmp_path
                                                "box": [box[0] + 20, box[3] - 6, box[0] + 400, box[3] + 300]}]}))
     scenes, durations = [tmp_path / "gen_01.png", clip, tmp_path / "02_commons.jpg"], [4.0, 5.0, 3.0]
     half = video_composer.TRANS_DUR / 2
+    # freeze cycle 6 (panel 7 C4; 2026-11-27): the badge yields only where its documented alternative corner is taken
+    # too (badge_corner_for); this element reaches the alternative on 9:16 only, so the 16:9 badge moves there
+    alt = video_composer.recon_badge_geometry(w, h, "top_right")["box"]
+    if not (box[0] + 400 > alt[0] - 12):
+        kept, yielded = video_composer.clear_badge_intervals([(0.0, 4.0 + half)], scenes, durations, w, h)
+        assert kept == [(0.0, 4.0 + half)] and not yielded
+        assert video_composer.badge_corner_for(clip, w, h)[0] == "top_right"
+        side.write_text(json.dumps({"elements": [
+            {"name": "figure", "text": "36", "box": [box[0] + 20, box[3] - 6, box[0] + 400, box[3] + 300]},
+            {"name": "label", "text": "36", "box": [alt[0] + 20, alt[3] - 6, alt[2] - 20, alt[3] + 300]}]}))
     kept, yielded = video_composer.clear_badge_intervals([(0.0, 4.0 + half)], scenes, durations, w, h)
     assert kept == [(0.0, 4.0)]                                   # on for the illustration's own beat, off at the cut
     assert yielded[0]["clip"] == "graphic_numbers.mp4" and "'36'" in yielded[0]["reason"]
@@ -388,6 +398,11 @@ def test_a_graphic_with_no_record_of_its_corner_counts_as_taken(tmp_path):
     poster.save(clip.with_suffix(".jpg"))
     assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920) == ([(1.0, 6.0)], [])
     poster.paste((242, 182, 48), (box[0] + 10, box[1] + 4, box[0] + 120, box[3] + 80))
+    poster.save(clip.with_suffix(".jpg"))
+    # freeze cycle 6 (panel 7 C4; 2026-11-27): the alternative corner is free, so the badge stays (drawn there)
+    assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920)[0] == [(1.0, 6.0)]
+    alt = video_composer.recon_badge_geometry(1080, 1920, "top_right")["box"]
+    poster.paste((242, 182, 48), (alt[0] + 10, alt[1] + 4, alt[0] + 120, alt[3] + 80))
     poster.save(clip.with_suffix(".jpg"))
     assert video_composer.clear_badge_intervals([(1.0, 6.0)], [clip], [2.0], 1080, 1920)[0] == [(2.0, 6.0)]
 

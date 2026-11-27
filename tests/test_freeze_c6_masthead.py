@@ -51,8 +51,10 @@ def _cover(tmp_path, heading_text: str, facebook: bool = False):
 # ------------------------------------------------------------------------------------------------------------- M1
 
 @pytest.mark.parametrize("facebook", [False, True])
-def test_a_cover_with_a_short_first_row_steps_its_mark_down_until_the_ratio_holds(tmp_path, facebook):
-    """Panel 7 PL3 (Richat, 'THE EYE', 536 / 555 px = 0.97 at a fixed 53.3 px): the cover's mark steps to its floor."""
+def test_a_cover_with_a_short_first_row_steps_its_mark_down_until_the_ratio_holds(tmp_path, facebook, monkeypatch):
+    """Panel 7 PL3 (Richat, 'THE EYE', 536 / 555 px = 0.97 at a fixed 53.3 px): the cover's mark steps down its ladder
+    (the platform re-encode guard held neutral here: it has its own test below)."""
+    monkeypatch.setattr(masthead, "platform_contrast", lambda drawn: 7.0 if drawn[2].get("shown") else None)
     _, lay = _cover(tmp_path, "THE EYE OF THE SAHARA", facebook)
     m, rec = lay.meta["masthead"], lay.meta["hook_ratio"]
     canvas = brand_system.type_px("masthead", "carousel")
@@ -70,6 +72,24 @@ def test_a_cover_with_a_short_first_row_steps_its_mark_down_until_the_ratio_hold
     # the cap line stays on the header line (the mark is smaller, not lower)
     box = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
     assert abs(box[1] - M._px(CW)(M()._header_y(facebook, "cover"))) <= 0.3 * m["size_px"]
+
+
+def test_the_step_is_not_taken_where_it_reads_lower_after_the_platform_re_encode(tmp_path, monkeypatch):
+    """Review of the first draft (2026-11-27): a smaller mark read 0.1-0.5 lower after the platform re-encode on 11
+    of 16 stepped dev covers. Legibility outranks hierarchy: the canvas size stays, recorded at its ceiling."""
+    real = masthead.platform_contrast
+    monkeypatch.setattr(masthead, "platform_contrast",
+                        lambda drawn: None if real(drawn) is None else (9.0 if drawn[2]["size_px"] > 50 else 5.0))
+    _, lay = _cover(tmp_path, "THE EYE OF THE SAHARA")
+    m, rec = lay.meta["masthead"], lay.meta["hook_ratio"]
+    assert abs(m["size_px"] - brand_system.type_px("masthead", "carousel")) < 1e-6
+    assert rec["at_ceiling"] and rec["size_kept"]["platform_contrast"] == [9.0, 5.0] and "re-encode" in rec["reason"]
+
+
+def test_a_stronger_ground_treatment_is_named():
+    assert masthead.treats_more({"light_lift": 0.22, "reach": 671}, {"light_lift": 0.12, "reach": 671}) ==         "a stronger light lift"
+    assert masthead.treats_more({"reach": 671, "reach_matched": 900}, {"reach": 671}) == "a longer scrim"
+    assert masthead.treats_more({"scrim_peak": 0.6, "reach": 500}, {"scrim_peak": 0.6, "reach": 500}) == ""
 
 
 def test_a_cover_whose_first_row_holds_the_ratio_keeps_the_canvas_size(tmp_path):

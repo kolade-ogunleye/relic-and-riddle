@@ -190,8 +190,37 @@ def hook_size(size: float, row: float | None, x0: float = 0.0) -> float:
     return float(next((s for s in ladder if hook_holds(group_width(s, x0), row)), ladder[-1]))
 
 
+def treats_more(rec: dict, than: dict) -> str:
+    """What `rec`'s ground treatment does to the photograph beyond `than`'s ("": nothing): a longer scrim reach, a
+    higher scrim peak, a stronger light lift, a lower levels ceiling (each a share of the photograph moved further)."""
+    out = []
+    def reach(r):
+        return r.get("reach_matched") or r.get("reach") or 0
+    if reach(rec) > reach(than) + 0.5:
+        out.append("a longer scrim")
+    if float(rec.get("scrim_peak") or 0) > float(than.get("scrim_peak") or 0) + 1e-6:
+        out.append("a higher scrim peak")
+    if float(rec.get("light_lift") or 0) > float(than.get("light_lift") or 0) + 1e-6:
+        out.append("a stronger light lift")
+    if (rec.get("levels_ceiling") or 256) < (than.get("levels_ceiling") or 256):
+        out.append("a lower levels ceiling")
+    return ", ".join(out)
+
+
+def platform_contrast(drawn) -> float | None:
+    """The drawn masthead's name (masthead.draw's (image, plate, record, box)) measured again after a platform-like
+    re-encode of the image (multi_format.platform_encode: downscaled, JPEG 4:2:0, scaled back): what the delivered
+    still's `contrast_platform` reads. None when nothing is drawn."""
+    im, plate, rec, _ = drawn
+    if plate is None or not rec.get("shown"):
+        return None
+    from .multi_format import platform_encode
+    v = plate.measure(platform_encode(im.convert("RGB")))
+    return None if v is None else round(float(v), 2)
+
+
 def hook_record(surface: str, group: float | None, row: float | None, size_px: float | None, canvas_px: float,
-                remedy: dict | None = None) -> dict[str, Any]:
+                remedy: dict | None = None, kept: dict | None = None) -> dict[str, Any]:
     """The hook ratio as the surface drew it: its measures, the token, the size the mark took and why, the title
     side's remedy (or none), and `at_ceiling` when the mark at its floor and the title side leave it over the token."""
     r = hook_ratio(group, row)
@@ -205,9 +234,14 @@ def hook_record(surface: str, group: float | None, row: float | None, size_px: f
                            "canvas_px": round(float(canvas_px), 2), "floor_px": round(float(floor), 2)}
     if remedy:
         rec["title_remedy"] = remedy
+    if kept:
+        rec["size_kept"] = kept
     if not rec["holds"]:
         rec["at_ceiling"] = True
-        rec["reason"] = (f"the mark at its ladder's floor ({floor:.1f} px) is {r:.2f} of the first title row; no legal "
+        rec["reason"] = (f"the mark at its canvas size ({canvas_px:.1f} px) is {r:.2f} of the first title row; "
+                         f"the step that holds it was not taken ({kept['reason']}), and no legal re-break gives a "
+                         "longer first row: drawn, recorded at its ceiling" if kept else
+                         f"the mark at its ladder's floor ({floor:.1f} px) is {r:.2f} of the first title row; no legal "
                          "re-break or declared title size gives a longer first row: drawn, recorded at its ceiling")
     return rec
 

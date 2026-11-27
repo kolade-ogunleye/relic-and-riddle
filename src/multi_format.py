@@ -3153,46 +3153,67 @@ class MultiFormatGenerator:
         x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else px(80)
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
         room = cw - px(280) - x0
-        hook_row = None
-        if archetype == "cover":
-            # freeze cycle 6 (MASTHEAD M1, panel 7 PL3): the cover is a hook surface: its mark holds
-            # masthead.hook_ratio_max of the first title row AS DRAWN (its plates): the largest step of its fit ladder
-            # that holds it, else the floor (masthead.hook_size); the cap line stays on the header line
-            hook_row = masthead.ink_row((getattr(lay, "plates", None) or {}).get("heading") or [])
-            step = masthead.hook_size(size, hook_row, x0)
-            if step < size:
-                room = min(room, masthead.group_width(step, x0) + 0.5)
-                brand_font = masthead.font_for(step)
-        base = px(self._header_y(facebook, archetype)) + cap_height(brand_font)
+        hook_row, kept = None, None
+        header = px(self._header_y(facebook, archetype))
         # the top scrim's reach is the canvas size's (freeze c6 M1): a mark stepped down for the hook ratio sits
         # higher on the same ramp, so no more of the photograph is darkened and its name loses no strength
-        reach = px(self._header_y(facebook, archetype)) + cap_height(masthead.font_for(size)) + px(300)
+        canvas_cap = cap_height(masthead.font_for(size))
+        reach = header + canvas_cap + px(300)
+
+        def draw_mark(at: float):
+            """The masthead at the ladder step `at` (its cap line on the header line), as the cover draws it."""
+            room_ = room if at >= size else min(room, masthead.group_width(at, x0) + 0.5)
+            base_ = header + cap_height(masthead.font_for(at))
+            got = masthead.draw(im.convert("RGB"), x0, base_, size, reach=reach, max_width=room_)
+            if not got[2]["shown"] and facebook and archetype == "cover":
+                # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y
+                # it is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only
+                # then, the reach that gives the name the strength it has at Instagram's position (the same share of
+                # the ramp), every ruled step and the gate unchanged; still under the gate, the masthead stays undrawn.
+                ig_base = px(self.HEADER_Y) + canvas_cap
+                matched = (ig_base + px(300)) * (header + canvas_cap) / ig_base
+                got = masthead.draw(im.convert("RGB"), x0, base_, size, reach=matched, max_width=room_)
+                got[2]["reach_matched"] = round(matched)
+            return got
+
         if facebook and archetype != "cover":
             # lane D cycle 3 (lander ruling 1 of the second review): the Facebook collage is branded once, on its
             # cover tile; an interior Facebook slide draws no masthead (recorded, not a gate failure)
             im, plate, box = im.convert("RGB"), None, None
             mrec = {"shown": False, "reason": "Facebook interior slide: the collage carries the brand on its cover "
                                               "tile only (lane D cycle 3)", "fb_interior": True}
+        elif archetype == "cover":
+            # freeze cycle 6 (MASTHEAD M1, panel 7 PL3): the cover is a hook surface: its mark holds
+            # masthead.hook_ratio_max of the first title row AS DRAWN (its plates): the largest step of its fit ladder
+            # that holds it, else the floor (masthead.hook_size). Guard (review of the first draft, 2026-11-27: the
+            # smaller mark read 0.1-0.5 lower after the platform re-encode on 11 of 16 stepped dev covers): the step
+            # is taken only where the mark's ratio after the platform re-encode is not lower than the canvas size's
+            # on the same ground (legibility outranks hierarchy); else the canvas size stays, recorded at its ceiling
+            hook_row = masthead.ink_row((getattr(lay, "plates", None) or {}).get("heading") or [])
+            step = masthead.hook_size(size, hook_row, x0)
+            full = draw_mark(size)
+            if step < size:
+                small = draw_mark(step)
+                c_full, c_small = masthead.platform_contrast(full), masthead.platform_contrast(small)
+                longer = masthead.treats_more(small[2], full[2])   # more of the photograph darkened or lifted
+                if small[2]["shown"] and not longer and (c_full is None or (c_small is not None
+                                                                           and c_small >= c_full - 0.05)):
+                    full = small
+                else:
+                    kept = {"step_px": round(step, 2), "platform_contrast": [c_full, c_small],
+                            "reason": ("the smaller step needs a stronger ground treatment (more of the photograph "
+                                       "darkened or lifted: " + longer + ")" if longer else
+                                       "the smaller step reads lower after the platform re-encode on this ground")
+                                      + ": the canvas size stays (legibility and the photograph outrank hierarchy)"}
+            im, plate, mrec, box = full
         else:
-            im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=reach,
-                                                 max_width=room)
-        if not mrec["shown"] and facebook and archetype == "cover":
-            # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y it
-            # is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only then,
-            # the reach that gives the name the strength it has at Instagram's position (the same share of the
-            # ramp), every ruled step and the gate unchanged; still under the gate, the masthead stays undrawn.
-            canvas_cap = cap_height(masthead.font_for(size))   # the canvas size's ramp (freeze c6 M1)
-            ig_base = px(self.HEADER_Y) + canvas_cap
-            matched = (ig_base + px(300)) * (px(self._header_y(facebook, archetype)) + canvas_cap) / ig_base
-            im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
-                                                 max_width=room)
-            mrec["reach_matched"] = round(matched)
+            im, plate, mrec, box = draw_mark(size)
         if archetype == "cover" and isinstance(getattr(lay, "meta", None), dict):
             lay.meta["hook_ratio"] = masthead.hook_record(
                 "Facebook carousel cover" if facebook else "carousel cover",
                 mrec.get("group_width") if mrec.get("shown") else None, hook_row,
                 mrec.get("size_px") if mrec.get("shown") else None, size,
-                remedy=getattr(_render_state, "hook_remedy", None))
+                remedy=getattr(_render_state, "hook_remedy", None), kept=kept)
         if mrec["shown"]:   # one header element, as before: its box takes in the mark
             lay.add("header_brand", box)
             lay.elements[-1].update(plate.record())

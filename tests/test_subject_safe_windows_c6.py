@@ -106,3 +106,36 @@ def test_the_cover_keeps_its_layout_without_the_subject_when_that_is_still_fit()
     if first is not None:
         assert order[0] == first
     assert sorted(order) == sorted(m for m, _w in cd.cover_windows())
+
+
+def test_a_window_moved_for_a_subject_costs_no_text_element_its_contrast():
+    """The masthead losing a little while the lowest ratio holds stands for a cycle-5 move; for a window moved with a
+    subject box (its record carries "focus") it is refused: per element, no lower than as asked."""
+    from types import SimpleNamespace
+
+    from src import multi_format as mf
+
+    class Plate:
+        empty = False
+
+        def __init__(self, box):
+            self.box = box
+
+        def measure(self, im):
+            x0, y0, x1, y1 = self.box
+            return float(np.asarray(im.convert("L"))[y0:y1, x0:x1].mean()) / 25.0
+
+    def drawing(masthead, body, moved, focus):
+        a = np.zeros((80, 64, 3), np.uint8)
+        a[:40] = masthead
+        a[40:] = body
+        fit = {"moved": moved, "fit": True, "problems": [], **({"focus": 1.0} if focus else {})}
+        lay = SimpleNamespace(meta={"windows": [{"fit": fit}]},
+                              plates={"masthead": [Plate((0, 4, 64, 36))], "body": [Plate((0, 44, 64, 76))]})
+        return Image.fromarray(a), lay
+
+    im, lay = drawing(130, 140, True, focus=False)           # masthead 5.4 -> 5.2, body up: stands (cycle 5)
+    assert mf.keep_text_contrast(lambda: drawing(135, 120, False, False), im, lay)[1] is lay
+    im, lay = drawing(130, 140, True, focus=True)            # the same move made for a subject: refused
+    got = mf.keep_text_contrast(lambda: drawing(135, 120, False, True), im, lay)
+    assert got[1] is not lay and "move_refused" in got[1].meta["windows"][0]["fit"]

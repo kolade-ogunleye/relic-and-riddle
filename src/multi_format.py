@@ -1176,6 +1176,10 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     falls = bool(common) and min(now[n] for n in common) < min(asked[n] for n in common) - 0.005
     lower = under + ([f"lowest {min(now[n] for n in common):.2f} < {min(asked[n] for n in common):.2f}"] if falls
                      else [])
+    if any("focus" in r for r in moved):
+        # a window moved for a subject box (cycle 6, SUBJECT stream) costs no text element any contrast: the subject
+        # is shown better only where every element keeps at least its ratio as asked
+        lower = sorted(set(lower) | {n for n in common if now[n] < asked[n] - 0.005})
     check = {"moved": {n: now[n] for n in sorted(now)}, "asked": {n: asked[n] for n in sorted(asked)}}
     if not lower:
         for r in moved:

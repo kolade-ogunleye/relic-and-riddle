@@ -237,6 +237,9 @@ def test_the_wordmark_rule_is_the_token():
     wide = end_card.layout("Send this to a friend.", 1920, 1080)
     assert wide["rule"][1] - wide["rule"][0] == brand_system.tok("masthead.rule_len")
     assert end_card.RULE_HALF == brand_system.tok("masthead.rule_len") / 2
+    with brand.use(brand.DEFAULT_BRAND.derive("rule probe", system={"masthead.rule_len": 300}), validate=False):
+        for lay_ in (end_card.layout("Send this to a friend."), end_card.layout("Send this to a friend.", 1920, 1080)):
+            assert lay_["rule"][1] - lay_["rule"][0] == 300
 
 
 def test_the_youtube_marks_feed_capitals_are_recorded():

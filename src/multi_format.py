@@ -3196,8 +3196,10 @@ class MultiFormatGenerator:
                 small = draw_mark(step)
                 c_full, c_small = masthead.platform_contrast(full), masthead.platform_contrast(small)
                 longer = masthead.treats_more(small[2], full[2])   # more of the photograph darkened or lifted
+                # strictly not lower in-render (the saved JPEG reads ~0.05 apart: the second palette's Richat cover
+                # took a step at -0.03 here and read 5.08 -> 5.02 delivered)
                 if small[2]["shown"] and not longer and (c_full is None or (c_small is not None
-                                                                           and c_small >= c_full - 0.05)):
+                                                                           and c_small >= c_full)):
                     full = small
                 else:
                     kept = {"step_px": round(step, 2), "platform_contrast": [c_full, c_small],

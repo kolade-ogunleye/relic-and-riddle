@@ -114,8 +114,9 @@ def share_rows(lay) -> list:
 @pytest.mark.parametrize("size", [TALL, WIDE])
 def test_share_lines_hold_the_policy_or_record_it(size):
     """Every real share line on the end card (9:16) and the end screen (16:9): what the policy still counts is in the
-    layout's own record, and only where no declared size of the line's ladder sets the same number of rows clean
-    without a one-word row."""
+    layout's own record; the line is set at the LARGEST declared size of its ladder that sets it (second review M3,
+    lander 2026-11-26: size outranks a line end; never a smaller size to cure one), and where it keeps a line end,
+    no break of its rows at that size clears it without a one-word row."""
     sizes = end_card.LANDSCAPE_SHARE_SIZES if size[0] > size[1] else end_card.SHARE_SIZES
     for share in FIX["share_lines"]:
         lay = end_card.layout(share, *size)
@@ -123,21 +124,29 @@ def test_share_lines_hold_the_policy_or_record_it(size):
         assert " ".join(rows) == share
         assert left(rows) <= recorded(lay["line_faults"], rows), (share, rows)
         assert bool(lay["line_faults"]) == bool(left(rows)), (share, rows)
-        if not left(rows) or lay["share_font"].size not in sizes:
+        px_drawn = lay["share_font"].size
+        if px_drawn not in sizes:
             continue
         for px in sizes:
+            if px <= px_drawn:
+                continue
             font = get_font(brand.TEXT_FONT, px, weight=end_card.SHARE_WEIGHT)
             got = end_card._balanced(share.split(), font, lay["max_width"], len(rows))
-            if got and len(got) == len(rows):
-                assert left(" ".join(ln) for ln in got) or any(len(ln) == 1 for ln in got), (share, px, got)
+            assert not got or len(got) != len(rows), (share, px, got)     # a larger size of the ladder set it
+        if left(rows):
+            font = get_font(brand.TEXT_FONT, px_drawn, weight=end_card.SHARE_WEIGHT)
+            got = end_card._balanced(share.split(), font, lay["max_width"], len(rows), clean_first=True)
+            assert not got or left(" ".join(ln) for ln in got) or any(len(ln) == 1 for ln in got), (share, got)
 
 
-def test_share_line_takes_a_smaller_ladder_size_before_a_function_word_end():
-    """"Share this / with a friend who / loves wartime history." (58 px, two last-resort ends) sets clean two px
-    down its own ladder; never under the ladder's last size."""
+def test_share_line_keeps_its_largest_size_and_records_the_line_end():
+    """Second review M3 (lander 2026-11-26: size outranks a line end): "Share this / with a friend who / loves wartime
+    history." stays at the ladder's first size (58 px) with its line end recorded; it no longer drops a rung (56 px)
+    to clear WHO."""
     lay = end_card.layout("Share this with a friend who loves wartime history.", *TALL)
-    assert share_rows(lay) == ["Share this with a friend", "who loves", "wartime history."]
-    assert lay["share_font"].size in end_card.SHARE_SIZES and lay["line_faults"] == []
+    assert lay["share_font"].size == end_card.SHARE_SIZES[0]
+    rows = share_rows(lay)
+    assert left(rows) and left(rows) <= recorded(lay["line_faults"], rows), rows
 
 
 @pytest.mark.parametrize("size", [TALL, WIDE])

@@ -263,7 +263,8 @@ def _tracked_width(font, text: str, spacing: float) -> float:
     return tracked_width(text, font, spacing)
 
 
-def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[List[List[str]]]:
+def _balanced(words: List[str], font, width: float, max_lines: int,
+              clean_first: bool = False) -> Optional[List[List[str]]]:
     """`words` on the fewest lines (up to max_lines) that fit `width`, the most even break of those, by the heading
     engine's one line rule (freeze cycle 4, SYS item 2: heading.break_points and label_ok; no line but the last ends
     on an article or a preposition, no one-word last line, a value kept with its unit); None when no such break fits
@@ -289,6 +290,7 @@ def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[
         return memo[t]
 
     points = break_points(ws)
+    first = None
     for n in range(1, max(1, max_lines) + 1):
         best = None
         for cuts in itertools.combinations(points, n - 1):
@@ -302,8 +304,11 @@ def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[
             if best is None or score < best[0]:
                 best = (score, rows)
         if best is not None:
-            return [t.split() for t in best[1]]
-    return None
+            got = [t.split() for t in best[1]]
+            if not clean_first or best[0][:2] == (0, 0):
+                return got
+            first = first or got   # clean_first: a re-break on more lines at THIS size before the line end stays
+    return first
 
 
 def share_line_faults(lines: List[List[str]]) -> list[dict[str, Any]]:
@@ -416,12 +421,11 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     share_font, lines = None, None
     line_faults: list[dict[str, Any]] = []
     for max_lines, sizes in plan:
-        # Freeze cycle 5 (TEXT stream, review D3): the ONE breaking policy (src/line_policy.py) on the share line. In
-        # the first tier (a line count and its declared sizes) that sets the line, the largest size whose break holds
-        # the policy is taken (a smaller ladder size comes before a line ending on a function word: "... TO A FRIEND
-        # WHO / LOVES ..." at 64 px set clean at 60); where no size of the tier holds it, the largest stays, as
-        # before, and what stays is RECORDED (the layout's "line_faults", on the card's stats). Never more lines and
-        # never a size under the tier's own floor to cure a line end.
+        # Freeze cycle 5 (TEXT stream, review D3, second review M3): the ONE breaking policy (src/line_policy.py) on the
+        # share line. In the first tier (a line count and its declared sizes) that sets the line, the LARGEST size
+        # that sets it is kept (size outranks a line end): its break holds the policy where a break of the tier's
+        # line counts does, else the line end stays and is RECORDED (the layout's "line_faults", on the card's
+        # stats). Never a smaller size and never a size under the tier's floor to cure a line end.
         held = None
         for size in sizes:
             # the share line's words are planned one by one: all in the line's face (QF-94)
@@ -432,12 +436,16 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
             share_font = font
             if not got:
                 continue
-            left = share_line_faults(got)
-            if held is None:
-                held = (font, got, left)
-            if not left and not (len(words) >= 4 and any(len(ln) == 1 for ln in got)):
-                held = (font, got, left)   # clean, and no one-word row bought it
-                break
+            # second review M3 (lander 2026-11-26: size outranks a line end): at the largest size that sets the line,
+            # a re-break on more lines of the tier that clears the line end is taken; else the line end stays at this
+            # size, recorded. Never a smaller size to cure a line end.
+            if share_line_faults(got):
+                alt = _balanced(words, font, max_w, max_lines, clean_first=True)
+                if (alt and not share_line_faults(alt) and not (len(words) >= 4 and any(len(ln) == 1 for ln in alt))
+                        and (floor is None or top0 + len(alt) * round(size * 1.24) <= floor)):
+                    got = alt
+            held = (font, got, share_line_faults(got))
+            break
         if held is not None:
             share_font, lines, line_faults = held
             break

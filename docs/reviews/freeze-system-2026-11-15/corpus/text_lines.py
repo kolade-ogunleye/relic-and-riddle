@@ -48,7 +48,8 @@ CLASS = {"never_end": "TEXT-01", "function_word_end": "TEXT-01", "unit_split": "
          "name_split": "TEXT-01", "measure_over": "TEXT-MEASURE"}
 HEADING_RECORDS = {"function_word_end": ("conjunction_end", "conjunction_end_last_resort"),
                    "unit_split": ("keep_together_last_resort",),
-                   "lone_last_row": ("locked_last_resort", "lone_last_resort", "phrase_exception", "first_row_lone")}
+                   "lone_last_row": ("lone_last_row", "locked_last_resort", "lone_last_resort", "phrase_exception",
+                                     "first_row_lone")}
 FAULTS = ("never_end", "function_word_end", "name_split", "unit_split", "lone_last_row", "measure_over")
 NBSP = chr(160)
 

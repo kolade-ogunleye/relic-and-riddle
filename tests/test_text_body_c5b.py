@@ -287,3 +287,23 @@ def test_the_board_specimen_fitter_never_drops_a_word_inside_a_sentence():
         assert line_policy.ellipsis_drop(" ".join(got), text) == [], (room, got)
         kept = " ".join(got).replace("…", "").replace("...", "").split()
         assert kept == text.split()[:len(kept)] or kept[:-1] == text.split()[:len(kept) - 1], (room, got)
+
+
+# --------------------------------------------------------------------------- R3 (TEXT-03): the lone last row
+def test_a_lone_last_row_gives_way_to_a_legal_rebreak_of_no_more_rows():
+    """Lander ruling R3 (2026-11-26): a heading's last line may not be a single short word where a legal re-break
+    exists that violates no higher line rule and adds no line; else it stays, recorded with the reason."""
+    m = lambda t: 40.0 * len(t)   # noqa: E731
+    assert line_policy.lone_last_rebreak(["UNDERGROUND RIVER", "MAP"], m, 900) == ["UNDERGROUND", "RIVER MAP"]
+    # the only other break ends a row on THE (a never end, a higher rule): no re-break, the row stays
+    assert line_policy.lone_last_rebreak(["THE NAZCA", "LINES"], m, 900) is None
+    # nor one that needs a wider line than the heading has
+    assert line_policy.lone_last_rebreak(["THE SECRET", "OF DAMASCUS", "STEEL"], m, 600) is None
+    # a balanced last row is no lone row
+    assert line_policy.lone_last_rebreak(["ANCIENT ROMAN", "CONCRETE"], m, 900) is None
+
+
+def test_a_heading_left_with_a_lone_last_row_records_it_with_its_reason():
+    got = heading._lone_last_record(["THE NAZCA", "LINES"], [360.0, 150.0], True, False)
+    assert got["lone_last_row"]["word"].lower() == "lines" and "locked size" in got["lone_last_row"]["reason"]
+    assert heading._lone_last_record(["ANCIENT ROMAN", "CONCRETE"], [520.0, 320.0], False, False) == {}

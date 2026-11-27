@@ -357,6 +357,36 @@ def faults(lines: Sequence[str], widths: Sequence[float] | None = None, heading:
     return out
 
 
+def lone_last_rebreak(lines: Sequence[str], measure: Callable[[str], float], width: float,
+                      balance_min: float | None = None) -> list[str] | None:
+    """Lander ruling R3 (2026-11-26, TEXT-03): a heading's last line may not be a single short word (lone_last_row)
+    where a legal re-break exists that violates no higher line rule and adds no line. The best such re-break of
+    `lines` (no more lines, every line within `width` by `measure`, no never / function-word end, no keep-together
+    group or name parted, no lone last row), the same line count first, then the evenest; None where `lines` has no
+    lone last row or no such re-break exists (the lone row then stays, recorded with the reason)."""
+    rows = [r for r in (_split(ln) for ln in lines) if r]
+    widths = [measure(" ".join(r)) for r in rows]
+    if not any(f["fault"] == LONE_LAST for f in faults([" ".join(r) for r in rows], widths, heading=True,
+                                                         balance_min=balance_min)):
+        return None
+    words = [w for r in rows for w in r]
+    n = len(words)
+    best = None
+    for m in range(1, len(rows) + 1):
+        for cuts in itertools.combinations(range(1, n), m - 1):
+            cand = [" ".join(words[a:b]) for a, b in itertools.pairwise((0, *cuts, n))]
+            ws = [measure(t) for t in cand]
+            if max(ws) > width + 1e-6:
+                continue
+            left = [f for f in faults(cand, ws, heading=True, balance_min=balance_min) if f["fault"] != WEAK_END]
+            if left:
+                continue
+            key = (abs(len(rows) - m), (max(ws) - min(ws)) if m > 1 else 0.0)
+            if best is None or key < best[0]:
+                best = (key, cand)
+    return best[1] if best else None
+
+
 def violations(lines: Sequence[str], widths: Sequence[float] | None = None, heading: bool = False,
                balance_min: float | None = None) -> list[dict]:
     """faults() without the weak ends: what the corpus proof counts."""

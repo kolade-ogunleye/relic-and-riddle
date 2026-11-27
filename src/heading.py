@@ -40,7 +40,7 @@ import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
-from . import brand_system
+from . import brand_system, line_policy
 
 PLAIN, LEAD, ACCENT, FIGURE = "plain", "lead", "accent", "figure"
 GOLD_ROLES = frozenset((ACCENT, FIGURE))
@@ -372,12 +372,27 @@ def _issue(form: Form) -> Form:
     return form
 
 
+def _lone_last_record(drawn: Sequence[str], widths: Sequence[float], lone_ok: bool, phrase: bool) -> dict:
+    """R3 (lander 2026-11-26): a drawn heading whose last row is one short word (line_policy lone_last_row) records it
+    with the reason no legal re-break replaced it: {} when the last row is no such row."""
+    got = [f for f in line_policy.faults(list(drawn), list(widths), heading=True) if f["fault"] == line_policy.LONE_LAST]
+    if not got:
+        return {}
+    why = ("locked size: no form of the heading without it sets at the cover's locked size (the break and the band "
+           "give way, never the size)" if lone_ok else
+           "phrase exception: no valid form of no more rows without it (every other break ends a row on a never "
+           "word, parts a bond or does not fit)" if phrase else
+           "no valid form of no more rows without it at this size")
+    return {"lone_last_row": {"word": got[0]["word"], "balance": got[0].get("balance"), "reason": why}}
+
+
 def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None,
             want_lone=False):
     """The best form of a stage: (score, cuts, conj, balance), or None. With `want_lone` (set_heading): (best, the best
     form with an unbalanced one-word first row), the first refused by valid() (SYS-B-6), so the caller can keep it
     where no form at the heading's balance minimum replaces it (never a trade for another form under the minimum)."""
     best = best_lone = None
+    clean: dict[int, tuple] = {}   # the best form without a lone last row, per row count
     for cuts in cut_sets:
         lines = lines_of(words, cuts)
         if not fits(lines):
@@ -393,12 +408,27 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
         bal = min(lens) / max(lens) if len(lens) > 1 and max(lens) > 0 else 1.0
         if strict and cuts and (conj or bal < balance_min):
             continue
+        # R3 (lander 2026-11-26): a form whose last row is one short word (line_policy lone_last_row) gives way to
+        # a valid form of no more rows without one
+        lone_last = bool(cuts) and any(f["fault"] == line_policy.LONE_LAST
+                                       for f in line_policy.faults(lines, lens, heading=True))
         score = (0 if seam_pref is None or seam_pref in cuts else 1, len(cuts), conj, -bal)
+        if not lone_first:
+            rows_key = len(cuts)
+            if not lone_last and (rows_key not in clean or score < clean[rows_key][0]):
+                clean[rows_key] = (score, cuts, conj, bal)
         if lone_first:
             if best_lone is None or score < best_lone[0]:
                 best_lone = (score, cuts, conj, bal)
         elif best is None or score < best[0]:
             best = (score, cuts, conj, bal)
+    if best is not None and best[1]:
+        drawn = lines_of(words, best[1])
+        if any(f["fault"] == line_policy.LONE_LAST
+               for f in line_policy.faults(drawn, [measure(t) for t in drawn], heading=True)):
+            alt = [v for k, v in clean.items() if k <= len(best[1])]
+            if alt:
+                best = min(alt, key=lambda v: v[0])
     return (best, best_lone) if want_lone else best
 
 
@@ -499,7 +529,8 @@ def _set_heading_ruled(text: str, measure: Callable[[str, float], float], width:
                             **({"locked_last_resort": True} if lone_ok else {}),
                             **({"first_row_lone": drawn[0]} if not lone_ok and first_row_lone(
                                 drawn, [measure(t, size) for t in drawn]) else {}),
-                            **({"off_ladder": True} if tier is None else {})}))
+                            **({"off_ladder": True} if tier is None else {}),
+                            **_lone_last_record(drawn, [measure(t, size) for t in drawn], lone_ok, phrase)}))
     # SYS-B-6 (lander rulings): a form whose one-word first row is under the balance minimum gives way only to a form
     # AT the minimum, at the same size. Where the stage prefers it over its other forms (all under the minimum), it
     # stands; where the stage has no other form, it is held while every later stage at the same size is read for one

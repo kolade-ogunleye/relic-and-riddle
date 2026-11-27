@@ -187,6 +187,8 @@ def record(path: Path, compute: bool = True) -> dict[str, Any] | None:
     """The derived record of the photograph at `path`: read from its sidecar, else (with `compute` and the models
     installed) derived once and written beside it. None when there is none."""
     path = Path(path)
+    if not compute and not sidecar(path).is_file():
+        return None                                       # nothing recorded: no second read of the photograph
     try:
         digest = _sha256(path)
     except OSError:
@@ -214,6 +216,17 @@ def record(path: Path, compute: bool = True) -> dict[str, Any] | None:
     return rec
 
 
+# A labelled set of boxes (sha256 -> 0-1 box) fed as the subject by a test or a corpus script only (use_oracle): how
+# the window rules behave with a CORRECT subject, whatever source later supplies one. Never set in production.
+_oracle: dict[str, list[float]] = {}
+
+
+def use_oracle(boxes: dict[str, list[float]] | None) -> None:
+    """Feeds `boxes` (sha256 -> 0-1 box on the whole picture) as subjects (tests and corpus scripts); None clears."""
+    _oracle.clear()
+    _oracle.update(boxes or {})
+
+
 def subject_focus(path: Path, kept=None, compute: bool = False) -> dict[str, Any] | None:
     """The subject the photo system may use, in cover_design.reviewed_focus's shape ({"focus_box", "sha256",
     "reviewed", "source"}): the REVIEWED box when the photograph has one (always first), else the derived box when its
@@ -222,6 +235,13 @@ def subject_focus(path: Path, kept=None, compute: bool = False) -> dict[str, Any
     found = reviewed_focus(Path(path), kept)
     if found is not None:
         return {**found, "source": "reviewed"}
+    if _oracle:
+        try:
+            digest = _sha256(Path(path))
+        except OSError:
+            digest = ""
+        if digest in _oracle:
+            return {"focus_box": list(_oracle[digest]), "sha256": digest, "reviewed": "", "source": "oracle"}
     rec = record(Path(path), compute=compute)
     if rec is None or not rec.get("box") or float(rec.get("confidence") or 0.0) < ACCEPT:
         return None

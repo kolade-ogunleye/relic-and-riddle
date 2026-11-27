@@ -100,7 +100,7 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
         engine._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
     from .image_presentation import full_image
     engine._hero_source.info["essential_full_image"] = full_image(Path(recipe["hero"]))
-    from .cover_design import reviewed_focus
+    from .photo_subject import subject_focus as reviewed_focus
     from .photo_hygiene import clean_hero
     engine._hero_focus_reviewed = reviewed_focus(Path(recipe["hero"]), recipe.get("focus"))
     engine._hero_source, engine._hero_focus = clean_hero(engine._hero_source, engine._hero_focus_reviewed)
@@ -365,7 +365,7 @@ class VisualEngine:
             self._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
         from .image_presentation import full_image
         self._hero_source.info["essential_full_image"] = full_image(Path(hero_image_path))
-        from .cover_design import reviewed_focus
+        from .photo_subject import subject_focus as reviewed_focus
         from .photo_hygiene import clean_hero
         self._hero_focus_reviewed = reviewed_focus(Path(hero_image_path))
         self._hero_source, self._hero_focus = clean_hero(self._hero_source, self._hero_focus_reviewed)
@@ -814,7 +814,7 @@ def youtube_render_inputs(script_payload: Dict[str, Any], hero_image_path: Path 
                            "youtube_title": script_payload.get("youtube_title") or None,
                            "reveal": reveal_line(script_payload)}
     if hero_image_path is not None:
-        from .cover_design import reviewed_focus
+        from .photo_subject import subject_focus as reviewed_focus
         from .image_presentation import full_image
         from .photo_hygiene import clean_hero
         from .scene_planner import is_illustration

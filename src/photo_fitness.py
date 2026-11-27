@@ -720,16 +720,25 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     def at_least(x: tuple[float, float], y: tuple[float, float]) -> bool:
         return x[0] >= y[0] - 1e-3 and x[1] >= y[1] - 1e-3
 
-    v_today, v_c5, v_rec = shown(today), shown(c5), shown(rec)
-    added = set(rec["problems"]) - set(today["problems"]) - set(c5["problems"]) - {"subject"}
-    if not (at_least(v_rec, v_today) and at_least(v_rec, v_c5) and not added):
-        if at_least(v_today, v_c5) and not at_least(v_c5, v_today):
-            t = measure(a, tuple(today["box"]), window)
-            t.update({k: rec[k] for k in ("focus_need", "held_need", "hold_short") if k in rec})
-            t["problems"] = problems(t, window)
-            rec = {**today, **t, "window": window.name, "basis": "subject floor (the crop without the box)"}
-        else:
-            rec = {**c5, "basis": "subject floor (the cycle-5 crop with the box)"}
+    v_today, v_c5 = shown(today), shown(c5)
+    t = measure(a, tuple(today["box"]), window)
+    t.update({k: rec[k] for k in ("focus_need", "held_need", "hold_short") if k in rec})
+    t["problems"] = problems(t, window)
+    t = {**today, **t, "window": window.name, "basis": "subject floor (the crop without the box)"}
+    c = {**c5, "basis": "subject floor (the cycle-5 crop with the box)"}
+    # the crops that show no less of the subject than either base; of them the one with the fewest certain problems
+    # (a structure under the type, the frame: a crop that clears one is not traded for one that keeps it), then the
+    # most of the subject, then the subject-safe crop, the cycle-5 crop, the crop without the box
+    ranked = []
+    for order, r in enumerate((rec, c, t)):
+        v = shown(r)
+        if at_least(v, v_today) and at_least(v, v_c5):
+            ranked.append(((len([p for p in r["problems"] if p not in SOFT]), -round(v[0], 3), -round(v[1], 3),
+                            order), r))
+    if ranked:
+        rec = min(ranked, key=lambda x: x[0])[1]
+    else:   # no crop shows no less than both: the base that shows more (the cycle-5 crop when neither dominates)
+        rec = t if at_least(v_today, v_c5) and not at_least(v_c5, v_today) else c
     same = all(abs(float(x) - float(y)) < 1.0 for x, y in zip(rec["box"], today["box"]))
     if (same and today.get("fit") and "subject" in rec["problems"] and window.hold_min <= 0
             and not set(rec["problems"]) - {"subject"} - set(today["problems"])):

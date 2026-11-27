@@ -1,5 +1,5 @@
 """PLATES-01, its cost (lander ruling 2026-11-26 on the review of the c5 fix, D1): a plate or panel darkens only the
-area its type needs plus its ramp, the ramp never past its designed reach (band_edge.reach_cap), and the tree under
+area its type needs plus its ramp, the ramp never past its designed form (band_edge.designed_feather), and the tree under
 test never darkens more of the photograph than the base did.
 
 Over every photograph of every dev run's topic (plates_common.corpus_photos), through the tree's own layer calls

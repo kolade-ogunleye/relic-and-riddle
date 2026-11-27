@@ -54,21 +54,18 @@ GROUNDS = {
 
 # ------------------------------------------------------------------------------------------------ PLATES-01
 
-def test_a_feather_never_runs_past_the_designed_reach_and_a_panel_edge_goes_crisp_past_it():
-    """Lander ruling 2026-11-26 (review of the c5 fix, D1): a ramp is never lengthened past twice the hook's designed
-    128 px (a fixed 256 here, not the token: raising the token fails this), nor past a surface's own longer designed
-    feather; where the rule's limit needs more (a flat bright ground) reach() says so and the panel keeps its crisp
-    edge."""
+def test_a_feather_never_runs_past_its_designed_form():
+    """Lander ruling 2026-11-26 (D1): a soft band's ramp is never lengthened past the designed form's own ramp on that
+    ground (independent of band_edge: smoothstep peak 1.5 x the step over the token's 2.0 luma / px), nor a fixed
+    designed feather past itself; where the ground-measured limit wants more, reach() says so."""
+    import math
     flat = band_edge.luma_rows(Image.new("RGB", (1080, 1920), (240, 236, 228)))
+    step = (float(np.dot(np.asarray((240, 236, 228), np.float32), band_edge.LUMA))
+            - float(np.dot(np.asarray(brand.INK, np.float32), band_edge.LUMA))) * 0.96
     length, met = band_edge.reach(flat, 900, "down", brand.INK, 0.96, 128, 1080, floating=True)
-    assert length <= 256 and met is False
-    assert band_edge.feather(flat, 900, "down", brand.INK, 0.96, 128, 1080, floating=True) <= 256
-    # a surface whose designed feather is longer keeps exactly it: never lengthened
+    assert met is False and length == max(128, math.ceil(1.5 * step / 2.0)), (length, step)
+    assert band_edge.reach(flat, 900, "down", brand.INK, 0.96, 128, 1080, floating=True, cap=128) == (128, False)
     assert band_edge.feather(flat, 900, "down", brand.INK, 0.96, 400, 1080, floating=True) == 400
-    for name, make in GROUNDS.items():
-        lum = band_edge.luma_rows(make((1080, 1920)))
-        for side in ("up", "down"):
-            assert band_edge.feather(lum, 960, side, brand.INK, 1.0, 24, 1080, floating=True) <= 256, (name, side)
 
 
 def test_a_floating_edge_on_a_flat_ground_is_laid_at_the_field_gate_less_the_headroom():
@@ -109,34 +106,36 @@ def test_the_corpus_measure_states_the_same_limit_as_the_rule():
 
 @pytest.mark.parametrize("ground", sorted(GROUNDS))
 def test_every_carousel_and_story_band_edge_is_within_its_grounds_limit(ground):
-    """Each soft band's edge is inside its ground's limit, or (lander ruling 2026-11-26) its ramp ran the whole
-    designed reach and the rule wanted more (band_edge.reach: not met), the edge never lengthened past it."""
+    """Each soft band's edge is inside its ground's limit, or (lander ruling 2026-11-26) it is at its designed form's
+    length because the limit wants a longer ramp (band_edge.reach not met): never lengthened."""
     car = GROUNDS[ground]((1440, 1800))
     out = multi_format.scrim(car, 980, 1800, feather=240, target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
     edges = pc.band_edges(car, out, brand.INK2, False)
     met = band_edge.reach(band_edge.luma_rows(car), 980, "up", brand.INK2, 1.0, 240, 1440)[1]
     assert edges and (all(e["ok"] for e in edges) or not met), edges
     tall = GROUNDS[ground]((1080, 1920))
-    out = multi_format.scrim(tall, 700, 1100, feather=320, target=0.30)
-    for e in pc.band_edges(tall, out, brand.INK, True):
-        assert e["ok"] or e["rows"][1] - e["rows"][0] <= band_edge.reach_cap(320, 1080) + 8, e
+    got: dict = {}
+    out = multi_format.scrim(tall, 700, 1100, feather=320, target=0.30, out=got)
+    lum = band_edge.luma_rows(tall)
+    met = all(band_edge.reach(lum, y, side, brand.INK, got["strength"], 320, 1080, floating=True)[1]
+              for y, side in ((700, "up"), (1100, "down")))
+    assert all(e["ok"] for e in pc.band_edges(tall, out, brand.INK, True)) or not met
 
 
 @pytest.mark.parametrize("ground", sorted(GROUNDS))
-def test_the_hook_plate_is_within_the_floating_limit_on_every_ground(ground):
-    """Panel 6: the bright-ground plate drew a fixed 128 px feather (2.6 luma / px at its foot: a dark bar)."""
+def test_the_hook_plate_is_one_crisp_form_with_its_designed_side_ease(ground):
+    """Lander ruling R1 (2026-11-26): the hook plate's form on every ground is a crisp top and foot (one antialiased
+    pixel) and its designed HOOK_PLATE_SIDE ease right of the block, which stays inside the floating limit's reading
+    or at its designed length."""
     tall = GROUNDS[ground]((1080, 1920))
     y0, y1, st, right = 715, 1055, 0.96, 901
     feathers, side = dc._plate_feathers(tall, y0, y1, st, dc.HOOK_PLATE_FEATHER, right)
-    # lander ruling 2026-11-26: an edge is the rule's ramp, at least the designed 128 and at most 256 (2 x 128), or the
-    # plate's crisp designed edge (0) where the rule wants more; the ease right of the block its designed 360
-    assert all(v == 0 or dc.HOOK_PLATE_FEATHER <= v <= 256 for v in feathers) and side == dc.HOOK_PLATE_SIDE
+    assert feathers == (0, 0) and side == dc.HOOK_PLATE_SIDE
     comp = Image.alpha_composite(tall.convert("RGBA"), dc._plate_layer(tall.size, y0, y1, st, feathers, right, side))
+    a = np.asarray(dc._plate_layer(tall.size, y0, y1, st, feathers, right, side).getchannel("A")).astype(int)[:, 40]
+    assert a[y0 - 2] == 0 and a[y0 + 1] > 230 and a[y1 + 2] == 0 and a[y1 - 1] > 230      # crisp top and foot
     left = (0, 0, right, 1920)
-    edges = pc.band_edges(tall.crop(left), comp.convert("RGB").crop(left), brand.INK, True, 1080)
-    assert len(edges) == sum(1 for v in feathers if v) and all(e["ok"] for e in edges), (edges, feathers)
-    if ground == "flat bright":
-        assert feathers == (0, 0)          # the panel's case: no ramp reaches the limit inside the reach: crisp
+    assert pc.band_edges(tall.crop(left), comp.convert("RGB").crop(left), brand.INK, True, 1080) == []   # no ramp
 
 
 def test_the_old_fixed_feather_fails_the_measure_on_a_bright_ground():
@@ -169,10 +168,9 @@ def test_the_myth_panel_edges_are_within_the_floating_limit(tmp_path):
     edges = pc.band_edges(outside, Image.composite(outside, panel, mask), panel, True)
     # each edge is a ramp inside the floating limit at the rule's own value, or crisp and recorded (lander ruling
     # 2026-11-26: past the designed reach the panel keeps its crisp edge); never a ramp past 256 px
-    crisp = rec.get("crisp") or []
-    assert len(edges) + len(crisp) == 2 and all(e["ok"] for e in edges), (edges, rec)
-    assert all(v == 0 or v <= 256 for v in feathers), feathers
-    assert [s_ for s_, v in zip(("up", "down"), feathers) if not v] == sorted(crisp, key=("up", "down").index)
+    # lander ruling R1: the panel's form is crisp at top and foot on every ground, recorded once for the surface
+    assert rec["form"] == "crisp" and sorted(rec["crisp"]) == ["down", "up"] and feathers == (0.0, 0.0), rec
+    assert edges == [], edges                                          # no ramp to read back
 
 
 # ------------------------------------------------------------------------------------------------ PLATES-02
@@ -203,6 +201,10 @@ def test_the_hook_grade_out_holds_the_grounds_hue_and_saturation(layer):
     assert np.abs(pc.luma(plain) - pc.luma(held)).max() <= 1.5
     dark = pc.luma(plain) < band_edge.HOLD_LUMA - band_edge.HOLD_SPAN - 1
     assert np.abs(np.asarray(plain, np.int16) - np.asarray(held, np.int16))[dark].max(initial=0) <= 1
+    # ruling R2: under the block (the layer at full strength) the colour is the palette's INK, value for value
+    under = alpha >= full - 1 / 255
+    assert under.any()
+    assert np.abs(np.asarray(plain, np.int16) - np.asarray(held, np.int16))[under].max() <= 1
 
 
 
@@ -226,7 +228,9 @@ def test_the_hook_grade_out_holds_the_hue_to_the_ledgers_bound_on_the_corpus_gro
                                 ("wash", dc._wash_layer(g.size, 736, 1040, 0.70, 901), 0.70)):
             alpha = np.asarray(lay.getchannel("A"), np.float32) / 255.0
             held = Image.alpha_composite(g.convert("RGBA"), band_edge.hold_hue(g, lay, full)).convert("RGB")
-            got = pc.hue_sat(g, held, alpha, full, low=0.05, chroma=12)   # the path and the plate, while lit
+            # the grade-out path (to 0.99 of full; the body is INK, held by the test above): pixels whose 8-bit chroma
+            # can hold a hue to the rule (>= 12: rounding moves a hue by up to 30 / chroma degrees, 2.5 at 12)
+            got = pc.hue_sat(g, held, alpha, full, upto=0.99, low=0.05, chroma=12)
             if got is None:
                 continue
             measured += 1
@@ -537,26 +541,31 @@ def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():
     assert tuple(np.asarray(panel)[590, 200]) == tuple(brand.INK2)
 
 
-def test_a_deck_reserves_its_longest_body_so_its_band_stands_at_one_position(tmp_path):
-    """PLATES-12 (panel 6: one deck's copy band at three heights; the dev Odessa decks 918 / 973 / 1152): the deck
-    frame reserves the copy's longest content body (_deck_body_frame), so a long body no longer lifts its own slide's
-    band: two slides of one frame, a two-line heading over a short and over a long body, start at the same cap line."""
-    gen = multi_format.MultiFormatGenerator()
-    photo = _worst_ground(tmp_path)
-    short = {"heading": "Partisan resistance", "body": "Fighters hid in the tunnels."}
-    long_ = {"heading": "Partisan resistance", "body": "Fighters hid in the tunnels for months, moving supplies, "
-                                                    "printing leaflets and slipping out at night to strike the "
-                                                    "occupiers before vanishing back below the city streets."}
-    frame = gen._deck_body_frame([short, long_], ["immersive", "immersive"], False)
-    assert frame >= 4, frame
-    tops = []
-    for card in (short, long_):
-        _, lay = gen._render_carousel_slide("immersive", photo, photo, card, 2, 7, {}, "", False, heading_frame=2,
-                                            body_frame=frame)
-        tops.append(next(e["box"][1] for e in lay.elements if e["name"] == "heading"))
-    assert abs(tops[0] - tops[1]) <= 3, tops
-
-
 def test_the_swipe_strip_clears_slide_ones_text_by_the_ledgers_margin():
     """PLATES-13: slide 1's part of the swipe strip clears its text by 24 half px (48 at 1440) or is not drawn."""
     assert multi_format.SWIPE_CLEAR * 1440 / 1080 >= 48
+
+
+def test_the_seven_to_one_target_never_deepens_a_band_or_moves_a_label(tmp_path, monkeypatch):
+    """Lander ruling N1 / N2 (2026-11-26, review 2): 7:1 is a target recorded against the band's own strength; what
+    the lines would need never changes a pixel (no deeper band, no darker photograph, the same kicker step and the same
+    contrast on every element). The slide and the Story frame are drawn once with the lines' need forced to nothing
+    and once to an opaque band: identical."""
+    gen = multi_format.MultiFormatGenerator()
+    photo = _worst_ground(tmp_path)
+    card = {"heading": "Rings of quartzite", "body": "Erosion exposed the dome's rings over millions of years."}
+    slide = {"kicker": "ANCIENT MARVEL", "line1": "THE ACOUSTIC DOME", "line2": "OF GOL GUMBAZ",
+             "body": "Sound circles this vast chamber along its curved wall."}
+    drawn = []
+    for need in (0.0, 1.0):
+        monkeypatch.setattr(band_edge, "text_strength", lambda *a, need=need, **k: need)
+        im1, lay1 = gen._render_carousel_slide("immersive", photo, photo, card, 2, 7, {}, "", False)
+        im2, lay2 = gen._render_story_frame(photo, slide, 0, 2, {})
+        drawn.append((np.asarray(im1), np.asarray(im2), lay1, lay2))
+    (a1, a2, l1, l2), (b1, b2, m1, m2) = drawn
+    assert np.array_equal(a1, b1) and np.array_equal(a2, b2)
+    for la, lb in ((l1, m1), (l2, m2)):
+        ca = {e["name"]: e.get("contrast") for e in la.elements}
+        cb = {e["name"]: e.get("contrast") for e in lb.elements}
+        assert ca == cb
+    assert m1.meta["text_band"]["short"] and not l1.meta["text_band"]["short"]

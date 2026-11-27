@@ -12,14 +12,15 @@ geometry, the worst case's strength) and read back from the pixels (plates_commo
 - Reel cover type scrim (cover_design._scrim)
 Table: topic, runs, photo, edge, slope (luma / px at 1080), limit, pass. A row passes at the rule's own limit (review
 of the c5 fix, D6: no read-back allowance). Lander ruling 2026-11-26 (D1): no ramp runs past its designed reach
-(band_edge.reach_cap); an edge over its limit is RECORDED, not passed, when the tree says the reach held it: a hook
-plate or myth panel edge kept crisp (the tree's record; a crisp edge has no ramp to read back, so it is listed as such,
-never skipped: D7), or a soft band whose ramp is as long as its reach cap. A myth edge neither read back nor recorded
+(band_edge.designed_feather); an edge over its limit is RECORDED, not passed: a hook plate or myth panel edge, crisp
+by the surface's one form (ruling R1; a crisp edge has no ramp to read back, so it is listed as such, never skipped:
+D7), or a soft band held at its designed form. A myth edge neither read back nor recorded
 crisp is a violation ("not measured").
 
 PLATES-02: the hook wash and plate as the hook composes them (band_edge.hold_hue where the tree has it) on the same
 photographs: hue shift and saturation kept along the grade-out to the ledger's bound (plates_common.hue_sat from
-0.05 of full until the composite is under 20 luma, pixels whose 8-bit chroma can hold a hue: >= 12; review D4).
+0.05 of full to the body (0.99 of full: the body under the type is INK by ruling R2) while the composite is >= 20
+luma, pixels whose 8-bit chroma can hold a hue: >= 12; review D4).
 Violation: 95th percentile hue shift over 5 degrees, or 5th percentile saturation under 0.6 of the ground's.
 """
 from __future__ import annotations
@@ -52,17 +53,18 @@ dc._photo_outside = _spy
 
 
 def cap(designed, width):
-    """The tree's reach cap for a band designed `designed` px long (None: a tree before the ruling records none)."""
-    rc = getattr(band_edge, "reach_cap", None)
-    return rc(designed, width) if rc else None
+    """Whether the tree holds a soft band's ramp to its designed form (band_edge.designed_feather: lander ruling
+    2026-11-26; a tree before it lengthens ramps instead and records nothing)."""
+    return hasattr(band_edge, "designed_feather")
 
 
-def capped(cap):
-    """A soft band's rows: over the limit but as long as the reach cap lets it run: recorded by the ruling."""
+def capped(held):
+    """A soft band's rows over the limit: recorded when the tree holds the ramp at its designed form (the ruling
+    forbids a longer one), else violations."""
     def mark(found):
         for e in found or []:
-            if not e["ok"] and cap and e.get("rows") and e["rows"][1] - e["rows"][0] >= cap - 8:
-                e.update(ok=True, recorded="ramp at its designed reach (lander ruling 2026-11-26)")
+            if not e["ok"] and held:
+                e.update(ok=True, recorded="ramp at its designed form, never longer (lander ruling 2026-11-26)")
         return found
     return mark
 
@@ -86,7 +88,7 @@ def grade(topic, n, photo, name, ground, layer, full):
     held = band_edge.hold_hue(ground, layer, full) if hasattr(band_edge, "hold_hue") else layer
     alpha = np.asarray(layer.getchannel("A"), np.float32) / 255.0
     got = pc.hue_sat(ground, Image.alpha_composite(ground.convert("RGBA"), held).convert("RGB"), alpha, full,
-                     low=0.05, chroma=12)
+                     upto=0.99, low=0.05, chroma=12)
     if got is None:
         return
     ok = got[1] <= HUE_MAX and got[2] >= SAT_MIN

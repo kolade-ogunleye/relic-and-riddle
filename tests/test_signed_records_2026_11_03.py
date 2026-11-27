@@ -458,20 +458,12 @@ def test_the_9x16_myth_is_one_panel_the_size_of_the_graphics_box(tmp_path):
             # past the feather the photograph is itself, even, and the panel still stands > 80 luma below it
             from src import band_edge, brand_system
             edges = plan.meta.get("panel_edges") or {}
-            if edges.get("crisp"):
-                # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): where the edge rule needs a ramp past the
-                # designed reach (a flat bright ground), the panel keeps its crisp designed edge, recorded, and the
-                # photograph is itself right past it: never a long ramp darkening it
-                assert set(edges["crisp"]) == {"up", "down"} and "band_edge.reach" in edges["rule"], (rgb, edges)
-                assert rows[y1 + 3] - rows[y1 - 2] > 80 and rows[y0 - 3] - rows[y0 + 2] > 80, rgb
-                assert np.ptp(rows[y1 + 3:]) < 4 and np.ptp(rows[:y0 - 3]) < 4, rgb
-            else:
-                reach = brand_system.edge_feather(255, 1080) + 2
-                cap = brand_system.tok("edge.slope_max") + 1.0
-                assert rows[y1 + reach] - rows[y1 - 2] > 80 and rows[y0 - reach] - rows[y0 + 2] > 80, rgb
-                assert band_edge.steepest(rows[y1 - 2:y1 + reach]) <= cap, rgb
-                assert band_edge.steepest(rows[y0 - reach:y0 + 2]) <= cap, rgb
-                assert np.ptp(rows[y1 + reach:]) < 4 and np.ptp(rows[:y0 - reach]) < 4, rgb   # an even photo past it
+            # lander ruling R1 (2026-11-26, review 2 of the PLATES c5 fix): the 9:16 myth panel is a crisp-edged panel on
+            # every ground, one form, recorded; the photograph is itself right past each edge (no ramp darkening it)
+            assert edges.get("form") == "crisp" and set(edges["crisp"]) == {"up", "down"}, (rgb, edges)
+            assert "ruling R1" in edges["rule"], edges
+            assert rows[y1 + 3] - rows[y1 - 2] > 80 and rows[y0 - 3] - rows[y0 + 2] > 80, rgb
+            assert np.ptp(rows[y1 + 3:]) < 4 and np.ptp(rows[:y0 - 3]) < 4, rgb
             # never past twice the designed 128 px (a fixed reach, not the rule's own): the photograph itself beyond
             assert np.ptp(rows[y1 + 258:]) < 4 and np.ptp(rows[:max(1, y0 - 258)]) < 4, rgb
         ink = [e.box for e in plan.elements if e.name.split("_")[0] in ("myth", "fact", "source") and e.box]
@@ -569,12 +561,12 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
         row = A[(y0 + y1) // 2, right:]
         assert (np.diff(row) <= 1).all(), rgb                                   # it only eases out: no second band
         g0 = np.asarray(plan.meta["_ground0"]).astype(float)[y0 + 20:y1 - 20, :right].mean(axis=(0, 1))
-        # never olive: the plate is INK's luma in the ground's own hue while it is lit (freeze c5, PLATES-02 to the
-        # ledger's bound, composite >= 20 luma; review D4), or neutral INK where it is darker (was: neutral always)
-        import colorsys
-        hp = colorsys.rgb_to_hsv(*(g0 / 255))[0] * 360
-        hg = colorsys.rgb_to_hsv(*(np.array(rgb, float) / 255))[0] * 360
-        assert max(g0) - min(g0) < 12 or abs((hp - hg + 180) % 360 - 180) <= 5, (rgb, g0)
+        assert max(g0) - min(g0) < 12, (rgb, g0)                                # neutral INK: never olive
+        # lander ruling R2 (2026-11-26): the body under the type is the palette's INK at the plate's strength over the
+        # photograph, value for value (an olive or brown plate body fails this: it follows the ground, not INK)
+        bg_ = np.asarray(plan.meta["_r"]["bg"]).astype(float)[y0 + 20:y1 - 20, :right].mean(axis=(0, 1))
+        expect = np.array(dc.INK, float) * sc["strength"] + bg_ * (1 - sc["strength"])
+        assert np.abs(g0 - expect).max() <= 2.5, (rgb, g0, expect)
 
 
 # ------------------------------------------------------------------------------------------------ review round 4

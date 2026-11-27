@@ -1093,7 +1093,7 @@ def test_h6_plate_flush_left_and_feathered(photos):
     # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): an edge whose ground (this flat sky) needs a ramp
     # past the designed reach keeps the plate's crisp designed edge, recorded with its rule; every other edge ramps
     # as H6 (4) asks
-    assert not crisp or "band_edge.reach" in sc["crisp_rule"], sc
+    assert crisp == ["top", "foot"] and "ruling R1" in sc["crisp_rule"], sc   # the plate's one form (ruling R1)
     for edge, (a_, b_) in (("top", (y0 - 70, y0 + 2)), ("foot", (y1 - 2, y1 + 70))):
         seg = lum[a_:b_]
         if edge in crisp:

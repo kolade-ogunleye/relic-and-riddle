@@ -147,11 +147,12 @@ def _hue_sat(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return h, (mx - mn) / np.maximum(mx, 1e-6)
 
 
-def hue_sat(before, after, alpha: np.ndarray, full: float, upto: float | None = None, low: float = 0.1,
+def hue_sat(before, after, alpha: np.ndarray, full: float, upto: float | None = 0.8, low: float = 0.1,
             chroma: float = 0.0):
     """Along a grade-out PATH, to the ledger's own bound (PLATES-02: "until luma < 20"; review of the c5 fix, D4: the
     window 0.1-0.8 of full missed the drift just above it): pixels where the layer's alpha is at least `low` of its
-    `full` strength (and at most `upto` of it, when given), the composite still lit >= 20 luma, the ground saturated
+    `full` strength and at most `upto` of it (0.99: up to the layer's body, which is INK by ruling R2; None: the
+    body too), the composite still lit >= 20 luma, the ground saturated
     >= 0.25 and lit >= 60: the hue shift (degrees) and the HSV saturation kept (after / before): (median |hue|, 95th
     percentile |hue|, 5th percentile saturation ratio, pixels); None when the ground has no such pixels. `chroma`:
     only composite pixels whose 8-bit chroma (max - min channel) is at least this (12: an 8-bit pixel with less

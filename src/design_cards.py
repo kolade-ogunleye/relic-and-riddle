@@ -2957,34 +2957,13 @@ def _photo_outside(photo: Path | None, geo: _Geo, y1: float, top: float | None =
     p = np.asarray(pic, np.float32)
     ink = np.asarray(brand.INK, np.float32)[None, None, :]
     shaded = p * (1 - MYTH_OUT_SHADE) + ink * MYTH_OUT_SHADE
+    # lander ruling R1 (2026-11-26, review 2 of the PLATES c5 fix): the 9:16 myth panel is a crisp-edged panel on every
+    # ground, ONE form for the surface (no per-ground soft / crisp switch): its top and foot are one antialiased pixel
     feathers = (0.0, 0.0)
+    edges = None
     if panel is not None:
-        from . import band_edge
-        out_l = band_edge.luma_rows(shaded)
-        pan = np.asarray(panel.convert("RGB"), np.float32)
-        lo = geo.px(MYTH_EDGE_MIN)
-
-        def at(y: float, side: str) -> float:   # the feather of the panel edge at frame row y, outward to `side`
-            r = round(y)
-            rows = pan[max(0, r):min(H, r + lo)] if side == "up" else pan[max(0, r - lo):min(H, r)]
-            colour = rows.reshape(-1, 3).mean(axis=0) if rows.size else np.asarray(brand.INK, np.float32)
-            # freeze cycle 5 (PLATES): a floating panel on a blurred ground; the limit is measured on that ground.
-            # Lander ruling 2026-11-26 (D1): never past the designed reach (band_edge.reach); where the limit needs a
-            # longer ramp the panel keeps its crisp designed edge (review 2026-11-03 round 4's panel), recorded
-            length, met = band_edge.reach(out_l, y, side, colour, 1.0, lo, W, floating=True)
-            if not met:
-                crisp.append(side)
-                return 0.0
-            return float(length)
-        crisp: list[str] = []
-        feet = [geo.y(y1)] + ([geo.y(foot0)] if foot0 is not None else [])
-        downs = [at(f, "down") for f in feet]
-        feathers = (at(geo.y(top), "up") if top is not None else 0.0, 0.0 if "down" in crisp else max(downs))
-        edges = {"crisp": sorted(set(crisp)), "feathers": [round(v) for v in feathers],
-                 "reach_cap": band_edge.reach_cap(lo, W),
-                 "rule": "band_edge.reach: past the designed reach a panel keeps its crisp edge"}
-    else:
-        edges = None
+        edges = {"form": "crisp", "crisp": ["down", "up"], "feathers": [0, 0],
+                 "rule": "the 9:16 myth panel's form: crisp top and foot on every ground (lander ruling R1)"}
     m = _edge_rows(H, geo.y(top) if top is not None else -1.0, geo.y(y1), feathers)
     mask = Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
     return Image.fromarray(np.clip(shaded + 0.5, 0, 255).astype(np.uint8), "RGB"), mask, feathers, edges
@@ -4137,26 +4116,11 @@ def _plate_layer(size: tuple[int, int], y0: float, y1: float, strength: float,
 
 def _plate_feathers(bg: Image.Image, y0: float, y1: float, strength: float, feather: float, right: float
                     ) -> tuple[tuple[int, int], int]:
-    """((above, below), side): the hook plate's feathers on `bg` at `strength` (freeze cycle 5, stream PLATES: panel 6
-    read the bright-ground plate as a dark bar with straight edges, 2.6 luma / px at its foot under a fixed 128 px
-    feather). Each edge takes the band-edge rule's length for the ground it crosses (band_edge.feather, a FLOATING
-    band: the photograph goes on above and below it), never under the designed `feather`; the ease right of the
-    block the same rule's across the plate's own rows, never under HOOK_PLATE_SIDE."""
-    from . import band_edge
-    lum = band_edge.luma_rows(bg)
-    w = bg.size[0]
-    if feather <= 0:
-        return (0, 0), HOOK_PLATE_SIDE
-    full = lum[:, :max(8, min(w, int(right)))]     # the columns the plate covers at its full strength
-    # lander ruling 2026-11-26 (D1): never past the designed reach; an edge whose limit needs a longer ramp is the
-    # plate's crisp designed edge (0: one antialiased pixel), recorded by _hook_scrim
-    # the designed form's ramp is the fixed `feather` (HOOK_PLATE_FEATHER): never longer (the ruling's ceiling)
-    up, up_met = band_edge.reach(full, y0, "up", brand.INK, strength, feather, w, floating=True, cap=feather)
-    down, down_met = band_edge.reach(full, y1, "down", brand.INK, strength, feather, w, floating=True, cap=feather)
-    across = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))].T          # rows = x: the ease right of the block
-    side = band_edge.reach(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True,
-                           cap=HOOK_PLATE_SIDE)[0]
-    return (up if up_met else 0, down if down_met else 0), side
+    """((above, below), side): the hook plate's edges: (0, 0), its crisp top and foot, and HOOK_PLATE_SIDE, its designed
+    ease right of the block (lander ruling R1, 2026-11-26; the arguments are kept for the callers)."""
+    # lander ruling R1 (2026-11-26, review 2): the hook PLATE's form is a crisp top and foot on every ground with its
+    # designed HOOK_PLATE_SIDE ease right of the block (no per-ground soft / crisp switch); the wash mode is unchanged
+    return (0, 0), HOOK_PLATE_SIDE
 
 
 def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
@@ -4197,9 +4161,8 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         rec = {"luminance": round(lum, 3), "mode": "plate", "strength": tried[-1]["strength"],
                "halo": tried[-1]["halo"], "tried": tried, "plate": [round(y0), round(y1)],
                "feather": feather, "feathers": [int(v) for v in feathers], "side": int(side),
-               **({"crisp_edges": [n for n, v in zip(("top", "foot"), feathers) if not v],
-                   "crisp_rule": "band_edge.reach: past the designed reach the plate keeps its crisp edge"}
-                  if feather > 0 and not all(feathers) else {}),
+               "form": "crisp", "crisp_edges": ["top", "foot"],
+               "crisp_rule": "the hook plate's form: crisp top and foot, the designed side ease (lander ruling R1)",
                "plate_right": round(right), "above_kept": _above_kept(base, under, box[1])}
         if why:
             rec["plate_reason"] = why

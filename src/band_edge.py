@@ -86,27 +86,17 @@ def slope_limit(luma: np.ndarray, y0: float, y1: float, width: int | None = None
     return float(min(ceiling, max(gate, tok("edge.texture_gain") * ground_texture(luma, y0, y1, width))))
 
 
-def reach_cap(minimum: float, width: int) -> int:
-    """The longest a feather may run (lander ruling 2026-11-26): tok("edge.reach_max") at 1080 wide, or the
-    surface's own designed `minimum` when that is longer (a ramp is never lengthened past its designed reach)."""
-    return int(max(float(minimum), tok("edge.reach_max") * width / 1080.0))
-
-
 def reach(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
           width: int | None = None, floating: bool = False, cap: float | None = None) -> tuple[int, bool]:
-    """(the feather, met): the band-edge rule's feather (feather()) held to reach_cap; `met` False when the rule's
-    limit needs a longer one (a flat or bright ground). A PANEL then takes its crisp designed edge (lander ruling
-    2026-11-26 (b): a deliberate edge, recorded; never a longer ramp darkening the photograph); a soft band with no
-    panel form keeps the capped length, recorded by its caller. The cap is the designed form's own ramp on this ground
-    (designed_feather; `cap` gives another), never past reach_cap: the ruling's ceiling, no more of the photograph
-    darkened than the designed form did."""
+    """(the feather, met): the band-edge rule's feather held to its designed reach: the designed form's own ramp on this
+    ground (designed_feather; `cap` gives another, e.g. a surface's fixed designed feather). Lander ruling 2026-11-26
+    (D1): a ramp is never lengthened past it (never more of the photograph darkened than the designed form did);
+    `met` False when the ground-measured limit wants more: the band keeps its designed length, and its corpus row says
+    so. The hook plate and the 9:16 myth panel no longer ask: their form is a crisp edge (ruling R1)."""
     w = luma.shape[1]
     width_ = w if width is None else width
-    # the ruling's ceiling (tip never darkens more of the photograph than the base did): never longer than the
-    # designed form's own ramp on this ground (designed_feather), nor than reach_cap
     if cap is None:
         cap = designed_feather(luma, edge, side, colour, strength, minimum, width_)
-    cap = min(float(cap), reach_cap(minimum, width_))
     need = _feather(luma, edge, side, colour, strength, minimum, width, floating, cap)
     return (need, True) if need <= cap else (cap, False)
 
@@ -130,7 +120,7 @@ def designed_feather(luma: np.ndarray, edge: float, side: str, colour, strength:
 
 def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
             width: int | None = None, floating: bool = False) -> int:
-    """The feather reach() gives, its length only (never past reach_cap)."""
+    """The feather reach() gives, its length only (never past its designed reach)."""
     return reach(luma, edge, side, colour, strength, minimum, width, floating)[0]
 
 
@@ -195,8 +185,9 @@ def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None)
     brightened) wherever the composite is at least HOLD_LUMA, and the layer's own colour where the composite is under
     HOLD_LUMA - HOLD_SPAN (smoothstepped between). Composited over `ground` the luma is the plain layer's at every
     pixel (so every edge slope and every luma contrast measured on it stands); only the chroma follows the ground.
-    That holds under the type too (the layer at full strength) while the composite there is lit >= HOLD_LUMA: a dark
-    tone of the ground's own hue, never INK's grey over it (review of the c5 fix, D4). `full` decides nothing."""
+    Lander ruling R2 (2026-11-26): only inside the grade-out (the layer under `full`, default its own maximum); the
+    body at full strength, under the type, is the palette's INK, value for value (one brand system).
+    """
     lay = np.asarray(layer.convert("RGBA"), np.float32)
     g = np.asarray(ground.convert("RGB"), np.float32)
     a = lay[..., 3] / 255.0
@@ -207,6 +198,8 @@ def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None)
     scale = np.minimum(1.0, lc / np.maximum(lg, 1.0))
     comp = (1.0 - a) * lg + a * lc                  # the composite's luma (the same for either colour)
     w = smoothstep((HOLD_LUMA - comp) / HOLD_SPAN)  # 0: the ground's colour, 1: the layer's own
+    top = float(a.max()) if full is None else float(full)
+    w = np.where(a >= top - 1.0 / 255.0, 1.0, w)    # ruling R2: the body under the type is the palette's INK, always
     rgb = w[..., None] * c + (1.0 - w[..., None]) * g * scale[..., None]
     out = np.dstack([np.clip(rgb + 0.5, 0, 255), lay[..., 3:4]]).astype(np.uint8)
     return Image.fromarray(out, "RGBA")

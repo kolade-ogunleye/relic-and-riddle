@@ -34,6 +34,10 @@ def main():
     ap.add_argument("pass_", choices=("first", "repeat"))
     ap.add_argument("--send", action="store_true", help="actually send (without it: print what would be sent)")
     ap.add_argument("--budget", type=int, default=300)
+    ap.add_argument("--billed", action="store_true",
+                    help="operator-approved Option B (2026-11-27): the billed Gemini light key only, "
+                         "never the free key production shares; stops at --budget requests or --usd")
+    ap.add_argument("--usd", type=float, default=1.20)
     a = ap.parse_args()
     ids = [lab["id"] for lab in LABELS] if a.pass_ == "first" else stability_ids()
     out = SCRATCH / f"answers_{a.pass_}.jsonl"
@@ -47,27 +51,55 @@ def main():
     from src import beat_images, config, free_llm, gemini
     if not free_llm.enabled():
         raise SystemExit("SCRIPT_ENGINE is not 'free': the picture check would run on Claude. Not sent.")
-    if not free_llm.available():
-        raise SystemExit("No free Gemini key in this environment. Not sent.")
-    free_llm.ALLOW_PAID_FALLBACK = False            # this process only: no billed key, no Claude fallback
+    want = "billed" if a.billed else "free"
+    if a.billed:
+        # This process only: the free key is blanked so no request draws on the quota production shares; the
+        # client then goes straight to its billed light path, which keeps its own monthly cap and records each
+        # call's cost through its normal accounting. No Claude fallback.
+        if not config.is_configured(config.GEMINI_API_KEY) or config.GEMINI_API_KEY == config.GEMINI_FREE_API_KEY:
+            raise SystemExit("No separate billed Gemini key in this environment. Not sent.")
+        config.GEMINI_FREE_API_KEY = ""
+        config.GEMINI_FREE_API_KEY_SPARE = ""
+        config.CLAUDE_FALLBACK = False
+    else:
+        if not free_llm.available():
+            raise SystemExit("No free Gemini key in this environment. Not sent.")
+        free_llm.ALLOW_PAID_FALLBACK = False        # this process only: no billed key, no Claude fallback
     config.PICTURE_SUBJECT_LOOK = True              # this process only
     counter = SCRATCH / "requests_sent.json"
-    sent = json.load(open(counter)).get("sent", 0) if counter.is_file() else 0
+    state = json.load(open(counter)) if counter.is_file() else {}
+    sent, usd = state.get("sent", 0), state.get("usd", 0.0)
+    tok_in, tok_out = state.get("tokens_in", 0), state.get("tokens_out", 0)
+    price_in, price_out = free_llm.PAID_PRICES.get(config.FREE_CHECKER_MODEL, free_llm.PAID_PRICES["gemini-3.8-flash"])
+
+    def save():
+        counter.write_text(json.dumps({"sent": sent, "key": want, "tokens_in": tok_in, "tokens_out": tok_out,
+                                       "usd": round(usd, 6)}), encoding="utf-8")
     real_ask = free_llm._ask
 
     def counted(key_name, *args, **kwargs):
-        nonlocal sent
-        if key_name != "free":
+        nonlocal sent, usd, tok_in, tok_out
+        if key_name != want:
             raise Stop(f"a request on the {key_name!r} key was about to be sent; stopped")
         if sent >= a.budget:
             raise Stop(f"the {a.budget}-request ceiling is reached")
+        if a.billed and usd >= a.usd:
+            raise Stop(f"the ${a.usd:.2f} ceiling is reached")
         sent += 1
-        counter.write_text(json.dumps({"sent": sent}), encoding="utf-8")
-        return real_ask(key_name, *args, **kwargs)
+        save()
+        result = real_ask(key_name, *args, **kwargs)
+        if a.billed:
+            ti, to = gemini.last_usage()
+            tok_in, tok_out = tok_in + (ti or 0), tok_out + (to or 0)
+            usd += (ti or 0) / 1e6 * price_in + (to or 0) / 1e6 * price_out
+            save()
+        return result
     free_llm._ask = counted
     ctx = contexts()
     by_id = {lab["id"]: lab for lab in LABELS}
-    with free_llm.free_only(), open(out, "a", encoding="utf-8", newline="\n") as f:
+    import contextlib
+    guard = contextlib.nullcontext() if a.billed else free_llm.free_only()
+    with guard, open(out, "a", encoding="utf-8", newline="\n") as f:
         for i in todo:
             lab = by_id[i]
             started, before = time.perf_counter(), sent
@@ -84,7 +116,7 @@ def main():
             if not look.get("checked"):
                 print(f"{i}: not looked at ({look.get('reason')}); stopping (quota or outage)")
                 break
-    print(f"requests sent so far: {sent} of {a.budget}")
+    print(f"requests sent so far: {sent} of {a.budget}" + (f"; ${usd:.4f} of ${a.usd:.2f}" if a.billed else ""))
 
 
 if __name__ == "__main__":

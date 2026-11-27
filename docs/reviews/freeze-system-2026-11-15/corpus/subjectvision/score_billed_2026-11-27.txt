@@ -1,0 +1,69 @@
+answers 128, looked at 128, subject record cannot stand 10: {'025': 'no subject box', '031': 'the subject box is the whole frame but the picture is not called a scene', '050': 'no subject box', '095': 'no subject box', '096': 'no subject box', '097': 'no subject box', '101': 'the subject box is the whole frame but the picture is not called a scene', '103': 'the subject box is the whole frame but the picture is not called a scene', '104': 'the subject box is the whole frame but the picture is not called a scene', '118': 'no subject box'}
+| candidate | answered | boxed | IoU p25 / p50 / p75 | cut > 15 % (all) | cut (objects) | cut (panel-7) |
+|---|---|---|---|---|---|---|
+| vision subject box | 128 | 118 | 0.73 / 0.95 / 0.98 | 8 (7%) | 8 / 86 | 6 / 39 |
+| vision, confidence >= 0.5 | 120 | 116 | 0.72 / 0.94 / 0.98 | 8 (7%) | 8 / 86 | 6 / 38 |
+| vision, confidence >= 0.7 | 120 | 116 | 0.72 / 0.94 / 0.98 | 8 (7%) | 8 / 86 | 6 / 38 |
+| vision, confidence >= 0.9 | 112 | 108 | 0.80 / 0.95 / 0.98 | 5 (5%) | 5 / 79 | 5 / 35 |
+scene call: label object -> said object 81, said scene 12; label scene -> said scene 31, said object 4
+stability (30 repeated): both boxed 25, IoU between the answers p10/p50 = 0.47 / 1.00, >= 0.8: 20; scene call flips 1 ['048']; cut/not-cut flips 2 ['114', '127']
+| case | label | vision box | cover | IoU | scene | said | not the subject |
+|---|---|---|---|---|---|---|---|
+| Richat 06 (Soyuz) (062) | object | [0.44, 0.82, 0.51, 0.89] | 0.46 | 0.46 | False | the Richat Structure | space station modules and solar panels |
+| Richat 10 (065) | object | [0.44, 0.47, 0.56, 0.53] | 0.73 | 0.53 | False | the Richat Structure |  |
+| Richat 14 (067) | object | [0.24, 0.56, 0.49, 0.76] | 0.90 | 0.84 | False | the Richat Structure | spacecraft window frame |
+| Richat 17 (068) | object | [0.44, 0.31, 0.58, 0.5] | 0.36 | 0.36 | False | the Richat Structure | USGS logo; NASA logo; locator map; scale bar |
+| Roman 05 dome (072) | scene | [0.0, 0.0, 1.0, 1.0] | 1.00 | 1.00 | True | the concrete dome of the Pantheon |  |
+| Roman 09 dome (074) | scene | [0.0, 0.0, 1.0, 1.0] | 1.00 | 1.00 | True | the concrete dome of the Pantheon |  |
+| Roman 13 dome (076) | scene | [0.0, 0.0, 1.0, 1.0] | 1.00 | 1.00 | True | the concrete dome of the Pantheon |  |
+| Tunguska 10 map (124) | scene | [0.0, 0.0, 1.0, 1.0] | 1.00 | 0.98 | True | the Tunguska event effect map |  |
+| Tunguska 09 figure (123) | object | [0.1, 0.2, 0.97, 0.77] | 0.98 | 0.98 | False | the Tunguska blast comparison diagram |  |
+| Aswan 13 tourist + obelisk (096) | object | no subject box | - | - | False |  | tourist posing; tourist walking away |
+| Antikythera 01 label board (114) | object | [0.16, 0.15, 0.81, 0.33] | 0.80 | 0.80 | False | the Antikythera mechanism fragments | museum label board |
+| Nazca 06 wing (126) | object | [0.0, 0.0, 1.0, 1.0] | 1.00 | 0.12 | True | the Nazca lines and hummingbird geoglyph | wing of aircraft |
+| Nazca 06 wing (upscaled copy) (127) | object | [0.18, 0.08, 0.64, 0.8] | 1.00 | 0.35 | False | hummingbird geoglyph and geometric lines | wing of an aircraft |
+| Memnon 09 lithograph (082) | object | [0.14, 0.13, 0.89, 0.76] | 1.00 | 0.13 | False | the Colossi of Memnon lithograph | book page margins; color calibration bar |
+| Voynich 14 (104) | object | the subject box is the whole frame but the picture is not called a scene | - | - | False | the Voynich manuscript folio | conservation strap |
+| Trepanation 01 (086) | object | [0.04, 0.01, 0.96, 0.96] | 0.99 | 0.88 | False | trepanning instruments |  |
+| box | conf >= | IoU(record) >= | accepted | of them labelled >= 70 % of frame | panel-7 | cuts |
+|---|---|---|---|---|---|---|
+| u | 0.0 | 0.3 | 87 | 43 | 25 | 0  |
+| u | 0.5 | 0.3 | 86 | 42 | 25 | 0  |
+| u | 0.7 | 0.3 | 86 | 42 | 25 | 0  |
+| u | 0.8 | 0.3 | 86 | 42 | 25 | 0  |
+| u | 0.9 | 0.3 | 80 | 41 | 22 | 0  |
+| u | 0.0 | 0.5 | 70 | 35 | 21 | 0  |
+| u | 0.5 | 0.5 | 69 | 34 | 21 | 0  |
+| u | 0.7 | 0.5 | 69 | 34 | 21 | 0  |
+| u | 0.8 | 0.5 | 69 | 34 | 21 | 0  |
+| u | 0.9 | 0.5 | 63 | 33 | 18 | 0  |
+| u | 0.0 | 0.6 | 61 | 31 | 17 | 0  |
+| v | 0.0 | 0.6 | 61 | 31 | 17 | 0  |
+| u | 0.5 | 0.6 | 60 | 30 | 17 | 0  |
+| u | 0.7 | 0.6 | 60 | 30 | 17 | 0  |
+zero-cut rule with the most coverage: box u, conf >= 0.0, IoU >= 0.3: 87 of 128 accepted, panel-7 25
+to check by eye (cut, or scene call against the label): id, photo, label kind, said, cover
+  013 flannan_isle_lighthouse_disappearance/01_commons.jpg scene  scene=False cover=0.95 Admiralty chart of the Flannan Isles
+  018 gobekli_tepe_enclosure_d/05_commons.jpg            object scene=True  cover=1.00 Göbekli Tepe Enclosure D and archaeological complex
+  020 gobekli_tepe_enclosure_d/09_commons.jpg            object scene=False cover=0.14 Göbekli Tepe Enclosure D
+  021 greek_fire_siphon/01_commons.jpg                   object scene=False cover=0.14 the Greek fire siphon tube and flame
+  026 hal_saflieni_hypogeum/01_commons.jpg               object scene=True  cover=1.00 the Holy of Holies chamber
+  032 kailasa_temple_monolith/02_commons.jpg             object scene=True  cover=1.00 the monolithic pillar and courtyard of Kailasa temple
+  034 kailasa_temple_monolith/05_commons.jpg             object scene=True  cover=1.00 the monolithic Kailasa temple courtyard and pillar
+  047 nazca_lines_runway_paradox/08_commons.jpg          object scene=False cover=0.72 the Nazca geoglyphs
+  050 nazca_lines_runway_paradox/13_commons.jpg          scene  scene=False cover=- 
+  052 odessa_catacombs/01_commons.jpg                    object scene=True  cover=1.00 the memorial in the catacombs
+  054 odessa_catacombs/08_commons.jpg                    object scene=True  cover=1.00 the catacombs interior
+  057 odessa_catacombs/13_commons.jpg                    object scene=True  cover=1.00 the Odessa catacombs
+  062 richat_structure_sahara_eye/06_commons.jpg         object scene=False cover=0.46 the Richat Structure
+  065 richat_structure_sahara_eye/10_commons.jpg         object scene=False cover=0.73 the Richat Structure
+  066 richat_structure_sahara_eye/13_commons.jpg         object scene=False cover=0.83 the Richat Structure
+  068 richat_structure_sahara_eye/17_commons.jpg         object scene=False cover=0.36 the Richat Structure
+  087 trepanation_miracle/05_commons.jpg                 object scene=True  cover=1.00 the diorama depicting Neolithic trepanation
+  097 unfinished_obelisk_aswan/17_commons.jpg            scene  scene=False cover=- the unfinished obelisk
+  106 wieliczka_salt_mine/01_commons.jpg                 object scene=True  cover=1.00 underground chamber in the Wieliczka Salt Mine
+  112 wieliczka_salt_mine/17_commons.jpg                 object scene=True  cover=1.00 park pond with fountain
+  114 antikythera_mechanism/01_commons.jpg               object scene=False cover=0.80 the Antikythera mechanism fragments
+  118 antikythera_mechanism/13_commons.jpg               scene  scene=False cover=- 
+  122 tunguska_event_1908/05_commons.jpg                 object scene=True  cover=1.00 the map of the Tunguska event
+  126 nazca_lines_runway_paradox/06_commons.jpg          object scene=True  cover=1.00 the Nazca lines and hummingbird geoglyph

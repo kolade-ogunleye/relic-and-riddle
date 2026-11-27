@@ -243,18 +243,5 @@ def test_ground_detail_reads_structure_not_tone():
     assert then_now.ground_detail(busy, box) > 5
 
 
-# ------------------------------------------------------------------------- real data (skipped off this machine)
-RUN = Path(__import__("os").environ.get("RR_FIXTURE_REPO") or ROOT) / "output/run_singing_colossi_of_memnon_1792952878/graphics"
-
-
-def test_the_real_memnon_916_plates_and_panels(monkeypatch, tmp_path):
-    """The panel's case: Memnon 9:16. Both photographs at full width (the 2011 colossi whole), and each plate where
-    its panel's documented places are calmest (the NOW plate in the sky between the heads)."""
-    old, new = RUN / "then_0.jpg", RUN / "now_0_1.jpg"
-    if not old.exists():
-        pytest.skip("real run inputs not on this machine")
-    meta = _plan_only(monkeypatch, tmp_path, old, new, TALL)
-    p = meta["framing"]["panels"]
-    assert p["now"]["mode"] == "whole" and p["now"]["shown"]["h"] >= 0.98 and p["then"]["shown"]["centre_half"]
-    d = meta["side"]["now"]["detail"]
-    assert d[meta["side"]["now"]["side"]] <= 0.2 * d["left"]
+# The real dev pairs (Memnon, Roman, every then_k x now_k_j, both formats) are measured by the corpus scripts
+# docs/reviews/freeze-system-2026-11-15/corpus/thennow_t1_motion.py and thennow_t2_layout.py (CI has no dev runs).

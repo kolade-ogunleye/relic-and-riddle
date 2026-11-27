@@ -38,6 +38,7 @@ def args():
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--runs", default="")
+    ap.add_argument("--copies", default="ig,fb", help="the carousel copies a deck draws (ig, fb; default both)")
     ap.add_argument("--one", default="", help=argparse.SUPPRESS)
     return ap.parse_args()
 
@@ -153,7 +154,7 @@ def one(a) -> int:
                                            encoding="utf-8", newline="\n")
         graphics = sorted((run / "graphics").glob("graphic_*.mp4"))
         got = {}
-        for fb in (False, True):
+        for fb in [c == "fb" for c in ("ig", "fb") if c in a.copies.split(",")]:
             p = dict(payload)
             gen.generate_carousel_sequence(stills, p, out, facebook=fb, graphics=graphics)
             got["facebook" if fb else "instagram"] = {
@@ -216,7 +217,7 @@ def main() -> int:
         n, missing = item
         t = time.time()
         r = subprocess.run([sys.executable, str(Path(__file__).resolve()), str(tree), str(dev), str(a.out), "--brand",
-                            a.brand, "--kinds", ",".join(missing), "--one", n], capture_output=True, text=True, env=env)
+                            a.brand, "--kinds", ",".join(missing), "--copies", a.copies, "--one", n], capture_output=True, text=True, env=env)
         (a.out / a.brand / n).mkdir(parents=True, exist_ok=True)
         (a.out / a.brand / n / "draw.log").write_text((r.stdout or "") + (r.stderr or ""), encoding="utf-8",
                                                       errors="replace", newline="\n")

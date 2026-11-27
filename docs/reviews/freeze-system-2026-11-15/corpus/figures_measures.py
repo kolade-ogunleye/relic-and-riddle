@@ -311,8 +311,30 @@ def row_form_fault(text: str, unit: str, subject: float, approximate: bool) -> s
 def mask_text(text: str, names: list[str]) -> str:
     """Review 3c: `text` with each name blanked (longest first, any case)."""
     out = str(text or "")
-    for n in sorted({n.strip() for n in names if n and n.strip()}, key=len, reverse=True):
+    ordered = sorted({n.strip() for n in names if n and n.strip()}, key=len, reverse=True)
+    for n in ordered:
         out = re.sub(re.escape(n), " ", out, flags=re.I)
+    return _mask_fragments(out, ordered)
+
+
+def _mask_fragments(text: str, names: list[str]) -> str:
+    """Review 3c: a name a row wrap split ("Lower Manhattan's" / "Woolworth Building: 57 m.") is masked too: the longest
+    run of a name's words that a row starts with (its tail) or ends with (its head)."""
+    out = text
+    for n in names:
+        words = n.split()
+        for i in range(len(words)):                 # a row that starts with the name's tail
+            frag = " ".join(words[i:])
+            if frag and out.strip().lower().startswith(frag.lower()):
+                k = out.lower().index(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
+        for j in range(len(words), 0, -1):          # a row that ends with the name's head
+            frag = " ".join(words[:j])
+            if frag and out.rstrip(" ,.:").lower().endswith(frag.lower()):
+                k = out.lower().rindex(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
     return out
 
 

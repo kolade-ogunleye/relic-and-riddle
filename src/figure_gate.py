@@ -683,8 +683,30 @@ def mask_names(text: str, row: Mapping[str, Any], operands: Sequence[Mapping[str
     names |= {str(o.get("name") or "") for o in operands}
     names |= {n.split(" (")[0] for n in list(names)}
     out = str(text or "")
-    for n in sorted((n.strip() for n in names if n.strip()), key=len, reverse=True):
+    ordered = sorted((n.strip() for n in names if n.strip()), key=len, reverse=True)
+    for n in ordered:
         out = re.sub(re.escape(n), " ", out, flags=re.IGNORECASE)
+    return _mask_fragments(out, ordered)
+
+
+def _mask_fragments(text: str, names: list[str]) -> str:
+    """Review 3c: a name a row wrap split ("Lower Manhattan's" / "Woolworth Building: 57 m.") is masked too: the longest
+    run of a name's words that a row starts with (its tail) or ends with (its head)."""
+    out = text
+    for n in names:
+        words = n.split()
+        for i in range(len(words)):                 # a row that starts with the name's tail
+            frag = " ".join(words[i:])
+            if frag and out.strip().lower().startswith(frag.lower()):
+                k = out.lower().index(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
+        for j in range(len(words), 0, -1):          # a row that ends with the name's head
+            frag = " ".join(words[:j])
+            if frag and out.rstrip(" ,.:").lower().endswith(frag.lower()):
+                k = out.lower().rindex(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
     return out
 
 

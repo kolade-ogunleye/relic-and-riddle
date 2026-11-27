@@ -554,6 +554,8 @@ def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]]
                      "box": list(plate.box)})
         if isinstance(getattr(plate, "derived", None), Mapping):
             rows[-1]["derived"] = dict(plate.derived)
+        if isinstance(getattr(plate, "scale_role", None), Mapping):     # review 3c: a withheld comparison's row
+            rows[-1]["scale_role"] = dict(plate.scale_role)
     vals = [r["graded"] if r["graded"] is not None else r["drawn"] for r in rows]
     vals = [v for v in vals if v is not None]
     record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
@@ -10115,7 +10117,11 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
         if not own and abs(v - ref_feet) < 1e-9:   # review 2 (N1): the landmark at its signed precision, hedged as signed
             return lower(landmark_text(ref_label, ref_feet, u)).replace("ABOUT ", "about ")
         return _ft(v, u, fact if own else None)
-    out: dict[str, Any] = {"lines": [], "derived_line": None, "derivation": None, "note": None}
+    # review 3c: "roles", one per line, the renderer's own record of what each line is ("subject": the subject and its
+    # figure; "landmark": the landmark and its figure; "comparison": the relation and the derived figure), which the
+    # drawn-figure gate binds numbers and relations by (never by a name read in the text)
+    out: dict[str, Any] = {"lines": [], "derived_line": None, "derivation": None, "note": None,
+                           "roles": ["landmark", "comparison"]}
     if depth:
         gap_v = abs(ops[0]["value"] - ops[1]["value"])
         gap_txt = _short(gap_v / per_ft(u), u)
@@ -10162,24 +10168,33 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
         tall = " tall" if long_ else ""
         first = (f"{subject}: {hedge}{say(feet, own=True)}{' long' if long_ else ''}." if subject else "")
         out["lines"] = [ln for ln in (first, f"{_cap_first(ref)}: {say(ref_feet)}{tall}.") if ln]
+        out["roles"] = (["subject"] if subject else []) + ["landmark"]
+        return out
+    if not subject:   # review 3c: no subject name: the same directional forms, without the subject's line
+        if near:
+            lines = [f"{_cap_first(ref)}, {say(ref_feet)},",
+                     "stands nearly its length." if long_ else "is nearly the same height."]
+            roles, at = ["landmark", "comparison"], 1
+        elif ref_feet > feet:
+            lines = [f"{_cap_first(ref)}, {say(ref_feet)},",
+                     f"stands about {ratio} times its length." if long_ else f"is about {ratio} times as tall."]
+            roles, at = ["landmark", "comparison"], 1
+        else:
+            lines = [f"About {ratio} times the height of" if long_ else f"About {ratio} times as tall as",
+                     f"{ref}, {say(ref_feet)}."]
+            roles, at = ["comparison", "landmark"], 0
+        out.update(lines=lines, derived_line=at, derivation=rec, roles=roles)
         return out
     if long_:
-        if not subject:
-            lines, at = [f"{_cap_first(ref)}: {say(ref_feet)} tall.",
-                         "Nearly the same length." if near else f"About {ratio} times the length."], 1
+        # review 2 (N7): each phrase its own sentence line, the landmark and its figure never split across rows
+        first = f"{subject}: {hedge}{say(feet, own=True)} long"
+        if near:
+            lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", "stands nearly its length."], 2
+        elif ref_feet > feet:
+            lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},",
+                         f"stands about {ratio} times its length."], 2
         else:
-            # review 2 (N7): each phrase its own sentence line, the landmark and its figure never split across rows
-            first = f"{subject}: {hedge}{say(feet, own=True)} long"
-            if near:
-                lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", "stands nearly its length."], 2
-            elif ref_feet > feet:
-                lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},",
-                             f"stands about {ratio} times its length."], 2
-            else:
-                lines, at = [first + ",", f"about {ratio} times the height of", f"{ref}, {say(ref_feet)}."], 1
-    elif not subject:
-        lines, at = [f"{_cap_first(ref)}: {say(ref_feet)}.",
-                     "Nearly the same height." if near else f"About {ratio} times as tall."], 1
+            lines, at = [first + ",", f"about {ratio} times the height of", f"{ref}, {say(ref_feet)}."], 1
     else:
         first = f"{subject}: {hedge}{say(feet, own=True)}"
         if near:
@@ -10188,8 +10203,31 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
             lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", f"is about {ratio} times as tall."], 2
         else:
             lines, at = [first + ",", f"about {ratio} times as tall as", f"{ref}, {say(ref_feet)}."], 1
-    out.update(lines=lines, derived_line=at, derivation=rec)
+    roles = ["subject", "comparison", "landmark"] if at == 1 else ["subject", "landmark", "comparison"]
+    out.update(lines=lines, derived_line=at, derivation=rec, roles=roles)
     return out
+
+
+def meaning_row_record(statement: Mapping[str, Any], line: int, fact: Mapping[str, Any], ref_label: str
+                       ) -> dict[str, Any]:
+    """Review 3c: the record a drawn row of the line of meaning carries: its role (the line it comes from: subject,
+    landmark or comparison) and the names it draws (the subject's, the landmark's label), for the drawn-figure gate."""
+    roles = list(statement.get("roles") or [])
+    return {"row": roles[line] if 0 <= line < len(roles) else "unknown", "landmark": str(ref_label),
+            "subject": str(fact.get("subject") or ""), "subject_name": _scale_case_name(dict(fact)),
+            "landmark_name": _landmark_name(ref_label)}
+
+
+def meaning_plate(plate: Any, statement: Mapping[str, Any], line: int, fact: Mapping[str, Any], ref_label: str) -> Any:
+    """A row of the line of meaning (from `statement`'s line `line`) marked with its derivation and its row record
+    (meaning_row_record) as "derived"; a row of a withheld comparison, which has no derivation, with the row record
+    alone as "scale_role" (review 3c: the gate judges its landmark figure against the reference)."""
+    row = meaning_row_record(statement, line, fact, ref_label)
+    if plate is not None and statement.get("derivation"):
+        plate.derived = dict(statement["derivation"], row=row)
+    elif plate is not None:
+        plate.scale_role = row
+    return plate
 
 
 def derived_plate(plate: Any, rec: Mapping[str, Any] | None) -> Any:
@@ -10737,9 +10775,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
               ("figure", quantity_plate(ground, (xt, y_fig), figure, f_fig, "ls"))]   # ruling 8: ABOUT, LONG bone
     if metric:
         plates.append(("figure_metric", quantity_plate(ground, (xt, y_met), metric, f_met, "ls")))
-    plates += [(f"meaning{k}", derived_plate(
+    plates += [(f"meaning{k}", meaning_plate(      # review 2/3c: every row carries the record and its own role
         plan_text(ground, (xt, y_mean0 + k * mean_step), t, f_mean, brand.BONE, "ls"),
-        statement["derivation"]))   # review 2 (N1/N2): every row of the meaning is judged against the record
+        statement, mean_src[k], fact, ref_label))
                for k, t in enumerate(mean_lines)]
     if drawing:            # the slide's own copy says these (render_scale drawing_floor)
         plates = []
@@ -11484,9 +11522,9 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                if name.startswith("figure") else
                plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
               for name, text, font, colour, track, yb in rows]
-    for name, plate in plates:        # every row of the line of meaning carries the derivation (review 2, N1/N2)
+    for name, plate in plates:        # every row of the line of meaning carries the record and its role (review 2/3c)
         if name.startswith("meaning"):
-            derived_plate(plate, statement["derivation"])
+            meaning_plate(plate, statement, mean_src[int(name[7:])], fact, ref_label)
     labelled = {"subject"}            # the operands this drawing labels: the heading's figure is the subject's
     ruler_rows: list[dict[str, Any]] = []
     axis_out: list[dict[str, Any]] = []                     # the axis figures that yielded (yield_axis_figure)

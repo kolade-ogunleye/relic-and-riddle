@@ -973,7 +973,9 @@ def test_cohesion_exact():
     wide = _texts(layout("singing_colossi_of_memnon", True)[1])
     # fix round 1 (gate): HEAD 0036b18's 16:9 ORIGINALLY CARVED TO GUARD THE MEMORIAL | TEMPLE WHERE ... (was: THE
     # MEMORIAL TEMPLE in one line); its 9:16 burst keeps THE MEMORIAL TEMPLE
-    assert "TEMPLE WHERE AMENHOTEP III WAS WORSHIPPED" in wide, wide
+    # freeze cycle 6 (panel 7 MO-C2, lander ruling; 2026-11-27): the 16:9 phrase pass ends no burst inside a phrase
+    # unit where a legal cut holds (THE MEMORIAL | TEMPLE parted modifier and noun): THE MEMORIAL TEMPLE again
+    assert "THE MEMORIAL TEMPLE" in wide and not any(t.endswith("THE MEMORIAL") for t in wide), wide
     assert "THE MEMORIAL TEMPLE" in _texts(layout("singing_colossi_of_memnon", False)[1])
 
 
@@ -1857,6 +1859,47 @@ def _gate_cases():
         yield case, words, emph, h
 
 
+def test_head_gate_new_cuts_of_the_delivered_wide_phrasing(monkeypatch):
+    """Freeze cycle 6 (panel 7 MO-C2): every cut the 16:9 phrase pass (_wide_phrase_pass) adds to the builder's 16:9
+    bursts parts no bond, name, unit or figure group and no atomic pair, is recorded ("wide_recut"), and the pass
+    leaves fewer faulted cuts (wide_cut_fault), never more bursts under 0.8 s or of one word."""
+    require_raqm()
+    for case, words, emph, h in _gate_cases():
+        raw = [w["word"] for w in words]
+        recut: list = []
+        delivered = caption_phrases(words, emph, True, recut=recut)
+        monkeypatch.setattr(vc, "CAPTION_WIDE_PHRASE_PASS", False)
+        builder = caption_phrases(words, emph, True)
+        monkeypatch.setattr(vc, "CAPTION_WIDE_PHRASE_PASS", True)
+        assert [w for p in delivered for w in p] == [w for p in builder for w in p]
+        new = set(_ends(delivered)[:-1]) - set(_ends(builder)[:-1])
+        bonds = (caption_bonds(words) | vc.unit_links(words) | vc.name_bonds(raw) | vc._figure_bonds(raw)
+                 | vc.figure_group_tail_links(words) | vc.emphasis_bonds(words, emph))
+        for k in sorted(new):
+            assert k not in bonds and not vc._is_atomic_boundary(raw[k], raw[k + 1]), (case, raw[k], raw[k + 1])
+        assert not new or [e for e in recut if e.get("wide_recut")], case
+
+        def faults(ph):
+            return sum(vc.wide_cut_fault(words, k) is not None for k in _ends(ph)[:-1])
+
+        def short(ph):
+            return sum(b - a < vc.CAPTION_SPLIT_MIN_S - 1e-6 for a, b, _ in vc.burst_timings(ph))
+        assert faults(delivered) <= faults(builder), case
+        assert short(delivered) <= short(builder) and sum(len(p) == 1 for p in delivered) <= sum(
+            len(p) == 1 for p in builder), case
+
+
+def _strand_cuts(phrases, recut) -> set[int]:
+    """The word positions after which a recorded strand remedy (freeze cycle 6) ended a burst on its moved word."""
+    moved = {e["into"].split(" | ")[0] for e in recut if e.get("strand_remedy") and e.get("function_end")}
+    out, at = set(), -1
+    for p in phrases[:-1]:
+        at += len(p)
+        if " ".join(w["word"] for w in p) in moved:
+            out.add(at)
+    return out
+
+
 def test_head_gate_new_cuts_of_the_delivered_phrasing():
     """Round 4 (second review T2): the HEAD gate around the cuts the DELIVERED 9:16 phrasing adds to the builder's
     (the readable merge, the clip fit's split and the capacity pass, lander ruling 2026-11-26): each new cut parts no bond, name, unit
@@ -1872,8 +1915,15 @@ def test_head_gate_new_cuts_of_the_delivered_phrasing():
         new = set(_ends(delivered)[:-1]) - set(_ends(builder)[:-1])
         bonds = (caption_bonds(words) | vc.unit_links(words) | vc.name_bonds(raw) | vc._figure_bonds(raw)
                  | vc.figure_group_tail_links(words))
+        # lander ruling, freeze cycle 6 (panel 7 C1, refining R1; 2026-11-27): a burst may end on the stranded word the strand pass moved to it,
+        # parting that word's own lead-in bond (GERMAN SOLDIERS OF | ARMY GROUP NORTH), recorded "strand_remedy"
+        strand = _strand_cuts(delivered, recut)
+        hard = vc.caption_bonds(words, names=False) | vc.unit_links(words) | vc.name_bonds(raw) | vc._figure_bonds(raw)
         for k in sorted(new):
             key = (case, raw[k], raw[k + 1])
+            if k in strand:
+                assert k not in hard and not vc._is_atomic_boundary(raw[k], raw[k + 1]), key
+                continue
             assert k not in bonds and not vc.never_end_end(raw[k]) and not vc._is_atomic_boundary(raw[k], raw[k + 1]), key
         records = " ".join(str(e.get("recut", "")) + " " + str(e.get("height_run", "")) + " " + str(e.get("into", ""))
                            for e in recut + split)
@@ -1912,8 +1962,12 @@ def _head_or_never_moved(case, fmt, raw, got, head):
     assert (got ^ head) <= moved, (case, fmt, sorted(got ^ head))
 
 
-def test_head_regression_gate():
+def test_head_regression_gate(monkeypatch):
     require_raqm()   # the HEAD cuts are raqm's (operator decision 2026-11-05)
+    # freeze cycle 6 (panel 7 MO-C2, lander ruling; 2026-11-27): the 16:9 gate holds the PHRASE BUILDER's 16:9 bursts,
+    # as the 9:16 gate holds the builder's (_pre_line_rule); the cuts the 16:9 phrase pass adds are held by
+    # test_head_gate_new_cuts_of_the_delivered_wide_phrasing
+    monkeypatch.setattr(vc, "CAPTION_WIDE_PHRASE_PASS", False)
     budget = vc._ink_budget()
     new = {}
     for case, words, emph, h in _gate_cases():

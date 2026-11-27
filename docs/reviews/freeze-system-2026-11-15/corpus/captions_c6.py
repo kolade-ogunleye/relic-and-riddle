@@ -80,7 +80,7 @@ def collect(tree: str, dev: str, out: str) -> None:
     from src import video_composer as vc
     gold_col = vc._col_emphasis().upper()
     res: dict = {}
-    for run in sorted(Path(dev).glob("output/run_*")):
+    for run in sorted([*Path(dev).glob("output/run_*"), *Path(dev).glob("runs/run_*")]):   # a checkout, or a catalogue
         if not (run / "words.json").is_file():
             continue
         words = json.loads((run / "words.json").read_text(encoding="utf-8"))
@@ -147,7 +147,13 @@ def _parse(text: str, words: list[dict], gold_col: str) -> dict:
         starts = [float(x["start"]) for x in words[wi:j]] if ok else None
         if ok:
             wi = j
-        bursts.append({"show": a, "hide": b, "lines": [" ".join(ln) for ln in lines], "k": len(lines[0]) if lines else 0,
+        k_raw = 0   # line 1's words in the narration's own words (a drawn line drops an ellipsis word: ... 138)
+        if ok and lines:
+            want1, got1 = _key(" ".join(lines[0])), ""
+            while k_raw < len(raw) and len(got1) < len(want1):
+                got1 += _key(raw[k_raw])
+                k_raw += 1
+        bursts.append({"show": a, "hide": b, "lines": [" ".join(ln) for ln in lines], "k": k_raw if ok else 0,
                        "raw": raw, "starts": starts, "first_vis": first_vis, "gold": gold,
                        "gold_words": [w for y in ys for w, c, _ in last[y][3] if c == gold_col],
                        "hidden_at_end": hidden_end, "fs": mine[0][4] if mine else None})
@@ -262,7 +268,7 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
                             or vc.noun_phrase_cut(words, k) is not None):
                         continue
                     parts, fe = [pair[:c], pair[c:]], vc.never_end_end(raw_all[k])
-                    if fe and abs(c - c0) != 1:
+                    if fe and (abs(c - c0) != 1 or lp_tree(vc).bare(raw_all[k]) in ("a", "an", "the")):
                         continue   # a function-word burst end only for the stranded word moved (remedy 1)
                 if any(bad(q) for q in parts):
                     continue

@@ -304,8 +304,18 @@ def test_the_delivered_phrasing_adds_only_legal_recorded_cuts_to_the_builders(na
     raw = [w["word"] for w in words]
     new = ends(after) - ends(before)
     bonds = vc.unit_links(words) | vc.name_bonds(raw) | vc.caption_bonds(words)
-    assert not new & bonds, [(raw[k], raw[k + 1]) for k in sorted(new & bonds)]
-    assert not [raw[k] for k in new if vc.never_end_end(raw[k])]
+    # lander ruling, freeze cycle 6 (panel 7 C1, refining R1; 2026-11-27): a burst may end on the stranded word the strand pass moved to it
+    # (remedy 1), parting only that word's own lead-in bond, recorded "strand_remedy"
+    moved = {e["into"].split(" | ")[0] for e in recut if e.get("strand_remedy") and e.get("function_end")}
+    strand, at = set(), -1
+    for p in after[:-1]:
+        at += len(p)
+        if " ".join(w["word"] for w in p) in moved:
+            strand.add(at)
+    hard = vc.unit_links(words) | vc.name_bonds(raw) | vc.caption_bonds(words, names=False)
+    assert not new & strand & hard
+    assert not (new - strand) & bonds, [(raw[k], raw[k + 1]) for k in sorted((new - strand) & bonds)]
+    assert not [raw[k] for k in new - strand if vc.never_end_end(raw[k])]
     assert not new or [e for e in recut if e.get("recut") or e.get("into")]
     assert len(ends(before) - ends(after)) >= len(new)       # the merge joins more than it cuts
 
@@ -368,7 +378,7 @@ def test_every_two_line_burst_names_the_rule_that_keeps_it_on_two_lines(name, mo
     for e in clip.get("two_line") or []:
         assert e["why"] and set(e["why"]) <= {"one_word_part", "cut_parts_a_bond_or_ends_on_a_never_end_word",
                                               "under_min_on_screen", "run_height", "phrase_unit",
-                                              "part_not_one_line"}, e
+                                              "part_not_one_line", "strand_remedy"}, e   # cycle 6: the strand pass
 
 
 def test_a_new_cut_never_parts_a_noun_phrase_over_two_modifiers():

@@ -354,12 +354,17 @@ ANTIKYTHERA = "That astonishing scientific mastery vanished for over a thousand 
 
 @pytest.mark.parametrize("timing", [_paced, _timed])
 def test_a_range_left_with_a_never_end_lead_in_splits_at_its_joiner_only(timing):
-    phrases = vc.caption_phrases(timing(OBELISK), None, False)
+    recut: list = []
+    phrases = vc.caption_phrases(timing(OBELISK), None, False, recut=recut)
     texts = [" ".join(w["word"] for w in p) for p in phrases]
-    assert vc.never_end_bursts(phrases) == [], texts                     # never RANGE FROM |
-    assert "from nearly 1,090 tonnes" in texts and "to 1,168 tonnes," in texts, texts   # the hedge with the first end
+    # lander ruling, freeze cycle 6 (panel 7 C1, refining R1; 2026-11-27): FROM NEARLY / 1,090 TONNES (a hedge parted from its figure on a forced break at the clip's
+    # size) gives way to the previous burst taking the stranded FROM (remedy 1), recorded; was: never RANGE FROM |,
+    # FROM NEARLY 1,090 TONNES one burst
+    moved = {e["into"].split(" | ")[0] for e in recut if e.get("strand_remedy") and e.get("function_end")}
+    assert set(vc.never_end_bursts(phrases)) == moved == {"obelisk's weight range from"}, texts
+    assert "nearly 1,090 tonnes" in texts and "to 1,168 tonnes," in texts, texts   # the hedge with the first end
     rec = vc.reading_rates(phrases, vc.burst_timings(phrases))
-    assert rec["figure_split"] == ["from nearly 1,090 tonnes | to 1,168 tonnes,"]       # the cut is recorded
+    assert rec["figure_split"] == ["nearly 1,090 tonnes | to 1,168 tonnes,"]           # the cut is recorded
     raw = OBELISK.split()
     assert vc.range_joiner_cuts(raw) == {raw.index("tonnes")}           # only before the joiner, never inside a unit
 

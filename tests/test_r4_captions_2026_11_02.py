@@ -258,7 +258,8 @@ def test_a_widescreen_line_draws_one_gold_span(tmp_path):
     ass = VideoComposer().build_subtitles(words, tmp_path / "w.ass", emphasis=["Derinkuyu", "280 feet"],
                                           width=1920, height=1080).read_text("utf-8")
     golds = [_gold(t) for _, _, t in _events(ass, "CapText")]
-    assert ["roughly", "280", "feet"] in golds
+    # freeze cycle 6 (panel 7 TY3, ruling R8-8; 2026-11-27): the one span is the figure with its unit, the hedge bone
+    assert ["280", "feet"] in golds and not any("roughly" in g for g in golds)
     assert all("Derinkuyu" not in g for g in golds if "280" in g)
     # the Reel keeps both key terms (its gold arrives word by word, one at a time)
     reel = VideoComposer().build_subtitles(words, tmp_path / "r.ass", emphasis=["Derinkuyu", "280 feet"]).read_text("utf-8")

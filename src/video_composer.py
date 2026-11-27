@@ -4511,8 +4511,8 @@ def _wide_phrase_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str,
     burst that stood is always allowed as it was. Best, in order: the fewest faulted cuts (wide_cut_fault: a function,
     auxiliary or phrase-unit end), the fewest bursts under CAPTION_SPLIT_MIN_S, the fewest one-word bursts, the fewest
     bursts holding clause punctuation inside, no burst faster than the sentence's fastest (characters a second), the
-    fewest words shown more than CAPTION_EARLY_RECORD_S before they are heard (a 16:9 burst is shown whole), the fewest
-    cuts moved, the evenest bursts. A re-cut is taken only when it has fewer faulted cuts or fewer short or one-word
+    fewest cuts moved (the builder's phrasing stands wherever it is not at fault), the fewest words shown more than
+    CAPTION_EARLY_RECORD_S before they are heard (a 16:9 burst is shown whole), the evenest bursts. A re-cut is taken only when it has fewer faulted cuts or fewer short or one-word
     bursts, and is recorded (`record`: "wide_recut", "was", "why")."""
     out = [list(p) for p in phrases if p]
     if len(out) < 2:
@@ -4577,6 +4577,9 @@ def _wide_phrase_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str,
             ph = flat[x:y]
             if y - x < 2 or y - x > CAPTION_WIDE_MAX_WORDS or _function_only(ph) or not fits(ph):
                 return False
+            if any(_gap_after(words, base + j) >= CAPTION_PAUSE_BREAK_S - 1e-9 or TERMINAL_PUNCT.search(raw_all[base + j])
+                   for j in range(x, y - 1)):
+                return False   # a NEW burst never spans a pause or a sentence end (the builder's own may, as it stood)
             d = dur(x, y)
             return d >= CAPTION_SPLIT_MIN_S - 1e-6 and chars(x, y) / max(1e-3, d) <= cps_cap + 1e-6
 
@@ -4596,8 +4599,8 @@ def _wide_phrase_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str,
                 d = dur(x, y)
                 seg = chars(x, y)
                 cost = (c0[0] + (fault(y) if y < n else 0), c0[1] + int(d < CAPTION_SPLIT_MIN_S - 1e-6),
-                        c0[2] + int(y - x == 1), c0[3] + straddle(x, y), c0[4] + early(x, y),
-                        c0[5] + int(bool(x) and x not in old_cuts), c0[6] + (seg - 30) ** 2)
+                        c0[2] + int(y - x == 1), c0[3] + straddle(x, y),
+                        c0[4] + int(bool(x) and x not in old_cuts), c0[5] + early(x, y), c0[6] + (seg - 30) ** 2)
                 if y not in best or cost < best[y][0]:
                     best[y] = (cost, x)
         if n not in best:
@@ -4733,8 +4736,9 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
                     continue
                 parts = [pair[:c], pair[c:]]
                 end_fn = never_end_end(raw_all[k])
-                if end_fn and abs(c - c0) != 1:
-                    continue   # a burst ends on a function word only where it is the stranded word moved (remedy 1)
+                if end_fn and (abs(c - c0) != 1 or _bare(raw_all[k]) in _ARTICLES):
+                    continue   # a burst ends on a function word only where it is the stranded word moved (remedy 1),
+                    #            and never on an article (no burst ends on THE, A or AN: the round-4 rule stands)
             if any(bad_part(q) for q in parts):
                 continue
             ctx = out[win_lo:lo] + parts + out[hi + 1:win_hi]
@@ -4854,7 +4858,13 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
                            "removed": ["over_clip_size"], "forced_split": True, "rule": CLIP_RULE,
                            "into": " ".join(raw[:j]) + " | " + " ".join(raw[j:]),
                            "why": "no two-line break sets at the clip's size and no legal split holds"})
+    before = {" ".join(raw_of(p)) for p in done}
     out = _strand_pass(done, words, emphasis, size, record)
+    for p in out:   # a burst the strand pass formed on two lines names its rule (the two-line record stays whole)
+        t = " ".join(raw_of(p))
+        form = _clip_form(raw_of(p), size)
+        if t not in before and form is not None and form[0] == "two":
+            two_line.append({"text": t, "why": ["strand_remedy"]})
     for p in out:
         raw = raw_of(p)
         form = _clip_form(raw, size)
@@ -5171,11 +5181,12 @@ def accent_plan(words: list[dict[str, Any]], terms: list[str] | None) -> tuple[s
     def figure_span(lo: int, hi: int) -> tuple[int, int]:
         while lo < hi and tokens[lo] in ACCENT_NEVER and not _is_figure_at(tokens, lo):
             lo += 1
+        units = MEASURE_UNITS | _line_policy.UNITS   # the system's one unit vocabulary (keep-together) with the captions'
         if hi + 1 < n and not _ends_clause(raw[hi]):
-            if tokens[hi + 1] in MEASURE_UNITS:
+            if tokens[hi + 1] in units:
                 hi += 1
-            elif (hi + 2 < n and tokens[hi + 1] in AREA_QUALIFIERS and tokens[hi + 2] in MEASURE_UNITS
-                  and not _ends_clause(raw[hi + 1])):
+            elif (hi + 2 < n and tokens[hi + 1] in AREA_QUALIFIERS | _line_policy.AREA_WORDS
+                  and tokens[hi + 2] in units and not _ends_clause(raw[hi + 1])):
                 hi += 2
         return lo, hi
 
@@ -6779,7 +6790,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         # freeze cycle 6 (panel 7 TY3, R8-8): the gold is the clip's one accent rule (CAPTION_ACCENT_RULE): every mention
         # of a key term, a figure with its unit, never a quantity's hedge; an attribution hedge's gold waits for its term
-        key, hedge_of, mentions = accent_plan(words, emphasis)
+        gold_at, hedge_of, mentions = accent_plan(words, emphasis)
+        key = gold_at | set(hedge_of)   # an attribution hedge is gold beside its term only (gold_from waits for it)
         accent: dict[str, Any] = {"rule": CAPTION_ACCENT_RULE, "gold": [], "bone": []}
         bond_extra: list[dict[str, Any]] = []
         line_split: list[dict[str, Any]] = []   # lane C cycle 4: each burst LINE_RULE split, or could not

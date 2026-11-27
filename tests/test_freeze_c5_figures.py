@@ -85,8 +85,9 @@ def test_derived_figures_carry_their_derivation_or_are_withheld(records):
         lay = r["layout"]
         if lay["derived"] is not None:
             assert not figures.derivation_faults(lay["derived"], lay["labelled"])
-            assert not figure_gate.derived_faults("bracket", lay["derived"].get("text") or "",
-                                                  lay["derived"], {"scale_fact": r["input"]}) or not lay["derived"]["shown"]
+            row = {"row": "comparison", "landmark": "", "subject": "", "subject_name": "", "landmark_name": ""}
+            assert not figure_gate.derived_faults("meaning1", "", dict(lay["derived"], row=row),
+                                                  {"scale_fact": r["input"]})
         else:
             assert lay["derived_withheld"] and any("derived figure" in str(o.get("omitted")) for o in r["omissions"])
 

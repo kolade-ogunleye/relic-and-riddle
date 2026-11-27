@@ -51,6 +51,8 @@ TOKENS: dict[str, Any] = {
     "hug.group_gap": 0.95,       # em: lines nearer than this (vertically) are one group, one plate
     "hug.radius": "plate.radius",    # the system's plate radius (14 px at 1080)
     "hug.tiers": ("plate.held", 1.0),  # the system's held tier, then opaque
+    "hug.encode_margin": 1.2,    # a plate's tier is chosen for target x this (a platform re-encode takes ~10-18 %
+    #                              off a small gold label: contrast.kicker 5.5 -> 4.5); measured, cycle 6 first round
     "field.grow": 0.35,          # em: the envelope's full-strength core past the ink
     "field.sigma": 0.45,         # em: its Gaussian fall-off
     "field.cap": 0.92,           # the deepest INK alpha the field lays
@@ -198,7 +200,7 @@ def _hug(G: np.ndarray, fb, size, scale, rec, block: bool = False) -> np.ndarray
         # the group's brightest ground (p95 by luminance) and its darkest fill
         lum = rel_lum(G[sel])
         g = G[sel][int(np.argsort(lum)[int(0.95 * (len(lum) - 1))])]
-        worst = min(_max_ground(f, tk("target")) for _b, f in grp)
+        worst = min(_max_ground(f, tk("target") * tk("hug.encode_margin")) for _b, f in grp)
         tier = next((t for t in tiers if rel_lum(np.asarray(((1 - t) * g + t * np.asarray(brand.INK, np.float32)),
                                                             np.float32)) <= worst + 1e-6), tiers[-1])
         need_tier = max(need_tier, tier)

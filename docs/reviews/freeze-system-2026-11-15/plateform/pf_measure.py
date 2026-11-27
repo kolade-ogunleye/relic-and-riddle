@@ -12,7 +12,7 @@ at all: the photograph as the type finds it), both drawn by the same calls.
 Measures (per tile):
 - contrast: the lowest text element's ratio after a platform-like re-encode (JPEG q75, 4:2:0): the element's glyph
   pixels (within 40 levels of its fill) at their 10th percentile luminance against the 95th of the box's other pixels
-  (glyphs dilated 3 px), WCAG ratio. The masthead is listed apart (no form changes it).
+  (every type fill's pixels dilated 3 px excluded: a gold run in a bone line is ink, not ground), WCAG ratio. The masthead is listed apart (no form changes it).
 - dark: the share of the frame darker than base by > 20 luma (8-bit BT.709), outside the type boxes grown by 6 px;
   and "abs", the share darker than the bare photograph ("none") by > 20, beside base's own.
 - edge: the darkening map D = luma(none) - luma(tile), outside the type boxes grown by 12 px: pixels where D steps by
@@ -37,6 +37,7 @@ from PIL import Image, ImageDraw, ImageFont
 from scipy.ndimage import binary_dilation
 
 L709 = np.array([0.2126, 0.7152, 0.0722], np.float32)
+TEXT_FILLS = ((243, 237, 226), (242, 182, 48), (184, 177, 163), (154, 147, 133))   # BONE, GOLD, STONE_LT, STONE
 FORMS = ("none", "base", "hug", "block", "field", "grade", "split", "type")
 
 # The reviewers' cases (REVIEW-plates-c5, REVIEW2/3, PANEL7 CD), by surface. cards: (kind, key); stills: (run, dir, file)
@@ -79,7 +80,7 @@ def reencode(im: Image.Image) -> np.ndarray:
     return np.asarray(Image.open(b).convert("RGB"), np.float32)
 
 
-def element_contrast(a: np.ndarray, el: dict) -> float | None:
+def element_contrast(a: np.ndarray, el: dict, fills=()) -> float | None:
     x0, y0, x1, y1 = (int(round(v)) for v in el["box"])
     r = a[max(0, y0):max(0, y1), max(0, x0):max(0, x1)]
     if r.size == 0:
@@ -92,7 +93,10 @@ def element_contrast(a: np.ndarray, el: dict) -> float | None:
     if g.sum() < 30:
         return None
     yy = Y(r)
-    bg = ~binary_dilation(g, iterations=3)
+    ink = g.copy()
+    for f in fills:   # every type fill on the frame is ink, never ground (a gold run inside a bone line, a strike)
+        ink |= np.abs(r - np.array(f[:3], np.float32)).max(-1) < 40
+    bg = ~binary_dilation(ink, iterations=3)
     if bg.sum() < 30:
         return None
     lt, lb = np.percentile(yy[g], 10), np.percentile(yy[bg], 95)
@@ -156,8 +160,11 @@ def measure(form_im: Image.Image, base_im: Image.Image, none_im: Image.Image | N
         out["dark"] = round(float(((Lb - Lf > 20) & ~t6).mean()) * 100, 1)
     a = reencode(form_im)
     cs = []
+    fills = {tuple(e["fill"][:3]) for e in els if isinstance(e.get("fill"), (list, tuple)) and len(e["fill"]) >= 3}
+    fills |= set(TEXT_FILLS) | {(c[2], c[1], c[0]) for c in TEXT_FILLS}   # runs in another fill (the test palettes
+    #                                                                       swap red and blue: QF-35a second_brand)
     for e in els:
-        c = element_contrast(a, e)
+        c = element_contrast(a, e, fills)
         if c is not None:
             cs.append((round(c, 2), e.get("name", ""), (e.get("text") or "")[:24]))
     mast = [c for c in cs if c[1] in ("header_brand", "masthead")]

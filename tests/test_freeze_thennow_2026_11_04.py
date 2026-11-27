@@ -922,7 +922,9 @@ def test_the_divider_lands_once(size):
     pos = [then_now.divider_at(i / FPS, w, h) for i in range(180)]
     steps = np.diff(pos)
     assert all(s <= 1e-9 for s in steps) and min(pos) == pytest.approx(split)   # one direction, never past
-    assert np.abs(steps).max() <= 30                                           # T4(c)/(d)
+    # T4(c)/(d)'s 30 px, now the token (review round 1, D6, ruling 2026-11-27: 36 so the split reads both markers)
+    from src.brand_system import tok
+    assert np.abs(steps).max() <= tok("motion.wipe_step") + 1e-6
 
 
 def test_the_push_is_linear():
@@ -1009,10 +1011,12 @@ def test_a_registered_pair_keeps_one_window(tmp_path):
     x, y, info = then_now.frame_pair(tmp_path / "o.png", tmp_path / "n.png", *PORTRAIT)
     assert info["gate"] == "THEN pane empty"
     assert np.array_equal(np.asarray(x), np.asarray(y))                        # one window, both photos (T7b)
-    assert info["window"] == "shared" and 1.0 < info["zoom"] <= then_now.FRAME_Z_MAX
-    assert info["source_px_per_frame_px"] >= 0.8                                # T7(c)
-    assert 0.12 <= info["subject_row_share"] <= 0.15
-    assert info["then_pane_edge_after"] >= 0.06 and info["now_pane_edge_after"] >= 0.06
+    # Changed pin, freeze cycle 6 (THENNOW review round 1, lander ruling 2026-11-27): a registered picture's window
+    # keeps its central region. This 4:3 picture holds 0.42 of its width at 9:16 even unzoomed, so the T7 search's
+    # zoomed windows (up to FRAME_Z_MAX round the subject's top) are set aside and the centred window is kept.
+    assert info["window"] == "centred (no window found)" and info["zoom"] == 1.0 and info["centre_kept"] > 0
+    big = (round(PORTRAIT[0] * 1.04), round(PORTRAIT[1] * 1.04))
+    assert then_now.keeps_centre(then_now._cover_window((4000, 3000), big), (4000, 3000), big)
 
 
 def test_the_real_colossi_framing(tmp_path):

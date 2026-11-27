@@ -1954,7 +1954,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         for w in years:
             ps, rec = planned[w]
             tiers[w] = plate_tier(ps, rec, [lightest[w], darkest[w]], high, high_held)
-            if tiers[w]["contrast"] is not None and tiers[w]["contrast"] + 1e-9 < high:
+            # the plate's tiers decide a plate's place; a label the set draws without a plate (halo, ink type)
+            # keeps its own gate (PLACE_TARGET) and its place
+            if tiers[w]["tier"] in ("held", "opaque") and tiers[w]["contrast"] + 1e-9 < high:
                 short.append(w)
         moved = False
         for w in short:            # the next calmest documented place, while one is left

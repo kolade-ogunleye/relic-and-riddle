@@ -572,7 +572,8 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "place.site_step": (1.2, lambda: _graphics().site_steps(1080, 1920)),
     "motion.act_dissolve": (0.8, lambda: __import__("src.video_composer", fromlist=["x"]).act_dissolve_s()),
     # SYS batch 2 (SYS-E-1 / SYS-F-1): the reveal, the bridge, the push and the hook, live
-    "motion.reveal": (0.7, lambda: _end_card_frame(6)),                 # the masthead's fade at 0.2 s
+    # freeze cycle 6 (THENNOW D6): over ~0.48 s the then-and-now split no longer reads both markers (refused)
+    "motion.reveal": (0.45, lambda: _end_card_frame(6)),                # the masthead's fade at 0.2 s
     "motion.word_stagger": (0.1, lambda: __import__("src.end_card", fromlist=["x"]).word_at(3)),
     "motion.word_in": (0.5, lambda: __import__("src.end_card", fromlist=["x"]).share_done(4)),
     "motion.line_in": (0.5, lambda: _end_card_frame(51)),               # the follow line rising into the bell

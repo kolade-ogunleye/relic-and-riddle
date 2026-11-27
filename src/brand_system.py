@@ -231,7 +231,13 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # one size at the ladder's floor); the end screen is the sign-off, where the mark is the card's subject over a
     # share line and no hook (PL3 is not applicable there: panel 7 protocol). Unifying either way would break one rule.
     # The gold rule under the end card's / end screen's wordmark (it was a layout literal, 240 x 4 px on both canvases):
-    "masthead.rule_len": 240,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
+    # The stacked form (freeze cycle 6, M1): the clear field between its two lines, a share of the name's cap height.
+    # Wider than the lockup's 0.18: the gate's ring (2-10 px around the ink) must read the ground, not the other line
+    "masthead.stack_gap": 0.45,
+    "masthead.rule_len": 240,
+    # The swipe strip's part on slide 1 (freeze cycle 6, M2): drawn only outside the profile grid's 3:4 crop, and
+    # only where that part is at least this long (design px); else none, and none run in on slide 2
+    "swipe.part_min": 24,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
     "masthead.rule_thick": 4,         # px: its stroke
     # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
     "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
@@ -347,7 +353,9 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "map.coast_w": (1.0, 3.0),
     "globe.limb_dark": (0.0, 0.25),
     "masthead.hook_ratio_max": (0.6, 0.9),
+    "masthead.stack_gap": (0.4, 0.8),
     "masthead.rule_len": (120, 480),
+    "swipe.part_min": (12, 72),
     "masthead.rule_thick": (2, 8),
     "masthead.youtube_px": (48, 64),      # a step of masthead.fit_ladder(64): 64 / 60 / 56 / 52 / 48   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
@@ -653,7 +661,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._fit_text": "D",
     "multi_format:MultiFormatGenerator._masthead_box": "D",   # freeze c5: the masthead's box (its ladder size, read)
     "multi_format:MultiFormatGenerator._render_carousel_slide": "D",
-    "multi_format:MultiFormatGenerator._render_carousel_slide.draw_mark": "D",   # freeze c6 M1: the mark at a step
     "multi_format:MultiFormatGenerator._render_debate.with_share": "D",
     "multi_format:MultiFormatGenerator._render_story_frame": "D",
     "multi_format:MultiFormatGenerator._render_story_frame.title_plan": "D",
@@ -661,7 +668,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._rows": "D",
     "multi_format:MultiFormatGenerator._set_heading": "D",
     "multi_format:MultiFormatGenerator._set_heading.measure": "D",
-    "multi_format:MultiFormatGenerator._hook_heading": "D",   # freeze c6 M1: the drawn heading size, measured for ink
     "multi_format:MultiFormatGenerator._slide_text.place": "D",
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
@@ -682,7 +688,6 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_lockup": "B",              # lane B cycle 3: the refusal names its rule at the floor
     "youtube_thumbnail:_lockup.attempt": "B",
     "youtube_thumbnail:_lockup.width_at": "B",
-    "youtube_thumbnail:_lockup.first_ink": "B",    # freeze c6 M1: a form's first row measured at its own size
     "youtube_thumbnail:mast_size_rule": "B",       # freeze c6 M4: the mark's one size, its feed capitals recorded
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",

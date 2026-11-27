@@ -313,21 +313,44 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     at 5.1 full size and measured 4.43 at 246 px wide, failing its own gate): a line whose ratio falls under 4.5
     at feed size is planned again with a higher target and a wider halo until it holds or FEED_TARGET_MAX. The
     first pass also measures the type's right edge, and the ink's feather is fitted to it (round 4)."""
-    targets: dict[str, float] = {}
     given = dict(meta or {})
-    edge = None
-    while True:
-        trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
-        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
-                             column)
-        if edge is None and _type_edge(plates) is not None:
-            edge = _type_edge(plates)
-            continue
-        low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
-        if not low:
-            break
-        for n in low:
-            targets[n] = targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP
+
+    def solve(form):
+        targets: dict[str, float] = {}
+        edge = None
+        while True:
+            trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
+            im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
+                                 column, form=form)
+            if edge is None and _type_edge(plates) is not None:
+                edge = _type_edge(plates)
+                continue
+            low = [n for n in _low_contrast(trial)
+                   if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
+            if not low:
+                return im, plates, trial, targets, edge
+            for n in low:
+                targets[n] = targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP
+
+    # freeze cycle 6 (MASTHEAD M1, lander rulings 2026-11-27): the thumbnail is its own post and decides its own form:
+    # the one-line masthead, else (its group over masthead.hook_ratio_max of the hook's first row as drawn) the
+    # stacked form, kept where it is drawn and clear of every other element (else the one-line form, recorded)
+    im, plates, trial, targets, edge = solve("line")
+    from . import masthead
+    hook = trial.get("hook_ratio") or {}
+    if not hook.get("holds", True) and masthead.stack_lines() is not None:
+        got = solve("stacked")
+        brand_p = next((q for n, q in got[1] if n == "brand"), None)
+        hit = [n for n, q in got[1] if n != "brand" and brand_p is not None and not q.empty
+               and _intersects(q.box, brand_p.box)]
+        if brand_p is not None and not hit:
+            im, plates, trial, targets, edge = got
+        else:
+            trial["hook_ratio"] = dict(hook, note=("the stacked form would touch the " + hit[0]) if hit else
+                                       "the stacked form is not drawn on this ground (its gate)")
+            trial["hook_ratio"]["reason"] = masthead.hook_record(
+                "YouTube thumbnail", "line", hook.get("masthead_px"), hook.get("first_row_px"), hook.get("size_px"),
+                note=trial["hook_ratio"]["note"]).get("reason")
     if targets:
         trial["feed_targets"] = {n: round(t, 2) for n, t in targets.items()}
     if edge is not None:
@@ -439,8 +462,7 @@ def feed_floor_px(floor: float) -> int:
     return px_for_cap(brand.DISPLAY_FONT, floor * W / FEED_WIDTHS[0])
 
 
-def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, room: float | None = None,
-            min_row: float | None = None):
+def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, room: float | None = None):
     """The headline lockup (round 7, F1 / F21; round 8, rulings 4, 5, 7): ([(element name, [(dx, text, colour)]) per
     drawn line], line-1 font, line-2 font, record). One size for the lockup's lines (lockup.line_ratio, a minimum:
     line 2 never smaller than line 1); the wide display_xl ladder (190, its fallback 160), never under the hero
@@ -459,12 +481,7 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     the headline takes its larger size on two lines before the fallback size on one ("one size up": the kicker's
     room). Nothing is set below the ladder held at the feed floor (lander ruling, round 8: round 7's 4 px last resort
     down to 96 is retired): where no form sets there, LayoutError (a recorded refusal, never type drawn past its
-    column or under its floor).
-    `min_row` (freeze cycle 6, MASTHEAD M1: the hook ratio's title side): the least ink width of the first drawn row
-    at which the masthead over it holds masthead.hook_ratio_max. Where the form the order above takes has a shorter
-    first row, the first form in the same order (the same words, the same rules, the same ladder held at the same
-    floor: a re-break, or the ladder's smaller title size) whose first row holds it is taken instead; none: the
-    first form stands, recorded (record["hook_remedy"])."""
+    column or under its floor)."""
     from .brand_system import TYPE, TYPE_FALLBACK, tok
     from .cover_design import head_noun_shape
     from .heading import GOLD_ROLES, Form, end_ok, field_runs, lockup_fields, lockup_valid, set_field, set_heading
@@ -581,58 +598,32 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
     from .brand_system import SPEC
     from .cover_design import unbalanced_lone
     from .heading import first_row_lone
-
-    def pick(accept):
-        """The order above, its first form that `accept` takes (None: none sets)."""
-        deferred, held_first = None, False
-        for name, f1, f2, tries, at, why in forms:
-            for s1, tier, n in tries:
-                got = attempt(f1, f2, s1, tier, n, at)
-                if not got or not accept(got):
-                    continue
-                rows_ = got[3]["drawn_rows"]
-                ws = [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]
-                if held_first:
-                    # SYS-B-6 (freeze SYS batch 3, the heading engine's rule): a held one-word first row gives way
-                    # only to a form AT the balance minimum at its own size; never a shrink only to move a word, never
-                    # a trade for another form under the minimum
-                    if (got[3]["sizes"] == deferred[0][3]["sizes"] and unbalanced_lone(rows_, ws) is None
-                            and (len(rows_) < 2 or min(ws) / max(ws) >= SPEC["heading.balance_min"])):
-                        return done(got, name, why)
-                    continue
-                # lane B cycle 3 (B-S2-2): one reading with the Reel cover (cover_design.unbalanced_lone): a stacked
-                # one-word row under the balance minimum waits for every other form (the heading engine's staging)
-                if unbalanced_lone(rows_, ws) is not None:
-                    if deferred is None:
-                        deferred, held_first = (got, name, why), first_row_lone(rows_, ws)
-                    continue
-                return done(got, name, why)
-        if deferred is not None:
-            deferred[0][3]["balance_below_min"] = True
-            return done(*deferred)
-        return None
-
-    def first_ink(got) -> float:
-        """The first drawn row's ink width (inf with no row drawn: nothing for the mark to compete with)."""
-        from .masthead import text_ink
-        rows_ = got[3]["drawn_rows"]
-        return text_ink(rows_[0], get_font(brand.DISPLAY_FONT, got[3]["row_sizes"][0])) if rows_ else float("inf")
-    got = pick(lambda g: True)
-    if got is not None and min_row is not None and first_ink(got) < min_row:
-        row0 = first_ink(got)
-        alt = pick(lambda g: first_ink(g) >= min_row)
-        if alt is not None:
-            alt[3]["hook_remedy"] = {"kind": "re-break" if alt[3]["sizes"] == got[3]["sizes"] else "title size",
-                                     "from": list(got[3]["drawn_rows"]), "to": list(alt[3]["drawn_rows"]),
-                                     "sizes": [list(got[3]["sizes"]), list(alt[3]["sizes"])],
-                                     "first_row_px": [round(row0, 1), round(first_ink(alt), 1)]}
-            return alt
-        got[3]["hook_remedy"] = {"kind": "none", "rows": list(got[3]["drawn_rows"]), "first_row_px": round(row0, 1),
-                                 "need_px": round(min_row, 1),
-                                 "reason": "no form of the headline on its ladder (held at the feed floor) has a "
-                                           "longer first row"}
-    if got is not None:
-        return got
+    deferred, held_first = None, False
+    for name, f1, f2, tries, at, why in forms:
+        for s1, tier, n in tries:
+            got = attempt(f1, f2, s1, tier, n, at)
+            if not got:
+                continue
+            rows_ = got[3]["drawn_rows"]
+            ws = [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]
+            if held_first:
+                # SYS-B-6 (freeze SYS batch 3, the heading engine's rule): a held one-word first row gives way only to
+                # a form AT the balance minimum at its own size; never a shrink only to move a word, never a trade for
+                # another form under the minimum
+                if (got[3]["sizes"] == deferred[0][3]["sizes"] and unbalanced_lone(rows_, ws) is None
+                        and (len(rows_) < 2 or min(ws) / max(ws) >= SPEC["heading.balance_min"])):
+                    return done(got, name, why)
+                continue
+            # lane B cycle 3 (B-S2-2): one reading with the Reel cover (cover_design.unbalanced_lone): a stacked
+            # one-word row under the balance minimum waits for every other form (the heading engine's staging)
+            if unbalanced_lone(rows_, ws) is not None:
+                if deferred is None:
+                    deferred, held_first = (got, name, why), first_row_lone(rows_, ws)
+                continue
+            return done(got, name, why)
+    if deferred is not None:
+        deferred[0][3]["balance_below_min"] = True
+        return done(*deferred)
     # Lander ruling (cycle 0 round 8): no surface draws under its floor. The ladder above is held at the hero's feed
     # floor; a headline no form sets there is refused (recorded), never drawn smaller (round 7 stepped off the ladder
     # to 96 px: the second palette drew 5.8-9.8 px of cap at the 168 px feed against the 12 px floor)
@@ -906,7 +897,7 @@ def type_column(focus_box) -> float:
 
 
 def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
-            column=None):
+            column=None, form: str = "line"):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -968,8 +959,11 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     mode = im.mode
     # lane B cycle 3: one size on every thumbnail (mast_px, a step of the masthead's own fit ladder, drawn through
     # the ladder's fit); the baseline and the band below keep the canvas size's, so the hero stack does not move
+    # freeze cycle 6 (M1): in the thumbnail's form (render decides it), at the one size: the room is that size's
+    # group in the form, so the fit ladder lands on mast_px in either form
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
-                                                  max_width=masthead.group_width(mast_px(), LEFT) + 0.5)
+                                                  max_width=masthead.form_width(mast_px(), form, LEFT) + 0.5,
+                                                  form=form)
     im = im.convert(mode)
     # Lane B c4 (panel 5 BC MG-02 / PL: "48 px drawn against 64 asked, room 488.5" read as a fit to each hook): the
     # size is the ruled token, not a measure of this thumbnail; the record says which rule set it.
@@ -1259,11 +1253,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         # line 1's size, the pair on the wide display_xl ladder held at its feed floor, one line a field, else the
         # two-line tier; kickerless (no kicker, no hedge above it), the larger size on two lines first. Below the
         # ladder only as a recorded last resort; a headline no form sets is a recorded refusal (LayoutError).
-        # freeze cycle 6 (MASTHEAD M1): the hook ratio's title side, against the mark as drawn (None: withheld)
-        min_row = (masthead.group_width(mast_px(), LEFT) / masthead.tok("masthead.hook_ratio_max")
-                   if mast_drawn else None)
         lines, f, f2, lock = _lockup(measure, typeset(l1), typeset(l2), width, kickerless=not (f_k or f_h),
-                                    room=band - h_h, min_row=min_row)
+                                    room=band - h_h)
         meta["lockup"] = lock
         pitch = int(cap_height(f2) * line_pitch())
         y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
@@ -1296,9 +1287,9 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     # headline's first row, or the figure with its unit), the one rule of every hook surface (masthead.hook_record)
     mrec = meta.get("masthead") or {}
     meta["hook_ratio"] = masthead.hook_record(
-        "YouTube thumbnail", mrec.get("group_width") if mast_drawn else None, hook_row(plates),
-        mrec.get("size_px") if mast_drawn else None, BRAND_PX,
-        remedy=(meta.get("lockup") or {}).get("hook_remedy"))
+        "YouTube thumbnail", mrec.get("form", form), mrec.get("group_width") if mast_drawn else None,
+        hook_row(plates), mrec.get("size_px") if mast_drawn else None,
+        line_group=masthead.form_width(mast_px(), "line", LEFT))
     meta["_plates"] = plates
     downscale_check(im.convert("RGB"), meta)
     return im.convert("RGB"), plates

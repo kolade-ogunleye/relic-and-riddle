@@ -103,6 +103,8 @@ MATTE_MAX = 0.002         # of a crop: more than this of frame in it shows as an
 # corpus/photo_fitness.py --frames prints the table.
 FRAME_DARK = 40
 FRAME_LINE = 0.60
+FRAME_TEXT_DARK = 0.45     # a caption line in a band: at least this dark ...
+FRAME_TEXT_EDGES = 0.12    # ... and alternating dark / bright on this share of its length (glyphs)
 FRAME_ENDS = 0.25          # the side's central half: a mount's rounded corners and a scan's skew stay out of it
 FRAME_STEP = 0.45          # the dark share's drop across the cut, within two lines
 FRAME_TRANSITION = 0.30    # a single line between the band and the picture, part of each
@@ -253,9 +255,15 @@ def frame_bands(lum: np.ndarray, video: bool = False) -> tuple[np.ndarray, dict[
     for side, (arr, _back) in views.items():
         n = arr.shape[1]
         lo, hi = int(FRAME_ENDS * n), max(int(FRAME_ENDS * n) + 1, int(np.ceil((1 - FRAME_ENDS) * n)))
-        frac = arr[:, lo:hi].mean(axis=1)
+        part = arr[:, lo:hi]
+        frac = part.mean(axis=1)
+        # a line of a caption or subtitle set in the band is still the band (third review, B8: two subtitle lines in
+        # a letterbox's bar hid the bar): a line FRAME_TEXT_DARK dark that alternates dark and bright at least
+        # FRAME_TEXT_EDGES of its length (glyphs) counts; a soft gradient (a limb's haze) alternates rarely
+        edges = (part[:, 1:] != part[:, :-1]).mean(axis=1) if part.shape[1] > 1 else np.zeros(len(frac))
+        banded = (frac >= FRAME_LINE) | ((frac >= FRAME_TEXT_DARK) & (edges >= FRAME_TEXT_EDGES))
         d = 0
-        while d < len(frac) and frac[d] >= FRAME_LINE:
+        while d < len(frac) and banded[d]:
             d += 1
         if d == 0 or d + 3 >= len(frac):
             continue

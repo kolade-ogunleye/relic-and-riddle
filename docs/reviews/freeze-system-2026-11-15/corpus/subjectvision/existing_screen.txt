@@ -1,0 +1,16 @@
+labelled photographs with a cached look: 55 of 128
+id   photo                                            kind   region subject share under it  what
+029  hal_saflieni_hypogeum/09_commons.jpg             object text                   no box  The image shows the interior chambers of the prehistoric sub
+059  richat_structure_sahara_eye/01_commons.jpg       object text                     0.00  Copernicus Sentinel Hub watermark logos in the bottom left c
+060  richat_structure_sahara_eye/02_commons.jpg       object text                     0.00  Copernicus Sentinel Hub logos and text along the bottom righ
+061  richat_structure_sahara_eye/05_commons.jpg       object text                     0.97  There is an informative banner across the top edge and a Sen
+062  richat_structure_sahara_eye/06_commons.jpg       object object                   0.11  spacecraft structure
+063  richat_structure_sahara_eye/08_commons.jpg       object object                   0.00  spacecraft window frame
+067  richat_structure_sahara_eye/14_commons.jpg       object object                   0.58  spacecraft window frame
+070  roman_self_healing_concrete/01_commons.jpg       scene  object                   0.00  wire or cable
+082  singing_colossi_of_memnon/09_commons.jpg         object text                   no box  The image shows a 19th-century lithograph (by David Roberts)
+083  singing_colossi_of_memnon/12_commons.jpg         object text                   no box  The image is a historic lithograph depicting the Colossi of 
+088  trepanation_miracle/09_commons.jpg               object text                   no box  The image shows a historical photograph/diagram of a skull e
+110  wieliczka_salt_mine/13_commons.jpg               object text                   no box  The photograph shows one of the famous chandeliers made enti
+126  nazca_lines_runway_paradox/06_commons.jpg        object object                 no box  aircraft wing and fuselage
+regions: 13 (5 intrusions, 8 text); boxed 7; covering > 15 % of the labelled subject: 2

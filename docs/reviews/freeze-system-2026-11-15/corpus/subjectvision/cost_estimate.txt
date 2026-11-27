@@ -1,0 +1,7 @@
+requests: 128 photographs (+30 repeats = 158 calls); context: title 86, slide claim 11
+system text: check 1815 chars + subject 1399 chars
+added per look: ~455 input tokens (median; p90 512), ~90 output tokens
+prices (src/free_llm.PAID_PRICES, gemini-3.7-flash priced as listed/writer): $0.75/M in, $3.75/M out
+EXTENSION in a run (the look is made anyway): +$0.00068 per photograph on the billed key, $0 on the free key
+EVALUATION as its own calls: ~2020 in / 196 out per call = $0.00225; 158 calls = $0.36; at the 300-call ceiling = $0.68
+EVALUATION on dev's measured billed light-call basis (2087 in / 447 out, $0.00324 a call): $0.00392 per call with the subject question; 158 calls = $0.62; 300 = $1.18

@@ -4047,8 +4047,11 @@ def _wash_feathers(bg: Image.Image, y0: float, y1: float, strength: float) -> tu
     from . import band_edge
     lum = band_edge.luma_rows(bg)
     w = bg.size[0]
-    return (band_edge.feather(lum, y0, "up", brand.INK, strength, HOOK_WASH_FEATHER[0], w, floating=True),
-            band_edge.feather(lum, y1, "down", brand.INK, strength, HOOK_WASH_FEATHER[1], w, floating=True))
+    # the designed form's ramps are the fixed HOOK_WASH_FEATHER: never longer (lander ruling 2026-11-26)
+    return (band_edge.reach(lum, y0, "up", brand.INK, strength, HOOK_WASH_FEATHER[0], w, floating=True,
+                            cap=HOOK_WASH_FEATHER[0])[0],
+            band_edge.reach(lum, y1, "down", brand.INK, strength, HOOK_WASH_FEATHER[1], w, floating=True,
+                            cap=HOOK_WASH_FEATHER[1])[0])
 
 
 def _wash_layer(size: tuple[int, int], y0: float, y1: float, strength: float, x1: float | None = None,
@@ -4147,10 +4150,12 @@ def _plate_feathers(bg: Image.Image, y0: float, y1: float, strength: float, feat
     full = lum[:, :max(8, min(w, int(right)))]     # the columns the plate covers at its full strength
     # lander ruling 2026-11-26 (D1): never past the designed reach; an edge whose limit needs a longer ramp is the
     # plate's crisp designed edge (0: one antialiased pixel), recorded by _hook_scrim
-    up, up_met = band_edge.reach(full, y0, "up", brand.INK, strength, feather, w, floating=True)
-    down, down_met = band_edge.reach(full, y1, "down", brand.INK, strength, feather, w, floating=True)
+    # the designed form's ramp is the fixed `feather` (HOOK_PLATE_FEATHER): never longer (the ruling's ceiling)
+    up, up_met = band_edge.reach(full, y0, "up", brand.INK, strength, feather, w, floating=True, cap=feather)
+    down, down_met = band_edge.reach(full, y1, "down", brand.INK, strength, feather, w, floating=True, cap=feather)
     across = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))].T          # rows = x: the ease right of the block
-    side = band_edge.feather(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True)
+    side = band_edge.reach(across, right, "down", brand.INK, strength, HOOK_PLATE_SIDE, w, floating=True,
+                           cap=HOOK_PLATE_SIDE)[0]
     return (up if up_met else 0, down if down_met else 0), side
 
 

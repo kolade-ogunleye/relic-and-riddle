@@ -74,12 +74,16 @@ def test_a_feather_never_runs_past_the_designed_reach_and_a_panel_edge_goes_cris
 def test_a_floating_edge_on_a_flat_ground_is_laid_at_the_field_gate_less_the_headroom():
     """Independent of band_edge's own arithmetic: on a flat ground a floating edge's feather is the smoothstep's
     peak (1.5) x the step over the field gate (0.5 luma / px) x the floating headroom (0.85), while that is inside the
-    reach; changing the headroom, the gate or the peak fails this."""
+    reach given; changing the headroom, the gate, the peak or the designed ceiling fails this."""
     import math
     lum = band_edge.luma_rows(Image.new("RGB", (1080, 1920), (72, 72, 72)))
     step = 72.0 - float(np.dot(np.asarray(brand.INK, np.float32), band_edge.LUMA))
-    length, met = band_edge.reach(lum, 900, "down", brand.INK, 1.0, 24, 1080, floating=True)
+    length, met = band_edge.reach(lum, 900, "down", brand.INK, 1.0, 24, 1080, floating=True, cap=256)
     assert met and length == math.ceil(1.5 * step / (0.5 * 0.85)), (length, step)
+    # by default the designed form's own ramp is the ceiling (the token's 2.0 luma / px): here 1.5 x step / 2.0, so the
+    # rule's longer ramp is not taken (a panel goes crisp; never more of the photograph darkened than designed)
+    length, met = band_edge.reach(lum, 900, "down", brand.INK, 1.0, 24, 1080, floating=True)
+    assert not met and length == math.ceil(1.5 * step / 2.0), (length, step)
 
 
 def test_the_limit_is_the_field_gate_on_a_flat_ground_and_the_token_on_a_busy_one():

@@ -93,15 +93,39 @@ def reach_cap(minimum: float, width: int) -> int:
 
 
 def reach(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
-          width: int | None = None, floating: bool = False) -> tuple[int, bool]:
+          width: int | None = None, floating: bool = False, cap: float | None = None) -> tuple[int, bool]:
     """(the feather, met): the band-edge rule's feather (feather()) held to reach_cap; `met` False when the rule's
     limit needs a longer one (a flat or bright ground). A PANEL then takes its crisp designed edge (lander ruling
     2026-11-26 (b): a deliberate edge, recorded; never a longer ramp darkening the photograph); a soft band with no
-    panel form keeps the capped length, recorded by its caller."""
+    panel form keeps the capped length, recorded by its caller. The cap is the designed form's own ramp on this ground
+    (designed_feather; `cap` gives another), never past reach_cap: the ruling's ceiling, no more of the photograph
+    darkened than the designed form did."""
     w = luma.shape[1]
-    cap = reach_cap(minimum, w if width is None else width)
+    width_ = w if width is None else width
+    # the ruling's ceiling (tip never darkens more of the photograph than the base did): never longer than the
+    # designed form's own ramp on this ground (designed_feather), nor than reach_cap
+    if cap is None:
+        cap = designed_feather(luma, edge, side, colour, strength, minimum, width_)
+    cap = min(float(cap), reach_cap(minimum, width_))
     need = _feather(luma, edge, side, colour, strength, minimum, width, floating, cap)
     return (need, True) if need <= cap else (cap, False)
+
+
+def designed_feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,
+                     width: int | None = None) -> int:
+    """The feather a panel edge had as designed before the freeze cycle 5 limit (cycle 0 round 7: edge_feather at the
+    token tok("edge.slope_max"), not the ground's own limit): the ruling's ceiling for a panel's ramp (lander ruling
+    2026-11-26: never more of the photograph darkened than the designed form did)."""
+    w = luma.shape[1]
+    width = w if width is None else width
+    length = max(1.0, float(minimum))
+    for _ in range(5):
+        span = (edge - length, edge) if side == "up" else (edge, edge + length)
+        need = edge_feather(step_across(luma, *span, colour, strength), width, minimum)
+        if need <= length:
+            break
+        length = float(need)
+    return round(length)
 
 
 def feather(luma: np.ndarray, edge: float, side: str, colour, strength: float = 1.0, minimum: float = 0.0,

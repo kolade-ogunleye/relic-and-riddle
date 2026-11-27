@@ -61,15 +61,17 @@ from src.video_composer import (
 )
 
 
-@pytest.fixture(autouse=True)
-def _builder_phrasing(monkeypatch):
-    """Freeze cycle 5: this suite holds the PHRASE BUILDER's rules (caps, bonds, pause breaks, the HEAD gate): the
-    bursts before the readable merge (video_composer._readable_merge, lander ruling 2026-11-26), which joins short
-    bursts and parted phrase units into two-line bursts past one burst's caps by design. The merge's own rules (no
-    word lost, no new never-end end, no bond cut, nothing under 0.8 s unrecorded) are held by
-    tests/test_text_policy_c5.py and the corpus proof (corpus/text_captions.py)."""
+@pytest.fixture
+def builder_phrasing(monkeypatch):
+    """Freeze cycle 5 round 4 (second review T2): the PHRASE BUILDER's bursts (before the readable merge and the
+    capacity pass, lander ruling 2026-11-26). Used ONLY by the tests marked as superseded for the delivered 9:16 phrasing (burst caps,
+    phrasing pins, per-burst size pins), each naming the ruling: they hold the builder as a component. Every other test
+    of this suite runs on the delivered phrasing."""
     from src import video_composer as _vc
     monkeypatch.setattr(_vc, "_readable_merge", lambda phrases, *a, **k: phrases)
+    # its own layout caches: the delivered phrasing's are never served to (or filled by) a builder test
+    monkeypatch.setattr(sys.modules[__name__], "_CACHE", {})
+    monkeypatch.setattr(sys.modules[__name__], "_RUN_CACHE", {})
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,14 +137,26 @@ def _raw_texts(phrases) -> list[list[str]]:
 _CACHE: dict = {}
 
 
+def _restore_forms(forms: dict) -> None:
+    """Freeze cycle 5 (round 4, T2): a 9:16 clip's burst forms are the clip's own (video_composer.clip_forms, read by
+    reel_caption_lines until the next clip is built); a cached layout brings its own forms back with it."""
+    reg = vc._joined_raws()
+    reg.clear()
+    reg.update(forms)
+
+
 def layout(nid: str, wide: bool):
-    """(words, phrases) of a narration as build_subtitles forms them."""
+    """(words, phrases) of a narration as build_subtitles forms them (the delivered 9:16 phrasing), its clip's forms
+    current."""
     key = (nid, wide)
     if key not in _CACHE:
         text, emphasis = NARRATIONS[nid]
         words = timed(text)
-        _CACHE[key] = (words, caption_phrases(words, emphasis, wide))
-    return _CACHE[key]
+        phrases = caption_phrases(words, emphasis, wide)
+        _CACHE[key] = (words, phrases, vc.clip_forms())
+    words, phrases, forms = _CACHE[key]
+    _restore_forms(forms)
+    return words, phrases
 
 
 def reel_timings(nid: str):
@@ -357,9 +371,12 @@ def test_no_function_word_burst_and_reel_limits(nid):
             assert len(t.split()) <= vc.NAME_MAX_WORDS + 2, t
             continue
         raw = [w["word"] for w in p]
-        if vc._figure_group_over_caps(raw):   # lane C cycle 3: a figure group on two lines, each within the caps
-            k = vc.reel_caption_lines(raw)[0]
-            for line in (raw[:k], raw[k:]):
+        lay = vc.reel_caption_lines(raw)
+        if vc._figure_group_over_caps(raw) or (lay and vc.over_caps(raw)):
+            # lane C cycle 3: a figure group on two lines; lander ruling 2026-11-26 (round 4, delivered phrasing): a joined burst of the
+            # readable merge or the capacity pass on two lines; each line within one burst's caps
+            k = lay[0]
+            for line in (vc._phrase_words(raw[:k]), vc._phrase_words(raw[k:])):
                 assert len(line) <= MAX_BURST_WORDS and len(" ".join(line)) <= MAX_BURST_CHARS, t
             continue
         assert len(t.split()) <= MAX_BURST_WORDS + config.CAPTION_BOND_EXTRA_WORDS, t
@@ -374,8 +391,11 @@ def test_a_fifth_word_needs_two_short_function_words_or_a_figure():
 
 
 # ---------------------------------------------------------------- C4: the shrink ladder
+@pytest.mark.usefixtures("builder_phrasing")
 @pytest.mark.parametrize("nid", list(NARRATIONS))
 def test_reel_sizes_keep_to_the_ladder(nid):
+    # SUPERSEDED for the delivered 9:16 phrasing by the lander ruling 2026-11-26 (D4: ONE size per clip, the largest rung 0.9 of its
+    # bursts set at; held by tests/test_text_captions_c5b.py): this per-burst size pin holds the phrase builder.
     words, phrases = layout(nid, False)
     bonds = caption_bonds(words) | vc.emphasis_bonds(words, NARRATIONS[nid][1])
     base, off_ladder = 0, []
@@ -517,15 +537,32 @@ def require_raqm():
 # its whole hedge (AN ESTIMATED / 720 TONS, video_composer._hedge_break; was one line at 66, (66, 617, 618)).
 REEL_MEASURE_RAQM = {
     "Wait, look here!": (80, 528, 528), "Beneath Odesa": (80, 472, 473), "It was": (80, 204, 205),
-    "shore of the Black Sea": (66, 625, 626),
+    # round 4 (T2, lander ruling 2026-11-26): the delivered clip draws it on two lines at 80 (widest line measured; was one line at 66,
+    # (66, 625, 626))
+    "shore of the Black Sea": (80, 542, 543),
     "Amenhotep III was": (80, 596, 597), "WAVY Vault 7,000": (80, 579, 579), "COUNTERREVOLUTIONARIES": (64, 638, 639),
-    "Incomprehensibilities": (71, 639, 640), "the mine's rock salt": (74, 633, 634),
+    "Incomprehensibilities": (71, 639, 640), "the mine's rock salt": (80, 518, 519),
 }
+# round 4 (T2, lander ruling 2026-11-26): THE MINE'S ROCK SALT draws on two lines at the clip's 80 px (was one line at 74, (74, 633, 634)).
 # libass's ink less the unkerned measure, in px: measured 0 to 2 on all 329 one-line 9:16 bursts of the five fixture
 # runs (8 at 0, 224 at 1, 97 at 2; the kerned measure was off by up to 5, 55 bursts over 2) and on the ten samples
 # (docs/reviews/freeze-panel-2026-11-04/captions/decision-nokern-measure-2026-11-05/README.md).
 # QF-87: 0 to 1 px on the ten samples (the outline extent rounded down)
 REEL_INK_OVER_MEASURE = (0, 2)
+
+
+def _drawn_measure(phrase) -> tuple[int, int]:
+    """(size, measure) of a 9:16 burst as the delivered clip draws it (round 4, T2): a two-line burst's widest line at
+    its form's size, a one-line burst at the clip's size (video_composer.clip_forms), else its own fit size."""
+    raw = tuple(w if isinstance(w, str) else w["word"] for w in phrase)
+    lay = vc.reel_caption_lines(list(raw))
+    if lay:
+        k, size = lay
+        return size, max(vc.measure_caption_phrase(list(phrase)[:k], size)[0],
+                         vc.measure_caption_phrase(list(phrase)[k:], size)[0])
+    form = vc.clip_forms().get(raw)
+    size = form[2] if form else vc._caption_fit_size(phrase)
+    return size, vc.measure_caption_phrase(phrase, size)[0]
 
 
 @pytest.mark.skipif(not HAS_FFMPEG, reason="ffmpeg is not on PATH")
@@ -537,8 +574,7 @@ def test_reel_measure_matches_libass_ink(tmp_path):
         assert len(phrases) == 1, text
         a = _render_reel(words, tmp_path, words[-1]["start"] + 0.2)
         _, _, il, ir = _plate_and_ink(a)
-        size = vc._caption_fit_size(phrases[0])
-        measured = vc.measure_caption_phrase(phrases[0], size)[0]
+        size, measured = _drawn_measure(phrases[0])
         assert (size, measured, ir - il) == (size_pin, measure_pin, ink_pin), (text, size, measured, ir - il)
         lo, hi = REEL_INK_OVER_MEASURE
         assert lo <= (ir - il) - measured <= hi, (text, measured, ir - il)
@@ -579,7 +615,8 @@ def test_caption_measure_is_unkerned(tmp_path):
 # (3 to 5 px). Was WAS INITIALLY CONSIDERED 624, BUILT IN VARIOUS 423, ALTERNATIVE SPECULATION 611, GRAY BASALT
 # MAUSOLEUM 614, A CATACLYSM STRUCK 550.
 KERN_WORST = {
-    ("tunguska_event_1908", "A CATACLYSM STRUCK"): 623,
+    # round 4 (T2, lander ruling 2026-11-26): drawn as its own clip it sets on two lines at the clip's size (was one line, 623)
+    ("tunguska_event_1908", "A CATACLYSM STRUCK"): 418,
     ("richat_structure_sahara_eye", "CLOSELY MATCHING"): 586,
     ("tunguska_event_1908", "WAVES GENERATED"): 564,
     ("amber_room_heist", "LIKELY INCINERATED"): 592,
@@ -600,10 +637,10 @@ def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path,
     words = [{"word": w, "start": 0.1 + 0.3 * k, "dur": 0.25} for k, w in enumerate(shown)]
     assert len(caption_phrases(words)) == 1, text
     phrase = phrase or words
-    size = vc._caption_fit_size(phrase)
     a = _render_reel(words, tmp_path, words[-1]["start"] + 0.2)
     _, _, il, ir = _plate_and_ink(a)
-    ink, measured = ir - il, vc.measure_caption_phrase(phrase, size)[0]
+    size, measured = _drawn_measure(words)   # round 4 (T2): the form the delivered clip draws, widest line
+    ink = ir - il
     assert ink == KERN_WORST[(run, text)], (text, ink)
     lo, hi = REEL_INK_OVER_MEASURE
     assert lo <= ink - measured <= hi, (text, measured, ink)
@@ -614,7 +651,7 @@ def test_unkerned_measure_matches_libass_ink_on_real_bursts(run, text, tmp_path,
     vc._caption_line_run.cache_clear()
     monkeypatch.setattr(font_engine, "LIBASS_FEATURES", ("kern", "-liga", "-clig"))
     try:
-        assert ink - vc.measure_caption_phrase(phrase, size)[0] > 2, text
+        assert ink - _drawn_measure(words)[1] > 2, text
     finally:
         vc._libass_line.cache_clear()
         vc._caption_line_run.cache_clear()
@@ -696,8 +733,9 @@ def test_a_short_sentence_under_half_a_second_joins_the_following_burst():
 # ---------------------------------------------------------------- C7: figure units
 def test_figure_units_exact():
     odessa = _texts(layout("odessa_catacombs", False)[1])
-    k = odessa.index("BEGAN ON AUGUST 5")
-    assert odessa[k + 1].startswith("AND LASTED"), odessa
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): the date keeps its day in one burst with the clause it opens (was the
+    # builder's BEGAN ON AUGUST 5 | AND LASTED; the merge joins a burst the speech leaves under 0.8 s)
+    assert "BEGAN ON AUGUST 5 AND LASTED" in odessa, odessa
     edge = _texts(layout("edge", False)[1])
     # fix round 1 (gate): BETWEEN 287 AND 300 KILOMETRES cannot hold at 66 px; HEAD 0036b18 cuts the range after AND
     # and the tree takes HEAD's cut (was: no burst ends on 287 AND)
@@ -711,7 +749,8 @@ def test_figure_units_exact():
     # (was: no burst ends on 1,090 or opens on TONNES or a bracket); ROUGHLY 137 FEET (41.75 M) is held (HEAD cut it)
     # lane C cycle 3, int-3 fix: BETWEEN keeps with its first end (figure_group_bonds), and the never-end repair may
     # pull it into that burst, so its burst no longer ends on it (was ITS LENGTH BETWEEN | ROUGHLY 137 FEET (41.75 M))
-    assert "BETWEEN ROUGHLY 137 FEET (41.75 M)" in aswan and "ITS LENGTH" in aswan, aswan
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): SURVEYS PLACE ITS LENGTH | BETWEEN ROUGHLY 137 FEET (41.75 M)
+    assert "BETWEEN ROUGHLY 137 FEET (41.75 M)" in aswan and any(t.endswith("ITS LENGTH") for t in aswan), aswan
     # lane C cycle 1 (N2, RUBRIC TY2 "a value never split from its unit"): a figure keeps its unit on every path
     # (video_composer.unit_link), so the range gives way at its joiner, FROM NEARLY 1,090 TONNES | TO 1,168 TONNES
     # (was HEAD's FROM NEARLY 1,090 | TONNES TO 1,168 TONNES)
@@ -725,7 +764,9 @@ def test_figure_units_exact():
     assert "(18 M) INCLUDING" in colossi and "THEIR 13-FOOT (4 M)" in colossi, colossi
     # fix round 1 (gate): ROCK SALT is a key term, no figure link: at 9:16 it keeps HEAD's THE MINE'S ROCK | SALT
     # NATURALLY (was: THE MINE'S ROCK SALT in both formats)
-    assert "THE MINE'S ROCK" in _texts(layout("wieliczka_salt_mine", False)[1])
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): the key term whole at 9:16 too, THE MINE'S ROCK SALT |
+    # NATURALLY DISPLAYS (the merge re-cut HEAD's ROCK | SALT, a phrase unit)
+    assert "THE MINE'S ROCK SALT" in _texts(layout("wieliczka_salt_mine", False)[1])
     wiel = _texts(layout("wieliczka_salt_mine", True)[1])
     assert any("THE MINE'S ROCK SALT" in t for t in wiel), wiel
 
@@ -980,7 +1021,10 @@ def test_no_reel_boundary_one_to_three_frames_off_a_cut():
 # neighbour in the clause can take: (narration, burst).
 # Fix round 1 (gate): FROM THE WAIST UP is HEAD 0036b18's FROM THE WAIST | UP AND CRACKING again and left the list.
 DWELL_EXCEPTIONS = {
-    ("odessa_catacombs", "BEGAN ON AUGUST 5"),
+    # round 4 (T2, delivered phrasing, lander ruling 2026-11-26): BEGAN ON AUGUST 5 is joined with AND LASTED and dwells 0.48 s (left the
+    # list); FROM THE WAIST UP hands over to the next burst 2 frames before its next word (7.725 s), 0.26 s after its
+    # last word appears: the speech leaves no room (held to the next burst's appearance)
+    ("singing_colossi_of_memnon", "FROM THE WAIST UP"),
     ("singing_colossi_of_memnon", "THEIR 13-FOOT (4 M)"),
     # fix round 2 (the decision as written): OF 60 FEET (18 M) is HEAD 0036b18's HEIGHT OF 60 FEET | (18 M) INCLUDING
     # again and left the list
@@ -1226,8 +1270,11 @@ def run_layout(topic: str, wide: bool | None = None):
     if key not in _RUN_CACHE:
         c = RUNS[topic]
         words = _fx.words(c)
-        _RUN_CACHE[key] = (words, caption_phrases(words, list(c.get("emphasis_words") or []), wide))
-    return _RUN_CACHE[key]
+        phrases = caption_phrases(words, list(c.get("emphasis_words") or []), wide)
+        _RUN_CACHE[key] = (words, phrases, vc.clip_forms())
+    words, phrases, forms = _RUN_CACHE[key]
+    _restore_forms(forms)
+    return words, phrases
 
 
 def run_timings(topic: str):
@@ -1249,21 +1296,20 @@ REVIEW_SENTENCES = [
 
 
 def _all_layouts():
-    """Every (label, words, phrases, wide) of NARRATIONS, the review sentences and the five real runs, both formats."""
-    out = []
+    """Every (label, words, phrases, wide) of NARRATIONS, the review sentences and the five real runs, both formats,
+    each yielded with its own clip's forms current (round 4, T2)."""
     for nid in NARRATIONS:
         for wide in (False, True):
             words, phrases = layout(nid, wide)
-            out.append((nid, words, phrases, wide))
+            yield nid, words, phrases, wide
     for k, text in enumerate(REVIEW_SENTENCES):
         words = timed(text)
         for wide in (False, True):
-            out.append((f"review{k}", words, caption_phrases(words, None, wide), wide))
+            yield f"review{k}", words, caption_phrases(words, None, wide), wide
     for topic in RUNS:
         for wide in (False, True):
             words, phrases = run_layout(topic, wide)
-            out.append((topic, words, phrases, wide))
-    return out
+            yield topic, words, phrases, wide
 
 
 def _upper(p) -> str:
@@ -1407,7 +1453,9 @@ def test_tunguska_long_name():
     texts = _texts(phrases)
     assert "THE" not in texts and all(not t.endswith(" THE") for t in texts)
     k = texts.index("NEAR THE PODKAMENNAYA")
-    assert texts[k - 1:k + 3] == ["LOCAL TIME", "NEAR THE PODKAMENNAYA", "TUNGUSKA RIVER", "IN CENTRAL SIBERIA"], texts
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): TUNGUSKA RIVER IN CENTRAL SIBERIA is one two-line burst (was the
+    # builder's TUNGUSKA RIVER | IN CENTRAL SIBERIA)
+    assert texts[k - 1:k + 2] == ["LOCAL TIME", "NEAR THE PODKAMENNAYA", "TUNGUSKA RIVER IN CENTRAL SIBERIA"], texts
     # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): the same bursts; NEAR THE PODKAMENNAYA (wider than the budget
     # at 74 px in genuine small capitals) draws on two lines inside the band, its first line never the article alone
     # (was: no two-line burst)
@@ -1537,11 +1585,12 @@ def test_world_war_one_and_two_stay_whole():
     assert not any(t.endswith("WORLD WAR") for t in texts)
     k = texts.index("WORLD WAR ONE")
     assert texts[k - 1:k + 2] == ["FROM BOTH", "WORLD WAR ONE", "AND WORLD WAR TWO"], texts[k - 2:k + 3]
-    # QF-87 (decision QF-24/QF-87 layout, 2026-11-09): AND WORLD WAR TWO draws 661 px at 80 in genuine small capitals,
-    # so it takes the 74 px rung on one line (was <= 640 at 80)
-    size = vc._caption_fit_size(phrases[k + 1])
-    assert size == CAPTION_BURST_MIN_SIZE and vc.reel_caption_lines(phrases[k + 1]) is None
-    assert round(vc._caption_ink_width(vc._phrase_words(phrases[k + 1]), size)) <= 640
+    # QF-87: AND WORLD WAR TWO draws 661 px at 80 on one line. lander ruling 2026-11-26 (D4, one size per clip; round 4 delivered):
+    # the clip is at 80 px, so it draws on two legal lines there, each inside the ink budget (was one line at 74)
+    lay = vc.reel_caption_lines(phrases[k + 1])
+    assert lay is not None and lay[1] == FONT_SIZE
+    shown = vc._phrase_words(phrases[k + 1])
+    assert all(round(vc._caption_ink_width(part, lay[1])) <= 640 for part in (shown[:lay[0]], shown[lay[0]:]))
     for p in phrases:
         if len(p) > 1:
             assert vc._caption_fit_size(p) >= CAPTION_BOND_MIN_SIZE
@@ -1617,8 +1666,8 @@ def test_pause_breaks_exact():
     assert "local time," in tung
     voy = [" ".join(w["word"] for w in p) for p in run_layout("voynich_manuscript")[1]]
     # fix round 1 (gate): HEAD 0036b18's PLANTS, THE TEXT and 16:9 TIMELINE: DATING ... (was: a burst ends on
-    # PLANTS, and on TIMELINE:)
-    assert "plants, the text" in voy, voy
+    # PLANTS, and on TIMELINE:). lander ruling 2026-11-26 (round 4, delivered phrasing): the pause after PLANTS, is a cut again
+    assert any(t.endswith("plants,") for t in voy) and any(t.startswith("the text") for t in voy), voy
     richat = [" ".join(w["word"] for w in p) for p in run_layout("richat_structure_sahara_eye")[1]]
     assert any(t.endswith("site;") for t in richat) and any(t.startswith("timeline: dating") for t in richat)
 
@@ -1784,12 +1833,15 @@ def _pre_line_rule(words, emphasis=None, wide=False):
     burst with no legal two-line break into consecutive bursts, after the gated phrasing). The HEAD gate, the lone-word
     list and the dangling-end count hold this phrasing; every change the pass makes is recorded and held by
     tests/test_lane_c_cycle4_line_rule.py (only inside the bursts it records, every word kept, no D1 burst added)."""
-    orig = vc._line_split
+    # lander ruling 2026-11-26 (round 4, T2): and before the readable merge and the capacity pass, explicitly; their new cuts are held on
+    # the DELIVERED phrasing by test_head_gate_new_cuts_of_the_delivered_phrasing below
+    orig, merge = vc._line_split, vc._readable_merge
     vc._line_split = lambda phrases, *a, **k: phrases
+    vc._readable_merge = lambda phrases, *a, **k: phrases
     try:
         return caption_phrases(words, emphasis, wide)
     finally:
-        vc._line_split = orig
+        vc._line_split, vc._readable_merge = orig, merge
 
 
 def _gate_cases():
@@ -1803,6 +1855,29 @@ def _gate_cases():
             words, emph = timed(NARRATIONS[case][0]), NARRATIONS[case][1]
         assert [w["word"] for w in words] == h["words"], case
         yield case, words, emph, h
+
+
+def test_head_gate_new_cuts_of_the_delivered_phrasing():
+    """Round 4 (second review T2): the HEAD gate around the cuts the DELIVERED 9:16 phrasing adds to the builder's
+    (the readable merge, the clip fit's split and the capacity pass, lander ruling 2026-11-26): each new cut parts no bond, name, unit
+    or figure group, no atomic pair, ends no burst on a never-end word, parts no phrase unit the builder kept
+    (noun_phrase_cut), and is recorded by the pass that made it."""
+    require_raqm()
+    for case, words, emph, h in _gate_cases():
+        raw = [w["word"] for w in words]
+        recut: list = []
+        split: list = []
+        delivered = caption_phrases(words, emph, False, recut=recut, line_split=split)
+        builder = _pre_line_rule(words, emph)
+        new = set(_ends(delivered)[:-1]) - set(_ends(builder)[:-1])
+        bonds = (caption_bonds(words) | vc.unit_links(words) | vc.name_bonds(raw) | vc._figure_bonds(raw)
+                 | vc.figure_group_tail_links(words))
+        for k in sorted(new):
+            key = (case, raw[k], raw[k + 1])
+            assert k not in bonds and not vc.never_end_end(raw[k]) and not vc._is_atomic_boundary(raw[k], raw[k + 1]), key
+        records = " ".join(str(e.get("recut", "")) + " " + str(e.get("height_run", "")) + " " + str(e.get("into", ""))
+                           for e in recut + split)
+        assert not new or records.strip(), case
 
 
 def test_round4_base_is_head_0036b18():
@@ -1889,9 +1964,11 @@ def test_head_regression_gate():
     assert burst_new == burst_forced, sorted(burst_new ^ burst_forced)
     # kept from review round 4: AS THE SECOND | MOST COMMON. and HIDING PLACE are HEAD's and stay
     voy = _texts(run_layout("voynich_manuscript")[1])
-    assert "AS THE SECOND" in voy and "MOST COMMON" in voy, voy
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): AS OFTEN AS THE SECOND | MOST COMMON. (the cut before MOST COMMON stays)
+    assert any(t.endswith("AS THE SECOND") for t in voy) and "MOST COMMON" in voy, voy
     odessa = _texts(layout("odessa_catacombs", False)[1])
-    assert "HIDING PLACE" in odessa and not any(t.endswith(" HIDING") for t in odessa), odessa
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): AS AN ACTIVE HIDING PLACE (HIDING PLACE whole, never a burst end on HIDING)
+    assert any(t.endswith("HIDING PLACE") for t in odessa) and not any(t.endswith(" HIDING") for t in odessa), odessa
 
 
 def test_lone_word_bursts_are_head_or_forced():
@@ -1962,7 +2039,9 @@ def test_m1_pre_modifiers_and_proper_modifiers():
     voy = _texts(run_layout("voynich_manuscript")[1])
     # fix round 1 (gate): IS NAMED AFTER POLISH | BOOK DEALER and WAS BOMBED BY BRITISH | AIRCRAFT are HEAD 0036b18's
     # (was: no burst ends on POLISH or BRITISH)
-    assert "IS NAMED AFTER POLISH" in voy, voy
+    # lander ruling 2026-11-26 (round 4, delivered phrasing): NAMED AFTER POLISH BOOK | DEALER WILFRID VOYNICH, (the burst holds the
+    # whole name; was the builder's IS NAMED AFTER POLISH | BOOK DEALER)
+    assert "NAMED AFTER POLISH BOOK" in voy and any(t.startswith("DEALER WILFRID VOYNICH") for t in voy), voy
     # soft (M1): AMERICAN AND BRITISH | MILITARY CRYPTOGRAPHERS stays, every split avoiding it leaves a lone word
     # lane C cycle 4 (lander ruling 2026-11-25): in the gated phrasing; it draws AMERICAN / AND BRITISH (a one-word
     # line), so the LINE_RULE pass then splits it, recorded (test_lane_c_cycle4_line_rule.py)
@@ -2050,10 +2129,12 @@ def test_amber_bursts_over_the_timeline_graphic_get_an_opaque_plate(tmp_path):
     # RECOVERED)
     # freeze cycle 5 (ruling 2026-11-26 moved the phrasing: the burst over the graphic's text is the one holding
     # MOSAIC, whichever words it is cut with): one burst flagged, never pinned to a phrasing
-    assert len(flagged) == 1 and "mosaic" in flagged[0]["text"]
+    # lander ruling 2026-11-26 (round 4, delivered phrasing: capacity-aware bursts keep the run's plate on two lines): three bursts over
+    # the timeline poster's text reach it, among them the one holding MOSAIC; each is flagged and drawn near-opaque
+    assert len(flagged) == 3 and any("mosaic" in f["text"] for f in flagged), flagged
     span = next((a, b) for a, b, clip in gclips if clip.name == "graphic_timeline.mp4")
     plates = [l for l in ass.read_text("utf-8").splitlines() if ",CapBox," in l]
-    assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 1
+    assert sum("\\1a&H08&" in l for l in plates) == len(flagged) == 3
     phrases = caption_phrases(_fx.words(c), list(c["emphasis_words"]))
     tim = vc.burst_timings(phrases, first_frame_whole=config.CAPTION_FIRST_FRAME_WHOLE_S, dwell=True)
     for f in flagged:

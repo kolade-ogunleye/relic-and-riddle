@@ -46,17 +46,6 @@ from src.video_composer import (
 from src.video_qa import caption_pills
 
 
-@pytest.fixture(autouse=True)
-def _builder_phrasing(monkeypatch):
-    """Freeze cycle 5: this suite holds the PHRASE BUILDER's rules (caps, bonds, pause breaks, the HEAD gate): the
-    bursts before the readable merge (video_composer._readable_merge, lander ruling 2026-11-26), which joins short
-    bursts and parted phrase units into two-line bursts past one burst's caps by design. The merge's own rules (no
-    word lost, no new never-end end, no bond cut, nothing under 0.8 s unrecorded) are held by
-    tests/test_text_policy_c5.py and the corpus proof (corpus/text_captions.py)."""
-    from src import video_composer as _vc
-    monkeypatch.setattr(_vc, "_readable_merge", lambda phrases, *a, **k: phrases)
-
-
 NARRATION = (
     "Can a massive temple rise without assembling a single stone? In the 8th century, under King Krishna I of the "
     "Rashtrakuta dynasty, workers began cutting downward into a basalt cliff at Ellora. They removed an estimated "
@@ -135,10 +124,10 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     def forced(p) -> bool:   # no full-size form without a line defect
         options = vc._two_line_options(tuple(w["word"] for w in p))
         return all(rank[0] or rank[1] for rank, _k, rung, _w in options if rung == FONT_SIZE)
-    bursts = vc.caption_phrases(words, ["Kailasa"])
-    unbonded = [" ".join(w["word"] for w in p) for p in bursts
-                if len(p) > 1 and _caption_fit_size(p) < FONT_SIZE and not caption_bonds(p) and not forced(p)]
-    assert len(unbonded) <= 0.1 * len(bursts), unbonded
+    # lander ruling 2026-11-26 (D4, one size per clip; round 4 delivered phrasing): every multi-word burst draws at the clip's one
+    # size, so the per-burst count above is superseded by: one size for every CapText event, a ladder rung
+    assert len(set(shrunk)) <= 1, sorted(set(shrunk))
+    assert all(round(s * 0.5625) in (FONT_SIZE, vc.CAPTION_BURST_MIN_SIZE, vc.CAPTION_BOND_MIN_SIZE) for s in shrunk)
     assert sizes
     # freeze pass C4 (2026-11-04): the ladder 80 -> 74 -> 66 px, 66 only for a bonded burst (a name with its lead-in,
     # a hedge with its figure); was every shrunk event at 74 or more

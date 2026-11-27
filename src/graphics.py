@@ -10611,14 +10611,12 @@ def diagram_label_floor(slide_width: int) -> float:
     return TYPE_FLOOR["carousel"]["label"] * slide_width / CANVASES["carousel"][0]
 
 
-def slide_legend(ground: Image.Image, name: str, figure: str, px: int, x: float, line_y: float, floor_y: float,
-                 x_max: float, taken: Sequence[Box], lm: Any) -> list[tuple[str, Any]] | None:
+def slide_legend(ground: Image.Image, name: str, figure: str, f_name: Any, f_fig: Any, x: float, line_y: float,
+                 floor_y: float, x_max: float, taken: Sequence[Box], lm: Any) -> list[tuple[str, Any]] | None:
     """Review 2 (N3, ruling R2): the slide drawing's legend for its landmark: its name (the text face, stone, capitals)
     over its signed figure (a stated quantity, the figure face), at `px`, on the ground right of the shaft from `x`,
     under the ground line; None where the block does not fit before `x_max` and above the floor, or would touch a
     word, a mark in `taken` or the landmark. The legend names the landmark, so its figure never reads as a depth."""
-    f_name = get_font(brand.TEXT_FONT, px, weight=700)
-    f_fig = figure_font(px)
     room = x_max - x
     rows: list[str] = []
     for word in name.upper().split():            # the name in whole words, at most three rows
@@ -10910,9 +10908,11 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             # figure), never at its apex beside the depth ruler
             fig_pl, rows_n, tick_d = None, [], None
             leg = None
+            f_leg_name = get_font(brand.TEXT_FONT, max(28, floor), weight=700)   # the legend's name and figure
+            f_leg_fig = figure_font(max(28, floor))
             for lx0, lx1 in ((shaft[1] + 24, label_x1), (shaft[0] + 18, shaft[1] - 18)):   # right of it, else in it
                 leg = slide_legend(ground, _landmark_name(ref_label), landmark_text(ref_label, ref_feet, unit),
-                                   max(28, floor), lx0, line_y, floor_y, lx1, [*taken, *hard], lm)
+                                   f_leg_name, f_leg_fig, lx0, line_y, floor_y, lx1, [*taken, *hard], lm)
                 if leg:
                     break
             rec_n = {"form": "legend"} if leg else {"reason": "no clear place for the landmark's legend row right of "

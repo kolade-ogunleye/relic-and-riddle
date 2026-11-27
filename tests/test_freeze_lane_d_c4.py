@@ -168,10 +168,12 @@ def test_a_photographed_dark_is_not_a_frame():
 
 def test_a_frame_across_the_top_is_left_out_of_the_window_or_recorded():
     a = np.full((1200, 1600, 3), 120, np.uint8)
-    a[:420] = 0                                                       # black space across the whole top
+    a[:60] = 0                                                        # a thin black band across the whole top
     im = Image.fromarray(a)
     got = pf.place(None, pf.Window((1440, 1000), checks=("matte", "upscale")), image=im, analysis=pf.analyse(im))
-    assert (got["fit"] and got["box"][1] >= 418) or (not got["fit"] and "matte" in got["problems"])
+    assert (got["fit"] and got["box"][1] >= 58) or (not got["fit"] and "matte" in got["problems"])
+    a[:420] = 0                  # black across a third of the picture and nowhere else: a dark ground, not a frame
+    assert pf.analyse(Image.fromarray(a)).matte_share == 0
 
 
 def test_the_slide_window_draws_no_border(tmp_path):

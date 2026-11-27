@@ -33,8 +33,9 @@ numbers):
   fails it whatever the subject is. "keep" compares crops of ONE shape, so it cannot see what the shape itself leaves
   out (a 2:1 miniature cut to 9:16 keeps a quarter of itself in its best crop as in its worst). A window that crops an
   unreviewed photograph hard asks for "shown" as well (Window.shown_min): the share of the photograph's whole
-  salience that lies where the photograph shows unobscured (the window's view: a Reel cover's starts at the profile
-  grid's square, so what the tile leaves out is not counted as shown).
+  salience that lies where the photograph shows unobscured (`hold`, else the view); with a `tile` (the Reel cover's
+  profile-grid square) the tile must show TILE_SHARE of that ("shown_tile"), and with `centre_half` the crop must
+  hold the photograph's central half on both axes (lander ruling, second review).
 - flat: the share of the view whose blocks have no spread of luma (FLAT_STD over FLAT_BLOCK: sand, sky, a wall,
   out-of-focus ground; the panel's own block measure), against FLAT_MAX.
 - tone: "extreme", the share of the view that is near-white or near-black (TONE_WHITE, TONE_BLACK), against TONE_MAX;
@@ -90,21 +91,29 @@ MATTE_STD = 2.5
 MATTE_MEAN = 2.0
 MATTE_MIN_AREA = 0.003    # of the picture: a smaller dark corner is not a frame
 MATTE_MAX = 0.002         # of a crop: more than this of frame in it shows as an edge
-# Which of that black is the FRAME (the review of cycle 5, B1: black space above the Earth's limb, a dark foreground and
-# a studio's black ground were taken for a frame, and the window moved the subject out of the picture): a band along a
-# side, over FRAME_FULL of the side's length between its FRAME_ENDS, whose inner edge is straight (FRAME_EDGE of its
-# lines within FRAME_STRAIGHT of the picture, or FRAME_STRAIGHT_PX analysis px, of their median depth); a mount's
-# rounded corner (FRAME_CORNER of each side) at a band's end or alone. Everything else is the photograph's own scene.
-# Measured on the dev pool's 20 photographs with digital black at an edge: a plate's or scan's border lies within 1 px
-# of its median on 0.89-1.0 of its lines; the limb under black space (Richat 10) on 0.67, a spacecraft against space
-# (Richat 06) on 0.04.
-FRAME_FULL = 0.98
-FRAME_ENDS = 0.10
-FRAME_STRAIGHT = 0.004
-FRAME_STRAIGHT_PX = 1
-FRAME_EDGE = 0.85         # of a band's lines whose inner edge lies within that spread of their median
+# Which dark is the FRAME (second review of cycle 5, B5 / B6: a shape-only rule took a night sky over a straight
+# horizon and a shelf against a black ground for frames, and missed a plate's foot border broken by its caption, a
+# slide mount's edge and a scan's dark surround): frame_bands judges shape and content. A side's band is the run of
+# lines from the edge each FRAME_LINE dark (luma FRAME_DARK or under) between the side's FRAME_ENDS, ending in a hard
+# cut (FRAME_STEP, FRAME_CRISP, FRAME_FLAT), read on the THUMB-px picture (a thin mount edge is lines deep there);
+# it claims at most FRAME_BAND_MAX of the depth, or
+# FRAME_PAIR_MAX with an opposite band of the same depth (letterbox, pillarbox); unpaired bands together at most
+# FRAME_SHARE_MAX of the picture, and a lone band (no other side framed) at most FRAME_LONE_MAX. A mount's rounded
+# corners count in two corners or more. Measured on the dev pool (353 photographs) and the review's constructed cases:
+# corpus/photo_fitness.py --frames prints the table.
+FRAME_DARK = 40
+FRAME_LINE = 0.60
+FRAME_ENDS = 0.25          # the side's central half: a mount's rounded corners and a scan's skew stay out of it
+FRAME_STEP = 0.45          # the dark share's drop across the cut, within two lines
+FRAME_TRANSITION = 0.30    # a single line between the band and the picture, part of each
+FRAME_CRISP = 0.20         # the picture's lines after the cut, at most this dark ...
+FRAME_FLAT = 0.05          # ... or as dark two lines on (no gradient into the black)
+FRAME_BAND_MAX = 0.20
+FRAME_PAIR_MAX = 0.35
+FRAME_SHARE_MAX = 0.30
+FRAME_LONE_MAX = 0.06        # a band with no band on any other side, at most this deep
 FRAME_CORNER = 0.12
-FRAME_CORNER_MIN = 8       # analysis px: a mount's corner alone in it is a frame from this size (MATTE_MIN_AREA spared)
+FRAME_CORNER_MIN = 8      # analysis px: a mount's corner alone in it is a frame from this size
 # A window moved without a REVIEWED subject box keeps the asked window's centre: the moved crop holds the central
 # MOVE_HOLD of the asked crop on each axis, and its view keeps MOVE_KEEP of the salience the asked view held. "keep"
 # compares crops with each other, not with the subject: a spacecraft is more salient than the crater it flies over.
@@ -123,6 +132,7 @@ FLAT_MAX = 0.74           # of the view
 SUBJECT_KEEP = 0.70       # of the best any crop of this size keeps
 DENSITY_MIN = 0.73        # the view's salience over its share of the content: under 1 the view is emptier than the
                           # picture as a whole
+TILE_SHARE = 0.5          # of what a window's `hold` shows of an unreviewed photograph, its `tile` shows at least
 FOCUS_KEEP = 0.995        # of a reviewed subject's box in view: all of it (type is never set on it)
 BUSY_EDGE = 24.0          # luma gradient: a strong edge (recorded as "busy"; half the boxes are over 0.19: no gate)
 BUSY_MOVE_MAX = 0.44      # of a protected box: a MOVED window sets type on no busier ground than this (the corpus'
@@ -149,7 +159,9 @@ class Window:
     checks: tuple[str, ...] = ("matte", "upscale", "subject", "flat", "protected")   # the measures that can fail it
     hold: Box | None = None   # output px box a reviewed subject must lie whole in (None: the view)
     focus_min: float = FOCUS_KEEP   # the share of a reviewed subject the VIEW must show (with `hold`: under 1)
-    shown_min: float = 0.0    # of an UNREVIEWED photograph's whole salience, the least the view shows
+    shown_min: float = 0.0    # of an UNREVIEWED photograph's whole salience, the least `hold` (else the view) shows
+    tile: Box | None = None   # output px: a second view the photograph is seen through (the profile-grid square)
+    centre_half: bool = False   # the crop holds the photograph's central half on both axes
 
     def view_box(self) -> Box:
         w, h = self.size
@@ -219,65 +231,129 @@ class Analysis:
         return min(1.0, self.total(name, box) / area)
 
 
-def _frame_part(comp: np.ndarray) -> np.ndarray:
-    """The part of one edge-touching region of digital black that is the source's FRAME (review of cycle 5, B1): a
-    hard, straight band along a whole side of the picture that the picture's content does not run into (a letterbox,
-    a pillarbox, a scan or plate border), and a mount's rounded corner at a band's end or alone in a corner. Black that
-    the picture's content runs into, or whose inner edge is not straight (space above a planet's curved limb, a
-    spacecraft against the sky, a dark foreground, a studio's black ground, the black round an arched window or a
-    spacecraft window's curved wedge), is SCENE: it is the photograph, and no window is moved for it."""
-    h, w = comp.shape
-    out = np.zeros_like(comp)
-    ch, cw = max(1, int(round(FRAME_CORNER * h))), max(1, int(round(FRAME_CORNER * w)))
-    ys, xs = np.nonzero(comp)
-    if ys.size and ((xs.max() < cw or xs.min() >= w - cw) and (ys.max() < ch or ys.min() >= h - ch)
-                    and (xs.min() == 0 or xs.max() == w - 1) and (ys.min() == 0 or ys.max() == h - 1)):
-        return comp.copy()           # a mount's corner, alone in it, on both of its edges
-    # (side view of comp, how to put a side-view mask back)
-    views = (("top", comp, lambda m: m), ("bottom", comp[::-1], lambda m: m[::-1]),
-             ("left", comp.T, lambda m: m.T), ("right", comp.T[::-1], lambda m: m[::-1].T))
-    for _name, arr, back in views:
-        depth = np.where(arr.all(axis=0), arr.shape[0], arr.argmin(axis=0))   # black run from the side, per line
+def frame_bands(lum: np.ndarray, video: bool = False) -> tuple[np.ndarray, dict[str, int]]:
+    """The source's FRAME as bands along the picture's sides (second review of cycle 5, B5 / B6), judged by shape AND
+    by content: per side, the run of lines from the edge that are each FRAME_LINE dark (luma FRAME_DARK or under) over
+    the side's length between its FRAME_ENDS (a plate's foot border broken by its caption and inset map, a scan's
+    dark surround, a slide mount's edge), ending in a HARD CUT: the dark share drops by FRAME_STEP within two lines
+    and the picture after it is crisp or even (its content stops at the cut over its length; a limb's haze, a
+    spacecraft or a specimen running into the black is no cut). A band claims at most FRAME_BAND_MAX of the
+    picture's depth, or FRAME_PAIR_MAX when the opposite side carries a band of the same depth (a letterbox, a
+    pillarbox); bands that are not such a pair claim at most FRAME_SHARE_MAX of the picture together, and a lone one
+    at most FRAME_LONE_MAX. Anything larger or softer is SCENE (a night sky over
+    a straight horizon, an object on a shelf against a black ground, a black table): no window moves for it.
+    Returns (mask, {side: depth in lines})."""
+    k = 2.0 if video else 1.0
+    dark = lum <= FRAME_DARK * k
+    h, w = lum.shape
+    views = {"top": (dark, lambda m: m), "bottom": (dark[::-1], lambda m: m[::-1]),
+             "left": (dark.T, lambda m: m.T), "right": (dark.T[::-1], lambda m: m[::-1].T)}
+    depth: dict[str, int] = {}
+    even: set[str] = set()
+    for side, (arr, _back) in views.items():
         n = arr.shape[1]
         lo, hi = int(FRAME_ENDS * n), max(int(FRAME_ENDS * n) + 1, int(np.ceil((1 - FRAME_ENDS) * n)))
-        mid = depth[lo:hi]
-        if mid.size == 0 or float((mid > 0).mean()) < FRAME_FULL:
-            continue                 # not the side's whole length
-        tol = max(FRAME_STRAIGHT_PX, FRAME_STRAIGHT * arr.shape[0])
-        level = float(np.median(mid))
-        if float((np.abs(mid - level) <= tol).mean()) < FRAME_EDGE:
-            continue                 # its inner edge is not straight: the content runs into it
-        d = int(np.ceil(level + tol)) + 1
-        band = np.zeros_like(arr)
-        band[:d] = True
-        c = max(1, int(round(FRAME_CORNER * n)))
-        band[:, :c] = True           # a mount's rounded corner at either end of the band
-        band[:, n - c:] = True
-        band[min(arr.shape[0], max(d, int(round(FRAME_CORNER * arr.shape[0])))):] = False
-        out |= back(arr & band)
-    return out
+        frac = arr[:, lo:hi].mean(axis=1)
+        d = 0
+        while d < len(frac) and frac[d] >= FRAME_LINE:
+            d += 1
+        if d == 0 or d + 3 >= len(frac):
+            continue
+        # a HARD cut: within two lines the dark share drops by FRAME_STEP, and what follows is the picture, crisp
+        # (at most FRAME_CRISP dark) or even (no gradient: two lines on, within FRAME_FLAT): a planet's limb fades
+        # into its black over several lines, a plate's border stops at its picture in one
+        if frac[d - 1] - frac[d + 1] < FRAME_STEP:
+            continue
+        crisp = float(frac[d + 1:d + 3].max()) <= FRAME_CRISP
+        if not (crisp or abs(float(frac[d + 1] - frac[d + 3])) <= FRAME_FLAT):
+            continue
+        if not crisp:
+            even.add(side)           # dark picture beyond the cut: a frame only as part of a surround (below)
+        if frac[d] >= FRAME_TRANSITION:
+            d += 1                   # the transition line, part of each, goes with the band
+        depth[side] = d
+    opposite = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
+    keep: dict[str, int] = {}
+    loose: dict[str, int] = {}
+    for side, d in depth.items():
+        n = h if side in ("top", "bottom") else w
+        o = depth.get(opposite[side])
+        if o is not None and abs(o - d) <= max(2, 0.02 * n) and max(d, o) <= FRAME_PAIR_MAX * n:
+            keep[side] = d
+        elif d <= FRAME_BAND_MAX * n:
+            loose[side] = d
+    if loose and sum(d / (h if s in ("top", "bottom") else w) for s, d in loose.items()) > FRAME_SHARE_MAX:
+        loose = {}
+    # a LONE band deeper than FRAME_LONE_MAX (no band on any other side) is a straight-edged dark ground, not a
+    # surround: a book on a black cloth, a frieze under a band of shadow, a black table (second review, B5)
+    if len(loose) == 1 and not keep:
+        (side, d), = loose.items()
+        if d > FRAME_LONE_MAX * (h if side in ("top", "bottom") else w):
+            loose = {}
+    keep.update(loose)
+    if len(keep) == 1 and set(keep) <= even:
+        keep = {}                    # a lone band with dark picture running on past its cut: a wedge, a shadow
+    mask = np.zeros(lum.shape, bool)
+    for side, d in keep.items():
+        part = np.zeros(views[side][0].shape, bool)
+        part[:d] = True
+        mask |= views[side][1](part)
+    return mask, keep
 
 
-def matte_mask(lum: np.ndarray, video: bool = False) -> np.ndarray:
-    """The frame pixels of a luma picture (0-255): the FRAME part (_frame_part) of every connected region of digital
-    black (MATTE_LUMA or under, even, MATTE_MEAN or under as a whole) of at least MATTE_MIN_AREA that touches the
-    picture's edge. `video`: an encoded frame, whose black carries noise (twice the levels)."""
+def _scaled_bands(sides: dict[str, int], fine: tuple[int, int], shape: tuple[int, int]) -> np.ndarray:
+    """The bands found at `fine` (h, w) px as a mask at `shape` (h, w): each depth scaled up to whole lines."""
+    fh, fw = fine
+    h, w = shape
+    mask = np.zeros(shape, bool)
+    for side, d in sides.items():
+        if side == "top":
+            mask[:int(np.ceil(d * h / fh))] = True
+        elif side == "bottom":
+            mask[h - int(np.ceil(d * h / fh)):] = True
+        elif side == "left":
+            mask[:, :int(np.ceil(d * w / fw))] = True
+        else:
+            mask[:, w - int(np.ceil(d * w / fw)):] = True
+    return mask
+
+
+def _mount_corner(comp: np.ndarray) -> bool:
+    """Whether one edge-touching region of digital black lies alone in a corner of the picture, on both of its edges,
+    within FRAME_CORNER of each side: a slide mount's rounded corner."""
+    h, w = comp.shape
+    ch, cw = max(1, int(round(FRAME_CORNER * h))), max(1, int(round(FRAME_CORNER * w)))
+    ys, xs = np.nonzero(comp)
+    return bool(ys.size and (xs.max() < cw or xs.min() >= w - cw) and (ys.max() < ch or ys.min() >= h - ch)
+                and (xs.min() == 0 or xs.max() == w - 1) and (ys.min() == 0 or ys.max() == h - 1))
+
+
+def matte_mask(lum: np.ndarray, video: bool = False, fine: np.ndarray | None = None) -> np.ndarray:
+    """The frame pixels of a luma picture (0-255): its frame bands (frame_bands, read on `fine`, the same picture at a
+    higher resolution, where a mount's or a scan's thin edge is several lines deep), and every region of digital
+    black (MATTE_LUMA or under, even, MATTE_MEAN or under as a whole) that is a mount's corner (_mount_corner), in
+    two corners or more.
+    `video`: an encoded frame, whose black carries noise (twice the levels)."""
     import cv2
     k = 2.0 if video else 1.0
+    if fine is not None and fine.shape[0] > lum.shape[0]:
+        _, sides = frame_bands(fine, video)
+        mask = _scaled_bands(sides, fine.shape, lum.shape)
+    else:
+        mask, _ = frame_bands(lum, video)
     n, lab, st, _ = cv2.connectedComponentsWithStats((lum <= MATTE_LUMA * k).astype(np.uint8), connectivity=8)
-    mask = np.zeros(lum.shape, bool)
-    ah, aw = lum.shape
+    corners: dict[tuple[bool, bool], np.ndarray] = {}
     for i in range(1, n):
         x, y, bw, bh, area = (int(v) for v in st[i])
-        if not (x == 0 or y == 0 or x + bw == aw or y + bh == ah):
-            continue
-        corner = (bw <= FRAME_CORNER * aw and bh <= FRAME_CORNER * ah and (x == 0 or x + bw == aw)
-                  and (y == 0 or y + bh == ah))
-        if area < (FRAME_CORNER_MIN if corner else MATTE_MIN_AREA * ah * aw):   # a mount's corner is small
+        if area < FRAME_CORNER_MIN or not (x == 0 or y == 0 or x + bw == lum.shape[1] or y + bh == lum.shape[0]):
             continue
         comp = lab == i
-        if float(lum[comp].std()) <= MATTE_STD * k and float(lum[comp].mean()) <= MATTE_MEAN * k:
-            mask |= _frame_part(comp)
+        if (float(lum[comp].std()) <= MATTE_STD * k and float(lum[comp].mean()) <= MATTE_MEAN * k
+                and _mount_corner(comp)):
+            corners[(x == 0, y == 0)] = comp
+    if len(corners) >= 2:    # a mount rounds its corners alike; one dark corner alone is the scene's shadow
+        for comp in corners.values():
+            mask |= comp
     return mask
 
 
@@ -346,7 +422,8 @@ def analyse_maps(rgb: np.ndarray, size: tuple[int, int], focus: Box | None = Non
     w, h = size
     ah, aw = rgb.shape[:2]
     lum = rgb.astype(np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
-    matte = matte_mask(lum, video)
+    fine = np.asarray(thumb.convert("L"), np.float32) if thumb is not None else None
+    matte = matte_mask(lum, video, fine)
     gx = cv2.Sobel(lum, cv2.CV_32F, 1, 0, ksize=3) / 4.0
     gy = cv2.Sobel(lum, cv2.CV_32F, 0, 1, ksize=3) / 4.0
     grad = np.hypot(gx, gy)
@@ -513,8 +590,15 @@ def measure(a: Analysis, box: Box, window: Window, best_view: float | None = Non
         rec["focus"] = round(_overlap(a.focus, view), 3)
         if window.hold is not None:
             rec["held"] = round(_overlap(a.focus, _sub(box, out, window.hold)), 3)
-    elif window.shown_min > 0:   # measured on the VIEW (a cover's: from the profile grid's square), not on `hold`:
-        rec["shown"] = round(a.total("salience", view), 3)   # what the tile leaves out is not shown (review B2)
+    elif window.shown_min > 0:
+        open_part = _sub(box, out, _clip(window.hold, out)) if window.hold is not None else view
+        rec["shown"] = round(a.total("salience", open_part), 3)
+        if window.tile is not None:
+            rec["shown_tile"] = round(a.total("salience", _sub(box, out, _clip(window.tile, out))), 3)
+        if window.centre_half:
+            W, H = a.size
+            rec["centre_half"] = bool(box[0] <= 0.25 * W + 1 and box[2] >= 0.75 * W - 1
+                                      and box[1] <= 0.25 * H + 1 and box[3] >= 0.75 * H - 1)
     prot = [protected_measure(a, _sub(box, out, p)) for p in window.protected]
     if prot:
         rec["protected"] = prot
@@ -532,7 +616,8 @@ def problems(rec: dict[str, Any], window: Window) -> list[str]:
         if rec["focus"] < window.focus_min or rec.get("held", 1.0) < FOCUS_KEEP:
             out.append("subject")
     elif (rec.get("keep", 1.0) < SUBJECT_KEEP or rec["density"] < DENSITY_MIN
-          or rec.get("shown", 1.0) < window.shown_min):
+          or rec.get("shown", 1.0) < window.shown_min
+          or rec.get("shown_tile", 1.0) < TILE_SHARE * rec.get("shown", 0.0) or rec.get("centre_half") is False):
         out.append("subject")
     if rec["flat"] > FLAT_MAX and "focus" not in rec:   # a reviewed subject in view is not an empty view
         out.append("flat")
@@ -642,6 +727,11 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
                 r["problems"].append("subject")
         return r
 
+    def keeps(r: dict[str, Any]) -> bool:
+        """Whether a moved crop keeps what was asked for, on EVERY window, whatever its checks (second review, B5:
+        a frame-only ground, typography.cover_crop's, moved to the land band and lost the disc in the sky)."""
+        return a.focus is not None or r.get("kept_asked", 1.0) >= MOVE_KEEP
+
     every = _candidates(a, window, 1.0)
     best1 = max([held(asked), *(held(b) for b in every)])
     base = judged(asked, 1.0, best1)
@@ -670,7 +760,9 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         if not boxes:
             continue
         best = best1 if zoom == 1.0 else max(held(b) for b in every)
-        recs = [kept(judged(b, zoom, best, base)) for b in boxes]
+        recs = [r for r in (kept(judged(b, zoom, best, base)) for b in boxes) if keeps(r)]
+        if not recs:
+            continue
         ok = sorted((r for r in recs if not r["problems"]),
                     key=lambda r: (crowded(r), round(r.get("overlap", 0.0), 2) if crowded(r) else 0.0,
                                    -round(r.get("focus", 0.0), 2), -round(r["subject"], 3), near(r)))

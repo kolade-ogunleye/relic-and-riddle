@@ -365,16 +365,8 @@ def test_the_badge_yields_over_a_graphic_whose_element_is_in_its_corner(tmp_path
                                                "box": [box[0] + 20, box[3] - 6, box[0] + 400, box[3] + 300]}]}))
     scenes, durations = [tmp_path / "gen_01.png", clip, tmp_path / "02_commons.jpg"], [4.0, 5.0, 3.0]
     half = video_composer.TRANS_DUR / 2
-    # freeze cycle 6 (panel 7 C4; 2026-11-27): the badge yields only where its documented alternative corner is taken
-    # too (badge_corner_for); this element reaches the alternative on 9:16 only, so the 16:9 badge moves there
-    alt = video_composer.recon_badge_geometry(w, h, "top_right")["box"]
-    if not (box[0] + 400 > alt[0] - 12):
-        kept, yielded = video_composer.clear_badge_intervals([(0.0, 4.0 + half)], scenes, durations, w, h)
-        assert kept == [(0.0, 4.0 + half)] and not yielded
-        assert video_composer.badge_corner_for(clip, w, h)[0] == "top_right"
-        side.write_text(json.dumps({"elements": [
-            {"name": "figure", "text": "36", "box": [box[0] + 20, box[3] - 6, box[0] + 400, box[3] + 300]},
-            {"name": "label", "text": "36", "box": [alt[0] + 20, alt[3] - 6, alt[2] - 20, alt[3] + 300]}]}))
+    # freeze cycle 6 round 2 (lander ruling, 2026-11-27): the badge never changes corner for a stretch under
+    # RECON_BADGE_MIN_S (the crossfade's 0.2 s here): it yields there, as before, whichever corner is free
     kept, yielded = video_composer.clear_badge_intervals([(0.0, 4.0 + half)], scenes, durations, w, h)
     assert kept == [(0.0, 4.0)]                                   # on for the illustration's own beat, off at the cut
     assert yielded[0]["clip"] == "graphic_numbers.mp4" and "'36'" in yielded[0]["reason"]

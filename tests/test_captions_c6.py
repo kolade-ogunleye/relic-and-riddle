@@ -102,20 +102,46 @@ def test_a_wide_cut_fault_names_the_function_auxiliary_and_phrase_unit_ends():
 
 # ------------------------------------------------------------------------------------------------ C1 (9:16)
 
-def test_the_stranded_lead_in_moves_to_the_previous_burst(tmp_path, monkeypatch):
-    """Panel 7 C1 (lander ruling): OF / ARMY GROUP NORTH is not drawn while the previous burst can take OF (remedy 1),
-    recorded; with the strand pass off the forced break comes back."""
-    words, emph = _amber()
-    cap, rate = _build(tmp_path, words, emph, False)
-    drawn = [" / ".join(b["lines"]) for b in cap["bursts"]]
-    assert not any(d.lower().startswith("of / ") for d in drawn), drawn
-    assert any(" ".join(b["raw"]) == "German soldiers of" for b in cap["bursts"])
-    rows = [e for e in rate["recut"] if e.get("strand_remedy")]
-    assert any(e["into"] == "German soldiers of | Army Group North" and e["strand_remedy"] == "remedy_1"
-               and e["function_end"] for e in rows)
-    monkeypatch.setattr(vc, "CAPTION_STRAND_PASS", False)
-    old, _ = _build(tmp_path, words, emph, False)
-    assert any(" / ".join(b["lines"]).lower() == "of / army group north" for b in old["bursts"])
+def test_a_moved_word_stays_on_screen_and_the_remedies_keep_their_order(tmp_path, monkeypatch):
+    """Round 2 rulings (rule 3): a stranded preposition moves to the previous burst only where it stays on screen
+    STRAND_MOVE_MIN_S or more as its last word: Amber's OF (0.14 s) is not moved (base drew it at 0.14 s with the
+    move), and no move anywhere shows its word for less; no re-cut ends a burst on a function word or auxiliary."""
+    for words, emph in (_amber(), (_richat_long(), None)):
+        cap, rate = _build(tmp_path, words, emph, False)
+        rows = [e for e in rate["recut"] if e.get("strand_remedy")]
+        assert all(e["moved_on_screen_s"] >= vc.STRAND_MOVE_MIN_S for e in rows if e["strand_remedy"] == "move")
+        for e in rows:
+            if e["strand_remedy"] == "recut":
+                for part in e["into"].split(" | ")[:-1]:
+                    last = part.split()[-1]
+                    assert not vc.never_end_end(last) and vc._bare(last) not in vc._line_policy.brand_system.LINE_END_WEAK
+        assert not any(" ".join(b["raw"]) == "German soldiers of" for b in cap["bursts"])
+    assert vc.strand_remedies is not None
+
+
+def test_a_multi_word_hedge_line_above_its_figure_with_its_unit_is_legal():
+    """Round 2 ruling (rule 2): MORE THAN / 590 SQUARE FEET and BETWEEN ROUGHLY / 41.75 METRES are legal forms; a
+    single word alone on a line is not (WITH / OVER 13,000 POUNDS, FROM NEARLY / 1,090 TONNES keeps FROM)."""
+    assert vc._hedge_line_legal("more than 590 square feet".split(), 2)
+    assert vc._hedge_line_legal("between roughly 41.75 metres".split(), 2)
+    assert not vc._break_faults("more than 590 square feet".split(), 2)
+    assert not vc._hedge_line_legal("with over 13,000 pounds".split(), 2)
+    assert not vc._hedge_line_legal("from nearly 1,090 tonnes".split(), 2)
+    assert not vc._hedge_line_legal("nearly 1,090 tonnes".split(), 1)
+    assert vc._break_faults("from nearly 1,090 tonnes".split(), 2)
+
+
+def test_a_burst_one_rung_under_is_recorded_and_at_most_two_a_clip(tmp_path):
+    """Round 2 ruling (rule 4): a burst with no other remedy sets alone one rung under the clip's size, recorded
+    forced_rung (and under), at most CAPTION_FORCED_RUNG_MAX a clip; its drawn size is that rung."""
+    for words, emph in (_amber(), (_richat_long(), None)):
+        cap, rate = _build(tmp_path, words, emph, False)
+        clip = rate["clip_size"]
+        rows = clip.get("forced_rung") or []
+        assert len(rows) <= vc.CAPTION_FORCED_RUNG_MAX
+        for r in rows:
+            assert r["px"] == vc._rung_below(clip["px"])
+            assert any(e["text"] == r["text"] for e in clip["under"])
 
 
 def test_every_forced_break_left_has_no_remedy(tmp_path):
@@ -223,6 +249,54 @@ def test_the_badge_yields_where_neither_corner_is_free_and_stays_on_a_photo(tmp_
 def test_the_badge_lines_drop_the_separator_at_the_break():
     assert vc.badge_lines() == ["AI ILLUSTRATION", "NOT A PHOTO"]
     assert " ".join(vc.badge_lines()).replace(" ", "") == vc.RECON_BADGE_LABEL.replace(" · ", "").replace(" ", "")
+
+
+def test_a_corner_is_judged_on_every_frame_the_badge_covers(tmp_path):
+    """Review B1: the poster shows the alternative corner clear, but the graphic's frames draw ink there: the corner
+    is not free (the badge yields), judged on the decoded frames, not the still."""
+    import subprocess
+    words, emph = _amber()
+    clean = Image.new("RGB", (1080, 1920), brand.INK)
+    inked = clean.copy()
+    for c in vc.RECON_BADGE_CORNERS:
+        x0, y0, x1, y1 = vc.recon_badge_geometry(1080, 1920, c)["box"]
+        inked.paste((242, 182, 48), (x0 + 20, y1 - 12, x0 + 220, y1 + 120))
+    clean.save(tmp_path / "a.png")
+    inked.save(tmp_path / "b.png")
+    clip = tmp_path / "graphic_map.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-loop", "1", "-t", "1", "-i", str(tmp_path / "a.png"), "-loop", "1",
+                    "-t", "2", "-i", str(tmp_path / "b.png"), "-filter_complex", "[0:v][1:v]concat=n=2:v=1[v]",
+                    "-map", "[v]", "-r", "30", "-pix_fmt", "yuv420p", str(clip)], check=True)
+    clean.save(clip.with_suffix(".jpg"))   # the poster: clear in both corners
+    # the whole interval over the graphic: by the poster both corners were free; the frames say neither is
+    cap, rate = _build(tmp_path, words, emph, False, reconstruction_intervals=[(0.0, 3.0)],
+                       graphic_clips=[(0.0, 3.0, clip)])
+    assert [r["corner"] for r in rate["badge"]] == [None]
+    assert not _badge_events(cap["ass"])
+    # over the clean first second only, the badge keeps its place
+    plan = vc.badge_plan([(0.0, 1.0)], [(0.0, 3.0, clip)], 1080, 1920)
+    assert [r["corner"] for r in plan] == ["top_left"]
+
+
+def test_the_badge_never_jumps_corner_for_a_short_stretch(tmp_path):
+    """Review B2: a 0.2 s crossfade over a graphic whose ink takes the badge's place does not move the badge to its
+    alternative corner for 6 frames: it yields there, recorded; the illustration's own beat keeps its place."""
+    clip = _poster(tmp_path, ["top_left"])
+    plan = vc.badge_plan([(0.0, 4.2)], [(4.0, 9.0, clip)], 1080, 1920)
+    assert [(r["start"], r["end"], r["corner"]) for r in plan] == [(0.0, 4.0, "top_left"), (4.0, 4.2, None)]
+    assert any("does not change corner" in w for w in plan[1]["why"])
+
+
+def test_a_range_joiner_is_never_gold(tmp_path):
+    """Review C3: TO 1,168 TONNES drew TO gold; a range's joiner is bone, its two figures with their units gold, and
+    on 16:9 the range stays one gold span."""
+    raw = "Its weight ranged from nearly 1,090 tonnes to 1,168 tonnes before work stopped.".split()
+    words = [{"word": w, "start": 0.3 + 0.35 * i, "dur": 0.3} for i, w in enumerate(raw)]
+    for wide in (False, True):
+        cap, _ = _build(tmp_path, words, ["1,090 tonnes"], wide)
+        gold = [vc._norm(g) for _, gs in _gold(cap) for g in gs]
+        assert "to" not in gold and "nearly" not in gold
+        assert gold.count("tonnes") == 2 and "1090" in gold and "1168" in gold, gold
 
 
 def test_the_reel_cover_badge_is_the_caption_badge_treatment():

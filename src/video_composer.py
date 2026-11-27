@@ -6256,7 +6256,7 @@ def _frames_ink(clip: Path, t0: float, t1: float, rect: tuple[int, int, int, int
         return 0.0
     try:
         r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0.0, t0):.3f}", "-i", str(clip), "-t",
-                            f"{max(1.0 / VIDEO_FPS, t1 - max(0.0, t0)) + 1.0 / VIDEO_FPS:.3f}", "-vf",
+                            f"{max(1.0 / VIDEO_FPS, t1 - max(0.0, t0) - 1e-3):.3f}", "-vf",
                             f"scale={width}:{height},crop={w}:{h}:{x0}:{y0}", "-f", "rawvideo", "-pix_fmt", "rgb24",
                             "-"], capture_output=True, timeout=120)
     except (OSError, subprocess.SubprocessError):

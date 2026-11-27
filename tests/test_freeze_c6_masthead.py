@@ -149,7 +149,7 @@ def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_ne
     assert meta["masthead"]["size_px"] == youtube_thumbnail.mast_px()
     assert not any(youtube_thumbnail._intersects(p.box, brand_p.box) for n, p in plates if n != "brand")
     wide: dict = {}
-    youtube_thumbnail.render(src, {"line1": "THE UNFINISHED", "line2": "OBELISK"}, meta=wide)
+    youtube_thumbnail.render(src, {"line1": "GIANT DESERT", "line2": "DRAWINGS"}, meta=wide)
     assert wide["hook_ratio"]["form"] == "line" and wide["hook_ratio"]["holds"]
 
 

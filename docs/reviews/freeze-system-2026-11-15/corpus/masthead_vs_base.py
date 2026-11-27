@@ -8,7 +8,8 @@ plates_draw.py drew, and every YouTube thumbnail masthead_draw_youtube.py drew, 
 4. the photograph not darker (outside every text box: the share of the frame more than DARK luma darker than base);
 5. the subject not less visible: the photograph's detail (mean absolute luma gradient) in the slide's photo view
    outside the text boxes, tip against base, not lower by more than DETAIL %;
-6. interiors: pixel-identical (the class does not touch them).
+6. interiors of a one-line post: pixel-identical (the class does not touch them); a stacked post's interiors carry
+   the stacked mark and are held to 1-5 like the covers.
 
     python masthead_vs_base.py <base decks>/<brand> <tip decks>/<brand> [--yt-base d --yt-tip d] [--json out.json]
 """
@@ -54,6 +55,7 @@ def decks(base: Path, tip: Path, rows: list, bad: list) -> None:
         brun = base / run.name
         if not (brun / "draw.json").is_file():
             continue
+        stacked = json.loads((run / "draw.json").read_text(encoding="utf-8")).get("masthead_form") == "stacked"
         for sub in ("carousel", "carousel_fb"):
             fb_, ft_ = frames(brun, sub), frames(run, sub)
             for name, et in sorted(ft_.items()):
@@ -82,9 +84,10 @@ def decks(base: Path, tip: Path, rows: list, bad: list) -> None:
                 db, dt = detail(lb, keep, top), detail(lt, keep, top)
                 det = round(100.0 * (dt - db) / db, 2) if db else 0.0
                 ok = text_ok and size_ok and not drops and (dark or 0) <= SLACK and det >= -DETAIL
-                if not cover:
+                if not cover and not stacked:   # a one-line post's interiors: untouched by the class
                     ok = ok and same
-                row = {"run": run.name[4:], "deck": sub, "still": name, "cover": cover, "pixels_same": same,
+                row = {"run": run.name[4:], "deck": sub, "still": name, "cover": cover, "stacked_post": stacked,
+                       "pixels_same": same,
                        "text_same": text_ok, "lines_same": lines_same, "title_px": [hb.get("size"), ht.get("size")],
                        "contrast_platform": {k: [cb.get(k), ct.get(k)] for k in sorted(set(cb) | set(ct))},
                        "drops": drops, "darker_pct": dark, "detail_change_pct": det,
@@ -150,6 +153,9 @@ def main() -> int:
               "covers title size lower": sum(float(r["title_px"][1] or 0) < float(r["title_px"][0] or 0)
                                              for r in covers),
               "interiors": len(inter), "interiors pixel-identical": sum(r["pixels_same"] for r in inter),
+              "one-line posts' interiors": sum(not r["stacked_post"] for r in inter),
+              "one-line posts' interiors pixel-identical": sum(r["pixels_same"] for r in inter if not r["stacked_post"]),
+              "contrast lower (any element)": sum(bool(r.get("drops")) for r in rows if r.get("deck") != "youtube"),
               "thumbnails": len(yts), "thumbnails pixel-identical": sum(bool(r.get("pixels_same")) for r in yts),
               "violations": len(bad)}
     print(f"\nMASTHEAD vs base: {json.dumps(counts)}")

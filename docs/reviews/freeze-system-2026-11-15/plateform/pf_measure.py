@@ -55,6 +55,17 @@ CASES = {
                  ("still", "run_unfinished_obelisk_aswan_1792985912", "carousel", "carousel_slide_07.jpg"),
                  ("still", "run_wieliczka_salt_mine_1792974672", "carousel", "carousel_slide_06.jpg"),
                  ("still", "run_richat_structure_sahara_eye_1793272675", "carousel", "carousel_slide_07.jpg")],
+    # ten real stills no earlier sheet used (cycle 6 adoption build, lander ruling: proof beyond the reviewers' cases)
+    "other": [("still", "run_amber_room_heist_1792790550", "carousel", "carousel_slide_01.jpg"),
+              ("still", "run_damascus_steel_nanotubes_1792732472_short", "carousel", "carousel_slide_02.jpg"),
+              ("still", "run_gol_gumbaz_whispering_gallery_1793278143", "carousel", "carousel_slide_03.jpg"),
+              ("still", "run_hal_saflieni_hypogeum_1792949304", "carousel_fb", "carousel_slide_01.jpg"),
+              ("still", "run_kailasa_temple_monolith_1792524470", "carousel", "carousel_slide_04.jpg"),
+              ("still", "run_nazca_lines_runway_paradox_1793247464", "carousel", "carousel_slide_02.jpg"),
+              ("still", "run_odessa_catacombs_1793100750", "stories", "story_01_hook.jpg"),
+              ("still", "run_richat_structure_sahara_eye_1793474843", "carousel", "carousel_slide_04.jpg"),
+              ("still", "run_amber_room_heist_1792801257", "stories", "story_02_reveal.jpg"),
+              ("still", "run_odessa_catacombs_1792970549", "carousel", "carousel_slide_06.jpg")],
     "story": [("still", "run_greek_fire_siphon_1792735284_short", "stories", "story_01_hook.jpg"),
               ("still", "run_richat_structure_sahara_eye_1793272675", "stories", "story_01_hook.jpg"),
               ("still", "run_richat_structure_sahara_eye_1793272675", "stories", "story_02_reveal.jpg")],
@@ -317,6 +328,24 @@ def main() -> None:
                             subjects.get(cid))
                 if fm == "none":
                     m.pop("dark", None)
+                if none_im is None and case[0] == "still":
+                    # no bare reference drawn (the corpus trees): the ground record of the still itself (the map of
+                    # what its text grounds darkened, plates_draw --ground-record) gives abs, edge and subject
+                    g = a.stills / fm / a.brand / case[1] / case[2] / Path(case[3]).with_suffix(".ground.png").name
+                    side = a.stills / fm / a.brand / case[1] / case[2] / "still_layout.json"
+                    if g.is_file():
+                        D = np.asarray(Image.open(g), np.float32)
+                        t6 = type_mask(D.shape, els or base_els, 6)
+                        m["abs"] = round(float(((D > 20) & ~t6).mean()) * 100, 1)
+                        rec = (json.loads(side.read_text(encoding="utf-8")).get(case[3]) or {}).get("meta", {})
+                        m["edge"] = (rec.get("ground_record") or {}).get("edge") or {}
+                        sb = subjects.get(cid)
+                        if sb:
+                            x0, y0, x1, y1 = sb
+                            sl = (slice(y0, y1), slice(x0, x1))
+                            keep = ~t6[sl]
+                            if keep.any():
+                                m["subject"] = round(float(((D[sl] <= 20) & keep).sum() / keep.sum()) * 100, 1)
                 cells[fm] = (im, m, None)
                 table.setdefault(surface, {}).setdefault(cid, {})[fm] = m
             rows.append((cid, cells))

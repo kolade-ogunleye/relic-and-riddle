@@ -317,6 +317,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     "motion.push_cap": 1.24,          # the furthest that push goes
     "motion.hook_hold": 1.07,         # s: the hook's type hold (frames 0-32 whole)
     "motion.hook_fade": 0.16,         # s: the hook type's fade (the ground leaves with it: one frame longer)
+    # freeze cycle 6 (THENNOW T1, panel 7 MO-T1): the then-and-now divider's one wipe, from the far edge straight to
+    # the split on ease_in_out, at most this many px a frame at its steepest (1080 short side); its length is derived
+    # from it (then_now.wipe_seconds). It was then_now.SETTLE_MAX_STEP, a module constant restating a motion value.
+    "motion.wipe_step": 30.0,
     # ---- credits (freeze cycle 4, SYS item 4, panel 5 BC-06: a written SPEC value no renderer read): the credit
     # role's weight in the data face, read by the end screen's credits line, the Story's photo credit and the cards'
     # citation (each drew a literal 500 until now; the value is unchanged)
@@ -386,6 +390,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.push_cap": (1.05, 1.5),
     "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
     "motion.hook_fade": (0.1, 0.3),       # s
+    "motion.wipe_step": (16.0, 48.0),     # px a frame (1080 short side): 1.2-3.6 s for the 9:16 wipe
     "credit.weight": (500, 600),          # the data face's bundled weights (IBM Plex Mono Medium / SemiBold)
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig

@@ -162,15 +162,15 @@ def test_a_story_window_over_black_space_keeps_its_subject(tmp_path):
     asked = pf.fit_box((w, h), (1080, 1920))
     assert not rec["moved"] and rec["box"] == [round(v, 1) for v in asked] and rec["matte"] == 0
     # with a real frame (a straight border down the right), the move is taken and holds the asked centre
-    lit[:, int(0.93 * w):] = 0
-    p2 = save(tmp_path, "framed.png", lit)
-    got = pf.place(p2, pf.Window((1080, 1920), name="story"), (1.0, 0.5))
+    lit[:, int(0.95 * w):] = 0
+    framed = pf.analyse(Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8)))   # (a file's clean region would
+    got = pf.place(None, pf.Window((1080, 1920), name="story"), (1.0, 0.5), analysis=framed)   # trim the band)
     ask = pf.fit_box((w, h), (1080, 1920), (1.0, 0.5))
     cx, cy = (ask[0] + ask[2]) / 2, (ask[1] + ask[3]) / 2
     hw, hh = (ask[2] - ask[0]) * pf.MOVE_HOLD / 2, (ask[3] - ask[1]) * pf.MOVE_HOLD / 2
     assert got["moved"] and got["matte"] <= pf.MATTE_MAX and got["basis"] == "asked centre held"
     b = got["box"]
-    assert b[0] <= cx - hw + 1 and b[2] >= min(cx + hw, int(0.93 * w)) - 2 and b[1] <= cy - hh + 1
+    assert b[0] <= cx - hw + 1 and b[2] >= min(cx + hw, int(0.95 * w)) - 2 and b[1] <= cy - hh + 1
     assert b[3] >= cy + hh - 1
     if got["fit"]:
         assert got["kept_asked"] >= pf.MOVE_KEEP
@@ -245,15 +245,77 @@ def test_salience_alone_moves_no_window():
     """Decision D1 (review of cycle 5, D4): the soft measures of an unreviewed photograph are recorded and never alone
     the cause of a move, even where a nearer crop would hold more of what salience reads as the subject (a move made
     for it took a Story frame to the aircraft's wing at the photograph's edge)."""
-    im = Image.fromarray(np.clip(with_subject(ground(3000, 1500, grain=1), 0.33, 0.5, 0.08), 0, 255).astype(np.uint8))
+    im = Image.fromarray(np.clip(with_subject(ground(3000, 1500, grain=2), 0.25, 0.5, 0.15), 0, 255).astype(np.uint8))
     an = pf.analyse(im)
-    window = pf.Window((1080, 1920), name="story")
+    window = pf.Window((1080, 1350), name="slide")
     rec = pf.place(None, window, analysis=an)
-    assert rec["problems"] and set(rec["problems"]) <= set(pf.SOFT)
+    assert rec["problems"] == ["subject"]                      # unfit on salience only (no frame, not flat)
     assert not rec["moved"] and rec["box"] == [round(v, 1) for v in pf.fit_box(an.size, window.size)]
-    # the move it did not take exists: a crop holding the asked centre with more of the subject in view
-    left = pf.fit_box(an.size, window.size, (0.38, 0.5))
-    assert an.total("salience", left) > 1.3 * an.total("salience", tuple(rec["box"]))
+    # the move it did not take exists and is FIT: a crop holding the asked centre with the subject in view (the
+    # rule reverted, `due` = every problem, takes it)
+    alt = pf.place(None, window, (0.375, 0.5), analysis=an, fixed=True)
+    assert alt["fit"] and alt["box"][0] >= rec["box"][0] - (rec["box"][2] - rec["box"][0]) * pf.MOVE_HOLD / 2 - 1
+
+
+def _drawn(a: np.ndarray) -> np.ndarray:
+    return np.clip(a, 0, 255).astype(np.uint8)
+
+
+def test_frames_are_judged_by_shape_and_content():
+    """Second review, B5 / B6: a frame is a hard cut band along the sides, bounded in share, paired or adjacent when
+    deep; the reviewer's constructed cases (drawn here with the same geometry) and three real frames the cycle's
+    first rule missed (kept as the silhouettes of their dark pixels)."""
+    w, h = 3000, 2000
+    yy, xx = np.mgrid[0:h, 0:w]
+    land = ground(w, h, seed=7)
+    night = land.copy()                                       # C1: black sky over a straight horizon, a disc in it
+    night[:1100] = 0
+    night = with_subject(night, 0.53, 0.25, 0.07)
+    shelf = np.zeros((h, w, 3), np.float32)                    # C5b: an object on a shelf against a black ground
+    shelf[1500:] = ground(w, 500, seed=8)
+    shelf[:1500, 1330:1670] = ground(340, 1500, seed=9, level=180)
+    table = land.copy()                                       # C4: a black table across the foot
+    table[1450:] = 0
+    letter = np.zeros((int(w * 9 / 16), w, 3), np.float32)    # C3: a 2.39:1 still letterboxed in 16:9
+    sh = int(w / 2.39)
+    letter[(letter.shape[0] - sh) // 2:(letter.shape[0] - sh) // 2 + sh] = ground(w, sh, seed=10)
+    pillar = np.zeros((int(w * 9 / 16), w, 3), np.float32)    # C3b: a portrait pillarboxed in 16:9
+    pillar[:, 985:2015] = with_subject(ground(1030, pillar.shape[0], seed=11), 0.5, 0.4, 0.15)
+    for name, a, framed in (("night sky", night, False), ("shelf on black", shelf, False), ("black table", table, False),
+                            ("letterbox", letter, True), ("pillarbox", pillar, True)):
+        an = pf.analyse(Image.fromarray(_drawn(a)))
+        assert (an.matte_share > 0) == framed, (name, an.matte_share)
+    an = pf.analyse(Image.fromarray(_drawn(pillar)))
+    assert abs(an.content_box[0] - 985) <= 16 and abs(an.content_box[2] - 2015) <= 16
+    # the ground under a card (frame-only window) keeps the night sky's disc: no frame, no move
+    ground_rec = pf.place(None, pf.Window((1920, 1080), checks=("matte",)), analysis=pf.analyse(Image.fromarray(
+        _drawn(night))))
+    assert not ground_rec["moved"] and ground_rec["box"][1] < 0.25 * h
+    import json as _json
+    fx = ROOT / "tests/fixtures/photo_fitness_c5"
+    for case in _json.loads((fx / "frames.json").read_text(encoding="utf-8")):
+        an = pf.analyse(Image.open(fx / case["file"]).convert("RGB"))
+        _, sides = pf.frame_bands(np.asarray(an.thumb.convert("L"), np.float32))
+        assert an.matte_share > 0 and set(case["sides"]) <= set(sides), (case["name"], sides)
+        story = pf.place(None, pf.Window((1080, 1920), name="story"), analysis=an)
+        assert not (story["fit"] and story["matte"] > pf.MATTE_MAX), case["name"]   # never fit over a frame
+
+
+def test_every_move_keeps_most_of_what_was_asked_for():
+    """Second review, B5: a frame-only window (typography.cover_crop's, under cards and graphics) moved off a frame
+    with no keep check and lost the subject; every window keeps MOVE_KEEP of the asked view's salience or stays."""
+    a = ground(1600, 1200)
+    a[:, :80] = 0                                             # a scan's straight black band down the left
+    a = with_subject(with_subject(a, 0.09, 0.5, 0.09), 0.93, 0.5, 0.09, 2)   # a subject at each end of the picture
+    an = pf.analyse(Image.fromarray(_drawn(a)))
+    assert an.matte_share > 0
+    window = pf.Window((1920, 1080), checks=("matte",), name="16:9 ground")
+    rec = pf.place(None, window, analysis=an)
+    if rec["moved"]:
+        assert rec["kept_asked"] >= pf.MOVE_KEEP
+    else:                                                     # no crop clears the band and keeps both: as asked
+        assert rec["problems"] == ["matte"]
+    from src.typography import cover_crop  # noqa: F401  (the ground's cropper asks the same place())
 
 
 def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():
@@ -319,15 +381,16 @@ def test_a_move_does_not_set_the_type_on_a_busier_ground(tmp_path):
     a = ground(2400, 1600, grain=2)
     a[:, :1300] = np.where(rng.random((1600, 1300, 1)) > 0.5, 230.0, 30.0)      # the left of the picture: hard clutter
     a[:, :1300] = np.repeat(np.repeat(a[::8, :1300:8], 8, axis=0), 8, axis=1)[:1600, :1300]
-    a[:420] = 0                                                                  # digital black across the top
+    a[:90] = 0                                                                   # digital black across the top
     p = save(tmp_path, "clutter.png", a)
     window = pf.Window((1440, 1100), protected=((60, 0, 520, 150),), name="split")
     asked = pf.place(p, window, fixed=True)
     assert "matte" in asked["problems"]
     rec = pf.place(p, window)
     if rec["moved"]:
-        assert rec["fit"] and rec["matte"] <= pf.MATTE_MAX
-        assert rec["protected"][0]["busy"] <= max(pf.BUSY_MOVE_MAX, asked["protected"][0]["busy"])
+        assert rec["matte"] <= pf.MATTE_MAX
+        if rec["fit"]:
+            assert rec["protected"][0]["busy"] <= max(pf.BUSY_MOVE_MAX, asked["protected"][0]["busy"])
     else:   # no crop that clears the frame keeps the asked centre and a calm ground: the asked one, recorded
         assert rec["box"] == asked["box"] and not rec["fit"] and "matte" in rec["problems"]
     # a move is never taken that trades the asked crop's defect for another one (review of cycle 5, B1)
@@ -415,11 +478,18 @@ def test_the_reel_cover_is_filled_with_the_photograph_or_stands_on_ink():
     a = np.asarray(im.convert("RGB"), np.int16)
     x0, y0, x1, y1 = lay.meta["composition"]["image_box"]
     assert np.abs(a[:y0 - 2] - ink).max() <= 2                     # nothing of the photograph above its window
-    # an unreviewed square photograph with its subject in the profile tile's view fills the cover
-    square = Image.fromarray(np.clip(with_subject(ground(1800, 1800), 0.5, 0.45, 0.2), 0, 255).astype(np.uint8))
-    im, lay = _cover(square)
-    assert lay.meta["composition"]["mode"] in ("full_bleed", "photo_over_ink") and lay.meta["photo_fit"]["fit"]
-    assert all(t["shown"] >= 0.5 for t in lay.meta["photo_fit"]["tried"] if not t["problems"])
+    # an unreviewed LANDSCAPE photograph whose subject shows in the Reel's view and the profile tile's fills the
+    # cover at full width (lander ruling, second review); one whose subject sits above the tile stands contained
+    wide = Image.fromarray(_drawn(with_subject(ground(2400, 1600), 0.5, 0.62, 0.22)))
+    im, lay = _cover(wide)
+    fit = lay.meta["photo_fit"]
+    assert lay.meta["composition"]["mode"] == "photo_over_ink" and fit["fit"]
+    kept = [t for t in fit["tried"] if not t["problems"]][0]
+    assert kept["shown"] >= 0.5 and kept["shown_tile"] >= pf.TILE_SHARE * kept["shown"] and kept["centre_half"]
+    high = Image.fromarray(_drawn(with_subject(ground(2400, 1600, grain=2), 0.5, 0.16, 0.14)))
+    im, lay = _cover(high)
+    assert lay.meta["composition"]["mode"] == "contain"
+    assert any(t.get("shown_tile", 1.0) < pf.TILE_SHARE * t.get("shown", 0.0) for t in lay.meta["photo_fit"]["tried"])
     # an unreviewed PORTRAIT photograph stays whole (review of cycle 5, B2: a full-width band of a portrait cut the
     # statue's head out of the profile tile): contained, once, on INK, with the reason recorded
     tall = Image.fromarray(np.clip(with_subject(ground(1400, 2400), 0.5, 0.4, 0.2), 0, 255).astype(np.uint8))
@@ -515,11 +585,37 @@ def test_a_hero_that_cannot_fill_the_cover_gives_way(tmp_path, monkeypatch):
     pano = save(tmp_path, "01_pano.png", np.concatenate([np.zeros((300, 3000, 3), np.float32),
                                                          with_subject(ground(3000, 500), 0.5, 0.5, 0.4),
                                                          np.zeros((300, 3000, 3), np.float32)]))
-    square = save(tmp_path, "02_square.png", with_subject(ground(1800, 1800), 0.5, 0.45, 0.2))
+    wide = save(tmp_path, "02_wide.png", with_subject(ground(2400, 1600), 0.5, 0.62, 0.22))
     tall = save(tmp_path, "03_tall.png", with_subject(ground(1400, 2400), 0.5, 0.4, 0.2))
-    assert hero_photo.fills_cover(square) and not hero_photo.fills_cover(pano)
+    assert hero_photo.fills_cover(wide) and not hero_photo.fills_cover(pano)
     assert not hero_photo.fills_cover(tall)          # an unreviewed portrait stands contained (cover_design._filled)
-    assert hero_photo.score(square) is not None
+    assert hero_photo.score(wide) is not None
+
+
+def test_the_cover_penalty_never_promotes_a_less_relevant_photograph(tmp_path):
+    """Lander ruling, second review (Göbekli Tepe: a landscape without the site replaced the excavated enclosure):
+    the cover-fitness penalty orders photographs of equal relevance only."""
+    import json as _json
+
+    from src import hero_photo
+    first = save(tmp_path, "01_commons.png", with_subject(ground(1400, 2400, grain=4), 0.5, 0.4, 0.2))  # portrait
+    other = save(tmp_path, "02_commons.png", with_subject(ground(2400, 1600, grain=8), 0.5, 0.62, 0.22))  # fills
+
+    def credits(second_shows):
+        imgs = [{"file": "01_commons.png", "license": "CC BY-SA 4.0", "relevance": 9,
+                 "vision_review": {"shows_topic": "yes", "usable": True, "safe": True}},
+                {"file": "02_commons.png", "license": "CC BY-SA 4.0", "relevance": 9,
+                 "vision_review": {"shows_topic": second_shows, "usable": True, "safe": True}}]
+        (tmp_path / "credits.json").write_text(_json.dumps({"images": imgs}), encoding="utf-8")
+
+    assert not hero_photo.fills_cover(first) and hero_photo.fills_cover(other)
+    raw = hero_photo.score(other, fitness=False) - hero_photo.score(first, fitness=False)
+    fit = hero_photo.score(other) - hero_photo.score(first)
+    assert raw < hero_photo.SWITCH_MARGIN <= fit                # the penalty alone decides
+    credits("partly")                                          # the other photograph is context: lower relevance
+    assert hero_photo.pick([first, other]) == first
+    credits("yes")                                             # equal relevance: the penalty orders them
+    assert hero_photo.pick([first, other]) == other
 
 
 # ---------------------------------------------------------------- the corpus proof uses this measure

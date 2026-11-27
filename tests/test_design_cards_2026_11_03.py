@@ -408,7 +408,8 @@ def test_hook_ground_records_the_window_it_draws(tmp_path):
     from src.typography import cover_crop
     rng = np.random.default_rng(11)
     arr = rng.normal(128, 45, (2400, 1200, 3))
-    arr[2160:] = 0                                                   # a scan's border across the foot
+    arr[:192] = 0                                                    # a scan's border across the head and foot
+    arr[2208:] = 0
     framed = tmp_path / "framed.jpg"
     Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(framed, quality=95)
     for photo in (framed, _photo(tmp_path / "plain.jpg", "noise")):
@@ -426,6 +427,15 @@ def test_hook_ground_records_the_window_it_draws(tmp_path):
         assert all(abs(a - b) < 1.0 for a, b in zip(fit["box"], drawn)), (photo.name, fit["box"], drawn)
         assert fit["matte"] <= pf.MATTE_MAX
     assert dc._design_record(dc.plan_hook_frame(hook(framed), SHEET), "last")["photo_fit"]["moved"]
+    # with a reviewed focus the window is not searched (place() keeps the asked crop); the ground is then
+    # cover_crop's, which clears the frame: the record is THAT box, measured
+    plan = dc.plan_hook_frame(hook(framed, focus=(0, 800, 1080, 1100)), SHEET)
+    fit = dc._design_record(plan, "last")["photo_fit"]
+    got = {}
+    cover_crop(framed, (plan.width, plan.height), record=got)
+    asked = pf.fit_box(pf.load(framed)[0].size, (plan.width, plan.height))
+    assert got["moved"] and fit["drawn"] == "cover crop" and fit["measured"]["box"] == [round(v, 1) for v in asked]
+    assert all(abs(a - b) < 1.0 for a, b in zip(fit["box"], got["box"]))
 
 
 def test_hook_focus_fallback(photos):

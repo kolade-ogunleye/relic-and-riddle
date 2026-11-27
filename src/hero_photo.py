@@ -62,8 +62,9 @@ def measures(path: Path) -> dict[str, float] | None:
             "resolution": _sat(w * h, 1080 * 1920)}
 
 
-def score(path: Path) -> float | None:
-    """The weighted score in 0..1 (plus FOCUS_BONUS for a reviewed focus), or None when unreadable."""
+def score(path: Path, fitness: bool = True) -> float | None:
+    """The weighted score in 0..1 (plus FOCUS_BONUS for a reviewed focus, less UNFIT_PENALTY when `fitness` and the
+    photo cannot fill the cover or is toneless), or None when unreadable."""
     m = measures(path)
     if m is None:
         return None
@@ -71,9 +72,30 @@ def score(path: Path) -> float | None:
     from .cover_design import reviewed_focus
     if reviewed_focus(Path(path)) is not None:
         total += FOCUS_BONUS
-    if not fills_cover(Path(path)) or toneless(Path(path)):
+    if fitness and (not fills_cover(Path(path)) or toneless(Path(path))):
         total -= UNFIT_PENALTY
     return total
+
+
+TIER_RANK = {"topic": 2, "kept": 2, "context": 1}
+
+
+def relevance(path: Path) -> tuple[int, float] | None:
+    """How relevant the photo is to its topic, from its folder's credits (image_review.tier: shows the topic or kept,
+    then context; then the search's relevance figure), or None when nothing is known about it."""
+    try:
+        from .image_review import _relevance, load_credits, tier
+        from .visual_engine import _topic_folder
+        folder = _topic_folder(Path(path))
+        if not (folder / "credits.json").is_file():
+            return None
+        stem = Path(path).stem
+        for im in load_credits(folder).get("images", []):
+            if im.get("file") and stem.startswith(Path(im["file"]).stem):
+                return TIER_RANK.get(tier(im), 0), _relevance(im)
+    except (OSError, ValueError, KeyError, ImportError):
+        return None
+    return None
 
 
 def fills_cover(path: Path) -> bool:
@@ -116,12 +138,25 @@ def pick(scene_media: list[Path], strong_stems: set | None = None) -> Path:
         raise StopIteration("no still image in the scene sequence")
     first = stills[0]
     candidates = only_strong(stills, strong_stems)
-    scores = {p: s for p in dict.fromkeys([first, *candidates]) if (s := score(p)) is not None}
-    if first not in scores or len(scores) < 2:
+    pool = list(dict.fromkeys([first, *candidates]))
+    raw = {p: s for p in pool if (s := score(p, fitness=False)) is not None}
+    if first not in raw or len(raw) < 2:
         return first
-    best = max(scores, key=lambda p: scores[p])
-    if best != first and scores[best] >= scores[first] + SWITCH_MARGIN:
-        log.info("Hero photo: %s (score %.2f) over the first still %s (%.2f).", best.name, scores[best],
-                 first.name, scores[first])
-        return best
-    return first
+    fit = {p: s for p in raw if (s := score(p)) is not None}
+    rel = {p: relevance(p) for p in raw}
+
+    def beats(p: Path) -> float | None:
+        """By how much `p` outscores the first still: the cover-fitness penalty (UNFIT_PENALTY) counts only where both
+        relevances are known and `p`'s is at least the first's (lander ruling, second review: it may order
+        photographs of equal relevance and never promote one lower on the topic: a Göbekli Tepe landscape without
+        the site had replaced the excavated enclosure); otherwise the scores compare without it, as before."""
+        ranked = rel[p] is not None and rel[first] is not None and rel[p] >= rel[first]
+        gain = (fit[p] - fit[first]) if ranked else (raw[p] - raw[first])   # unknown relevance: no penalty either
+        return gain if gain >= SWITCH_MARGIN else None
+
+    wins = {p: g for p in raw if p != first and (g := beats(p)) is not None}
+    if not wins:
+        return first
+    best = max(wins, key=lambda p: wins[p])
+    log.info("Hero photo: %s over the first still %s (by %.2f).", best.name, first.name, wins[best])
+    return best

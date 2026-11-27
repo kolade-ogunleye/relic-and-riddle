@@ -779,6 +779,10 @@ DERIVED_RULE = ("a derived figure is drawn only from signed operands labelled on
 
 NEAR_RATIO = 1.1         # review 2 (N2): "nearly the same" is a derived claim: the ratio of the signed values under this
 FT_IN = re.compile(r"^\s*(\d[\d,]*)\s*FT\s+(\d+)\s*IN\s*$", re.IGNORECASE)
+IN_ONLY = re.compile(r"^\s*(\d+)\s*IN\s*$", re.IGNORECASE)
+# review 3 (B4): the word forms' limits are these constants, never the record's own word for them (the renderer reads
+# them too: graphics.LEVEL_GAP is LEVEL_LIMITS): "nearly level" up to half the last digit a gap is drawn to
+LEVEL_LIMITS = {"M": 0.05, "FT": 1 / 24}
 
 
 def shown_value(shown: str) -> tuple[float, float] | None:
@@ -788,6 +792,9 @@ def shown_value(shown: str) -> tuple[float, float] | None:
     m = FT_IN.match(raw)
     if m:
         return int(m.group(1)) + int(m.group(2)) / 12, 1 / 12
+    m = IN_ONLY.match(raw)                 # review 3: a gap under a foot drawn in inches alone ("5 IN")
+    if m:
+        return int(m.group(1)) / 12, 1 / 12
     try:
         v = float(raw)
     except ValueError:
@@ -880,8 +887,11 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
         return out
     vals = [float(o["value"]) for o in ops]
     for o in ops:                    # the figure an operand is labelled with states its source value
-        said = [v for f in parse(str(o["text"])) for v in f.values]
-        if len(said) == 1 and abs(said[0] - float(o["value"])) > CONVERT_TOL * max(abs(float(o["value"])), 1e-9) + 1e-9:
+        # review 3 (B3): rounded at its own last digit (a feet-and-inches figure to the inch), never within the 2 %
+        # conversion tolerance ('146.6 M' for 146.5 m fails; '18.3 M' for 18.288 m holds)
+        t = re.sub(r"^(ABOUT|NEARLY|APPROXIMATELY)\s+", "", str(o["text"]).strip().upper())
+        got_o = shown_value(t) if FT_IN.match(t) else shown_value(re.sub(r"\s*(M|FT)$", "", t))
+        if got_o is not None and abs(got_o[0] - float(o["value"])) > 0.5 * got_o[1] + 1e-9:
             out.append(f"its operand {o.get('name') or o.get('role')!r} is drawn {o['text']!r} for a source value "
                        f"of {float(o['value']):g} {o['unit']}")
     want = (abs(vals[0] - vals[1]) if rule == "difference" else sum(vals) if rule == "sum"
@@ -901,8 +911,14 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
                        "rounded once")
     else:                            # a word form ("NEARLY LEVEL", "nearly the same"): its stated threshold holds
         limit = rec.get("form_limit")
+        unit = str((ops[0] or {}).get("unit") or "").upper()
+        fixed = NEAR_RATIO if rule == "ratio" else LEVEL_LIMITS.get(unit)
         if not isinstance(limit, (int, float)) or isinstance(limit, bool):
             out.append(f"its word form {rec.get('text')!r} records no threshold")
+        elif fixed is None or abs(float(limit) - fixed) > 1e-9:
+            # review 3 (B4): the limit is the rule's constant, never the record's own word for it
+            out.append(f"its word form {rec.get('text')!r} records the limit {float(limit):g}, not the rule's "
+                       f"{fixed if fixed is not None else 'none'}")
         elif rule == "ratio" and not want < float(limit):
             out.append(f"it says {rec.get('text')!r} for a ratio of {want:.3f} (the form holds under {limit:g})")
         elif rule != "ratio" and not want <= float(limit) + 1e-9:

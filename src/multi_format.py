@@ -548,14 +548,15 @@ def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, i
 
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
           floor: float = 0.18, colour=None, pct: float = 95, grade: bool | None = None,
-          out: dict | None = None) -> Image.Image:
+          out: dict | None = None, plain=()) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
     left bright stone at 3:1 and dark photos darker than they needed). Each line's own halo (place_text) does
     the rest, line by line. `feather` is the designed minimum: each edge's feather grows with the luma step it
     crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid.
-    `out`: a dict that receives the band's strength (PLATES-15 records its lines' ceiling against it).
+    `out`: a dict that receives the band's strength (PLATES-15 records its lines' ceiling against it). `plain`: the
+    type's boxes, round which a graded band stays the plain INK alpha (band_edge.graded, ruling N2).
     `grade` (default: a band whose cap is under 1, never opaque): the band grades the photograph where it grades out,
     its full-strength body under the type the plain INK alpha (band_edge.graded,
     PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
@@ -577,12 +578,22 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
     if (cap < 1.0) if grade is None else grade:
-        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour, full=strength)
+        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour, full=strength, plain=plain)
         return out.convert("RGBA") if im.mode == "RGBA" else out.convert(im.mode)
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
     layer.putalpha(mask)
     out = Image.alpha_composite(im.convert("RGBA"), layer)
     return out if im.mode == "RGBA" else out.convert(im.mode)
+
+
+def text_band_boxes(d, rows, x: float, bottom: float) -> list:
+    """The ink boxes of a carousel stack's rows as _stack sets them (bottom-aligned on `bottom`, at column `x`)."""
+    drawn = [r for r in rows if r.get("text")]
+    if not drawn:
+        return []
+    low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+    off = bottom - low
+    return [d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls") for r in drawn]
 
 
 def text_band_need(im: Image.Image, d, rows, x: float, bottom: float) -> float:
@@ -660,7 +671,7 @@ def gold_clash(im: Image.Image, box, gold=None) -> float:
     return round(float(near.mean()), 3)
 
 
-def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float):
+def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float, plain=()):
     """The Story's text band shaded (scrim) only as deep as its ground needs (GROUND_ENERGY_MAX, GOLD_CLASH_SHARE),
     trying STORY_SCRIM_STEPS in turn; returns (image, rows, record). A gold row still clashing at the deepest step
     is set in bone (its fill changed, nothing else)."""
@@ -675,7 +686,8 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float)
                                           for r in rows if r[2]], brand.INK)
     got: dict = {}
     for target in STORY_SCRIM_STEPS:
-        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, out=got)
+        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, out=got,
+                       plain=list(every) + list(plain))
         energy = max((ground_energy(shaded, b) for b in every), default=0.0)
         clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
@@ -1663,7 +1675,8 @@ class MultiFormatGenerator:
                      font_p.size * 0.11, 0)
             shade_rows = rows + [ghost]
             shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
-        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block)
+        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block,
+                                                 plain=[tuple(credit["backing"])] if credit.get("backing") else ())
         rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")
@@ -2539,7 +2552,7 @@ class MultiFormatGenerator:
             need = text_band_need(im, d, drawn, px(margin), stack_bottom)
             got: dict = {}
             im = scrim(im, stack_bottom - (low - high) - px(40), chh, feather=px(300), target=0.08 if deep else 0.26,
-                       cap=cap, out=got)
+                       cap=cap, out=got, plain=text_band_boxes(d, drawn, px(margin), stack_bottom))
             if lay is not None:
                 lay.meta["text_band"] = text_band_record(need, got.get("strength", 0.0))
             if lay is not None and deep:

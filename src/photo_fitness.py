@@ -489,11 +489,12 @@ def analysis_of(path: Path, clean: Image.Image | None = None) -> Analysis:
 
 
 def _reviewed(path: Path, clean: Image.Image, kept) -> Box | None:
-    """The reviewed subject of the photo at `path` as a box on its clean picture (None: not reviewed)."""
+    """The subject of the photo at `path` as a box on its clean picture (None: none): its REVIEWED box, else a derived
+    box at or over photo_subject.ACCEPT (design-freeze cycle 6; under it, none: the measures as without a subject)."""
     try:
-        from .cover_design import reviewed_focus
-        found = reviewed_focus(path)
-    except Exception:                                   # no art-direction file: no reviewed subject
+        from .photo_subject import subject_focus
+        found = subject_focus(path)
+    except Exception:                                   # no art-direction file, no record: no subject
         return None
     if not found:
         return None

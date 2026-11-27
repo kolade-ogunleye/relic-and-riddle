@@ -133,11 +133,19 @@ def failing_rows(rows: Iterable[Mapping[str, Any]], gate: float) -> list[str]:
     return out
 
 
+def _measuring_reference() -> bool:
+    """Design freeze cycle 6 (PLATEFORM design stream): RR_PLATE_FORM=none draws a surface with no ground at all as a
+    measuring reference (the photograph as the type finds it); it is drawn past its own gate so the measures have it,
+    and it is never a shipped path (the switch is unset in production)."""
+    import os
+    return (os.environ.get("RR_PLATE_FORM") or "").strip().lower() == "none"
+
+
 def require_gate(surface: str, rows: Iterable[Mapping[str, Any]], gate: float, rule: str) -> None:
     """Raises OwnRecordFailed when any row of the surface's own record is under its gate (failing_rows): the surface
     is refused (re-lay first, then call this), never delivered against its own record (SYS-S1-4)."""
     bad = failing_rows(rows, gate)
-    if bad:
+    if bad and not _measuring_reference():
         raise refuse(surface, rule, "its own record fails its gate: " + "; ".join(bad[:4])
                      + (f"; and {len(bad) - 4} more" if len(bad) > 4 else ""), OwnRecordFailed)
 
@@ -146,7 +154,7 @@ def require_no_problems(surface: str, problems: Iterable[str], rule: str) -> Non
     """Raises OwnRecordFailed when the surface recorded its own layout problems (an overlap, a cut-off, a ratio under
     its gate) and is about to deliver anyway (SYS-S1-4)."""
     found = [str(p) for p in problems or []]
-    if found:
+    if found and not _measuring_reference():
         raise refuse(surface, rule, "its own layout record fails: " + "; ".join(found[:4])
                      + (f"; and {len(found) - 4} more" if len(found) > 4 else ""), OwnRecordFailed)
 

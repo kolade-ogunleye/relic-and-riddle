@@ -801,34 +801,67 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     return {**base, "fit": not base["problems"], "moved": False, "window": window.name}
 
 
+def _clearing_position(a: Analysis, cx: float, cy: float, bw: float, bh: float) -> Box | None:
+    """The crop of bw x bh picture px nearest to the centre (cx, cy) that shows none of the frame, measured on the
+    frame mask itself (each side trimmed only as far as its own frame and a mount's corner need), or
+    None. Positions are whole analysis px; the nearest by |dx| + |dy|."""
+    t = a.table("matte")
+    ah, aw = t.shape[0] - 1, t.shape[1] - 1
+    k = a.scale
+    bwa, bha = max(1, int(round(bw * k))), max(1, int(round(bh * k)))
+    if bwa > aw or bha > ah:
+        return None
+    x0 = int(round((cx - bw / 2) * k))
+    y0 = int(round((cy - bh / 2) * k))
+    xs = np.arange(0, aw - bwa + 1)
+    ys = np.arange(0, ah - bha + 1)
+    X, Y = np.meshgrid(xs, ys)
+    share = (t[Y + bha, X + bwa] - t[Y, X + bwa] - t[Y + bha, X] + t[Y, X]) / float(bwa * bha)
+    ok = share <= 1e-9
+    if not ok.any():
+        return None
+    dist = np.abs(X - x0) + np.abs(Y - y0)
+    dist = np.where(ok, dist, np.iinfo(np.int64).max)
+    j = np.unravel_index(int(np.argmin(dist)), dist.shape)
+    dx, dy = (int(X[j]) - x0) / k, (int(Y[j]) - y0) / k
+    W, H = a.size
+    bx0 = min(max(cx - bw / 2 + dx, 0.0), W - bw)
+    by0 = min(max(cy - bh / 2 + dy, 0.0), H - bh)
+    return (bx0, by0, bx0 + bw, by0 + bh)
+
+
 def _minimal_move(a: Analysis, window: Window, asked: Box, base: dict[str, Any], judged, kept, keeps
                   ) -> dict[str, Any]:
     """A move caused ONLY by the source's frame is the minimal one (third review, B7: the most salient clearing crop
-    slid a Story window 230 px sideways off a 15 px scan edge and cut the Eye's ring): the asked crop shifted along
-    the axis the frame lies on just far enough to leave it, and, where the content box is narrower than the crop,
-    made closer about the asked centre by the least zoom that fits (no shift on the other axis). It is taken when it
-    shows no frame, holds MOVE_KEEP of the asked view and adds no problem the asked crop did not have; otherwise the
-    asked crop stays, recorded."""
-    rx0, ry0, rx1, ry1 = _region(a)
+    slid a Story window 230 px sideways off a 15 px scan edge and cut the Eye's ring): at the least zoom about the
+    asked centre (steps of 0.005) that leaves room, the crop nearest the asked one that shows no frame, measured on
+    the frame mask itself, so each side moves only as far as its own frame needs (a re-verification: trimming all
+    four sides to the content box asked Amber 05's lantern slide, framed at its foot and right side only, for a
+    closer crop than needed, and the move was refused). It is taken when it holds MOVE_KEEP of the asked view and
+    adds no problem the asked crop did not have (but a structure under the type, which the frame had hidden: then it
+    is drawn and recorded "protected"); otherwise the asked crop stays, recorded."""
     cx, cy = (asked[0] + asked[2]) / 2, (asked[1] + asked[3]) / 2
     w, h = asked[2] - asked[0], asked[3] - asked[1]
     asked_rec = {k: v for k, v in base.items() if k != "zoom"}
     z = 1.0
     while z <= window.zoom_max + 1e-9:
         bw, bh = w / z, h / z
-        if bw <= rx1 - rx0 + 1e-6 and bh <= ry1 - ry0 + 1e-6:
-            x0 = min(max(cx - bw / 2, rx0), rx1 - bw)
-            y0 = min(max(cy - bh / 2, ry0), ry1 - bh)
-            box = (x0, y0, x0 + bw, y0 + bh)
-            if window.size[0] / bw > window.upscale_max + 1e-6:
-                break
+        if window.size[0] / bw > window.upscale_max + 1e-6:
+            break
+        box = _clearing_position(a, cx, cy, bw, bh)
+        if box is not None:
             best = max([a.total("salience", _sub(b, window.size, window.view_box()))
                         for b in [box, *_candidates(a, window, z)]])
             r = kept(judged(box, round(z, 3), best, base))
-            if keeps(r) and "matte" not in r["problems"] and set(r["problems"]) < set(base["problems"]):
+            # a structure under the type that the asked crop hid only behind the frame (a mount's black corner under
+            # the masthead) is the picture's own: the minimal move may show it (recorded "protected"), as the base
+            # did, rather than keep the frame in view
+            added = set(r["problems"]) - set(base["problems"]) - {"protected"}
+            if keeps(r) and "matte" not in r["problems"] and not added:
                 return {**r, "fit": not r["problems"], "moved": True, "window": window.name, "base": asked_rec,
                         "basis": "minimal frame move"}
-            break
+            if "matte" not in r["problems"]:
+                break        # a closer crop would only keep less
         z += 0.005
     return {**base, "fit": False, "moved": False, "window": window.name}
 

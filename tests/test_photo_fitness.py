@@ -337,6 +337,25 @@ def test_a_move_off_a_frame_is_the_minimal_one(case):
     assert moved                                            # each photograph's frame is cleared on some window
 
 
+def test_a_frame_on_two_sides_moves_the_window_only_as_far_as_those_sides_need():
+    """Re-verification of the third review: Amber 05's lantern slide is framed at its foot and right side (and rounded
+    corners); trimming all four sides to the content box asked for a closer crop than needed, the move added problems
+    and was refused, so the carousel windows showed the mount's edge that the base cleared."""
+    from src.multi_format import MultiFormatGenerator as G
+    case = next(c for c in json.loads((ROOT / "tests/fixtures/photo_fitness_c5/frame_moves.json").read_text(
+        encoding="utf-8")) if c["name"] == "amber05")
+    thumb = Image.open(ROOT / "tests/fixtures/photo_fitness_c5" / case["file"]).convert("RGB")
+    w0, h0 = case["size"]
+    k = pf.ANALYSIS / max(w0, h0)
+    an = pf.analyse_maps(np.asarray(thumb.resize((round(w0 * k), round(h0 * k)), Image.Resampling.BOX)), (w0, h0),
+                         thumb=thumb)
+    for arch in ("cover", "immersive"):
+        window = G.photo_window(arch, False)
+        rec = pf.place(None, window, analysis=an)
+        assert rec["moved"] and rec["matte"] <= pf.MATTE_MAX and rec["basis"] == "minimal frame move", arch
+        assert rec["zoom"] <= 1.03, arch                     # the base cleared it at about 1.025
+
+
 def test_every_move_keeps_most_of_what_was_asked_for():
     """Second review, B5: a frame-only window (typography.cover_crop's, under cards and graphics) moved off a frame
     with no keep check and lost the subject; every window keeps MOVE_KEEP of the asked view's salience or stays."""

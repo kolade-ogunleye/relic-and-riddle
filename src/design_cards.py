@@ -4209,7 +4209,8 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         ink = [(tuple(p.box), tuple(p.fill[:3])) for p in plates
                if not getattr(p, "empty", False) and getattr(p, "fill", None) is not None]
         lyr, prec = plate_form.layer(bg, ink)
-        h, worst, under = _least_halo(base, lyr, field, plates, 1.0)
+        # the no-ground reference ("none") is the photograph as the type finds it: no halo either
+        h, worst, under = _least_halo(base, lyr, field, plates, 0.0 if prec["form"] == "none" else 1.0)
         return under, {"luminance": round(lum, 3), "mode": prec["form"], "plate_form": prec, "halo": h,
                        "min": round(worst, 2), "above_kept": _above_kept(base, under, box[1])}
 

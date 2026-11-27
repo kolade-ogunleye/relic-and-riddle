@@ -60,6 +60,21 @@ def main() -> None:
                 continue
             ph = hits[0]
         key = pk.replace(":", "_")
+        if "hook" in kinds and not (out_root / "ground" / f"hook__{key}.png").is_file():
+            # the hook's bare ground (the photograph as the plan crops and grades it, before any ground or type):
+            # the measures' reference (the no-ground form refuses every hook case: its claim reaches ~1:1)
+            keep = dc._hook_scrim
+
+            def capture(bg, *a, **k):
+                (out_root / "ground").mkdir(parents=True, exist_ok=True)
+                bg.convert("RGB").save(out_root / "ground" / f"hook__{key}.png")
+                return keep(bg, *a, **k)
+            dc._hook_scrim = capture
+            try:
+                fc.hook_plan(ph)
+            except Exception:
+                pass
+            dc._hook_scrim = keep
         if "myth" in kinds:
             # the 9:16 myth's bare ground (the photograph as it shows outside the panel, no type): the measures'
             # reference where the no-ground form ("none") refuses

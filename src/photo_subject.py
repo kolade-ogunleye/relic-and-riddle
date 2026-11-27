@@ -197,7 +197,6 @@ def record(path: Path, compute: bool = True) -> dict[str, Any] | None:
     if rec is not None or not compute or not available():
         return rec
     from PIL import Image, ImageOps
-    Image.MAX_IMAGE_PIXELS = None
     try:
         with Image.open(path) as im:
             im.draft("RGB", (2 * THUMB, 2 * THUMB))

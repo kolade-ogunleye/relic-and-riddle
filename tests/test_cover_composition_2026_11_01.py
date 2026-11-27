@@ -112,10 +112,12 @@ def test_reviewed_feature_keeps_its_colour_and_clearance_on_redraw(tmp_path, mon
     (tmp_path / "data").mkdir()
     photo = Image.new("RGB", (1600, 900), (65, 100, 130))
     subject_colour = (190, 120, 50)
-    ImageDraw.Draw(photo).rectangle((480, 180, 1120, 630), fill=subject_colour)
+    # freeze cycle 5: the feature sits where a full-width crop of the photograph can hold it whole inside the profile
+    # square (a feature that cannot be so held takes the contained window: tests/test_photo_fitness.py)
+    ImageDraw.Draw(photo).rectangle((480, 405, 1120, 765), fill=subject_colour)
     hero = tmp_path / "reviewed.png"
     photo.save(hero)
-    focus = {"focus_box": [.3, .2, .7, .7], "sha256": hashlib.sha256(hero.read_bytes()).hexdigest(),
+    focus = {"focus_box": [.3, .45, .7, .85], "sha256": hashlib.sha256(hero.read_bytes()).hexdigest(),
              "reviewed": "test review"}
     registry = tmp_path / "data/cover_art_direction.json"
     registry.write_text(json.dumps({"photos": [focus]}), encoding="utf-8")
@@ -130,7 +132,7 @@ def test_reviewed_feature_keeps_its_colour_and_clearance_on_redraw(tmp_path, mon
         assert not record["problems"]
         assert record["recipe"]["focus"] == focus
         composition = record["recipe"]["composition"]
-        assert composition["mode"] == "reviewed_focus"
+        assert composition["mode"] in ("full_bleed", "photo_over_ink")   # freeze cycle 5: filled, never padded
         x0, y0, x1, y1 = composition["protected_box"]
         assert 0 <= x0 < x1 <= 1080 and 420 <= y0 < y1 <= 1500
         for element in record["elements"]:

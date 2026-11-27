@@ -401,6 +401,43 @@ def test_hook_in_crops(claim, ids, n, photos):
         assert e.box[3] < 1098
 
 
+def test_hook_ground_records_the_window_it_draws(tmp_path):
+    """Review of cycle 5, D1: the hook ground's photo-fitness record is written to the card's design record, and its
+    box is the box drawn (a scan's black band at the foot moves the window; a plain photograph keeps the asked one)."""
+    from src import photo_fitness as pf
+    from src.typography import cover_crop
+    rng = np.random.default_rng(11)
+    arr = rng.normal(90, 35, (2400, 1200, 3))                      # a darker field: the claim reads on it
+    arr[:192] = 0                                                    # a scan's border across the head and foot
+    arr[2208:] = 0
+    framed = tmp_path / "framed.jpg"
+    Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(framed, quality=95)
+    for photo in (framed, _photo(tmp_path / "plain.jpg", "noise")):
+        plan = dc.plan_hook_frame(hook(photo), SHEET)
+        rec = dc._design_record(plan, "last")
+        fit = rec["photo_fit"]
+        assert fit == {k: v for k, v in plan.meta["photo_fit"].items()}
+        clean, _ = pf.load(photo)
+        if fit["moved"] and fit["fit"]:
+            drawn = fit["box"]
+        else:
+            got: dict = {}
+            cover_crop(photo, (plan.width, plan.height), record=got)
+            drawn = got["box"]
+        assert all(abs(a - b) < 1.0 for a, b in zip(fit["box"], drawn)), (photo.name, fit["box"], drawn)
+        assert fit["matte"] <= pf.MATTE_MAX
+    assert dc._design_record(dc.plan_hook_frame(hook(framed), SHEET), "last")["photo_fit"]["moved"]
+    # with a reviewed focus the window is not searched (place() keeps the asked crop); the ground is then
+    # cover_crop's, which clears the frame: the record is THAT box, measured
+    plan = dc.plan_hook_frame(hook(framed, focus=(0, 800, 1080, 1100)), SHEET)
+    fit = dc._design_record(plan, "last")["photo_fit"]
+    got = {}
+    cover_crop(framed, (plan.width, plan.height), record=got)
+    asked = pf.fit_box(pf.load(framed)[0].size, (plan.width, plan.height))
+    assert got["moved"] and fit["drawn"] == "cover crop" and fit["measured"]["box"] == [round(v, 1) for v in asked]
+    assert all(abs(a - b) < 1.0 for a, b in zip(fit["box"], got["box"]))
+
+
 def test_hook_focus_fallback(photos):
     plan = dc.plan_hook_frame(hook(photos["dark"], focus=(0, 800, 1080, 1100)), SHEET)
     # freeze panel 2026-11-04 (H3, deliberate change): the moved block starts 56 px under the masthead's foot (was 547)

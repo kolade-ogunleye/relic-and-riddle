@@ -1,0 +1,49 @@
+[
+ {
+  "name": "richat17",
+  "file": "richat17_dark.png",
+  "frame": true,
+  "sides": [
+   "bottom",
+   "left",
+   "right",
+   "top"
+  ],
+  "note": "a satellite plate: black border on four sides, its foot carrying the caption and an inset map",
+  "kept": "the dark pixels (luma <= FRAME_DARK) of the photograph at THUMB px; every other pixel grey"
+ },
+ {
+  "name": "amber05",
+  "file": "amber05_dark.png",
+  "frame": true,
+  "sides": [
+   "bottom",
+   "right"
+  ],
+  "note": "a lantern slide: the mount's rounded corners and its thin foot edge",
+  "kept": "the dark pixels (luma <= FRAME_DARK) of the photograph at THUMB px; every other pixel grey"
+ },
+ {
+  "name": "memnon09",
+  "file": "memnon09_dark.png",
+  "frame": true,
+  "sides": [
+   "left",
+   "right",
+   "top"
+  ],
+  "note": "a scanned book plate: the dark scan surround (and a colour target at the foot)",
+  "kept": "the dark pixels (luma <= FRAME_DARK) of the photograph at THUMB px; every other pixel grey"
+ },
+ {
+  "name": "n4",
+  "file": "n4_letterbox_subtitles_dark.png",
+  "frame": true,
+  "sides": [
+   "bottom",
+   "top"
+  ],
+  "note": "the third review's N4: a 2.39:1 still letterboxed in 16:9 with two subtitle lines in the bottom bar",
+  "kept": "the dark pixels (luma <= FRAME_DARK) of the constructed case at THUMB px; every other pixel grey"
+ }
+]

@@ -127,6 +127,7 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     prior = still_layout.load(path) or {}
     return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed, "encoding": encoding,
                                         "composition": lay.meta.get("composition"),
+                                        "photo_fit": lay.meta.get("photo_fit"),
                                         "grid_proof": lay.meta.get("grid_proof")},
                              int(prior.get("attempts", 1)) + 1)
 
@@ -399,6 +400,9 @@ class VisualEngine:
                                           "encoding": encoding,
                                           "focus": self._hero_focus_reviewed,
                                           "composition": lay.meta.get("composition"),
+                                          # freeze cycle 5: the photo-fitness ladder as tried (each window's measures
+                                          # and, for the contained window, the reason no full-width crop was fit)
+                                          "photo_fit": lay.meta.get("photo_fit"),
                                           "figure": self._figure, "illustration": self._illustration,
                                           "reveal": self._reveal, "grid_proof": lay.meta.get("grid_proof"),
                                           # lane B c3b: what the figure gates withheld, kept on the cover's record

@@ -17,7 +17,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 
 from . import brand, brand_system
 from .brand_system import (
@@ -509,17 +509,24 @@ def story_window(photo: Path, text_box: tuple[float, float, float, float]) -> tu
     Story s3 photo's spacecraft sits behind the text column when centred): the window is the deck window rule's
     (hero_window.deck_window, k = 0: the picture's centre always in view), with the Story's text column as the box
     that should hold no foreign object, the same rule the carousel applies to its masthead box. Centred, as before,
-    where the centre is clear or the picture leaves no other window."""
+    where the centre is clear or the picture leaves no other window. Freeze cycle 5: that window is held to the
+    photo-fitness rule (src/photo_fitness.py; the whole frame is its view): fit, it is drawn as it was; unfit, the
+    fit crop of the photograph that changes least is drawn; the measures are in the record ("fit")."""
     from .image_presentation import full_image
     size = (VIDEO_WIDTH, VIDEO_HEIGHT)
     rec: dict[str, Any] = {"centering": [0.5, 0.5], "text_clear": None}
     if not full_image(photo):
+        from . import photo_fitness as pf
         from .hero_window import deck_window
-        from .photo_hygiene import without_caption_strip
-        with Image.open(photo) as im:
-            clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGB"))
+        clean, _ = pf.load(Path(photo))
         win = deck_window(clean.size, size, 0, tuple(text_box), clean)
         rec = {"centering": [round(v, 3) for v in win["centering"]], "text_clear": win["masthead_clear"]}
+        fit = pf.place(photo, pf.Window(size, name="story"), tuple(rec["centering"]), image=clean,
+                       analysis=pf.analysis_of(Path(photo), clean),
+                       fixed=bool(getattr(_render_state, "asked_only", False)))
+        rec["fit"] = {k: v for k, v in fit.items() if k != "window"}
+        if fit["moved"]:
+            return pf.crop(clean, fit["box"], size).convert("RGB"), rec
     return cover_crop(photo, size, tuple(rec["centering"])).convert("RGB"), rec
 
 
@@ -1045,89 +1052,93 @@ SHARE_WEIGHT = 700   # the closing slide's share-and-follow line: Montserrat Bol
 _render_state = threading.local()   # the slide being drawn on this thread: its subject
 
 
-# Lane D cycle 4 (AD-04 + PL-ri3-wedge, converging: the Richat slide 3 showed the Apollo 9 photograph's black window
-# wedge down its left edge, 3 px wide at y 100 and 139 px at y 900). A source's own FRAME is a region of DIGITAL black
-# touching the picture's edge, of at least FRAME_MIN_AREA of it: dark (FRAME_LUMA) and even (FRAME_STD) and, as a
-# whole, at the format's black (mean FRAME_MEAN or under): a spacecraft window's masked edge, a scan border. Measured on
-# the dev pool (541 photos): those frames sit at a mean of 0.1-0.8; a photographed dark (a black cloth, a museum case,
-# a doorway, a mine's shadow) at 4-12, never under 3, so no photographed dark is taken for a frame. A window (a slide's or a Story
-# frame's photo crop) showing FRAME_SHOWN of its area or more of one takes the least zoom, up to FRAME_ZOOM_MAX, and
-# the position nearest its own, that shows none (FRAME_CLEAR) while holding the picture's centre (the deck window
-# rule); where none does (black space filling an orbital photograph's sky, a night scene), the window is kept and the
-# frame is recorded as kept. Generic: no topic, no photo list; never an enlargement past the plain fit's.
-FRAME_LUMA = 12
-FRAME_STD = 2.5
-FRAME_MEAN = 2.0
-FRAME_MIN_AREA = 0.003
-FRAME_SHOWN = 0.002
-FRAME_CLEAR = 0.0005
-FRAME_ZOOM_MAX = 1.25
-FRAME_ZOOM_STEP = 0.025
-FRAME_STEPS = 9
-FRAME_ANALYSIS = 400
+def _platform_text_contrast(im: Image.Image, lay) -> dict[str, float]:
+    """Each text element's lowest ratio on `im` as delivered: saved as the slide is (CAROUSEL_JPEG), then the
+    platform's re-encode (platform_encode); {element name: ratio}."""
+    import io
+    plates = getattr(lay, "plates", None) or {}
+    buf = io.BytesIO()
+    im.convert("RGB").save(buf, "JPEG", **MultiFormatGenerator.CAROUSEL_JPEG)
+    buf.seek(0)
+    with Image.open(buf) as back:
+        delivered = platform_encode(back.convert("RGB"))
+    out: dict[str, float] = {}
+    for name, ps in plates.items():
+        vals = [v for v in (q.measure(delivered) for q in ps if not q.empty) if v is not None]
+        if vals:
+            out[name] = round(min(vals), 2)
+    return out
 
 
-def frame_mask(im: Image.Image):
-    """(mask, scale): the picture's frame pixels (see FRAME_LUMA) at FRAME_ANALYSIS px on the longer side."""
-    import cv2
-    import numpy as np
-    w, h = im.size
-    scale = min(1.0, FRAME_ANALYSIS / max(w, h))
-    a = np.asarray(im.convert("L").resize((max(1, round(w * scale)), max(1, round(h * scale))),
-                                          Image.Resampling.BOX), np.float32)
-    n, lab, st, _ = cv2.connectedComponentsWithStats((a <= FRAME_LUMA).astype(np.uint8), connectivity=8)
-    mask = np.zeros(a.shape, bool)
-    ah, aw = a.shape
-    for i in range(1, n):
-        x, y, bw, bh, area = (int(v) for v in st[i])
-        if area < FRAME_MIN_AREA * ah * aw or not (x == 0 or y == 0 or x + bw == aw or y + bh == ah):
-            continue
-        comp = lab == i
-        if float(a[comp].std()) <= FRAME_STD and float(a[comp].mean()) <= FRAME_MEAN:
-            mask |= comp
-    return mask, scale
+def _moved_windows(lay) -> list[dict[str, Any]]:
+    """The photo-window records of a drawn slide or Story frame whose window was moved (photo_fitness.place)."""
+    meta = getattr(lay, "meta", None) or {}
+    recs = [w.get("fit") or {} for w in (meta.get("windows") or [])]
+    if isinstance(meta.get("window"), dict):
+        recs.append(meta["window"].get("fit") or {})
+    return [r for r in recs if r.get("moved")]
 
 
-def _mask_share(mask, scale: float, box) -> float:
-    x0, y0, x1, y1 = (int(round(v * scale)) for v in box)
-    win = mask[max(0, y0):max(y0 + 1, y1), max(0, x0):max(x0 + 1, x1)]
-    return float(win.mean()) if win.size else 0.0
+def keep_text_contrast(draw, im: Image.Image, lay):
+    """Review of cycle 5, B3 / B4: a window moved by the photo-fitness rule may not cost the text its legibility.
+    `draw()` draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again
+    with every window as asked (_render_state.asked_only), and each text element is measured on both as delivered
+    (_platform_text_contrast). The moved drawing stands unless an element ends under brand.TEXT_CONTRAST lower than
+    as asked, or the lowest ratio of the slide falls; then the asked drawing is taken (the order of the brief:
+    legibility before subject visibility) and its window records say why ("move_refused"). Both drawings' ratios are
+    recorded."""
+    moved = _moved_windows(lay)
+    if not moved or getattr(_render_state, "asked_only", False):
+        return im, lay
+    _render_state.asked_only = True
+    try:
+        im0, lay0 = draw()
+    finally:
+        _render_state.asked_only = False
+    now, asked = _platform_text_contrast(im, lay), _platform_text_contrast(im0, lay0)
+    # Lander rulings (second and third reviews): the move is refused only when (a) a text element ends under its
+    # floor after the re-encode AND lower than as asked, or (b) the slide's LOWEST text ratio falls. One element
+    # dropping while the lowest holds is the move's ordinary price (a masthead from 5.21 to 5.00 while the body and
+    # heading rose kept every move off), and an element already under its floor as asked may rise and stay under.
+    under = sorted(n for n in now if now[n] < brand.TEXT_CONTRAST and now[n] < asked.get(n, 99.0) - 0.005)
+    common = [n for n in now if n in asked]
+    falls = bool(common) and min(now[n] for n in common) < min(asked[n] for n in common) - 0.005
+    lower = under + ([f"lowest {min(now[n] for n in common):.2f} < {min(asked[n] for n in common):.2f}"] if falls
+                     else [])
+    check = {"moved": {n: now[n] for n in sorted(now)}, "asked": {n: asked[n] for n in sorted(asked)}}
+    if not lower:
+        for r in moved:
+            r["text_contrast"] = check
+        return im, lay
+    why = (f"the moved window costs the text its legibility after the platform re-encode ({', '.join(lower)}: under "
+           f"{brand.TEXT_CONTRAST}:1, or the lowest ratio falls): the window is drawn as asked (rule: a moved window "
+           f"keeps the text legible, src/multi_format.py)")
+    meta0 = getattr(lay0, "meta", None) or {}
+    recs0 = [w.get("fit") for w in (meta0.get("windows") or []) if isinstance(w.get("fit"), dict)]
+    if isinstance(meta0.get("window"), dict) and isinstance(meta0["window"].get("fit"), dict):
+        recs0.append(meta0["window"]["fit"])
+    for r in recs0:
+        r["move_refused"] = why
+        r["text_contrast"] = check
+    return im0, lay0
 
 
-def frame_window(clean: Image.Image, size: tuple[int, int], centering=(0.5, 0.5)) -> dict[str, Any] | None:
-    """None when the window `clean` cropped to `size` at `centering` (ImageOps.fit's) shows no frame (FRAME_SHOWN);
-    else {"box": the crop box (clean px) that shows none, or None to keep the window, "record": what was found}."""
-    import numpy as np
-    mask, scale = frame_mask(clean)
-    if not mask.any():
-        return None
-    W, H = clean.size
-    ow, oh = size
-    bw, bh = (H * ow / oh, float(H)) if W / H > ow / oh else (float(W), W * oh / ow)
-    x0, y0 = (W - bw) * centering[0], (H - bh) * centering[1]
-    shown = _mask_share(mask, scale, (x0, y0, x0 + bw, y0 + bh))
-    if shown < FRAME_SHOWN:
-        return None
-    mid = (x0 + bw / 2, y0 + bh / 2)
-    least = min(bw, float(ow))                      # never narrower than the output where the fit was not
-    z = 1.0
-    while z <= FRAME_ZOOM_MAX + 1e-9:
-        w, h = bw / z, bh / z
-        if w + 1e-6 < least:
-            break
-        found = []
-        for x in np.linspace(max(0.0, W / 2 - w), min(W - w, W / 2), FRAME_STEPS):
-            for y in np.linspace(max(0.0, H / 2 - h), min(H - h, H / 2), FRAME_STEPS):
-                box = (x, y, x + w, y + h)
-                if _mask_share(mask, scale, box) <= FRAME_CLEAR:
-                    found.append((abs(x + w / 2 - mid[0]) + abs(y + h / 2 - mid[1]), box))
-        if found:
-            box = tuple(int(round(v)) for v in min(found, key=lambda f: f[0])[1])
-            return {"box": box, "record": {"shown": round(shown, 4), "zoom": round(z, 3), "box": list(box),
-                                           "cleared": True}}
-        z += FRAME_ZOOM_STEP
-    return {"box": None, "record": {"shown": round(shown, 4), "zoom": None, "cleared": False,
-                                    "kept": f"no window within {FRAME_ZOOM_MAX}x holding the centre clears it"}}
+def _holds_text_contrast(draw):
+    """A slide or Story frame renderer whose moved photo window is held to the text's contrast (keep_text_contrast):
+    `draw(self, ...)` -> (image, layout)."""
+    import functools
+
+    @functools.wraps(draw)
+    def guarded(self, *args, **kw):
+        im, lay = draw(self, *args, **kw)
+        return keep_text_contrast(lambda: draw(self, *args, **kw), im, lay)
+    return guarded
+
+
+# Lane D cycle 4 (AD-04 + PL-ri3-wedge: the Richat slide 3 showed the Apollo 9 photograph's black window wedge down its
+# left edge) found a source's own FRAME (digital black touching the picture's edge) and moved the window off it. Freeze
+# cycle 5: the frame is one measure of the photo-fitness rule (src/photo_fitness.py: matte_mask, MATTE_*), judged
+# together with the subject the move must keep; _fill and story_window ask it.
 
 
 class PhotoMatchFailed(RuntimeError):
@@ -1315,6 +1326,7 @@ class MultiFormatGenerator:
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides
 
+    @_holds_text_contrast
     def _render_story_frame(self, photo: Path, slide: dict[str, Any], i: int, count: int, poll: dict[str, Any],
                             tight: bool = False, pages: dict[str, int] | None = None, title_px: int | None = None):
         """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
@@ -1689,43 +1701,99 @@ class MultiFormatGenerator:
                                       min_size, **kw)
         return lines, get_font(family, getattr(px, "exact", px)(font.size)), short
 
+    # The share of a full-bleed slide's height its photograph shows clear above the text stack, per archetype (the
+    # stack stands on fixed baselines; measured on the dev runs' recorded layouts, the highest text top of each:
+    # cover 0.556-0.588, immersive 0.672-0.693, debate 0.421-0.430). The photo-fitness view of the slide's window.
+    PHOTO_VIEW = {"cover": 0.55, "immersive": 0.66, "debate": 0.42}
+
+    @classmethod
+    def _masthead_box(cls, cw: int, facebook: bool, archetype: str, inset: bool) -> tuple[int, int, int, int]:
+        """The masthead's box on a slide (canvas px, 16 design px of air around the mark and the name): what the deck
+        window rule and the photo-fitness rule keep clear. `inset`: the Facebook cover's margin (FB_COVER_MARGIN)."""
+        from . import masthead as _mh
+        px = cls._px(cw)
+        size = type_px("masthead", "carousel") * cw / 1440
+        header = cls.FB_HEADER_Y if facebook and archetype == "cover" else cls.HEADER_Y
+        mx = px(cls.FB_COVER_MARGIN) if inset else px(80)
+        base = px(header) + cap_height(_mh.font_for(size))
+        return (mx - px(16), px(header) - px(16), mx + _mh.group_width(size) + px(16), base + px(16))
+
+    @classmethod
+    def photo_window(cls, archetype: str, facebook: bool = False, second: bool = False):
+        """The photo-fitness Window (src/photo_fitness.py) of a slide's photograph: its size on the canvas, the part
+        of it that shows clear of the text stack and the fade, and the masthead's box where the picture runs under
+        it. `second`: a comparison slide's lower photograph. The pickers (deck_photo_guard) and the renderer
+        (_fill) ask the same question of the same window."""
+        from . import photo_fitness as pf
+        from .brand_system import tok
+        cw, chh = cls.CAROUSEL_SIZE
+        px = cls._px(cw)
+        box = cls._masthead_box(cw, facebook, archetype, inset=facebook and archetype == "cover")
+        mbox = (box[0], 0, box[2], box[3])   # up to the frame's edge (_fill)
+        if archetype in cls.PHOTO_VIEW:
+            return pf.Window((cw, chh), view=(0, 0, cw, round(chh * cls.PHOTO_VIEW[archetype])), protected=(mbox,),
+                             name=f"carousel {archetype}")
+        ph = px(cls.SPLIT_PHOTO_H_FB if facebook else cls.SPLIT_PHOTO_H)
+        if archetype == "comparison":
+            gutter = px(tok("plate.gutter"))
+            half = (ph + px(40) - gutter) // 2
+            if second:
+                low = ph + px(150) - half - gutter
+                return pf.Window((cw, low), view=(0, 0, cw, max(1, ph - half - gutter)), name="carousel comparison 2")
+            return pf.Window((cw, half), protected=(mbox,), name="carousel comparison 1")
+        return pf.Window((cw, ph + px(150)), view=(0, 0, cw, ph), protected=(mbox,), name=f"carousel {archetype}")
+
     @staticmethod
-    def _fill(photo: Path, size: tuple[int, int], top: bool = True) -> Image.Image:
+    def _fill(photo: Path, size: tuple[int, int], top: bool = True, view=None) -> Image.Image:
         """The photo scaled and cropped to `size` in one Lanczos resample from the file itself (the pipeline's
         upscaled copy for a low-resolution source), never from a smaller intermediate. Its window (cycle 0 round 8,
         the deck window rule, hero_window.deck_window): centred, unless this deck shows the photograph again
         (_render_state.window_k: its earlier showings), when it overlaps them as little as the picture allows
         keeping its centre; and (`top`: the picture runs under the masthead) one whose masthead box holds no
-        foreign object is preferred. The choice is recorded in _render_state.window_rec."""
+        foreign object is preferred.
+        Freeze cycle 5 (PHOTO-02/03/04/05): that window is then held to the photo-fitness rule
+        (src/photo_fitness.py) for this slide's window (`view`: the part of `size` that shows clear of the text and
+        the fade; the masthead's box as its protected box). A fit window is drawn as it was; an unfit one (the
+        source's own frame in it, its view flat or emptier than the picture, a foreign structure under the masthead)
+        gives way to the fit crop of the same photograph that changes least, inside its content and the
+        enlargement limit. Lane D cycle 4's frame_window did the first of these alone and moved the Richat slide 3
+        window onto bare sand: nothing measured the subject. Every window's measures are recorded
+        (_render_state.window_rec -> lay.meta["windows"]); an unfit photograph with no fit crop is drawn as asked and
+        recorded unfit (the deck's photo guard takes another photograph before the slide is drawn)."""
+        from . import photo_fitness as pf
         k = int(getattr(_render_state, "window_k", 0) or 0)
         mbox = getattr(_render_state, "masthead_box", None) if top else None
         centering = (0.5, 0.5)
         from .image_presentation import full_image
         if full_image(photo):
             return cover_crop(photo, size, centering).convert("RGB")
-        from .photo_hygiene import without_caption_strip
-        with Image.open(photo) as im:
-            clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGB"))
-        entry: dict[str, Any] = {}
+        clean, _ = pf.load(Path(photo))
+        entry: dict[str, Any] = {"photo": Path(photo).name, "size": list(size), "showing": k}
+        earlier: list = []
         if k or mbox:
             from .hero_window import deck_window
             win = deck_window(clean.size, size, k, mbox, clean)
             centering = win["centering"]
-            entry = {"photo": Path(photo).name, "size": list(size), "showing": k,
-                     "centering": [round(v, 3) for v in centering], "overlap": win["overlap"],
-                     "masthead_clear": win["masthead_clear"]}
-        # lane D cycle 4 (AD-04 / PL-ri3-wedge, Richat s3): a source's own black frame (a spacecraft window's wedge, a
-        # scan border) never shows in the window where a window within FRAME_ZOOM_MAX keeping the centre clears it
-        framed = frame_window(clean, size, centering)
+            entry.update({"centering": [round(v, 3) for v in centering], "overlap": win["overlap"],
+                          "masthead_clear": win["masthead_clear"]})
+            across = clean.size[0] / clean.size[1] > size[0] / size[1]
+            earlier = [pf.fit_box(clean.size, size, (p, 0.5) if across else (0.5, p)) for p in win["positions"][:-1]]
+        # the masthead's protected box runs up to the frame's edge: a wing or an array just above the name crowds it
+        # as one under it does (panel 6: the Nazca cover's wing sat between the name and the top edge)
+        window = pf.Window(tuple(size), view=view, name="carousel",
+                           protected=((mbox[0], 0, mbox[2], mbox[3]),) if mbox else ())
+        analysis = pf.analysis_of(Path(photo), clean)
+        fit = pf.place(photo, window, centering, image=clean, analysis=analysis, fixed=True)
+        if not fit["fit"] and not getattr(_render_state, "asked_only", False):
+            from .hero_window import DECK_OVERLAP_MAX
+            fit = pf.place(photo, window, centering, earlier=earlier, overlap_max=DECK_OVERLAP_MAX if earlier else None,
+                           image=clean, analysis=analysis)
+        entry["fit"] = {key: v for key, v in fit.items() if key != "window"}
         rec = getattr(_render_state, "window_rec", None)
-        if framed is not None:
-            if isinstance(rec, list):
-                rec.append({**(entry or {"photo": Path(photo).name, "size": list(size), "showing": k}),
-                            "frame": framed["record"]})
-            if framed["box"] is not None:
-                return clean.crop(framed["box"]).resize(size, Image.LANCZOS).convert("RGB")
-        elif entry and isinstance(rec, list):
+        if isinstance(rec, list):
             rec.append(entry)
+        if fit["moved"]:
+            return pf.crop(clean, fit["box"], tuple(size)).convert("RGB")
         return cover_crop(photo, size, centering).convert("RGB")
 
     @classmethod
@@ -2535,14 +2603,15 @@ class MultiFormatGenerator:
         ph = px(self.SPLIT_PHOTO_H_FB if getattr(_render_state, "facebook", False) else self.SPLIT_PHOTO_H)
         im = Image.new("RGB", (cw, chh), brand.INK2)
         if photo2 is None:
-            im.paste(self._fill(photo, (cw, ph + px(150))), (0, 0))
+            im.paste(self._fill(photo, (cw, ph + px(150)), view=(0, 0, cw, ph)), (0, 0))
         else:
             # Two whole photographs with an ink gutter (2026-11-02 design review); the lower one runs on under the
             # band's fade as the single photo does, so the fade has room without eating its picture.
             gutter = px(tok("plate.gutter"))
             half = (ph + px(40) - gutter) // 2
             im.paste(self._fill(photo, (cw, half)), (0, 0))
-            im.paste(self._fill(photo2, (cw, ph + px(150) - half - gutter), top=False), (0, half + gutter))
+            im.paste(self._fill(photo2, (cw, ph + px(150) - half - gutter), top=False,
+                                view=(0, 0, cw, max(1, ph - half - gutter))), (0, half + gutter))
         return scrim(im, ph + px(60), chh, feather=px(40 if photo2 is not None else 180), target=0.0, cap=1.0,
                      floor=1.0, colour=brand.INK2)
 
@@ -2552,7 +2621,7 @@ class MultiFormatGenerator:
         Facebook copy the cover is the collage's tall 2:3 hero tile, which shows the slide's centre 2:3 (x 120-1320 at
         1440): its text column is FB_COVER_MARGIN in from each side, so no letter is cut (round 4, 2026-11-02:
         "THE EYE OF" lost its T, the body its first letters)."""
-        im = self._fill(photo, (cw, chh))
+        im = self._fill(photo, (cw, chh), view=(0, 0, cw, round(chh * self.PHOTO_VIEW["cover"])))
         facebook = bool(getattr(_render_state, "facebook", False))
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], two_tone=True, tight=tight,
                                 b_lines=3, h_spec=(150, 72), margin=self.FB_COVER_MARGIN if self._fb_cover_inset() else None)
@@ -2560,7 +2629,7 @@ class MultiFormatGenerator:
     def _render_immersive(self, photo: Path, card: dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
         """Full-bleed photograph, the stack over an ink gradient at its foot."""
-        im = self._fill(photo, (cw, chh))
+        im = self._fill(photo, (cw, chh), view=(0, 0, cw, round(chh * self.PHOTO_VIEW["immersive"])))
         tag = self._tag(self._get_card_category(card, "immersive"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, tight=tight,
                                 two_tone="wrap", h_spec=(112, 60), content=True)
@@ -2631,7 +2700,7 @@ class MultiFormatGenerator:
         share-and-follow line (operator decision 2026-10-25) as a sentence under a short gold rule. No "TELL US IN
         THE COMMENTS" footer (operator decision 2026-10-29: a second ask beside the share line)."""
         px = self._px(cw)
-        im = self._fill(photo, (cw, chh))
+        im = self._fill(photo, (cw, chh), view=(0, 0, cw, round(chh * self.PHOTO_VIEW["debate"])))
         tag = self._tag(self._get_card_category(card, "debate"), index)
         width = cw - 2 * px(self.MARGIN)
         d = ImageDraw.Draw(im)
@@ -2864,6 +2933,7 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56), content=True)
 
+    @_holds_text_contrast
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: dict[str, Any], i: int,
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
@@ -2898,16 +2968,11 @@ class MultiFormatGenerator:
         cw, chh = self.CAROUSEL_SIZE
         # cycle 0 round 8 (the deck window rule, hero_window.deck_window): `window` is how many earlier slides of
         # this deck show the same photograph; the masthead's box (top-left, HEADER_Y) is kept off foreign objects
-        from . import masthead as _mh
-        _px = self._px(cw)
-        _size = type_px("masthead", "carousel") * cw / 1440
         # lane D cycle 3: the deck's posted collage decides the Facebook cover's inset (_fb_cover_inset)
         _render_state.fb_hero_tile = bool(facebook) and total <= 4
-        _mx = _px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else _px(80)
-        _base = _px(self._header_y(facebook, archetype)) + cap_height(_mh.font_for(_size))
         _render_state.window_k = max(0, int(window or 0))
-        _render_state.masthead_box = (_mx - _px(16), _px(self._header_y(facebook, archetype)) - _px(16),
-                                      _mx + _mh.group_width(_size) + _px(16), _base + _px(16))
+        _render_state.masthead_box = self._masthead_box(cw, bool(facebook), archetype,
+                                                        inset=self._fb_cover_inset() and archetype == "cover")
         _render_state.window_rec = []
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
@@ -3220,6 +3285,9 @@ class MultiFormatGenerator:
                                           **({"figure_hedged": lay.meta["figure_hedged"]}
                                              if lay.meta.get("figure_hedged") else {}),
                                           **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                          # freeze cycle 5: each photo window's crop and its fit (an unfit window is drawn as
+                                          # asked and RECORDED here with its problems: src/photo_fitness.py)
+                                          **({"windows": lay.meta["windows"]} if lay.meta.get("windows") else {}),
                                           **({"comparator": comparator} if comparator and i == comparator["slide"] - 1
                                              else {}),
                                           **({"strip": drew} if drew else {})}, attempts)
@@ -3264,6 +3332,9 @@ class MultiFormatGenerator:
                                                   "lead": lead, "window": showing[j], "heading_px": size,
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"deck_dropped": dropped_rows} if dropped_rows else {}),
+                                                  # freeze cycle 5: each photo window's crop and its fit (an unfit window is drawn as
+                                                  # asked and RECORDED here with its problems: src/photo_fitness.py)
+                                                  **({"windows": lay.meta["windows"]} if lay.meta.get("windows") else {}),
                                                   **({"comparator": comparator}
                                                      if comparator and j == comparator["slide"] - 1 else {}),
                                                   **({"figure_withheld": lay.meta["figure_withheld"]}
@@ -3821,11 +3892,68 @@ def deck_photo_guard(cards: list[dict[str, Any]], chosen: list[Path], stills: li
         reasons[k] = (f"presence: {out[k].name} shows {seen} and the line is not about the subject today; "
                       f"{pick.name} is the unused photo whose caption matches the line best")
         out[k] = pick
+    # Freeze cycle 5 (PHOTO-03/04/05; src/photo_fitness.py): a slide's photograph is fit for the slide's window (its
+    # own frame out of the crop, the view not flat nor emptier than the picture, nothing foreign under the masthead),
+    # on both copies. An unfit one gives way to the unused photograph that is fit for it and whose caption matches
+    # the line best (the first rung of the ladder: another photograph the run already has); with none, it is kept,
+    # the renderer takes its best crop (_fill) and the choice says so ("unfit": the measures it fails).
+    fits = _deck_fits(cards, out)
+    kept_unfit: dict[int, list[str]] = {}
+    for k, bad in enumerate(fits):
+        if not bad:
+            continue
+        allow = k >= len(cards) or present_line(cards[k])
+        used = {pid(p) for j, p in enumerate(out) if j != k}
+        spare = [s for s in stills if pid(s) not in used and pid(s) != pid(out[k])
+                 and (allow or not modern.get(pid(s))) and not _slide_unfit(cards, k, s)]
+        if not spare:   # kept as chosen: the choice's "unfit" names the measures (its reason stands)
+            kept_unfit[k] = bad
+            continue
+        said = graphic_match.tokens(f"{cards[k].get('heading', '')} {cards[k].get('body', '')}") if k < len(cards)             else set()
+        pick = max(spare, key=lambda s: (sum(1 / df[t] for t in caps.get(pid(s), set()) & said), -stills.index(s)))
+        reasons[k] = (f"fit: {out[k].name} is unfit for the slide's window ({', '.join(bad)}); {pick.name} is the "
+                      "unused fit photo whose caption matches the line best")
+        out[k] = pick
     choice = [{"slide": k + 1, "photo": p.name, "reason": r} for k, (p, r) in enumerate(zip(out, reasons))]
     for c, a in zip(choice, chosen):
         if Path(a).name != c["photo"]:
             c["replaced"] = Path(a).name
+    for k, bad in kept_unfit.items():
+        choice[k]["unfit"] = bad
     return out, choice
+
+
+def _slide_unfit(cards: list[dict[str, Any]], k: int, photo: Path) -> list[str]:
+    """Why `photo` is unfit for slide k's window on either copy (photo_fitness problems; [] when it is fit, when the
+    slide draws no photograph of its own or when the photo cannot be read: the renderer decides then). Judged on the
+    window as asked (the ladder's order: another photograph before another crop of this one); a structure under the
+    masthead counts only when no window of the photograph clears it (the deck window rule moves it first)."""
+    from . import photo_fitness as pf
+    from .image_presentation import full_image
+    if k >= len(cards):
+        return []
+    archetype = MultiFormatGenerator.sequence_archetypes(cards)[k]
+    if archetype == "diagram":
+        return []
+    try:
+        if full_image(Path(photo)):
+            return []
+        out: list[str] = []
+        for facebook in (False, True):
+            window = MultiFormatGenerator.photo_window(archetype, facebook)
+            rec = pf.place(Path(photo), window, fixed=True)        # the window as asked: the plain centred fit
+            bad = [p for p in rec["problems"] if p != "protected"]
+            if "protected" in rec["problems"] and not pf.place(Path(photo), window)["fit"]:
+                bad.append("protected")                            # no window of it clears the masthead's box
+            out += [p for p in bad if p not in out]
+        return out
+    except (OSError, ValueError):
+        return []
+
+
+def _deck_fits(cards: list[dict[str, Any]], photos: list[Path]) -> list[list[str]]:
+    """_slide_unfit for each slide's chosen photograph."""
+    return [_slide_unfit(cards, k, p) for k, p in enumerate(photos)]
 
 
 # ---------------------------------------------------------------- what a posted slide shows
@@ -4629,6 +4757,9 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
     drew = lay.meta.get("swipe_strip") or {}
     if drew:
         recipe["strip"] = drew
+    recipe = {k: v for k, v in recipe.items() if k != "windows"}
+    if lay.meta.get("windows"):   # the photo windows as drawn now, with their fit (freeze cycle 5)
+        recipe["windows"] = lay.meta["windows"]
     entry = still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
     if old_strip.get("side") == "left" and old_strip.get("box") != drew.get("box"):
         first = path.with_name("carousel_slide_01.jpg")

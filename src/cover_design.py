@@ -4,7 +4,7 @@ Photographs are composed inside the centre square before delivery crops are
 made. Explicitly reviewed features can be framed more closely; other photos
 stay whole. No saliency mask is treated as a semantic subject detector.
 """
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
 from .brand_system import GATES, tok, type_px
@@ -627,162 +627,114 @@ def _brand(im, lay, centered=False, paper=False, left=None, centre=540, grid_del
     return im
 
 
-def _ambient(backdrop, photo_box, grid=(4, 20), dim=0.6, reach=560):
-    """A streak-free colour field from the edge-extended photograph.
-
-    Clamping edge pixels outward repeats each edge column (or row) for the
-    whole margin, so any texture along the edge became hard vertical streaks
-    (Richat's cloud edge, 2026-11-01). Resampling through a coarse grid keeps
-    each region's local colour (sky continues as sky, no ghost subject) while
-    removing that column-wise detail. The field then dims towards ink with
-    distance from the photograph so the canvas edge reads as depth, not smear.
-    """
-    import numpy as np
-    w, h = backdrop.size
-    def smooth(cells):
-        coarse = backdrop.convert("RGB").resize(cells, Image.Resampling.BOX)
-        out = coarse.resize((w, h), Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(64))
-        return np.asarray(out, dtype=np.float32)
-
-    near, far = smooth(grid), smooth((3, 6))
-    x0, y0, x1, y1 = photo_box
-    yy, xx = np.ogrid[:h, :w]
-    dx = np.maximum(np.maximum(x0 - xx, xx - (x1 - 1)), 0)
-    dy = np.maximum(np.maximum(y0 - yy, yy - (y1 - 1)), 0)
-    t = np.clip(np.hypot(dx, dy) / reach, 0, 1)
-    t = (t * t * (3 - 2 * t))[..., None]
-    # Close to the photograph: its local colours. Further out: a broad wash of
-    # the same palette (no column structure left), dimming towards ink.
-    blend = np.clip(t * 2.2, 0, 1)
-    arr = near + (far - near) * blend
-    ink = np.array(brand.INK, dtype=np.float32)
-    out = ink + (arr - ink) * (1 - dim * t)
-    return Image.fromarray(np.clip(out, 0, 255).astype("uint8")).convert("RGBA")
+COVER_GRID_TOP = 420        # the profile grid's 1:1 square starts here (PLATE_SQUARE): the photograph's view from there
+COVER_INK_FADE = 120        # px over which a photograph that ends above the type fades into the INK field under it
+COVER_INK_CLEAR = 10        # px of plain INK between that fade's end and the type's first row
 
 
-def _immersive(source, aperture, focus, lay, full_width=False):
-    """Scale the reviewed feature into its aperture, retaining photographic context.
+COVER_GRID_FOCUS = 0.80     # of a reviewed feature inside the profile square (y from COVER_GRID_TOP), at least
+COVER_TYPE_TOP = 1180       # where the type's stack usually starts (1434 less a three-row stack): the hero pick's
+COVER_SHOWN_MIN = 0.5       # of an unreviewed photograph's salience a full-width crop shows unobscured, at least: a
+                            # crop that leaves most of the photograph out of sight is not that photograph (the
+                            # miniature of two ships cut to 9:16 showed parchment and a flame's edge); it stays whole
 
-    The protected feature remains unshaded. Type may sit on surrounding context,
-    but never on the reviewed feature itself. No segmentation or synthesis.
-    """
-    if source.info.get("essential_full_image"):
-        return _photograph(Image.new("RGBA", (1080, 1920), (0, 0, 0, 255)), source, aperture, lay)
+
+def cover_windows(top=COVER_TYPE_TOP):
+    """The Reel cover's two full-width photo windows, in the ladder's order, as (mode, photo_fitness.Window): the whole
+    canvas, then the canvas down to the type's first row (`top`: where the type's stack starts). The view of both
+    starts at the profile grid's square (the tile shows nothing above it) and ends where the type or the fade
+    begins."""
+    from . import photo_fitness as pf
+    # the photograph ends COVER_INK_CLEAR px above the type's first row: the fade into INK is complete before the
+    # type's ground starts (20 px lower, the eyebrow's top rows stood on the fade's last 2 % and measured 9.94:1
+    # where the INK field gives 10.55:1)
+    foot = min(1920, int(top) - COVER_INK_CLEAR)
+    # a reviewed feature lies whole above the type or the fade (`hold`: it is whole on the Reel cover and no type is
+    # set on it), and COVER_GRID_FOCUS of it inside the profile square (the grid tile may trim its top, never more)
+    # an unreviewed photograph: half its salience in the Reel's view, half of that in the profile tile's, and its
+    # central half in the crop (lander ruling on the second review); else it stands contained on INK
+    return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
+                                     hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
+                                     shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, top - 40),
+                                     centre_half=True, name="reel cover full_bleed")),
+            ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
+                                         hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
+                                         shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, foot),
+                                         centre_half=True, name="reel cover photo_over_ink")))
+
+
+def _filled(source, focus, top, lay):
+    """The Reel cover's photograph at full width, by the photo-fitness ladder (src/photo_fitness.py; freeze cycle 5,
+    PHOTO-01: the Richat cover's photograph stopped short of the frame's top and the rest was its own edge, extended
+    and blurred): (canvas, mode), or None when no crop of the photograph is fit.
+
+    1. "full_bleed": the photograph fills the whole 1080x1920 canvas (its subject in view between the profile
+       square's top and the type); the caller shades the type's band on the photograph itself.
+    2. "photo_over_ink": it fills the canvas from the top to the type's first row and fades there into the INK field
+       the type sits on (the carousel's photo-over-ink split: one system), over COVER_INK_FADE px by smoothstep.
+    Each is a real crop of the photograph inside its own content, within photo_fitness.UPSCALE_MAX; a reviewed
+    feature (`focus`) is whole in view (photo_fitness.FOCUS_KEEP), else the crop keeps what the photograph offers
+    (SUBJECT_KEEP, DENSITY_MIN, FLAT_MAX). Neither fit: None, recorded in lay.meta["photo_fit"], and the cover takes
+    the contained window on INK (_photograph). Never a pad, a stretched row or a blurred field."""
     import math
-    source = ImageOps.exif_transpose(source).convert("RGBA")
-    sw, sh = source.size
-    fx0, fy0, fx1, fy1 = [v * (sw if i % 2 == 0 else sh) for i, v in enumerate(focus["focus_box"])]
-    x0, y0, x1, y1 = aperture
-    scale = min((x1 - x0) / (fx1 - fx0), (y1 - y0) / (fy1 - fy0))
-    if full_width:
-        # Round 3 (Discovery): the photograph spans the canvas width, never a floating window in dead ink. The
-        # reviewed feature still fits its band (clear of the masthead and the type); the cap is lifted to what
-        # fills the width.
-        fill = 1080 / sw
-        scale = min(scale, max(IMMERSIVE_MAX_SCALE, fill), 4096 / max(sw, sh))
-        if (fy1 - fy0) * fill <= y1 - y0:   # filling the width still keeps the feature inside its band
-            scale = max(scale, fill)
-    else:
-        scale = min(scale, 2.0, 4096 / max(sw, sh))
-    size = (round(sw * scale), round(sh * scale))
-    sx, sy = size[0] / sw, size[1] / sh
-    left = round((x0 + x1) / 2 - (fx0 + fx1) * sx / 2)
-    top = round((y0 + y1) / 2 - (fy0 + fy1) * sy / 2)
-    full_width = full_width and size[0] >= 1080   # else (a tall feature) the old feathered window stands
-    if full_width:
-        left = min(0, max(1080 - size[0], left))   # no ink at either side
-    # Extend the same projected photograph's edge colours, not a second crop
-    # of the subject. A sky therefore continues into sky without a ghost dome.
-    import numpy as np
-    photo = source.resize(size, Image.Resampling.LANCZOS)
-    xx = np.clip(np.arange(1080) - left, 0, size[0] - 1)
-    yy = np.clip(np.arange(1920) - top, 0, size[1] - 1)
-    backdrop = np.asarray(photo)[yy[:, None], xx[None, :]]
-    im = _ambient(Image.fromarray(backdrop), (left, top, left + size[0], top + size[1]))
-    # lane B c4: the one edge-fade rule both paths use (was min(64, 0.8 x margin) on the full-width path: a 64 px join
-    # over a busy top row read as a blur-to-sharp line)
-    own_fade = _edge_fade(fy0 * sy) if full_width else 0
-    if full_width and top > 0 and own_fade < FULL_WIDTH_OWN_FADE:
-        # Above a full-width photograph the canvas continues its own top row (the edge-extended backdrop,
-        # unblurred) and eases into the ambient field over FULL_WIDTH_BLEND px, so the photo's top edge is not
-        # a hard seam (round 3 review, 2026-11-02: a visible line across Gol Gumbaz's sky and over Richat).
-        # Lane B c4: only where the photograph has too little room above its feature to fade on its own (Gol
-        # Gumbaz's dome near the top). With room (Richat as a badge cover), the continued row is a vertical run of
-        # held colour bands: streaks and a line where the photograph starts; its own long fade into the ambient
-        # field (the inset window's join) is used instead.
-        ys = np.arange(1920, dtype=np.float32)
-        ease = np.clip((ys - (top - FULL_WIDTH_BLEND)) / FULL_WIDTH_BLEND, 0, 1)
-        ease[ys >= top + size[1]] = 0   # never the clamped rows below the photo (they streak)
-        ease = (ease * ease * (3 - 2 * ease))[:, None]
-        # Smoothed across (not down): the continued row keeps its colour run but loses the column texture that
-        # clamping repeats into vertical streaks.
-        raw = Image.fromarray(backdrop).convert("RGB").resize((24, 1920), Image.Resampling.BOX).resize(
-            (1080, 1920), Image.Resampling.BICUBIC).convert("RGBA")
-        raw.putalpha(Image.fromarray((np.repeat(ease, 1080, axis=1) * 255).astype("uint8")))
-        im = Image.alpha_composite(im, raw)
-    # Feather just the physical photograph's outer edge into that backdrop.
-    # Limit the fade to the margin outside the explicitly reviewed feature.
-    if full_width:   # only the top edge can end inside the canvas; the shade below does the bottom fade
-        feather = top_fade = own_fade
-        if feather > 1:
-            mask = np.clip(np.arange(size[1], dtype=np.float32) / feather, 0, 1)[:, None] + np.zeros((1, size[0]))
-            photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
-    else:
-        # The inset window (a feature too tall to fill the width inside its band). Each edge fades over its own
-        # margin outside the feature (one shared minimum gave hard sides). Freeze lane B cycle 4 (panel 5, Richat:
-        # a straight blur-to-sharp seam across the full width at y ~540): the photograph's top used to be cut
-        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02, when the cover drew RELIC & RIDDLE), which
-        # left the top edge 26 px of room to fade over before the feature. Operator ruling 2 (2026-11-16) removed the
-        # masthead from the Reel cover (_brand draws none), so nothing sits in that band any more: the photograph
-        # keeps the context it has above the feature and the top fades over all of it (_edge_fade). The clear band
-        # and its foot measurement (_brand_foot) went with it: no band is cut (lander CI, r4 site observation).
-        margins = (fx0 * sx, fy0 * sy, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
-        f = [min(INSET_FEATHER_MAX, int(max(0, m) * 0.8)) for m in margins]
-        f[1] = top_fade = _edge_fade(margins[1])   # the top fades over all its room: soft edge
-        yy = np.arange(size[1], dtype=np.float32)[:, None]
-        xx = np.arange(size[0], dtype=np.float32)[None, :]
 
-        def ramp(dist, width):
-            return np.clip(dist / width, 0, 1) if width > 1 else (dist >= 0).astype(np.float32)
-        mask = np.minimum(np.minimum(ramp(xx, f[0]), ramp(size[0] - 1 - xx, f[2])),
-                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - yy, f[3])))
-        photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
-    visible = photo.crop((-left, -top, 1080 - left, 1920 - top))
-    im = Image.alpha_composite(im, visible)
-    protected = [math.floor(left + fx0 * sx), math.floor(top + fy0 * sy),
-                 math.ceil(left + fx1 * sx), math.ceil(top + fy1 * sy)]
+    from . import photo_fitness as pf
+    if source.info.get("essential_full_image"):
+        return None
+    src = ImageOps.exif_transpose(source).convert("RGB")
+    sw, sh = src.size
+    fbox = None
+    if focus:
+        fx0, fy0, fx1, fy1 = focus["focus_box"]
+        fbox = (fx0 * sw, fy0 * sh, fx1 * sw, fy1 * sh)
+    if fbox is None and sh > sw:
+        # An unreviewed PORTRAIT photograph stays whole (review of cycle 5, B2): a full-width crop of it keeps a
+        # band of its height, and nothing says which band holds the subject (the Memnon statue's head and chest
+        # fell above the profile tile; a pillar's capital and a temple's tower were cut). Until a reviewed subject
+        # box exists for it, the cover takes the contained window on INK: the photograph once, whole.
+        if lay is not None:
+            lay.meta["photo_fit"] = {"fit": False, "tried": [], "layout": "contain",
+                                     "reason": "the Reel cover's full-width photograph: an unreviewed portrait "
+                                               "photograph is shown whole (no subject box to crop it by; rule: "
+                                               "a photograph is fit for the window it is put in, "
+                                               "src/photo_fitness.py)"}
+        return None
+    analysis = pf.analyse(src, fbox)
+    foot = min(1920, int(top) - COVER_INK_CLEAR)
+    tried = []
+    for mode, window in cover_windows(top):
+        size = window.size
+        rec = pf.place(None, window, image=src, analysis=analysis)
+        tried.append({"mode": mode, **{k: v for k, v in rec.items() if k != "window"}})
+        if rec["fit"]:
+            break
+    else:
+        if lay is not None:
+            lay.meta["photo_fit"] = {"fit": False, "tried": tried, "layout": "contain",
+                                     "reason": pf.reason(tried[-1], "the Reel cover's full-width photograph")}
+        return None
+    im = Image.new("RGBA", (1080, 1920), brand.INK + (255,))
+    im.paste(pf.crop(src, rec["box"], size).convert("RGBA"), (0, 0))
+    if mode == "photo_over_ink":
+        im = _shade(im, foot, 1920, strength=1.0, feather=COVER_INK_FADE, colour=brand.INK)
+    bx0, by0, bx1, by1 = rec["box"]
+    k = size[0] / (bx1 - bx0)
     if lay is not None:
-        lay.protected.append({"name": "reviewed photographic feature", "box": protected})
-        lay.meta["composition"] = {
-            "version": DESIGN_VERSION, "mode": "reviewed_focus", "source_size": [sw, sh],
-            "source_box": [max(0, -left / sx), max(0, -top / sy),
-                           min(sw, (1080 - left) / sx), min(sh, (1920 - top) / sy)],
-            "image_box": [max(0, left), max(0, top), min(1080, left + size[0]), min(1920, top + size[1])],
-            "focus_box": focus["focus_box"], "protected_box": protected,
-            "aperture": list(aperture), "reviewed": focus["reviewed"], "source_sha256": focus["sha256"],
-            "full_width": bool(full_width),
-            # the px the photograph's top edge fades over where it ends inside the canvas (0 where it runs off the
-            # top), so a short join (a photograph ending at its reviewed feature) is on the record
-            "edge_fade_top": int(top_fade) if top > 0 else 0,
-        }
-    return im
+        lay.meta["photo_fit"] = {"fit": True, "layout": mode, "tried": tried}
+        comp = {"version": DESIGN_VERSION, "mode": mode, "source_size": [sw, sh],
+                "source_box": [round(v, 1) for v in rec["box"]], "image_box": [0, 0, size[0], size[1]],
+                "upscale": rec["upscale"], "source_coverage": 1.0, "full_width": True}
+        if fbox is not None:
+            protected = [max(0, math.floor((fbox[0] - bx0) * k)), max(0, math.floor((fbox[1] - by0) * k)),
+                         min(size[0], math.ceil((fbox[2] - bx0) * k)), min(size[1], math.ceil((fbox[3] - by0) * k))]
+            lay.protected.append({"name": "reviewed photographic feature", "box": protected})
+            comp.update({"focus_box": focus["focus_box"], "protected_box": protected,
+                         "reviewed": focus.get("reviewed", ""), "source_sha256": focus.get("sha256", "")})
+        lay.meta["composition"] = comp
+    return im, mode
 
 
 BADGE_FOOT = (40, 0.6, 220)   # Discovery: 40 px under the deck the shade eases from 0.84 to 0.6 over 220 px
-IMMERSIVE_MAX_SCALE = 3.0   # Discovery full width: the most a reviewed feature is enlarged
-FULL_WIDTH_TOP = 580       # Discovery full width: the reviewed feature's band starts below the masthead's halo
-FULL_WIDTH_BLEND = 220      # px above a full-width photo over which its continued top row eases into the field
-INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge within its own margin)
-FULL_WIDTH_OWN_FADE = 96    # lane B c4: a full-width photograph whose top fades over at least this many px of its
-                            # own context needs no continued top row above it (_immersive)
-
-
-def _edge_fade(margin):
-    """The px over which a photograph's edge that ends inside the canvas fades into the field around it: all of
-    the room the photograph has outside the reviewed feature (`margin`), up to INSET_FEATHER_MAX, so the feature
-    itself is never faded. Under 2 px of room it is a cut (ramp treats width <= 1 as a step); the composition
-    record keeps the fade, so a short one is visible there (_immersive's "edge_fade")."""
-    return min(INSET_FEATHER_MAX, int(max(0, margin) - 2))
 
 
 def _photograph(im, source, aperture, lay, bottom=False):
@@ -811,6 +763,16 @@ def _photograph(im, source, aperture, lay, bottom=False):
             "source_box": [0, 0, source.width, source.height], "image_box": box,
             "aperture": [x0, y0, x1, y1],
         }
+        if lay.meta.get("photo_fit") is None:
+            # every cover style records its photograph's fit (second review, D8: lower_third, minimal and the
+            # sandwich recorded nothing): contained whole, the photograph's own frame shows when it has one
+            from . import photo_fitness as pf
+            share = pf.analyse(source.convert("RGB")).matte_share
+            problems = ["matte"] if share > pf.MATTE_MAX else []
+            why = (pf.reason({"problems": problems}, "the cover's contained photograph") if problems
+                   else "the photograph stands whole in its window (no crop)")
+            lay.meta["photo_fit"] = {"fit": not problems, "layout": "contain", "tried": [], "matte": round(share, 4),
+                                     "problems": problems, "reason": why}
     return im
 
 
@@ -1802,32 +1764,26 @@ def _render(im, copy, style, lay, tight, source, focus, figure):
         lay.shortened = shortened
     # Round 7 (F20): one kicker on every style: the system kicker (no gold tab: it was a second kicker treatment)
     height = _height(rows)
-    if focus and style in ("badge", "lower_third"):
+    if style == "badge" or (focus and style == "lower_third"):
+        # Freeze cycle 5 (PHOTO-01 / PHOTO-07): the photograph fills its window with its own pixels or it is not
+        # full-bleed (_filled: the photo-fitness ladder). A cover that cannot be filled falls through to the
+        # contained window on a clean INK field below; nothing is padded, feathered into a blur or repeated.
         top = 1434 - height
-        full = style == "badge"
-        # The feature's band starts clear of the masthead's measured halo (BRAND_TOP + cap + 40 px halo): at 530
-        # the halo washed the reviewed feature's top edge (round 3 review, 2026-11-02).
-        im = _immersive(source, (0 if full else 72, FULL_WIDTH_TOP if full else 560, 1080 if full else 1008, top - 100),
-                        focus, lay,
-                        full_width=full)
-        im = _shade(im, top + 10, 1920, strength=0.84 if style == "badge" else 0.78, feather=100,
-                    foot=(top + height + BADGE_FOOT[0], BADGE_FOOT[1], BADGE_FOOT[2]) if full else None)
-        im = _brand(im, lay, grid_delivery=True)
-        return _paint(im, rows, margin, top, False, lay)
+        placed = _filled(source, focus, top, lay)
+        if placed is not None:
+            im, mode = placed
+            if mode == "full_bleed":
+                im = _shade(im, top + 10, 1920, strength=0.84 if style == "badge" else 0.78, feather=100,
+                            foot=(top + height + BADGE_FOOT[0], BADGE_FOOT[1], BADGE_FOOT[2])
+                            if style == "badge" else None)
+            im = _brand(im, lay, grid_delivery=True)
+            return _paint(im, rows, margin, top, False, lay)
+    # The contained window: the photograph appears once, whole, on a flat INK field (paper: inside its card). Freeze
+    # cycle 5 (PHOTO-07: the darkened copy of the same photograph ran on above and below its own inset, one picture
+    # three times in a tile): no continuation of the photograph outside its window.
+    im = Image.new("RGBA", im.size, brand.INK + (255,))
     if paper:
-        # Round 3: the photograph appears once, inside the card, on a flat ink mat (no blurred continuation of
-        # the same photograph above and below it).
-        im = Image.new("RGBA", im.size, brand.INK + (255,))
         ImageDraw.Draw(im).rectangle(_sandwich_card(), fill=brand.BONE + (255,))
-    else:
-        # A quiet continuation of the photograph outside the profile crop, fading
-        # into an ink ground behind the deliberately arranged central composition.
-        im = _shade(im, 0, im.height, strength=70 / 255, feather=1)
-        # Lane B c4 (panel 5 CD r1, PL: the bands faded to black, then stepped up to the INK plate at y 420 and 1500,
-        # a dark gutter line and a lid on bright heroes): the fade ends in the plate's own value, one field.
-        im = _shade(im, 420, 1500, strength=1.0, feather=180, colour=brand.INK)
-        # Ink is an editorial ground, not a colour grade applied to the photograph.
-        ImageDraw.Draw(im).rectangle(PLATE_SQUARE, fill=brand.INK + (255,))
     im = _brand(im, lay, centered, paper, grid_delivery=True)
     if style == "minimal":
         # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the

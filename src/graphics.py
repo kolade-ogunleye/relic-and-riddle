@@ -543,6 +543,10 @@ def record_contrast(out: Path, frame: Image.Image, plates: list[tuple[str, Any]]
     vals = [v for v in vals if v is not None]
     record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
               "min": min(vals) if vals else None, "elements": rows}
+    from .photo_fitness import take_grounds
+    grounds = take_grounds()
+    if grounds:   # the photograph grounds drawn for this clip, with their fit (freeze cycle 5, photo_fitness)
+        record["grounds"] = grounds
     if rulers is not None:
         record["rulers"] = list(rulers)
         for fault in zero_datum_faults(record):

@@ -123,9 +123,9 @@ LANDSCAPE_RIGHT_DIM = 0.55         # second: a scrim behind the text column, the
 # its picture in a window on flat black, an essential image shown whole (image_presentation.fit_filter pads it with
 # black) or the retired 16:9 vignette (aspect 16/9 until 2026-11-04, picture_vignette), which crushed the corners
 # outside an ellipse. Under the right column's lighter dim the window's hard edge read as a bright/dark rim under the
-# video slot. The end screen extends its INK field over the matte (matte_window, frames()): the window's edge is a
-# band edge (brand_system.edge_feather), eased in with the dim, so the end screen's first frame is still the last
-# frame as it is. A window is a matte only when the outside is flat and dark, the picture runs up to its edge (a cut,
+# video slot. Lane E cycle 4 extended an INK field over the matte with a feathered edge; freeze cycle 5 (PHOTO-02: the
+# soft ellipse still showed) takes the field-only ground instead (frames(): the whole frame eases to INK with the dim,
+# so the end screen's first frame is still the last frame as it is and no edge of the source is left at rest). A window is a matte only when the outside is flat and dark, the picture runs up to its edge (a cut,
 # not an object's own outline), and it is a rectangle (padding, a scan's border) or, any other shape, spans the frame
 # on digital black (MATTE_HULL_BLACK: a crushed vignette; a photographed black ground, an object on black velvet or a
 # chandelier in the dark, is never a matte). Measured over 394 landscape photos of the dev runs and assets: 5 hits,
@@ -138,7 +138,6 @@ MATTE_DARK_SHARE = 0.95   # of the outside that is matte-dark, at least
 MATTE_CUT_SHARE = 0.5     # of the window's inner rim where the picture is off the matte's black, at least
 MATTE_RIM_STEP = 6.0      # luma over the matte's median that is picture, not matte, at the rim
 MATTE_RECT = 0.98         # the window is a rectangle when its area is at least this share of its bounding box
-MATTE_TILE = 64           # px: the stretch of the window's edge whose own step sets the feather (matte_field)
 MATTE_HULL_BLACK = 1.0    # a window of any other shape: the matte's median luma at most this (digital black)
 KICKER = "WATCH NEXT"    # generic: the video YouTube shows in the slot is not known at render time
 # The kicker is the system's (src/brand_system.py kicker.*, cycle 0): the text face at 800 in tracked gold capitals led
@@ -746,39 +745,6 @@ def matte_window(base: Image.Image) -> Optional[Tuple[np.ndarray, Dict[str, Any]
     return full, rec
 
 
-def matte_field(dist: np.ndarray, rest: Image.Image, width: int) -> Tuple[np.ndarray, int]:
-    """The INK field over a matte (matte_window's `dist`): 1 on the matte, easing to 0 into the picture by smoothstep
-    over the band-edge feather (brand_system.edge_feather) for the step the edge crosses on `rest` (the ground at rest),
-    measured again over the longer reach, as band_edge.feather does. The step is the brightest stretch of the edge's:
-    per MATTE_TILE square along it, the picture's 95th-percentile luma within the feather, less INK's, the largest of
-    them (a long curved edge is mostly under the text column's full dim; its bright stretch is where the rim shows).
-    Returns (the field, its feather in px)."""
-    from .band_edge import smoothstep
-    from .brand_system import edge_feather
-    lum = np.asarray(rest.convert("RGB"), dtype=np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
-    ink = float(np.dot(np.asarray(brand.INK, np.float32), [0.2126, 0.7152, 0.0722]))
-    ys, xs = np.mgrid[0:lum.shape[0], 0:lum.shape[1]]
-    tiles = (ys // MATTE_TILE) * (lum.shape[1] // MATTE_TILE + 1) + xs // MATTE_TILE
-    length = 1.0
-    for _ in range(4):
-        band = (dist > 0) & (dist <= max(length, 4.0))
-        step = 0.0
-        if band.any():
-            t, v = tiles[band], lum[band]
-            order = np.argsort(t, kind="stable")
-            t, v = t[order], v[order]
-            cuts = np.flatnonzero(np.diff(t)) + 1
-            for part in np.split(v, cuts):
-                if part.size >= MATTE_TILE:   # a stretch of edge, not a corner's few pixels
-                    step = max(step, float(np.percentile(part, 95)) - ink)
-        need = edge_feather(max(0.0, step), width)
-        if need <= length:
-            break
-        length = float(need)
-    length = max(1.0, length)
-    return (1.0 - smoothstep(dist / length)).astype(np.float32), int(round(length))
-
-
 def mean_lstar(im: Image.Image) -> float:
     """The frame's mean CIE L* (0-100), on a 1/8 scale copy: how bright the picture reads as a whole."""
     a = np.asarray(im.convert("RGB").resize((max(1, im.width // 8), max(1, im.height // 8)), Image.BOX),
@@ -930,30 +896,31 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     # MO-E2: on ease_out its first frame stepped MAD 27 as the narration handed over); the 9:16 card keeps ease_out.
     field = ease_io if landscape else ease
 
-    matte_im: Image.Image | None = None   # the INK field over a matte (16:9, matte_window), in `base`'s pixels
-
     def ground(t: float) -> Image.Image:
         z = landscape_zoom_at(t) if landscape else zoom_at(t, seconds)
         im = _pushed(base, z, width, height)
         sw = (field(t / SOFTEN_IN) * soften_w)[..., None]
         im = im * (1 - sw) + _pushed(soft_base, z, width, height) * sw
-        if matte_im is not None:   # it moves with the picture (the push) and comes in with the dim
-            m = (field(t / DIM_IN) * np.clip(np.asarray(kenburns(matte_im, (width, height), zoom=z,
-                                                                  resample=Image.LANCZOS)), 0, 1))[..., None]
-            im = im * (1 - m) + ink * m
         dark = (field(t / DIM_IN) * shape)[..., None]
         return Image.fromarray((im * (1 - dark) + ink * dark).clip(0, 255).astype(np.uint8))
 
-    # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
-    rest = ground((total - 1) / FPS)
+    # A last frame that holds its picture inside a frame of its own (freeze cycle 5, PHOTO-02: the Richat 16:9 end
+    # screen kept its source's black oval surround under the dim; lane E cycle 4 feathered an INK field over it and a
+    # soft ellipse still showed): the picture is unfit as a ground (photo_fitness: "matte"), and a crop inside its
+    # content would jump at the handover (the end screen's first frame IS the narration's last). The designed
+    # alternative is the field-only ground: the whole frame eases to the INK field with the dim, so no edge of the
+    # source is left at rest. Recorded in stats["matte"].
+    # The frame is found by matte_window (measured on encoded frames: a photographed dark ground is never one).
+    from . import photo_fitness as pf
     found = matte_window(base) if landscape else None
     if stats is not None and landscape:
-        stats["matte"] = found[1] if found else None
+        stats["matte"] = ({**found[1], "ground": "field only",
+                           "reason": pf.reason({"problems": ["matte"]}, "the end screen's ground")}
+                          if found else None)
     if found is not None:
-        mf, feather = matte_field(found[0], rest, width)
-        found[1]["feather_px"] = feather
-        matte_im = Image.fromarray(mf, "F")
-        rest = ground((total - 1) / FPS)
+        shape = np.ones_like(shape)
+    # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
+    rest = ground((total - 1) / FPS)
     # The masthead (cycle 0 round 7): planned by the system's planner for a ground it cannot scrim (masthead.plan_on:
     # bone at the least halo, the light variant, the ruling-4 exception; halo.step and colour_light read), then the
     # ONE gate (masthead.verify: room, name, mark) on the ground at rest AND on every frame where the name is fully

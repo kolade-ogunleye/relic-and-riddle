@@ -177,15 +177,21 @@ def test_a_year_without_an_event_word_is_no_hero() -> None:
 
 # --- Discovery's foot, the deck, the typesetting ----------------------------------------------------------------
 
-def test_badge_foot_shows_the_ambient_field_and_the_type_band_holds() -> None:
+def test_badge_foot_is_the_photograph_or_ink_and_the_type_band_holds() -> None:
+    # Round 4 showed an "ambient field" (the photograph's edge, extended and blurred) faintly under the deck. Freeze
+    # cycle 5 (PHOTO-01): no such field exists. Under the deck is the photograph itself, shaded (full bleed: it eases
+    # from 0.84 to BADGE_FOOT's 0.6, so it still shows), or the INK field a shorter photograph fades into.
     photo = _photo((150, 140, 120))
     focus = {"focus_box": [0.3, 0.3, 0.7, 0.7], "sha256": "x", "reviewed": "test"}
     out, lay = _cover(GUMBAZ, "badge", photo=photo, focus=focus)
     foot = np.asarray(out.convert("L"), dtype=np.float32)[1600:1900].mean()
     ink = 0.2126 * brand.INK[0] + 0.7152 * brand.INK[1] + 0.0722 * brand.INK[2]
-    assert foot > ink + 12                                   # the field shows faintly, not a dead black band
-    plain = cover_design._shade(Image.new("RGBA", (1080, 1920), (150, 140, 120, 255)), 1000, 1920, 0.84, 100)
-    assert foot > np.asarray(plain.convert("L"), dtype=np.float32)[1600:1900].mean() + 4
+    mode = lay.meta["composition"]["mode"]
+    if mode == "full_bleed":
+        plain = cover_design._shade(Image.new("RGBA", (1080, 1920), (150, 140, 120, 255)), 1000, 1920, 0.84, 100)
+        assert foot > ink + 12 and foot > np.asarray(plain.convert("L"), dtype=np.float32)[1600:1900].mean() + 4
+    else:
+        assert mode in ("photo_over_ink", "contain") and abs(foot - ink) < 2
     assert all(e["contrast"] >= 4.5 for e in lay.elements if e.get("contrast") is not None)
     assert lay.problems() == []
 

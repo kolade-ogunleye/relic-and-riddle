@@ -20,17 +20,15 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
+from src import photo_fitness as pf
 from src import still_layout
 from src.multi_format import (
     CAROUSEL_MIN_SLIDES,
-    FRAME_ZOOM_MAX,
     SLIDE_DROP_RULE,
     STORY_POINTER,
     MultiFormatGenerator,
     deck_photo_guard,
     diagram_comparator,
-    frame_mask,
-    frame_window,
     prune_stale_slides,
     record_dropped,
     slides_to_drop,
@@ -126,44 +124,67 @@ def _wedge(w: int = 1600, h: int = 1600) -> Image.Image:
     return im
 
 
-def test_a_black_window_wedge_is_cleared_holding_the_centre_and_never_enlarged_past_the_fit():
+def _border(w: int = 1600, h: int = 1600) -> Image.Image:
+    """A scan's border: straight digital-black bands down the left side and across the foot (the source's frame)."""
+    rng = np.random.default_rng(4)
+    a = (rng.normal(120, 18, (h, w, 3))).clip(30, 230).astype(np.uint8)
+    a[:, :int(0.08 * w)] = 0
+    a[int(0.9 * h):] = 0
+    return Image.fromarray(a)
+
+
+def test_a_spacecraft_windows_wedge_is_the_photographs_scene():
+    # review of cycle 5, B1: a curved or slanted black region the picture runs into is scene, not the source's frame;
+    # moving off it took the Richat Eye out of a Story frame. The window asked is kept (and nothing is recorded as
+    # matte).
     im = _wedge()
+    an = pf.analyse(im)
+    assert an.matte_share == 0
+    got = pf.place(None, pf.Window((1440, 1800), checks=("matte", "upscale")), image=im, analysis=an)
+    assert not got["moved"] and got["fit"]
+
+
+def test_a_black_border_is_cleared_inside_the_enlargement_limit():
+    # freeze cycle 5: the frame is one measure of the photo-fitness rule (src/photo_fitness.py), judged with the
+    # subject the move must keep; lane D cycle 4's frame_window (which held the centre and asked nothing of the
+    # subject) left the tree. tests/test_photo_fitness.py holds the subject half.
+    im = _border()
+    an = pf.analyse(im)
     for size in ((1440, 1800), (1440, 1000)):
-        got = frame_window(im, size)
-        assert got is not None and got["box"] is not None and got["record"]["cleared"], size
+        got = pf.place(None, pf.Window(size, checks=("matte", "upscale")), image=im, analysis=an)
+        assert got["fit"] and got["moved"], size
         x0, y0, x1, y1 = got["box"]
-        assert x0 <= im.width / 2 <= x1 and y0 <= im.height / 2 <= y1          # the centre stays in view
-        mask, scale = frame_mask(im)
-        win = mask[int(y0 * scale):int(y1 * scale), int(x0 * scale):int(x1 * scale)]
-        assert win.mean() <= 0.0005
+        assert an.share("matte", (x0, y0, x1, y1)) <= pf.MATTE_MAX
         assert abs((x1 - x0) / (y1 - y0) - size[0] / size[1]) < 0.01
-        fit_w = min(im.width, im.height * size[0] / size[1])
-        assert (x1 - x0) >= fit_w / FRAME_ZOOM_MAX - 2
+        assert got["zoom"] <= pf.ZOOM_MAX and got["upscale"] <= pf.UPSCALE_MAX
 
 
 def test_a_photographed_dark_is_not_a_frame():
     rng = np.random.default_rng(5)
     a = (rng.normal(120, 18, (1200, 1600, 3))).clip(30, 230).astype(np.uint8)
-    a[:, :500] = rng.normal(8, 1.5, (1200, 500, 3)).clip(4, 12).astype(np.uint8)   # a black cloth: dark, even, not 0
-    assert frame_window(Image.fromarray(a), (1440, 1800)) is None
+    a[:, :500] = rng.normal(8, 1.5, (1200, 500, 3)).clip(5, 12).astype(np.uint8)   # a black cloth: dark, even, not 0
+    assert pf.analyse(Image.fromarray(a)).matte_share == 0
 
 
-def test_a_frame_no_window_can_clear_is_kept_and_recorded():
+def test_a_frame_across_the_top_is_left_out_of_the_window_or_recorded():
     a = np.full((1200, 1600, 3), 120, np.uint8)
-    a[:420] = 0                                                       # black space across the whole top
-    got = frame_window(Image.fromarray(a), (1440, 1000))
-    assert got is not None and got["box"] is None and got["record"]["cleared"] is False
+    a[:60] = 0                                                        # a thin black band across the whole top
+    im = Image.fromarray(a)
+    got = pf.place(None, pf.Window((1440, 1000), checks=("matte", "upscale")), image=im, analysis=pf.analyse(im))
+    assert (got["fit"] and got["box"][1] >= 58) or (not got["fit"] and "matte" in got["problems"])
+    a[:420] = 0                  # black across a third of the picture and nowhere else: a dark ground, not a frame
+    assert pf.analyse(Image.fromarray(a)).matte_share == 0
 
 
-def test_the_slide_window_draws_no_wedge(tmp_path):
-    p = tmp_path / "wedge.jpg"
-    _wedge().save(p, quality=95)
+def test_the_slide_window_draws_no_border(tmp_path):
+    p = tmp_path / "border.jpg"
+    _border().save(p, quality=95)
     from src.multi_format import _render_state
     _render_state.window_rec = []
     im = MultiFormatGenerator._fill(p, (1440, 1800), top=False)
     rec, _render_state.window_rec = _render_state.window_rec, None
     a = np.asarray(im.convert("L"))
-    assert (a <= 12).mean() < 0.001 and rec and rec[0]["frame"]["cleared"]
+    assert (a <= 12).mean() < 0.004 and rec and rec[0]["fit"]["matte"] <= pf.MATTE_MAX
 
 
 # ------------------------------------------------------------------------------------------------ 3. photo choice

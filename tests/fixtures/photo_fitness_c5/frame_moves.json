@@ -1,0 +1,38 @@
+[
+ {
+  "name": "richat14",
+  "file": "richat14_640.jpg",
+  "note": "Apollo 9 photograph (NASA, public domain): a 15 px scan edge at the top; the Eye low left",
+  "size": [
+   4144,
+   4184
+  ]
+ },
+ {
+  "name": "memnon09",
+  "file": "memnon09_640.jpg",
+  "note": "scanned lithograph (public domain): dark scan surround; two colossi",
+  "size": [
+   1472,
+   1189
+  ]
+ },
+ {
+  "name": "voynich14",
+  "file": "voynich14_640.jpg",
+  "note": "scanned manuscript page (public domain): page on black; a plant with fronds and roots",
+  "size": [
+   1182,
+   1536
+  ]
+ },
+ {
+  "name": "amber05",
+  "file": "amber05_640.jpg",
+  "size": [
+   4096,
+   3864
+  ],
+  "note": "lantern slide (public domain): the mount's foot edge, a thin right edge and rounded corners; framed on two sides only"
+ }
+]

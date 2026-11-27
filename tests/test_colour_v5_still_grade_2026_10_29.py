@@ -113,14 +113,19 @@ def test_a_cover_keeps_the_balanced_heros_hue_and_saturation(tmp_path):
     cast back or inflates saturation. A grade added later must keep this (the still-side twin of
     video_composer.film_grade_filter's hue-safe print)."""
     from src.visual_engine import VisualEngine
-    from src.typography import cover_crop
     hero = cb.balanced(_jpeg(tmp_path, "25_commons.jpg", _wall(25, 480) * np.array([1.0, 1.02, 0.45])))
     copy = {"thumbnail": {"eyebrow": "CAPPADOCIA, TURKEY", "line1": "THE STONE DOOR", "line2": "ROLLED FROM INSIDE",
                           "tagline": "A city underground"}}
     cover, _ = VisualEngine().generate_thumbnails(hero, copy, tmp_path / "out", style="minimal", variants=False)
-    ref = np.asarray(cover_crop(hero, Image.open(cover).size).convert("RGB"), dtype=np.float64)
-    got = _rgb(cover)
-    patch = (slice(40, 200), slice(40, 200))                           # a top corner: photo, no text
+    # freeze cycle 5: the photograph is drawn once, in its window, on INK (no darkened copy of it behind): the patch
+    # is read inside the window the cover's own record gives, against the same part of the hero
+    from src import still_layout
+    comp = still_layout.load(cover)["recipe"]["composition"]
+    x0, y0, x1, y1 = (int(v) for v in comp["image_box"])
+    ref = np.asarray(Image.open(hero).convert("RGB").resize((x1 - x0, y1 - y0), Image.LANCZOS,
+                                                            box=tuple(comp["source_box"])), dtype=np.float64)
+    got = _rgb(cover)[y0:y1, x0:x1]
+    patch = (slice(20, 180), slice(40, 200))                           # a top corner of the window: photo, no text
     h_ref, s_ref = cb._hsv(ref[patch])
     h_got, s_got = cb._hsv(got[patch])
     k = s_ref > 0.12

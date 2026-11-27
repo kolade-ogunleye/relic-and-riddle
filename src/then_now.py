@@ -803,6 +803,22 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
         ims = [_trim(im) for im in ims]
         masks = [None if m is None else _trim(m) for m in masks]
     from .photo_grade import grade
+    # Freeze cycle 5 (PHOTO-06, verified on the dev runs' Memnon and Pantheon pairs, which predate register()): the
+    # split shows the THEN photo in one part of the frame and the NOW photo in the other, both through ONE window.
+    # That compares only a REGISTERED pair (register() writes both photos at one size, the recent one warped onto the
+    # old one; find_pair ships no other). Two photographs of different sizes are not registered: the same window
+    # lands on different parts of them at different scales (Memnon 9:16: the head and torso above, the pedestal
+    # below). No crop made here can register them (a crop per pane by salience was tried and measured: it cut the
+    # Memnon THEN statue's head at 16:9 and showed a fountain beside the Pantheon), so the pair is drawn through the
+    # shared window as before and RECORDED as not registered, with the reason; the remedy is a registered input.
+    info["registered"] = ims[0].size == ims[1].size
+    if not info["registered"]:
+        info["unregistered"] = (f"then-and-now: the photographs are not registered ({ims[0].size[0]}x{ims[0].size[1]} "
+                                f"and {ims[1].size[0]}x{ims[1].size[1]} px): one window does not show the same part "
+                                "of both at one scale (rule: both panes are cut from one registered frame, "
+                                "src/then_now.py register)")
+        log.info("Then-and-now: the pair is not registered (%s and %s px); drawn through the shared window.",
+                 ims[0].size, ims[1].size)
     # both photos graded as the master grades a bare photo, before anything is drawn on them (QF-86)
     srcs = [grade(ImageOps.fit(im, big, Image.LANCZOS)) for im in ims]
 

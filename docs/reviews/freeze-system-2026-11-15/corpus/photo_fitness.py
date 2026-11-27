@@ -81,7 +81,7 @@ class Photos:
             st = path.stat()
         except OSError:
             return None
-        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|11".encode()).hexdigest()[:24]
+        tag = hashlib.sha256(f"{path}|{st.st_size}|{st.st_mtime_ns}|{pf.ANALYSIS}|{pf.MATTE_LUMA}|12".encode()).hexdigest()[:24]
         f = self.cache / f"{tag}.pkl" if self.cache else None
         a = None
         if f is not None and f.is_file():
@@ -209,6 +209,11 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
         rec = pf.place(None, window, cen, analysis=a)
     rec["outcome"] = ("fit" if not rec["problems"] and not rec.get("moved") else
                       "crop" if not rec["problems"] else "unfit")
+    if kind in ("carousel", "story") and rec.get("moved"):
+        # a slide's or a Story frame's move is drawn only when the text guard passes it (keep_text_contrast: no
+        # element under its floor, the lowest ratio not lower); that needs the drawn slide, so a POOL row is a
+        # proposed move and DECK (the redrawn records, --records) is what a deck draws
+        rec["outcome"] = "crop proposed" if not rec["problems"] else "unfit proposed"
     return rec
 
 
@@ -308,6 +313,8 @@ def disk_outcome(rec: dict | None) -> dict | None:
     """A record read from disk with the table's outcome: fit as asked, a fit crop, or unfit (recorded)."""
     if rec is None:
         return None
+    if rec.get("move_refused"):   # the text guard drew the asked window (multi_format.keep_text_contrast)
+        return {**rec, "outcome": "asked (text guard)"}
     return {**rec, "outcome": "unfit" if rec.get("problems") else "crop" if rec.get("moved") else "fit"}
 
 
@@ -349,6 +356,7 @@ def main() -> int:
     ap.add_argument("--seed-cache", type=Path, help="an earlier cache whose 256 px pictures are analysed again")
     ap.add_argument("--records", type=Path, help="the tree's redraw of the recorded slides (redraw output folder)")
     ap.add_argument("--distribution", action="store_true", help="print each measure's percentiles per window")
+    ap.add_argument("--frames", action="store_true", help="print every pool photograph the frame rule calls framed")
     ap.add_argument("--quiet", action="store_true", help="print the failing rows and the totals only")
     a = ap.parse_args()
     dev = a.dev.resolve()
@@ -366,7 +374,7 @@ def main() -> int:
                      "recorded": bool(recorded),
                      **{k: rec.get(k) for k in ("upscale", "matte", "flat", "subject", "density", "keep", "focus",
                                                 "zoom", "layout", "pad", "in_view", "registered", "extreme", "shown",
-                                                "moved") if k in rec},
+                                                "moved", "move_refused") if k in rec},
                      **({"busy": rec["protected"][0].get("busy"), "line": rec["protected"][0].get("line"),
                          "step": rec["protected"][0].get("step"),
                          "foreign": rec["protected"][0].get("foreign")} if rec.get("protected") else {})})
@@ -540,6 +548,24 @@ def main() -> int:
         hg = [r for r in hard if r["group"] == gname]
         print(f"    {gname:5s} certain {len(hg)}: " + ", ".join(f"{k} {v}" for k, v in sorted(
             Counter(p for r in hg for p in certain(r)).items())))
+    moved = [r for r in rows if r["group"] == "DECK" and r.get("moved")]
+    print(f"  DECK windows moved as drawn: {sum(1 for r in moved if r['outcome'] != 'asked (text guard)')}, "
+          f"refused by the text guard: {sum(1 for r in rows if r['outcome'] == 'asked (text guard)')}; POOL moves "
+          f"proposed on slides and Stories (the guard decides at draw): "
+          f"{sum(1 for r in rows if str(r['outcome']).endswith('proposed'))}")
+    if a.frames:
+        import numpy as np
+        print("\n== frames (frame_bands on THUMB px): photograph, frame share, sides")
+        framed = 0
+        for p in sorted({str(q) for run in runs for q in run_pool(dev, run)}):
+            an = photos.get(Path(p))
+            if an is None:
+                continue
+            _, sides = pf.frame_bands(np.asarray(an.thumb.convert("L"), np.float32)) if an.thumb else (None, {})
+            framed += an.matte_share > 0
+            if an.matte_share > 0:
+                print(f"  {'/'.join(Path(p).parts[-2:]):60s} {an.matte_share:.4f} {sorted(sides)}")
+        print(f"  {framed} framed photographs")
     if a.distribution:
         import numpy as np
         print("\n== distribution of the asked crop's measures (POOL placements)")

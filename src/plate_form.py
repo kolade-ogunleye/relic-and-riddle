@@ -433,6 +433,18 @@ def _block_alpha(G: np.ndarray, items, size, safe, rec) -> np.ndarray:
     return mask * tier
 
 
+def darker_inside(laid: Image.Image, other: Image.Image, lyr: Image.Image) -> Image.Image:
+    """`laid` (a block laid over a photograph) with, inside the block's own area (the layer's alpha), the darker of it
+    and `other` (the shipped ground on the same photograph), pixel by pixel by luma: the block is never lighter than
+    the ground it replaces."""
+    L = np.array([0.2126, 0.7152, 0.0722], np.float32)
+    a = np.asarray(laid.convert("RGB"), np.float32)
+    b = np.asarray(other.convert("RGB"), np.float32)
+    inside = (np.asarray(lyr.getchannel("A"), np.float32) > 0)[..., None]
+    take = inside & ((b @ L) < (a @ L))[..., None]
+    return Image.fromarray(np.where(take, b, a).astype(np.uint8), "RGB").convert("RGBA")
+
+
 def ground_under(im: Image.Image, boxes, ring: int = 10) -> float:
     """The 90th percentile luma (8-bit BT.709) of the ground round and under the type boxes (each grown by `ring` px,
     the ring a line's contrast is read on), the brighter tail a line is measured against."""

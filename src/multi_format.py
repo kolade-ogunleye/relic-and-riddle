@@ -582,10 +582,15 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
         # form laid from the type's boxes (with their fills and block tags where the caller gives them), inside
         # `safe`; laid only where it darkens no more of the frame than this band itself would, else the band
         # (recorded: the darkened-share rule holds by construction, per still)
-        shaded, rec = plate_form.lay(im, plain, safe=safe)
+        lyr, rec = plate_form.layer(im, plain, safe=safe)
         boxes = [p[0] if len(p) in (2, 3) and hasattr(p[0], "__len__") else p for p in plain]
         got: dict = {}
         banded = scrim(im, y0, y1, feather, target, cap, floor, colour, pct, grade, out=got, plain=boxes, shipped=True)
+        # inside the block, never lighter than the band would be there: a photograph darker than INK under a band
+        # reads darker than an INK block (cycle 6 corpus: Story titles 0.2-0.5 under base); the block takes the
+        # darker of the two, pixel by pixel (INK where the photograph is lighter, which is almost everywhere)
+        shaded = plate_form.darker_inside(Image.alpha_composite(im.convert("RGBA"), lyr), banded, lyr)
+        shaded = shaded if im.mode == "RGBA" else shaded.convert(im.mode)
         rec["dark_share"] = round(plate_form.dark_share(im, shaded), 4)
         rec["band_dark_share"] = round(plate_form.dark_share(im, banded), 4)
         # and never a lighter ground under the type than the band gives it (a band over a photograph darker than

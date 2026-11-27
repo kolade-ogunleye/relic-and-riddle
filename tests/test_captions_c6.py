@@ -135,10 +135,14 @@ def test_a_multi_word_hedge_line_above_its_figure_with_its_unit_is_legal():
     assert vc._hedge_line_legal("more than 590 square feet".split(), 2)
     assert vc._hedge_line_legal("between roughly 41.75 metres".split(), 2)
     assert vc.hedge_line_form(tuple("more than 590 square feet".split()), vc.FONT_SIZE) == 2
-    assert not vc._hedge_line_legal("with over 13,000 pounds".split(), 2)
-    assert not vc._hedge_line_legal("from nearly 1,090 tonnes".split(), 2)
+    # follow-up ruling (2026-11-27): the article or preposition leading into the hedge may open its line
+    assert vc._hedge_line_legal("an estimated 720 tons".split(), 2)
+    assert vc._hedge_line_legal("from nearly 1,090 tonnes".split(), 2)
+    assert vc.hedge_line_form(tuple("from nearly 1,090 tonnes".split()), vc.FONT_SIZE) == 2
+    assert not vc._hedge_line_legal("with 13,000 pounds".split(), 1)          # one word alone on a line stays illegal
     assert not vc._hedge_line_legal("nearly 1,090 tonnes".split(), 1)
-    assert vc._break_faults("from nearly 1,090 tonnes".split(), 2)
+    assert not vc._hedge_line_legal("of approximately 7,000 individuals".split(), 2)   # no unit: not a figure+unit
+    assert not vc._hedge_line_legal("and nearly 1,090 tonnes".split(), 2)     # a conjunction does not lead in
 
 
 def test_a_burst_one_rung_under_is_recorded_and_at_most_two_a_clip(tmp_path):
@@ -327,6 +331,14 @@ def test_the_reel_cover_badge_is_the_caption_badge_treatment():
                  for i, g in zip(brand.INK, (240, 236, 228)))
     assert max(abs(a - b) for a, b in zip(plate, want)) <= 2
     assert out.convert("RGB").getpixel((x0, y0)) == (240, 236, 228)   # a rounded corner, as the caption plate
+
+
+def test_the_caption_badge_plate_has_the_stills_height():
+    """Follow-up ruling (2026-11-27): one badge treatment: the caption badge plate is the cap height plus the padding
+    above and below, as the Reel cover and the thumbnail set theirs (it was 49 px against 41 px)."""
+    from src.typography import cap_height, get_font
+    f = get_font(brand.BADGE_FONT, vc.RECON_SIZE_PORTRAIT, weight=vc.BADGE_WEIGHT)
+    assert abs(vc.recon_badge_geometry(1080, 1920)["plate"][1] - (cap_height(f) + 2 * vc.BADGE_PAD[1])) <= 1
 
 
 def test_the_thumbnail_badge_is_the_caption_badge_treatment():

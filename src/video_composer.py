@@ -2168,13 +2168,17 @@ CLIP_FORCED_FAULTS = ("article_line_end", "keep_together_split", "figure_group_s
 
 
 def _hedge_line_legal(shown: list[str], k: int) -> bool:
-    """Lander ruling, freeze cycle 6 round 2 (rule 2): a MULTI-WORD hedge alone on line 1 directly above its figure with
+    """Lander ruling, freeze cycle 6 round 2 (rule 2; the lead-in word: follow-up 2026-11-27): a MULTI-WORD hedge, with
+    the article or preposition leading into it, alone on line 1 directly above its figure with
     its unit on line 2 is a legal form (MORE THAN / 590 SQUARE FEET, BETWEEN ROUGHLY / 41.75 METRES): the figure keeps
     its unit and the hedge stands next to it. One word alone on a line stays illegal (WITH / OVER 13,000 POUNDS)."""
     if not 2 <= k < len(shown) or not any(c.isdigit() for c in shown[k]):
         return False
     words = {w for h in HEDGE_PHRASES for w in h}
-    if any(_norm(w) not in words or _ends_clause(w) for w in shown[:k]):
+    # follow-up ruling (2026-11-27): the line may open with the article or preposition that leads into the hedge
+    # (AN ESTIMATED / 720 TONS, FROM NEARLY / 1,090 TONNES); the rest of the line is hedge words
+    lead = 1 if (_bare(shown[0]) in _ARTICLES or _is_preposition(shown[0])) and _norm(shown[1]) in words else 0
+    if any(_norm(w) not in words or _ends_clause(w) for w in shown[lead:k]) or _ends_clause(shown[0]):
         return False
     units = MEASURE_UNITS | _line_policy.UNITS
     return any(_norm(w) in units for w in shown[k + 1:])
@@ -6257,7 +6261,9 @@ def recon_badge_geometry(width: int, height: int, corner: str = "top_left") -> d
         left, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
         right = reel_x1 - round(19 * width / VIDEO_WIDTH)
     plate_w = round(max(widths) + 2 * pad_x)
-    plate_h = round(b_bottom - b_top + 2 * pad_y + (len(lines) - 1) * step)
+    # follow-up ruling (2026-11-27): one badge treatment: the plate is the cap height plus the padding above and below,
+    # as the Reel cover and the thumbnail set it (cap_height + 2 x BADGE_PAD[1]); the label has no descenders
+    plate_h = round((hb[3] - hb[1]) + 2 * pad_y + (len(lines) - 1) * step)
     x0 = left if corner == "top_left" else right - plate_w
     text_y = round(y0 + pad_y - b_top)
     return {"px": badge_px, "fs": badge_fs, "box": (x0, y0, x0 + plate_w, y0 + plate_h), "corner": corner,

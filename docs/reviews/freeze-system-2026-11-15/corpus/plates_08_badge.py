@@ -34,10 +34,8 @@ def badge_box(w: int, h: int, corner: str = "top_left") -> tuple[int, int, int, 
     the separator (AI ILLUSTRATION / NOT A PHOTO), 1.75 cap heights baseline to baseline."""
     wide = w > h
     px = round(vc.RECON_SIZE_WIDE * h / 1080) if wide else vc.RECON_SIZE_PORTRAIT
-    fs = vc.ass_font_size(vc._brand.BADGE_FONT, px, 600)
     scale = h / 1080 if wide else 1
     pad_x, pad_y = round(14 * scale), round(10 * scale)
-    top, bottom = vc._ink_band(vc._brand.BADGE_FONT, px, fs, 600)
     font = get_font(vc._brand.BADGE_FONT, px, weight=600)
     label = vc.RECON_BADGE_LABEL
     lines = label.split(" · ") if (corner == "top_right" and not wide) else [label]
@@ -55,7 +53,8 @@ def badge_box(w: int, h: int, corner: str = "top_left") -> tuple[int, int, int, 
     pw = round(tw + 2 * pad_x)
     if corner == "top_right":
         x0 = right - pw
-    return x0, y0, x0 + pw, y0 + round(bottom - top + 2 * pad_y + (len(lines) - 1) * step)
+    # follow-up 2026-11-27: the plate is the cap height plus its padding (the stills' treatment)
+    return x0, y0, x0 + pw, y0 + round((hb[3] - hb[1]) + 2 * pad_y + (len(lines) - 1) * step)
 
 
 def occupied(clip: Path, rect, w: int, h: int) -> tuple[str, int | None]:

@@ -61,7 +61,7 @@ def main() -> None:
                 a = np.asarray(im.convert("L"), np.float32)[box[1] + 4:box[3] - 4, box[0] + 4:box[0] + 16]
                 lum.append(round(float(a.mean()), 1))
         n = len(frames)
-        picks = sorted(set([0, 3, 6, 9, 12, 18, 24, 30, 36, 45, 60, 75, 90] + [n - 1])) if kind == "myth" else \
+        picks = sorted(set([0, 6, 9, 12] + list(range(30, n, 15)) + [n - 1])) if kind == "myth" else \
             sorted(set([0, 15, 30, 32, 34, 36, 38, 40, 42, 45, n - 1]))
         picks = [p for p in picks if p < n]
         tw, th = 216, 384

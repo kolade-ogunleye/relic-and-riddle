@@ -15,6 +15,8 @@ Forms (the queue document gives the analysis, the limits and the measures):
            group joined into one stepped plate that follows the rag, corners rounded by plate.radius; INK at the held
            tier (plate.held), the opaque tier only where held misses the target. The caption pill and the overlay
            label's held plate (typography.plan_label) are this form already.
+- "block": the hug plate's rule with one rectangle per line group (the group's ink bounds, padded and rounded): a
+           text-fitted block that ends at the text's own measure, never the frame's width (no stepped rag).
 - "field": a local contrast field: INK alpha computed per pixel from the photograph's own luminance under and round
            the type, only as deep as that pixel needs for the target, inside an envelope that falls off as a Gaussian
            (field.grow / field.sigma em); no straight edge exists to read.
@@ -37,7 +39,7 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 from PIL import Image, ImageDraw
 
-FORMS = ("base", "hug", "field", "grade", "split", "type", "none")
+FORMS = ("base", "hug", "block", "field", "grade", "split", "type", "none")
 
 # The candidate token set (proposed; on adoption these move into brand_system.SYSTEM with ranges). Lengths in em are
 # of the line's own ink height (a cap-height-like measure every face has); px are at 1080 wide, scaled by the canvas.
@@ -45,6 +47,7 @@ TOKENS: dict[str, Any] = {
     "target": 7.0,               # the text target the forms are laid for (contrast.high; ruling N1: 7:1 is the target)
     "hug.pad_x": 0.30,           # em of the line's ink height: the plate's margin left and right of the ink
     "hug.pad_y": 0.22,           # em: above and below the ink
+    "hug.pad_min": 18,           # px at 1080: never inside the ring a line's contrast is measured on (10-14 px)
     "hug.group_gap": 0.95,       # em: lines nearer than this (vertically) are one group, one plate
     "hug.radius": "plate.radius",    # the system's plate radius (14 px at 1080)
     "hug.tiers": ("plate.held", 1.0),  # the system's held tier, then opaque
@@ -143,7 +146,7 @@ def _ink_rgba(size, alpha: np.ndarray, colour=None) -> Image.Image:
     return layer
 
 
-def _hug_mask(size, grp: list, scale: float) -> np.ndarray:
+def _hug_mask(size, grp: list, scale: float, block: bool = False) -> np.ndarray:
     """The stepped plate of one group: each line's padded ink box, the gaps between lines bridged over their common
     width, convex corners rounded by the radius, drawn at 4x and reduced (antialiased)."""
     s = 4
@@ -154,8 +157,12 @@ def _hug_mask(size, grp: list, scale: float) -> np.ndarray:
     rects = []
     for (x0, y0, x1, y1), _f in grp:
         h = y1 - y0
-        px_, py_ = tk("hug.pad_x") * h, tk("hug.pad_y") * h
+        floor = tk("hug.pad_min") * scale
+        px_, py_ = max(floor, tk("hug.pad_x") * h), max(floor, tk("hug.pad_y") * h)
         rects.append((x0 - px_, y0 - py_, x1 + px_, y1 + py_))
+    if block:
+        xs0, ys0, xs1, ys1 = zip(*rects)
+        rects = [(min(xs0), min(ys0), max(xs1), max(ys1))]
     for a, b in zip(rects, rects[1:]):
         xa, xb = max(a[0], b[0]), min(a[2], b[2])
         if xb > xa and b[1] > a[3]:
@@ -177,14 +184,14 @@ def _composite_lum(g_rgb: np.ndarray, a: float, ink) -> float:
     return float(rel_lum(c))
 
 
-def _hug(G: np.ndarray, fb, size, scale, rec) -> np.ndarray:
+def _hug(G: np.ndarray, fb, size, scale, rec, block: bool = False) -> np.ndarray:
     from . import brand
     tiers = tk("hug.tiers")
     alpha = np.zeros(G.shape[:2], np.float32)
     need_tier = tiers[0]
     plates = []
     for grp in groups(fb):
-        m = _hug_mask(size, grp, scale)
+        m = _hug_mask(size, grp, scale, block)
         sel = m > 0.5
         if not sel.any():
             continue
@@ -221,8 +228,9 @@ def _envelope(size, fb, grow_em: float, sigma_em: float, block: bool = False) ->
             items.append(((min(xs0), min(ys0), max(xs1), max(ys1)), lh))
     else:
         items = [(b, b[3] - b[1]) for b, _f in fb]
+    floor = tk("hug.pad_min") * W / 1080.0
     for (x0, y0, x1, y1), lh in items:
-        g, s = grow_em * lh, max(1.0, sigma_em * lh)
+        g, s = max(floor, grow_em * lh), max(1.0, sigma_em * lh)
         core = np.zeros_like(env)
         core[max(0, int((y0 - g) / k)):int((y1 + g) / k) + 1, max(0, int((x0 - g) / k)):int((x1 + g) / k) + 1] = 1
         env = np.maximum(env, np.clip(gaussian_filter(core, s / k, mode="constant") * 2.0, 0, 1) if s > 1 else core)
@@ -311,8 +319,8 @@ def layer(im: Image.Image, boxes: Iterable, form: str | None = None) -> tuple[Im
     G = np.asarray(im.convert("RGB"), np.float32)
     rec["lines"] = len(fb)
     rec["groups"] = len(groups(fb))
-    if form == "hug":
-        return _ink_rgba(size, _hug(G, fb, size, scale, rec)), rec
+    if form in ("hug", "block"):
+        return _ink_rgba(size, _hug(G, fb, size, scale, rec, form == "block")), rec
     if form == "type":
         halo = tk("type.halo")
         short = []

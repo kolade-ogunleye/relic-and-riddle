@@ -37,7 +37,7 @@ from PIL import Image, ImageDraw, ImageFont
 from scipy.ndimage import binary_dilation
 
 L709 = np.array([0.2126, 0.7152, 0.0722], np.float32)
-FORMS = ("none", "base", "hug", "field", "grade", "split", "type")
+FORMS = ("none", "base", "hug", "block", "field", "grade", "split", "type")
 
 # The reviewers' cases (REVIEW-plates-c5, REVIEW2/3, PANEL7 CD), by surface. cards: (kind, key); stills: (run, dir, file)
 CASES = {

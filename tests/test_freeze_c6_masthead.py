@@ -220,23 +220,53 @@ def test_a_part_shorter_than_the_token_is_not_drawn_and_slide_two_runs_none_in()
 
 # ------------------------------------------------------------------------------------------------------------- M3
 
-def test_the_second_colour_set_is_refused_on_the_bright_stress_ground_and_the_default_is_not():
-    """Panel 7 BC (BC7-R2-01): the second colours' masthead withheld at 5.41:1 on the board's bright Aswan cover; the
-    four uniform grounds accepted the palette. The split stress ground refuses it at configure, with the value."""
+def test_the_palette_check_asks_both_lockup_forms(monkeypatch):
+    """Round 2 (lander ruling 2026-11-27): the configure-time check plans the name in the one-line AND the stacked form
+    on every stored ground (a stacked failure is listed as such)."""
     sys.path.insert(0, str(ROOT / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
     import render_surfaces
-    cfg = render_surfaces.second_brand(brand, None)
-    fails = masthead.palette_problems(cfg)
-    assert fails and all("bright stress" in f for f in fails) and all(":1" in f for f in fails)
-    assert any("(stacked form)" in f for f in fails)                     # asked in both lockup forms (round 2)
-    with pytest.raises(brand.BrandRefused):   # (its map fills are refused first; palette_problems runs after them)
-        brand.configure(cfg)
+    asked, real = [], masthead.plan
+
+    def spy(*a, **k):
+        asked.append(k.get("form", "line"))
+        return real(*a, **k)
+    monkeypatch.setattr(masthead, "plan", spy)
+    monkeypatch.setattr(masthead, "_palette_checked", {})
+    masthead.palette_problems(render_surfaces.second_brand(brand, None))
+    n = len(masthead.VALIDATION_GROUNDS) + 1
+    assert asked.count("line") == n and asked.count("stacked") == n
+
+
+def test_the_palette_check_refuses_a_pair_under_the_gate_and_accepts_one_over_it():
+    """The RULE (lander ruling 2026-11-27, review M3: both shipped refusals sat 0.01 under the gate, a verdict a
+    rasteriser can flip): probes far on each side of the 5.5:1 gate on the stored grounds. A grey-on-grey pair (2.4:1 on
+    the stress ground) is refused at configure with its value; black and white (6.6:1) is accepted."""
+    weak = brand.DEFAULT_BRAND.derive("weak pair", palette={"BONE": (200, 200, 200), "INK": (62, 62, 62)})
+    strong = brand.DEFAULT_BRAND.derive("strong pair", palette={"BONE": (255, 255, 255), "INK": (0, 0, 0)})
+    fails = masthead.palette_problems(weak)
+    assert any("bright stress" in f and ":1" in f for f in fails)
+    assert masthead.palette_problems(strong) == []
+
+
+def test_the_palettes_readings_on_the_stress_ground_are_pinned_as_data():
+    """The shipped default and the second colour set measured on the stored stress ground, each held to its dated pin
+    (tests/fixtures/masthead_stress_readings.json) within its tolerance: DATA, not a refusal that hangs on 0.01. The
+    default reads 0.12 over the gate; the second colours' one-line form 0.01 under it (refused on Windows), its
+    stacked form at it. The assertion message carries every reading, so another platform's values are on record."""
+    sys.path.insert(0, str(ROOT / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
+    import render_surfaces
+    pin = json.loads((ROOT / "tests" / "fixtures" / "masthead_stress_readings.json").read_text(encoding="utf-8"))
+    cfgs = {"default": brand.DEFAULT_BRAND, "second-colours": render_surfaces.second_brand(brand, None)}
     w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME
-    _, _, rec = masthead.plan(masthead.stress_ground(*masthead.BRIGHT_STRESS[1:]), x0, base, size, reach=reach,
-                              max_width=room)
-    assert rec["shown"] and rec["contrast"] >= brand_system.tok("contrast.masthead_gate")   # the default draws there
-    with brand.use(cfg, validate=False):                                   # the board draws it unvalidated: no break
-        assert brand.active() is cfg
+    ground = masthead.stress_ground(*masthead.BRIGHT_STRESS[1:])
+    got = {}
+    for key in pin["readings"]:
+        name, form = key.split("/")
+        with brand.use(cfgs[name], validate=False):
+            got[key] = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form=form)[2]["best_tried"]
+    off = {k: (got[k], v) for k, v in pin["readings"].items() if abs(got[k] - v) > pin["tolerance"] + 1e-9}
+    assert not off, f"readings {got} against the {pin['date']} pin (tolerance {pin['tolerance']}): {off}"
+    assert got["default/line"] >= pin["gate"] and got["default/stacked"] >= pin["gate"], got   # the default draws
 
 
 # ------------------------------------------------------------------------------------------------------------- M4

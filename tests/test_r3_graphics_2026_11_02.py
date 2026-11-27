@@ -232,10 +232,10 @@ def test_height_meaning_says_which_is_taller() -> None:
     fact = dict(HEIGHT)
     # round 4 (2026-11-02): the subject first (scale_meaning_lines, in capitals here)
     assert graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, 305 FT, IS ABOUT 3 TIMES AS TALL."]
+        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, ABOUT 305 FT, IS ABOUT 3 TIMES AS TALL."]
     taller = dict(HEIGHT, subject="Kailasa Temple monolith height")
     assert graphics.scale_meaning(taller, 457.5, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS THE STATUE OF LIBERTY, 305 FT."]
+        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS THE STATUE OF LIBERTY, ABOUT 305 FT."]
     assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[1].endswith(
         "IS NEARLY THE SAME HEIGHT.")
     assert not any("TALLER" in t for t in graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False))
@@ -275,7 +275,7 @@ def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, mo
     assert not any("ABOUT" in p.text or tuple(p.fill) == tuple(brand.GOLD) for p in rulers)
     # freeze cycle 5 (review D2): the landmark's height is stated by the line of meaning, never beside the ruler
     assert "ref_label" not in rows and rows["bracket"].derived["rule"] == "difference"
-    assert "305 ft" in " ".join(p.text for n, p in st["plates"] if n.startswith("meaning"))
+    assert "305 ft" in " ".join(p.text for n, p in st["plates"] if n.startswith("meaning"))   # "about 305 ft"
     figure = " ".join(p.text for n, p in st["plates"] if re.fullmatch(r"figure\d*", n))
     assert figure == "ABOUT 280 FT DEEP" and rows["figure_metric"].text == "85 M"
     assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"]), st["record"]["elements"]
@@ -288,7 +288,7 @@ def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, mo
 def test_height_labels_the_landmarks_figure_at_its_top(tmp_path, monkeypatch, size) -> None:
     st = _render(monkeypatch, lambda: graphics.render_scale(HEIGHT, tmp_path / "s.mp4", width=size[0], height=size[1]))
     rows = dict(st["plates"])
-    assert rows["ref_label"].text == "305 FT" and rows["block_label"].text == "ABOUT 107 FT"
+    assert rows["ref_label"].text == "ABOUT 305 FT" and rows["block_label"].text == "ABOUT 107 FT"   # review 2
     meaning = [p for n, p in st["plates"] if n.startswith("meaning")]
     assert " ".join(p.text for p in meaning).upper().endswith("IS ABOUT 3 TIMES AS TALL.")   # round 4: subject first
     if size[0] < size[1]:

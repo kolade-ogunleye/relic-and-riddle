@@ -10790,12 +10790,16 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         tick_w = max((ruler_label_runs(0.0, 0.0, t, data_font(rule_px))[1][2]
                       - ruler_label_runs(0.0, 0.0, t, data_font(rule_px))[1][0]
                       for _ft, t, fl in _depth_ruler(feet, hedge, unit, fact) if not fl), default=0.0)
-        need_s = min(need_s, shaft[0] - 26 - tick_w)
+        need_t = shaft[0] - 26 - tick_w
+        need_s = min(need_s, need_t)
         if need_s < x0 or need < x0:
             move = min(x0 - min(need_s, need), max(0.0, x1 - shaft[1]))
             cx += move
-            # then the shaft's wall comes in toward the landmark (its air beside it, from 50 px to 16 at the least)
-            half = max(half - max(0.0, x0 - need - move), ref_w / 2 + 16)
+            # then the shaft's wall comes in toward the landmark (its air beside it, from 50 px to 16 at the least), for
+            # the floor's figure at its least size and (review 2, N5) the widest axis figure
+            half = max(half - max(0.0, x0 - min(need, need_t) - move), ref_w / 2 + 16)
+            # and the narrower shaft moves right again into the room its walls left, for the axis figures
+            cx += max(0.0, min(x0 - (cx - half - 26 - tick_w), x1 - (cx + half)))
             shaft = (cx - half, cx + half)
         ref_cx = cx
         top_y = floor_y - ref_feet * px_ft

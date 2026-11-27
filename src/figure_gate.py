@@ -49,7 +49,9 @@ from . import figures
 
 # Elements whose numbers are derived from signed values, from a photo's own record (then-and-now capture years:
 # then_now's honesty rule) or structural (named and counted, never a claim):
-DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_secondary|scale_bar|meaning|ref_label|"
+# review 2 (N1): no "meaning" / "ref_label" exemption: a scale's line of meaning is judged against its derivation
+# record (derived_faults), a landmark's label as a signed figure (the reference file's statement is signed copy)
+DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_secondary|scale_bar|"
                      r"ref_note|bracket|numeral|total|chapter|header_brand|masthead|photo_credit|credit|licence|swipe|progress|counter|"
                      r"source|badge)", re.IGNORECASE)
 CONVERSION = re.compile(r"^(figure_metric|secondary|conversion|figure_conv)", re.IGNORECASE)
@@ -112,6 +114,11 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
     if isinstance(fact, Mapping) and fact.get("value"):
         hedge = "about " if fact.get("approximate", True) else ""
         out.append(f"{hedge}{float(fact['value']):g} {fact.get('unit') or 'ft'}")
+        # review 2 (N1): the landmark the scale drawing compares with is signed by the reference file's own statement
+        from .reference_facts import selected_reference
+        ref = selected_reference(fact)
+        if ref and ref.get("statement"):
+            out.append(str(ref["statement"]))
     cs = payload.get("cross_section")
     if isinstance(cs, Mapping):
         if cs.get("total_depth_ft"):
@@ -581,13 +588,46 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
             elif per_ft is None or abs(float(o["value"]) * per_ft - float(ref["feet"])) > SOURCE_TOL * float(ref["feet"]):
                 out.append(f"its operand {o.get('text')!r} ({float(o['value']):g}) is not the reference file's "
                            f"figure for {ref['label']}")
+            else:                    # review 2 (N1): its drawn figure is one the reference's statement states
+                from .reference_facts import stated_figures
+                said = drawn_numbers(str(o.get("text") or ""))
+                stated = [c[0] for c in stated_figures(ref, unit)]
+                hedged_ok = bool(o.get("hedged")) and said and per_ft is not None and abs(
+                    said[0] * per_ft - float(ref["feet"])) <= CONVERT_TOL * float(ref["feet"])   # "about 93 M"
+                if said and not hedged_ok and not any(abs(said[0] - c) < 1e-6 for c in stated):
+                    out.append(f"its operand is drawn {o.get('text')!r}, which the reference's statement does not "
+                               f"state ({', '.join(c[1] for c in stated_figures(ref, unit)) or 'none in ' + unit})")
         else:
             out.append(f"its operand {o.get('name') or o.get('role')!r} is neither a signed field of the run nor a "
                        "sourced reference")
-    if name == "bracket" and str(derived.get("shown") or ""):
-        drawn = [f.lo for f in figures.parse(text) if f.values]
-        if str(derived["shown"]) not in drawn:
-            out.append(f"it draws {text!r}, not its derivation's {derived.get('text')!r}")
+    # review 2 (N2): EVERY number the element draws is the record's derived figure (as recorded, a feet-and-inches gap
+    # as one number) or an operand's own drawn figure; a bracket draws the derived figure; a word form ("nearly ...")
+    # is drawn only for a record that states no number
+    shown = str(derived.get("shown") or "")
+    got = figures.shown_value(shown) if shown else None
+    allowed = [v for o in derived.get("operands") or [] for v in drawn_numbers(str(o.get("text") or ""))]
+    for v in drawn_numbers(text):
+        if got is not None and abs(v - got[0]) < 1e-9:
+            continue
+        if any(abs(v - a) < 1e-9 for a in allowed):
+            continue
+        out.append(f"it draws {v:g}, which is neither its derivation's figure ({shown or 'none'}) nor an operand's")
+    if name == "bracket" and shown and not any(got and abs(v - got[0]) < 1e-9 for v in drawn_numbers(text)):
+        out.append(f"it draws {text!r}, not its derivation's {derived.get('text')!r}")
+    if got is not None and re.search(r"\bnearly\b", text, re.IGNORECASE):
+        out.append(f"it says {text!r}, a word form, for a derivation that draws {shown}")
+    return out
+
+
+def drawn_numbers(text: str) -> list[float]:
+    """The numbers `text` draws, a feet-and-inches figure ("10 ft 8 in") as ONE number in feet; years in a label's
+    parenthesis are numbers too (nothing is exempt)."""
+    out: list[float] = []
+    rest = text
+    for m in list(re.finditer(r"(\d[\d,]*)\s*ft\s+(\d+)\s*in\b", text, re.IGNORECASE))[::-1]:
+        out.append(int(m.group(1).replace(",", "")) + int(m.group(2)) / 12)
+        rest = rest[:m.start()] + " " + rest[m.end():]
+    out += [float(m.group(0).replace(",", "")) for m in re.finditer(r"(?<![\w.])\d[\d,]*(?:\.\d+)?", rest)]
     return out
 
 

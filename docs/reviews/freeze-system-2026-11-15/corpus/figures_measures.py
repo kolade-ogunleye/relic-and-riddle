@@ -267,11 +267,17 @@ def _ratio_text(ratio: float) -> str:
     return f"{math.floor(ratio * 10 + 0.5) / 10:g}" if ratio < 2 else str(math.floor(ratio + 0.5))
 
 
-def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subject: float, reference: float) -> str:
+LEVEL_MAX = {"M": 0.05, "FT": 1 / 24}   # "nearly level" may be said of a gap no larger than half the last digit drawn
+
+
+def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subject: float, reference: float,
+                unit: str = "M") -> str:
     """'' when every derived number `text` draws is the rule's result on the SIGNED SOURCE values (`subject`, the
     fact's own value; `reference`, the reference file's figure in the drawing's unit, unrounded) rounded once; else
     what is wrong. Numbers that restate an operand's own drawn figure are not derived numbers."""
     drawn = [n for n in _numbers(text) if n not in operands_drawn]
+    if shown and not drawn and re.search(r"\bnearly\b", text, re.IGNORECASE):
+        return f"says {text!r}, a word form, where its record draws {shown}"
     if rule == "ratio":
         true = max(subject, reference) / min(subject, reference)
         if not shown:
@@ -279,6 +285,11 @@ def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subj
         bad = [n for n in drawn if n != _ratio_text(true)]
         return f"draws {bad[0]} for a true ratio of {true:.3f} ({_ratio_text(true)} by the rule)" if bad else ""
     true = abs(subject - reference) if rule == "difference" else subject + reference
+    if rule == "difference" and not shown:     # review 2 (N2): the word form is a derived claim, checked too
+        if drawn:
+            return f"draws {drawn[0]} where its record states no figure (true {true:.3f})"
+        return (f"says the gap is nearly level for a true difference of {true:.3f}"
+                if true > LEVEL_MAX.get(unit, 0.05) + 1e-9 else "")
     if not drawn and shown and shown in _numbers(text):
         drawn = [shown]
     bad = [n for n in drawn if not _rounded_once(n, true)]
@@ -307,13 +318,17 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
         depth = fact.get("dimension") == "depth"
         unit = graphics.lead_unit(fact)
         fig, metric = graphics.scale_figure(fact, feet, depth)
+        from src.reference_facts import reference_by_label, stated_figures
+        stated = stated_figures(reference_by_label(ref[0]), unit)     # the landmark as its own statement signs it
         signed = {v for t in (fig, metric, graphics._short(ref[1], unit)) for f in figures.parse(t) for v in f.values}
+        signed |= {c[0] for c in stated} | {v for c in stated for f in figures.parse(c[1]) for v in f.values}
         labelled = set((rec.get("layout") or {}).get("labelled") or [])
         per = 1 / 3.28084 if unit == "M" else 1.0
         own_unit = "M" if str(fact.get("unit") or "").strip().lower() == "m" else "FT"
         s_true = float(fact["value"]) if own_unit == unit else feet * per
         r_true = float(ref[1]) * per
-        op_drawn = {n for t in (fig, metric, graphics._short(ref[1], unit)) for n in _numbers(t)}
+        op_drawn = {n for t in (fig, metric, graphics._short(ref[1], unit), *(c[1] for c in stated))
+                    for n in _numbers(t)}
         for e in rec["elements"]:
             if RULER_ROLE.match(e["name"]):
                 continue
@@ -327,7 +342,8 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                 rows.append((*where, f"draws {extra} with no derivation record", "FAIL"))
                 continue
             faults = figures.derivation_faults(d, labelled if rec.get("layout") else None)
-            wrong = truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true)
+            wrong = truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true,
+                                unit)
             if wrong:
                 faults = [*faults, wrong]
             ops = " ; ".join(f"{o['text']} ({o['role']})" for o in d.get("operands") or [])

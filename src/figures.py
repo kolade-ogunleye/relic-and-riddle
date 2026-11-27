@@ -777,6 +777,24 @@ DERIVED_RULE = ("a derived figure is drawn only from signed operands labelled on
                 "or sum, hedged unless exact, with its derivation recorded (lander ruling 2026-11-26)")
 
 
+NEAR_RATIO = 1.1         # review 2 (N2): "nearly the same" is a derived claim: the ratio of the signed values under this
+FT_IN = re.compile(r"^\s*(\d[\d,]*)\s*FT\s+(\d+)\s*IN\s*$", re.IGNORECASE)
+
+
+def shown_value(shown: str) -> tuple[float, float] | None:
+    """(value, its last place) of a drawn derived number: "181" -> (181, 1); "1.7" -> (1.7, 0.1); a feet-and-inches
+    figure "10 FT 8 IN" -> (10.667, 1/12) in feet; None for no number ("" or a word form)."""
+    raw = str(shown or "").replace(",", "").strip()
+    m = FT_IN.match(raw)
+    if m:
+        return int(m.group(1)) + int(m.group(2)) / 12, 1 / 12
+    try:
+        v = float(raw)
+    except ValueError:
+        return None
+    return v, 10 ** -len(raw.partition(".")[2])
+
+
 def comparison_ratio(big: float, small: float) -> str:
     """How many times one figure is the other, never stated more confidently than the figures: one decimal below 2
     ("1.5"), else the whole number rounded half up (2.5 -> 3)."""
@@ -798,16 +816,18 @@ def operand(role: str, name: str, text: str, value: float, unit: str, approximat
 def rounded_once(shown: str, true: float) -> bool:
     """Whether the drawn number `shown` is `true` rounded once at shown's own precision (within half a unit of its
     last drawn place: "1.7" for 1.712, "180" for 180.39; never "2.0" for 1.712, nor "181" for 180.39)."""
-    raw = str(shown).replace(",", "").strip()
-    dp = len(raw.partition(".")[2])
-    return abs(float(raw) - float(true)) <= 0.5 * 10 ** -dp + 1e-9
+    got = shown_value(shown)
+    return got is not None and abs(got[0] - float(true)) <= 0.5 * got[1] + 1e-9
 
 
-def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, text: str) -> dict[str, Any]:
+def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, text: str,
+               threshold: float | None = None) -> dict[str, Any]:
     """The record of a derived figure: its `rule` (DERIVED_OPS), its operands (operand), the exact result of the rule
     on the operands' signed source values, `shown` (the number as drawn: "181", "2", "" for a comparison that states none,
     "nearly the same height"), whether it is hedged (never exact unless every operand is exact and the drawn number
-    is the result itself) and `text` (the words that state it on the surface: "ABOUT 181 M", "about 2 times")."""
+    is the result itself) and `text` (the words that state it on the surface: "ABOUT 181 M", "about 2 times").
+    A word form that states no number ("NEARLY LEVEL", "nearly the same") is a derived claim too (review 2, N2): its
+    `threshold` (a difference: the largest result it may state; a ratio: NEAR_RATIO) is recorded and re-checked."""
     vals = [float(o["value"]) for o in operands]
     if rule == "difference":
         result = abs(vals[0] - vals[1])
@@ -817,10 +837,13 @@ def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, tex
         result = max(vals[0], vals[1]) / min(vals[0], vals[1])
     else:
         raise ValueError(f"not a derivation rule: {rule!r}")
-    exact = (not any(o.get("approximate") for o in operands) and shown != ""
-             and _is_number(shown) and abs(float(shown.replace(",", "")) - result) < 1e-9)
-    return {"rule": rule, "operands": [dict(o) for o in operands], "result": round(result, 6), "shown": shown,
-            "hedged": not exact, "text": text}
+    got = shown_value(shown)
+    exact = (not any(o.get("approximate") for o in operands) and got is not None and abs(got[0] - result) < 1e-9)
+    rec = {"rule": rule, "operands": [dict(o) for o in operands], "result": round(result, 6), "shown": shown,
+           "hedged": not exact, "text": text}
+    if not shown:
+        rec["threshold"] = float(threshold if threshold is not None else NEAR_RATIO if rule == "ratio" else 0.0)
+    return rec
 
 
 def _is_number(text: str) -> bool:
@@ -866,16 +889,25 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
     if abs(want - float(rec.get("result", float("nan")))) > 1e-4 * max(1.0, abs(want)):
         out.append(f"its recorded result {rec.get('result')} is not the {rule} of its operands ({want:g})")
     shown = str(rec.get("shown") or "")
-    if shown and _is_number(shown):
-        got = float(shown.replace(",", ""))
+    got = shown_value(shown)
+    if shown and got is None:
+        out.append(f"its drawn figure {shown!r} is not a number")
+    elif got is not None:
         if rule == "ratio":
             if shown != comparison_ratio(max(vals[:2]), min(vals[:2])):
                 out.append(f"its drawn ratio {shown} is not its operands' ({want:.2f})")
         elif not rounded_once(shown, want):
             out.append(f"its drawn figure {shown} is not the {rule} of its operands' signed values ({want:g}) "
                        "rounded once")
-    exact = (not any(o.get("approximate") for o in ops) and shown and _is_number(shown)
-             and abs(float(shown.replace(",", "")) - want) < 1e-9)
+    else:                            # a word form ("NEARLY LEVEL", "nearly the same"): its stated threshold holds
+        limit = rec.get("threshold")
+        if not isinstance(limit, (int, float)) or isinstance(limit, bool):
+            out.append(f"its word form {rec.get('text')!r} records no threshold")
+        elif rule == "ratio" and not want < float(limit):
+            out.append(f"it says {rec.get('text')!r} for a ratio of {want:.3f} (the form holds under {limit:g})")
+        elif rule != "ratio" and not want <= float(limit) + 1e-9:
+            out.append(f"it says {rec.get('text')!r} for a {rule} of {want:g} (the form holds to {limit:g})")
+    exact = (not any(o.get("approximate") for o in ops) and got is not None and abs(got[0] - want) < 1e-9)
     text = str(rec.get("text") or "").upper()
     if not exact and not any(re.search(rf"\b{re.escape(h)}\b", text) for h in HEDGE_WORDS):
         out.append(f"its text {rec.get('text')!r} carries no hedge and it is not exact")

@@ -1,0 +1,720 @@
+[
+ {
+  "run": "amber_room_heist_1792790550",
+  "surface": "YouTube",
+  "first_row": "VANISHED",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 670,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 670.0,
+   "ratio": 0.728,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "amber_room_heist_1792801257",
+  "surface": "YouTube",
+  "first_row": "THE VANISHED",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 810,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 810.0,
+   "ratio": 0.602,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "amber_room_heist_1792805842",
+  "surface": "YouTube",
+  "first_row": "13,000",
+  "title_px": null,
+  "row_px": 795.34375,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 795.3,
+   "ratio": 0.614,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "damascus_steel_nanotubes_1792732472_short",
+  "surface": "YouTube",
+  "first_row": "DAMASCUS",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 653,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 653.0,
+   "ratio": 0.747,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "gol_gumbaz_whispering_gallery_1793278143",
+  "surface": "YouTube",
+  "first_row": "144",
+  "title_px": null,
+  "row_px": 534.671875,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 534.7,
+   "ratio": 0.913,
+   "holds": false,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0,
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (48.0 px) is 0.91 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  },
+  "refused": null
+ },
+ {
+  "run": "greek_fire_siphon_1792735284_short",
+  "surface": "YouTube",
+  "first_row": "THE SECRET",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 793,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 793.0,
+   "ratio": 0.615,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "hal_saflieni_hypogeum_1792949304",
+  "surface": "YouTube",
+  "first_row": "CARVED DEEP",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 773,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 773.0,
+   "ratio": 0.631,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "kailasa_temple_monolith_1792524470",
+  "surface": "YouTube",
+  "first_row": "THE KAILASA",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 865,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 865.0,
+   "ratio": 0.564,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1792961797",
+  "surface": "YouTube",
+  "first_row": "4–6",
+  "title_px": null,
+  "row_px": 530.8125,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 530.8,
+   "ratio": 0.919,
+   "holds": false,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0,
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (48.0 px) is 0.92 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  },
+  "refused": null
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793247464",
+  "surface": "YouTube",
+  "first_row": "GIANT DESERT",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 796,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 796.0,
+   "ratio": 0.613,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793251266",
+  "surface": "YouTube",
+  "first_row": "GIANT DESERT",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 796,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 796.0,
+   "ratio": 0.613,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793262388",
+  "surface": "YouTube",
+  "first_row": "GIANT DESERT",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 796,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 796.0,
+   "ratio": 0.613,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "nazca_lines_runway_paradox_1793267092",
+  "surface": "YouTube",
+  "first_row": "GIANT DESERT",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 796,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 796.0,
+   "ratio": 0.613,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "odessa_catacombs_1792970549",
+  "surface": "YouTube",
+  "first_row": "THE ODESA",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 737,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 737.0,
+   "ratio": 0.662,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "odessa_catacombs_1793098390",
+  "surface": "YouTube",
+  "first_row": "THE ODESA",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 737,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 737.0,
+   "ratio": 0.662,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "odessa_catacombs_1793100750",
+  "surface": "YouTube",
+  "first_row": "THE ODESA",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 737,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 737.0,
+   "ratio": 0.662,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792737039_short",
+  "surface": "YouTube",
+  "first_row": "25–30",
+  "title_px": null,
+  "row_px": 779.096875,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 779.1,
+   "ratio": 0.626,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "richat_structure_sahara_eye_1792778206",
+  "surface": "YouTube",
+  "first_row": "SEEN",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 772,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 772.0,
+   "ratio": 0.632,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793272675",
+  "surface": "YouTube",
+  "first_row": "SAHARA",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 835,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 835.0,
+   "ratio": 0.584,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "richat_structure_sahara_eye_1793474843",
+  "surface": "YouTube",
+  "first_row": "THE EYE",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 450,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 450.0,
+   "ratio": 1.084,
+   "holds": false,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0,
+   "title_remedy": {
+    "kind": "none",
+    "rows": [
+     "THE EYE",
+     "OF THE SAHARA"
+    ],
+    "first_row_px": 446.0,
+    "need_px": 625.6,
+    "reason": "no form of the headline on its ladder (held at the feed floor) has a longer first row"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (48.0 px) is 1.08 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  },
+  "refused": null
+ },
+ {
+  "run": "roman_self_healing_concrete_1793163918",
+  "surface": "YouTube",
+  "first_row": null,
+  "title_px": null,
+  "row_px": null,
+  "mast_px": null,
+  "mast_size": null,
+  "record": {},
+  "refused": "Declined: YouTube thumbnail: no line of the headline chain passes: youtube_headline: none in this run; thumbnail: the YouTube headline 'WHY ROMAN CONCRETE / HEA"
+ },
+ {
+  "run": "singing_colossi_of_memnon_1792952878",
+  "surface": "YouTube",
+  "first_row": "THE SINGING",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 840,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 840.0,
+   "ratio": 0.581,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "trepanation_miracle_1792995462",
+  "surface": "YouTube",
+  "first_row": "SURVIVING",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 719,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 719.0,
+   "ratio": 0.679,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "tunguska_event_1908_1792930600",
+  "surface": "YouTube",
+  "first_row": "830",
+  "title_px": null,
+  "row_px": 788.75,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 788.8,
+   "ratio": 0.619,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792985912",
+  "surface": "YouTube",
+  "first_row": "A BEDROCK",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 765,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 765.0,
+   "ratio": 0.638,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1792993374",
+  "surface": "YouTube",
+  "first_row": "137–138",
+  "title_px": null,
+  "row_px": 900.11875,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 900.1,
+   "ratio": 0.542,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "unfinished_obelisk_aswan_1793056896",
+  "surface": "YouTube",
+  "first_row": "137–138",
+  "title_px": null,
+  "row_px": 900.11875,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 900.1,
+   "ratio": 0.542,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "voynich_manuscript_1792965308",
+  "surface": "YouTube",
+  "first_row": "THE UNBROKEN",
+  "title_px": [
+   160,
+   160
+  ],
+  "row_px": 854,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 854.0,
+   "ratio": 0.571,
+   "holds": true,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0
+  },
+  "refused": null
+ },
+ {
+  "run": "wieliczka_salt_mine_1792974672",
+  "surface": "YouTube",
+  "first_row": "THE SALT",
+  "title_px": [
+   190,
+   190
+  ],
+  "row_px": 617,
+  "mast_px": 488.0,
+  "mast_size": 48.0,
+  "record": {
+   "surface": "YouTube thumbnail",
+   "token": "masthead.hook_ratio_max",
+   "max": 0.78,
+   "masthead_px": 488.0,
+   "first_row_px": 617.0,
+   "ratio": 0.791,
+   "holds": false,
+   "size_px": 48.0,
+   "canvas_px": 64.0,
+   "floor_px": 48.0,
+   "title_remedy": {
+    "kind": "none",
+    "rows": [
+     "THE SALT",
+     "CATHEDRAL"
+    ],
+    "first_row_px": 615.0,
+    "need_px": 625.6,
+    "reason": "no form of the headline on its ladder (held at the feed floor) has a longer first row"
+   },
+   "at_ceiling": true,
+   "reason": "the mark at its ladder's floor (48.0 px) is 0.79 of the first title row; no legal re-break or declared title size gives a longer first row: drawn, recorded at its ceiling"
+  },
+  "refused": null
+ }
+]

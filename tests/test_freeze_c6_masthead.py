@@ -51,15 +51,19 @@ def _cover(tmp_path, heading_text: str, facebook: bool = False):
 # ------------------------------------------------------------------------------------------------------------- M1
 
 @pytest.mark.parametrize("facebook", [False, True])
-def test_a_cover_with_a_short_first_row_draws_its_mark_at_the_ladders_floor_and_holds_the_ratio(tmp_path, facebook):
+def test_a_cover_with_a_short_first_row_steps_its_mark_down_until_the_ratio_holds(tmp_path, facebook):
     """Panel 7 PL3 (Richat, 'THE EYE', 536 / 555 px = 0.97 at a fixed 53.3 px): the cover's mark steps to its floor."""
     _, lay = _cover(tmp_path, "THE EYE OF THE SAHARA", facebook)
     m, rec = lay.meta["masthead"], lay.meta["hook_ratio"]
     canvas = brand_system.type_px("masthead", "carousel")
     floor = masthead.fit_ladder(canvas)[-1]
     assert lay.meta["heading"]["lines"][0] == "THE EYE"
-    assert m["shown"] and abs(m["size_px"] - floor) < 1e-6          # the floor, never under it
     row = masthead.ink_row(lay.plates["heading"])
+    ladder = masthead.fit_ladder(canvas)
+    # the least step down that holds the ratio (never under the floor); the step above it does not hold
+    assert m["shown"] and floor - 1e-6 <= m["size_px"] < canvas and m["size_px"] in ladder
+    above = ladder[ladder.index(m["size_px"]) - 1]
+    assert masthead.group_width(above) / row > brand_system.tok("masthead.hook_ratio_max")
     assert rec["first_row_px"] == round(row, 1) and rec["holds"] and not rec.get("at_ceiling")
     assert m["group_width"] / row <= brand_system.tok("masthead.hook_ratio_max")
     assert rec["surface"] == ("Facebook carousel cover" if facebook else "carousel cover")

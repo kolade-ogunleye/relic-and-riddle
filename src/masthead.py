@@ -126,9 +126,12 @@ def group_width(size: float, x0: float = 0.0) -> float:
 # makes the first line longer under the one line policy, src/line_policy.py via the heading engine, or the title's
 # declared smaller size where the surface's ladder has one); else drawn as it is and recorded at its ceiling with the
 # measured ratio. Interiors and Story frames are not hook surfaces: their masthead is not bound by it.
-# Two sizes, never a size per hook (lane B cycle 3 ruling B-S2-1, "one mark size": a masthead fitted to each hook
-# varied 64 / 60 / 54 / 48 px across one channel): a hook surface's masthead is its canvas size where the ratio holds
-# there, else its ladder's floor, the one declared smaller size (the YouTube thumbnail's one size is already its floor).
+# The least step down (the brief's order: the masthead's declared smaller sizes, down to its floor): the largest step of
+# its fit ladder whose group holds the ratio, else the floor. Decision (measured on the dev corpus, 2026-11-27): a
+# first draft took the floor at once (two sizes, for lane B cycle 3 ruling B-S2-1's "one mark size"), but a smaller
+# mark reads lower after the platform re-encode on the same ground (Amber IG cover 5.80 -> 5.39 at 40 px against 53.3):
+# legibility outranks one system in the trade-off order, so the mark shrinks no further than the ratio needs. The
+# YouTube thumbnail keeps its one size (B-S2-1, already the floor); there the title side is what remains.
 HOOK_SURFACES = ("carousel cover", "Facebook carousel cover", "YouTube thumbnail")
 
 
@@ -179,11 +182,12 @@ def hook_min_row(size: float, x0: float = 0.0) -> float:
 
 
 def hook_size(size: float, row: float | None, x0: float = 0.0) -> float:
-    """The masthead's size on a hook surface whose first title row is `row` px of ink: `size` (the canvas's) where its
-    group holds the ratio there, else its fit ladder's floor (the one declared smaller size; never under it)."""
-    if row is None or hook_holds(group_width(size, x0), row):
+    """The masthead's size on a hook surface whose first title row is `row` px of ink: the largest step of its fit
+    ladder from `size` (the canvas's) whose group holds the ratio, else the ladder's floor (never under it)."""
+    if row is None:
         return float(size)
-    return float(fit_ladder(size)[-1])
+    ladder = fit_ladder(size)
+    return float(next((s for s in ladder if hook_holds(group_width(s, x0), row)), ladder[-1]))
 
 
 def hook_record(surface: str, group: float | None, row: float | None, size_px: float | None, canvas_px: float,

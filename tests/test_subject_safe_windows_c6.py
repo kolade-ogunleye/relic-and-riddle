@@ -48,7 +48,7 @@ def test_no_crop_shows_less_of_the_subject_than_without_it():
     without = pf.place(None, window, analysis=blind)
     got = pf.place(None, window, analysis=a)
     view = window.view_box()
-    shown = lambda r: pf._overlap(a.focus, pf._sub(tuple(r["box"]), window.size, view))  # noqa: E731
+    shown = lambda r: pf._overlap(a.focus, pf._sub(tuple(r["box"]), window.size, view))
     assert shown(got) >= shown(without) - 1e-6              # (a)
 
 

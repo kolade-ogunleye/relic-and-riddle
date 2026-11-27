@@ -52,7 +52,6 @@ from .cover_design import (
     _provenance,
     figure_check,
     grid_proof,
-    reviewed_focus,
 )
 from .graphics import (
     FIGURE_SETTLE,
@@ -3836,8 +3835,10 @@ def _plate_mask(plate: Any, size: tuple[int, int]) -> Image.Image:
 
 # ------------------------------------------------------------------------------------------------ hook frame
 def _focus_frame(photo: Path, size: tuple[int, int]) -> tuple[float, float, float, float] | None:
-    """The reviewed focus (cover_design.reviewed_focus) in frame px, through the caption-strip crop and the fit."""
-    found = reviewed_focus(Path(photo))
+    """The subject (photo_subject.subject_focus: the reviewed focus, else an accepted derived box) in frame px,
+    through the caption-strip crop and the fit."""
+    from .photo_subject import subject_focus
+    found = subject_focus(Path(photo))
     if not found:
         return None
     with Image.open(photo) as im:

@@ -709,18 +709,27 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
                  floor=tuple(today["box"]))
     t = measure(a, tuple(today["box"]), window)
     floor_focus, floor_held = t.get("focus", 0.0), t.get("held", 1.0)
-    if rec.get("focus", 1.0) < floor_focus - 1e-6 or rec.get("held", 1.0) < floor_held - 1e-6:
-        # never less of the subject than without it: the crop the photograph gets today, judged with the subject
-        t.update({k: rec[k] for k in ("focus_need", "held_need", "hold_short") if k in rec})
-        t["problems"] = problems(t, window)
-        rec = {**today, **t, "fit": not t["problems"], "window": window.name, "basis": "subject floor (as without)"}
-    if ("subject" in rec["problems"] and not rec.get("hold_short")
-            and rec.get("focus", 0.0) >= floor_focus - 1e-6 and rec.get("held", 1.0) >= floor_held - 1e-6
-            and rec.get("focus", 0.0) + 1e-3 >= min(rec.get("focus_need", 1.0), floor_focus + 1e-3) - 1e-3
-            and not set(rec["problems"]) - {"subject"} - set(today["problems"])):
-        # the subject is as whole here as any acceptable crop of this window shows it: its size alone is no fault
-        rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"], "subject_partial": True}
-        rec["fit"] = not rec["problems"]
+    t.update({k: rec[k] for k in ("focus_need", "held_need", "hold_short") if k in rec})
+    t["problems"] = problems(t, window)
+    t = {**today, **t, "window": window.name}
+
+    def settled(r: dict[str, Any]) -> list[str]:
+        """r's problems, less "subject" where the subject is as whole as the window's acceptable crops show it and
+        no less than without a subject (its size alone is no fault)."""
+        if ("subject" in r["problems"] and not r.get("hold_short") and r.get("focus", 0.0) >= floor_focus - 1e-6
+                and r.get("held", 1.0) >= floor_held - 1e-6):
+            return [p for p in r["problems"] if p != "subject"]
+        return list(r["problems"])
+
+    shows_less = rec.get("focus", 1.0) < floor_focus - 1e-6 or rec.get("held", 1.0) < floor_held - 1e-6
+    if shows_less or set(settled(rec)) - set(settled(t)):
+        # never less of the subject than without it, and no problem the crop without a subject did not have (a
+        # structure under the type that the photograph's own crop cleared): that crop, judged with the subject
+        rec = {**t, "basis": "subject floor (the crop as without a subject)"}
+    left = settled(rec)
+    if left != rec["problems"]:
+        rec = {**rec, "problems": left, "subject_partial": True}
+    rec["fit"] = not rec["problems"]
     return rec
 
 
@@ -1006,7 +1015,12 @@ def drawn_record(photo: Path, window: Window, rec: dict[str, Any], drew: dict[st
         return rec
     a = analysis_of(Path(photo))
     got = measure(a, tuple(float(v) for v in box), window)
+    if a.focus is not None:   # the drawn crop is the one without a subject: as whole as it shows it (cycle 6)
+        got.update(_subject_needs(a, window, fit_box(a.size, window.size)))
     got["problems"] = problems(got, window)
+    if "subject" in got["problems"] and a.focus is not None and not got.get("hold_short"):
+        got["problems"] = [p for p in got["problems"] if p != "subject"]
+        got["subject_partial"] = True
     return {**got, "fit": not got["problems"], "moved": bool(drew.get("moved")), "window": window.name,
             "drawn": "cover crop", "measured": {k: v for k, v in rec.items() if k != "window"}}
 

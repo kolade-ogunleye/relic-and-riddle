@@ -1827,6 +1827,11 @@ def _rung_above(size: float) -> int:
     return min((r for r in CAPTION_LADDER if r > size), default=max(CAPTION_LADDER))
 
 
+def _rung_below(size: float) -> int | None:
+    """The next CAPTION_LADDER rung under `size`, None at the ladder's floor."""
+    return max((r for r in CAPTION_LADDER if r < size), default=None)
+
+
 def bounded_caption_sizes(fits: list[int], joined: list[bool]) -> list[int]:
     """Lane C cycle 3 (MO-cap-size): the size each 9:16 burst draws at, so that two bursts shown back to back
     (joined[i]: burst i hands over to burst i + 1 with no pause) differ by at most one CAPTION_LADDER rung.
@@ -2162,9 +2167,24 @@ CLIP_RULE = ("one caption size per clip (lander ruling 2026-11-26): the largest 
 CLIP_FORCED_FAULTS = ("article_line_end", "keep_together_split", "figure_group_split", "name_split")
 
 
+def _hedge_line_legal(shown: list[str], k: int) -> bool:
+    """Lander ruling, freeze cycle 6 round 2 (rule 2): a MULTI-WORD hedge alone on line 1 directly above its figure with
+    its unit on line 2 is a legal form (MORE THAN / 590 SQUARE FEET, BETWEEN ROUGHLY / 41.75 METRES): the figure keeps
+    its unit and the hedge stands next to it. One word alone on a line stays illegal (WITH / OVER 13,000 POUNDS)."""
+    if not 2 <= k < len(shown) or not any(c.isdigit() for c in shown[k]):
+        return False
+    words = {w for h in HEDGE_PHRASES for w in h}
+    if any(_norm(w) not in words or _ends_clause(w) for w in shown[:k]):
+        return False
+    units = MEASURE_UNITS | _line_policy.UNITS
+    return any(_norm(w) in units for w in shown[k + 1:])
+
+
 def _break_faults(shown: list[str], k: int) -> list[str]:
     """Why a two-line break before shown word k breaks LINE_RULE (line_rule_faults' names), [] for a legal break."""
     out = []
+    if _hedge_line_legal(shown, k):
+        return out
     if _hedge_break(shown, k):
         out.append("qualifier_line")
     elif never_end_end(shown[k - 1]):
@@ -2213,13 +2233,14 @@ def _clip_form(raw: tuple[str, ...], size: int) -> tuple[str, int] | None:
     best = None
     for k in range(1, n):
         a, b = shown[:k], shown[k:]
-        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k) or k in kept:
+        hedge_ok = _hedge_line_legal(list(shown), k)   # round 2 rule 2: the hedge's own bond to its figure may part
+        if _break_faults(shown, k) or (k - 1) in named or _policy_name_split(words, k) or (k in kept and not hedge_ok):
             continue
         # the burst's own break (the builder's form: a figure group's seam, a line past the caps) stands where legal;
         # any other break keeps each line within one burst's caps and parts no bond
         if k != own and (
                 max(len(a), len(b)) > MAX_BURST_WORDS or max(len(" ".join(a)), len(" ".join(b))) > MAX_BURST_CHARS
-                or (k - 1) in held or _is_atomic_boundary(shown[k - 1], shown[k]) or _bare(shown[k - 1]) in _ARTICLES
+                or ((k - 1) in held and not hedge_ok) or _is_atomic_boundary(shown[k - 1], shown[k]) or _bare(shown[k - 1]) in _ARTICLES
                 or any(TERMINAL_PUNCT.search(w) for w in shown[:k - 1] + shown[k:-1])):
             continue
         got = widths(k)
@@ -4474,6 +4495,9 @@ WIDE_RULE = ("16:9 caption phrase rule (freeze cycle 6, panel 7 MO-C2): a 16:9 b
              "most as fast as the sentence's bursts were")
 
 
+DIMENSION_WORDS = frozenset(("across", "long", "wide", "deep", "high", "tall", "thick", "away", "apart", "around"))
+
+
 def wide_cut_fault(words: list[Any], k: int) -> str | None:
     """Why a 16:9 burst cut after word k (mid-sentence) reads badly, else None: "function_end" (the burst ends on a
     preposition, article or conjunction: line_policy.end_class never / last resort), "auxiliary_end" (a copula or
@@ -4488,6 +4512,10 @@ def wide_cut_fault(words: list[Any], k: int) -> str | None:
     if cls == "weak":
         return "auxiliary_end"
     if noun_phrase_cut(words, k) is not None:
+        return "phrase_unit"
+    # round 2 (review C2): a figure's unit and the dimension word it takes (40 KILOMETRES | ACROSS, 30 METRES | WIDE)
+    if (k >= 1 and _norm(raw[k]) in (MEASURE_UNITS | _line_policy.UNITS) and _norm(raw[k + 1]) in DIMENSION_WORDS
+            and not _line_policy.closes(raw[k])):
         return "phrase_unit"
     # an article's one modifier and the word it modifies (THE OVERLYING | SEDIMENTARY ROCK): line_policy.phrase_unit
     # leaves an -ING modifier out (a gerund may head the phrase), so a 16:9 cut weighs it here, as a cost only
@@ -4632,6 +4660,17 @@ def _wide_phrase_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str,
         result += parts
     if [id(w) for q in result for w in q] != [id(w) for q in out for w in q]:
         raise RuntimeError("16:9 caption phrase pass lost or reordered a word")
+    if record is not None:   # round 2 (review C2): every faulted cut the pass leaves is recorded with its reason
+        for q, nxt in itertools.pairwise(result):
+            k = pos[id(q[-1])]
+            why = wide_cut_fault(words, k)
+            if why is not None:
+                record.append({"at": round(float(nxt[0].get("start", 0.0)), 2), "wide_fault_kept": why,
+                               "text": " ".join(raw_all[pos[id(q[0])]:k + 1]) + " | "
+                               + " ".join(raw_all[k + 1:pos[id(nxt[-1])] + 1]),
+                               "why": "no re-cut of its sentence holds every burst on one line, 0.8 s or more, two "
+                                      "words or more, no faster than the sentence's fastest burst and inside its "
+                                      "pauses (reading speed ranks above phrase integrity)", "rule": WIDE_RULE})
     return result
 
 
@@ -4655,36 +4694,52 @@ def _clip_size_capacity(phrases: list[list[dict[str, Any]]], words: list[dict[st
 
 
 CAPTION_STRAND_PASS = True   # freeze cycle 6 (panel 7 C1): a forced break is the last remedy, not the first
-STRAND_RULE = ("caption forced-break rule (lander ruling, freeze cycle 6, refining R1): a burst with no legal form at "
-               "the clip's size never draws a line of one function word, nor parts a figure from its unit or hedge, "
-               "while (1) moving the stranded word to the neighbouring burst or (2) re-cutting the pair gives bursts "
-               "that set on legal lines at the clip's size, up 0.8 s or more, with no more plate-height changes; only "
-               "then (3) the recorded forced break")
+CAPTION_FORCED_RUNG_MAX = 2  # round 2 ruling (rule 4): at most this many bursts of a clip set one rung under its size
+STRAND_MOVE_MIN_S = 0.3      # round 2 ruling (rule 3): a moved word stays on screen this long as its burst's last word
+STRAND_RULE = ("caption forced-break rule (lander rulings, freeze cycle 6 round 2, refining R1): for a burst with no "
+               "legal form at the clip's size, in order: (1) re-cut the pair or the triple of back-to-back bursts "
+               "around it (no burst of the re-cut ends on a function word or auxiliary); (2) a multi-word hedge on its "
+               "own line above its figure with its unit is a legal form; (3) move the stranded preposition to the "
+               "previous burst, where it stays 0.3 s or more as the last word and the move parts no phrase unit, name "
+               "or key term; (4) set the burst alone one rung under the clip's size (at most two a clip); only then "
+               "(5) the recorded forced break")
+# the closed-class words that are not prepositions (rule 3 moves a preposition only)
+_NOT_PREPOSITIONS = frozenset((
+    "a", "an", "the", "this", "that", "these", "those", "its", "his", "her", "their", "our", "my", "your", "all", "any",
+    "another", "both", "each", "every", "some", "such", "no", "neither", "more", "most", "less", "least", "quite",
+    "whatever", "as", "than", "en", "due"))
+
+
+def _is_preposition(word: str) -> bool:
+    b = _bare(word)
+    return (b in _NEVER_END_WORDS and b not in _NOT_PREPOSITIONS
+            and b not in _line_policy.brand_system.LINE_END_CONJUNCTIONS and b not in FUNCTION_WORDS - _NEVER_END_WORDS)
 
 
 def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[str, Any]],
                     emphasis: list[str] | None, size: int,
                     protected: set[int] | None = None) -> list[dict[str, Any]]:
-    """Every legal remedy for burst i of `out`, which has no legal form at the clip's size `size` (_clip_form None):
-    with each back-to-back neighbour (no pause between them; never the hook burst shown whole on frame 0), the pair's
-    words re-cut at every other place, or joined into one burst. Remedy 1: the cut moves by one word (the stranded word
-    goes to the neighbour, its timing with it); remedy 2: any other re-cut of the pair. Legal: every burst of it is
-    two words or more, not function words only, holds no clause punctuation inside, sets at `size` on legal lines
-    (_clip_form; one line not over one burst's caps), is up CAPTION_SPLIT_MIN_S or more on the delivered timing
-    (burst_timings with its neighbours), and the window's plate-height changes do not grow; the new cut parts no bond,
-    name, unit, figure group, key term, atomic pair or phrase unit (remedy 1 may part a lead-in bond: the stranded
-    word's own). "function_end": the new cut ends a burst on a
-    function word (the lander's remedy-1 example, GERMAN SOLDIERS OF | ARMY GROUP NORTH): allowed for remedy 1 only
-    (the stranded word itself moved), ranked after every remedy without one. Sorted best first: no function end, remedy 1 before 2, fewer height changes, evener."""
+    """Every legal remedy for burst i of `out`, which has no legal form at the clip's size `size` (_clip_form None),
+    in the round-2 order (STRAND_RULE). Windows: the pairs (i-1, i), (i, i+1) and the triple (i-1, i, i+1) of
+    back-to-back bursts (no pause between them; never the hook burst shown whole on frame 0).
+
+    Rule 1, "recut": the window's words re-cut into any number of bursts at any cuts. Legal: every burst is two words
+    or more, not function words only, holds no clause punctuation inside, sets at `size` on legal lines (_clip_form;
+    one line not over one burst's caps), is up CAPTION_SPLIT_MIN_S or more on the delivered timing (burst_timings with
+    its neighbours), and no burst but the window's last ends on a function word or an auxiliary; a new cut parts no
+    bond, name, unit, figure group, key term, atomic pair or phrase unit; the window's plate-height changes do not grow.
+    Rule 3, "move": the stranded first word of burst i, a preposition, goes to the previous burst as its last word
+    (GERMAN SOLDIERS OF | ARMY GROUP NORTH): only its own lead-in bond may part, it is on screen STRAND_MOVE_MIN_S or
+    more before that burst leaves, and the receiving burst breaks no line inside a phrase unit it did not break before.
+    Sorted best first: recut before move, fewer bursts changed, fewer cuts moved, fewer height changes, evener."""
     pos = {id(w): k for k, w in enumerate(words)}
     raw_all = [str(w.get("word", "")) for w in words]
+    hard = caption_bonds(words, names=False) | name_bonds(raw_all)
     if protected is None:
-        protected = (name_bonds(raw_all) | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words)
-                     | emphasis_bonds(words, emphasis))
-    # remedy 1 may move a stranded LEAD-IN word (OF before ARMY GROUP NORTH) to the previous burst: the lead-in bond
-    # (lead_in_bonds) is what stranded it; a hedge, figure, unit or name bond never gives way
-    lead_only = lead_in_bonds(raw_all, caption_bonds(words, names=False) | name_bonds(raw_all)) - (
-        caption_bonds(words, names=False) | name_bonds(raw_all) | unit_links(words) | figure_group_tail_links(words))
+        protected = hard | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words) | emphasis_bonds(
+            words, emphasis)
+    lead_only = lead_in_bonds(raw_all, hard) - (hard | unit_links(words) | figure_group_tail_links(words)
+                                                | emphasis_bonds(words, emphasis))
     timing = burst_timings(out, dwell=True)
     lead = CAPTION_LEAD_FRAMES / VIDEO_FPS
     hook = bool(out) and float(out[0][0].get("start", 0.0)) - lead <= CAPTION_FIRST_FRAME_WHOLE_S + 1e-9
@@ -4706,67 +4761,111 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
         return (len(q) < 2 or _function_only(q) or lines_of(q) is None
                 or any(CLAUSE_PUNCT.search(w) or TERMINAL_PUNCT.search(w) for w in raw[1:-1]))
 
+    def unit_line(q: list[dict[str, Any]]) -> bool:
+        raw = raw_of(q)
+        form = _clip_form(raw, size)
+        return bool(form and form[0] == "two" and _line_policy.phrase_unit(
+            list(raw[:form[1] - 1]), raw[form[1] - 1], raw[form[1]]) is not None)
+
     def changes(seq: list[list[dict[str, Any]]]) -> int:
         lc = [lines_of(q) or 2 for q in seq]
         return sum(u != v for u, v in itertools.pairwise(lc))
 
+    def joined(lo: int, hi: int) -> bool:
+        return all(timing[j][1] >= timing[j + 1][0] - 1e-3 and not _pause_break(words, pos[id(out[j][-1])])
+                   for j in range(lo, hi))
+
+    def timed_ok(win_lo: int, win_hi: int, lo: int, hi: int, parts) -> bool:
+        ctx = out[win_lo:lo] + parts + out[hi + 1:win_hi]
+        prev = out[:win_lo][-1:]
+        tm = burst_timings(prev + ctx, dwell=True)[len(prev):]
+        first = lo - win_lo
+        return not any(h - s < CAPTION_SPLIT_MIN_S - 1e-6 for s, h, _ in tm[first:first + len(parts)])
+
     found: list[dict[str, Any]] = []
-    for j in (i - 1, i + 1):
-        lo, hi = min(i, j), max(i, j)
-        if lo < 0 or hi >= len(out) or (hook and lo == 0):
-            continue
-        if timing[lo][1] < timing[hi][0] - 1e-3 or _pause_break(words, pos[id(out[lo][-1])]):
-            continue   # a pause between them stays a cut: the words never cross it
-        pair = out[lo] + out[hi]
-        c0 = len(out[lo])
+    windows = [(lo, hi) for lo, hi in ((i - 1, i), (i, i + 1), (i - 1, i + 1))
+               if lo >= 0 and hi < len(out) and not (hook and lo == 0) and joined(lo, hi)]
+    for lo, hi in windows:
+        flat = [w for q in out[lo:hi + 1] for w in q]
+        n = len(flat)
+        old_cuts, at = set(), 0
+        for q in out[lo:hi]:
+            at += len(q)
+            old_cuts.add(at)
         win_lo, win_hi = max(0, lo - 1), min(len(out), hi + 2)
         before = changes(out[win_lo:win_hi])
-        for c in [*range(1, len(pair)), None]:
-            if c == c0:
-                continue
-            if c is None:
-                if len(pair) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS:
+
+        def cut_ok(c: int) -> bool:
+            k = pos[id(flat[c - 1])]
+            if never_end_end(raw_all[k]) or _bare(raw_all[k]) in _line_policy.brand_system.LINE_END_WEAK:
+                return False   # rule 1: no burst of a re-cut ends on a function word or an auxiliary
+            if c in old_cuts:
+                return True
+            return (k not in protected and not _is_atomic_boundary(raw_all[k], raw_all[k + 1])
+                    and noun_phrase_cut(words, k) is None)
+
+        oks = [c for c in range(1, n) if cut_ok(c)]
+        best: list[tuple] = []
+
+        def walk(start: int, cuts: list[int]) -> None:
+            if len(best) > 4000:
+                return
+            for c in [x for x in oks if x > start] + [n]:
+                q = flat[start:c]
+                if len(q) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS + 2:
+                    break
+                if bad_part(q):
                     continue
-                parts = [pair]
-                end_fn = False
-            else:
-                k = pos[id(pair[c - 1])]
-                if ((k in protected and not (abs(c - c0) == 1 and k in lead_only))
-                        or _is_atomic_boundary(raw_all[k], raw_all[k + 1]) or noun_phrase_cut(words, k) is not None):
-                    continue
-                parts = [pair[:c], pair[c:]]
-                end_fn = never_end_end(raw_all[k])
-                if end_fn and (abs(c - c0) != 1 or _bare(raw_all[k]) in _ARTICLES):
-                    continue   # a burst ends on a function word only where it is the stranded word moved (remedy 1),
-                    #            and never on an article (no burst ends on THE, A or AN: the round-4 rule stands)
-            if any(bad_part(q) for q in parts):
+                if c == n:
+                    best.append(tuple(cuts))
+                else:
+                    walk(c, cuts + [c])
+        walk(0, [])
+        for cuts in best:
+            bounds = [0, *cuts, n]
+            parts = [flat[a:b] for a, b in itertools.pairwise(bounds)]
+            if [len(q) for q in parts] == [len(q) for q in out[lo:hi + 1]]:
                 continue
-            ctx = out[win_lo:lo] + parts + out[hi + 1:win_hi]
-            prev = out[:win_lo][-1:]
-            tm = burst_timings(prev + ctx, dwell=True)[len(prev):]
-            first = lo - win_lo
-            if any(hide - show < CAPTION_SPLIT_MIN_S - 1e-6 for show, hide, _ in tm[first:first + len(parts)]):
+            if not timed_ok(win_lo, win_hi, lo, hi, parts):
                 continue
-            after = changes(ctx)
+            after = changes(out[win_lo:lo] + parts + out[hi + 1:win_hi])
             if after > before:
                 continue
-            kind = "remedy_1" if c is not None and abs(c - c0) == 1 else "remedy_2"
             lens = [len(" ".join(raw_of(q))) for q in parts]
-            found.append({"lo": lo, "hi": hi, "parts": parts, "kind": kind, "function_end": bool(end_fn),
-                          "height_changes": [before, after],
-                          "form": " | ".join(" ".join(raw_of(q)) for q in parts),
-                          "key": (int(bool(end_fn)), kind != "remedy_1", after, max(lens) - min(lens))})
+            found.append({"lo": lo, "hi": hi, "parts": parts, "kind": "recut", "function_end": False,
+                          "height_changes": [before, after], "form": " | ".join(" ".join(raw_of(q)) for q in parts),
+                          "key": (0, hi - lo, len(set(cuts) ^ old_cuts), after, max(lens) - min(lens))})
+    # rule 3: the stranded preposition moves to the previous burst
+    if i > 0 and len(out[i]) > 2 and not (hook and i - 1 == 0) and joined(i - 1, i):
+        w0 = out[i][0]
+        k = pos[id(w0)]
+        parts = [out[i - 1] + [w0], out[i][1:]]
+        win_lo, win_hi = max(0, i - 2), min(len(out), i + 2)
+        if (_is_preposition(raw_all[k]) and (k - 1 not in protected or k - 1 in lead_only)
+                and (k not in protected or k in lead_only) and noun_phrase_cut(words, k) is None
+                and not any(bad_part(q) for q in parts)
+                and not (unit_line(parts[0]) and not unit_line(out[i - 1]))
+                and timed_ok(win_lo, win_hi, i - 1, i, parts)):
+            ctx = out[win_lo:i - 1] + parts + out[i + 1:win_hi]
+            prev = out[:win_lo][-1:]
+            tm = burst_timings(prev + ctx, dwell=True)[len(prev):]
+            hide = tm[i - 1 - win_lo][1]
+            shown = hide - (float(w0.get("start", 0.0)) - lead)
+            before, after = changes(out[win_lo:win_hi]), changes(ctx)
+            if shown >= STRAND_MOVE_MIN_S - 1e-6 and after <= before:
+                found.append({"lo": i - 1, "hi": i, "parts": parts, "kind": "move", "function_end": True,
+                              "height_changes": [before, after], "moved_on_screen_s": round(shown, 2),
+                              "form": " | ".join(" ".join(raw_of(q)) for q in parts), "key": (1, 1, 1, after, 0)})
     found.sort(key=lambda e: e["key"])
     return found
 
 
 def _strand_pass(out: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None,
                  size: int, record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
-    """Freeze cycle 6 (panel 7 C1; lander ruling refining R1): before a burst with no legal form at the clip's size is
-    drawn on a forced break (_clip_fallback: OF / ARMY GROUP NORTH, MORE THAN / 590 SQUARE FEET), its remedies are
-    tried in the lander's order (strand_remedies: the stranded word moved to the neighbouring burst, then the pair
-    re-cut), and the best is taken, recorded ("strand_remedy"). What is left on a forced break has none (the record's
-    "no legal form" is then true: the corpus enumerates it)."""
+    """Freeze cycle 6 (panel 7 C1; lander rulings, round 2): before a burst with no legal form at the clip's size is
+    set one rung under it (rule 4, _clip_fit) or drawn on a forced break, its remedies are tried in the ruled order
+    (strand_remedies: rule 1, the pair or triple re-cut; rule 3, the stranded preposition moved), and the best is
+    taken, recorded ("strand_remedy": recut / move). What is left has none (the corpus enumerates it on its own)."""
     out = [list(p) for p in out if p]
     if not CAPTION_STRAND_PASS or len(out) < 2:
         return out
@@ -4786,9 +4885,12 @@ def _strand_pass(out: list[list[dict[str, Any]]], words: list[dict[str, Any]], e
             was = " | ".join(" ".join(str(w.get("word", "")) for w in q) for q in out[r["lo"]:r["hi"] + 1])
             out[r["lo"]:r["hi"] + 1] = r["parts"]
             if record is not None:
-                record.append({"at": round(float(r["parts"][0][0].get("start", 0.0)), 2), "strand_remedy": r["kind"],
-                               "was": was, "into": r["form"], "function_end": r["function_end"],
-                               "height_changes": r["height_changes"], "rule": STRAND_RULE})
+                row = {"at": round(float(r["parts"][0][0].get("start", 0.0)), 2), "strand_remedy": r["kind"],
+                       "was": was, "into": r["form"], "function_end": r["function_end"],
+                       "height_changes": r["height_changes"], "rule": STRAND_RULE}
+                if "moved_on_screen_s" in r:
+                    row["moved_on_screen_s"] = r["moved_on_screen_s"]
+                record.append(row)
             took = True
             break
         if not took:
@@ -4830,6 +4932,7 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
         out = _capacity_pass(out, words, emphasis, size, record, two_line)
     under: list[dict[str, Any]] = []
     forced: list[dict[str, Any]] = []
+    forced_rung: list[dict[str, Any]] = []
     # a burst of several words NO break sets at the size (WITH THE FLAMMABLE COMPOUND at 80 px: line 1 alone passes
     # the ink budget) and no legal split holds: it is cut at its least bad place into two bursts that set, recorded
     # ("forced_split"): fewest bonds cut, no never-end burst end, no phrase unit parted, no one-word part, the evener
@@ -4847,7 +4950,10 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
                  phrase_unit_cut(words, pos[id(p[j - 1])]) is not None, j == 1 or j == len(p) - 1,
                  abs(2 * j - len(p)), j) for j in range(1, len(p))
                 if all(len(q) == 1 or _clip_form(q, size) is not None or _clip_fallback(q, size) is not None
-                       for q in (raw[:j], raw[j:]))]
+                       for q in (raw[:j], raw[j:]))
+                # round 2: never a one-word burst of a function word (TOOLS DATING | FROM | ROUGHLY 145,000 ...): the
+                # burst goes on to the strand remedies instead
+                and not any(len(q) == 1 and _bare(q[0]) in NEVER_END for q in (raw[:j], raw[j:]))]
         if not cuts:
             done.append(p)
             continue
@@ -4873,6 +4979,19 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
             continue
         lower = next(((r, f) for r in CAPTION_LADDER if r < size for f in [_clip_form(raw, r)] if f is not None
                       and len(raw) > 1 and CAPTION_MISFIT_OWN_SIZE), None)
+        rung = _rung_below(size)
+        if (lower is None and len(raw) > 1 and rung is not None and len(forced_rung) < CAPTION_FORCED_RUNG_MAX
+                and _clip_form(raw, rung) is not None):
+            # round 2 ruling (rule 4): the burst ALONE one rung under the clip's size, where that gives it a legal form,
+            # at most CAPTION_FORCED_RUNG_MAX a clip, recorded "forced_rung" (and as a burst under the clip's size)
+            f = _clip_form(raw, rung)
+            forms[raw] = (f[0], f[1], rung)
+            row = {"text": " ".join(_phrase_words(list(raw))), "px": rung, "clip_px": size, "rule": STRAND_RULE,
+                   "why": "no legal form at the clip's size and no remedy (re-cut, hedge line, move); legal one rung "
+                          "under"}
+            forced_rung.append(row)
+            under.append(dict(row))
+            continue
         if lower is not None:
             # no legal form at the clip's size and no legal split: the burst STAYS (the split's own recorded
             # fallback) on its legal lines at the largest rung that sets them, alone, rather than take a line the
@@ -4903,6 +5022,7 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
     drawn = {" ".join(raw_of(p)) for p in out}
     _joined.clip = {"px": size, "shares": {str(k): round(v, 3) for k, v in shares.items()},
                     "majority": CAPTION_CLIP_MAJORITY, "under": under, "no_legal_form": forced, "rule": CLIP_RULE,
+                    "forced_rung": forced_rung,
                     "two_line": [e for e in two_line if e["text"] in drawn]}
     return out
 
@@ -5206,8 +5326,9 @@ def accent_plan(words: list[dict[str, Any]], terms: list[str] | None) -> tuple[s
             lo, hi = figure_span(i, i)
             spans.append((lo, hi, True))
     gold: set[int] = set()
-    for lo, hi, _ in spans:
-        gold.update(range(lo, hi + 1))
+    for lo, hi, fig in spans:   # round 2 (review C3): a range's joiner (TO, AND) and an inner hedge stay bone
+        gold.update(j for j in range(lo, hi + 1)
+                    if not (fig and tokens[j] in ACCENT_NEVER and not _is_figure_at(tokens, j)))
     hedges: dict[int, int] = {}
     for lo, _, _ in spans:   # an attribution hedge (POSSIBLY THE PHRYGIANS) goes with its term, after one article
         for lead_in in ((), ("the",), ("a",), ("an",)):
@@ -5226,7 +5347,7 @@ def accent_plan(words: list[dict[str, Any]], terms: list[str] | None) -> tuple[s
                     break
             if hit:
                 break
-    return gold, hedges, [list(range(lo, hi + 1)) for lo, hi, _ in sorted(spans)]
+    return gold, hedges, [[j for j in range(lo, hi + 1) if j in gold] for lo, hi, _ in sorted(spans)]
 
 
 # Freeze pass U1 (2026-11-04): fixed, topic-agnostic hedge phrases kept whole in a burst, cue and cue line.
@@ -6110,6 +6231,124 @@ def badge_corner_occupied(clip: Path, rect: tuple[int, int, int, int], width: in
     return None
 
 
+RECON_BADGE_MIN_S = 1.0   # s: round 2 ruling (C4 c): no stretch of the badge, in one corner, is on screen for less
+RECON_BADGE_RULE = ("AI badge placement (lander rulings, freeze cycle 6 round 2): a corner is free over a graphic only "
+                    "if its plate, grown by RECON_BADGE_CLEAR, is clear of drawn ink on EVERY encoded frame of the "
+                    "stretch the badge would stand there (crossfades included); the badge keeps its place; it changes "
+                    "corner inside a reconstruction interval only for a stretch of RECON_BADGE_MIN_S or more that "
+                    "starts on a cut, else it yields for that stretch; no stretch shorter than RECON_BADGE_MIN_S")
+
+
+def _frames_ink(clip: Path, t0: float, t1: float, rect: tuple[int, int, int, int], width: int,
+                height: int) -> float | None:
+    """The largest share of drawn-ink pixels (luma over CAPTION_GUARD_INK_LUMA) in `rect` over every frame the clip
+    shows from t0 to t1 (its own seconds), decoded at the frame size; None when the clip has no decodable video."""
+    import numpy as np
+    clip = Path(clip)
+    if not clip.is_file() or clip.stat().st_size == 0:
+        return None
+    key = (str(clip), clip.stat().st_mtime, round(t0, 3), round(t1, 3), tuple(rect), width, height)
+    if key in _FRAMES_INK:
+        return _FRAMES_INK[key]
+    x0, y0, x1, y1 = (max(0, rect[0]), max(0, rect[1]), min(width, rect[2]), min(height, rect[3]))
+    w, h = x1 - x0, y1 - y0
+    if w <= 0 or h <= 0:
+        return 0.0
+    try:
+        r = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{max(0.0, t0):.3f}", "-i", str(clip), "-t",
+                            f"{max(1.0 / VIDEO_FPS, t1 - max(0.0, t0)) + 1.0 / VIDEO_FPS:.3f}", "-vf",
+                            f"scale={width}:{height},crop={w}:{h}:{x0}:{y0}", "-f", "rawvideo", "-pix_fmt", "rgb24",
+                            "-"], capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    data = r.stdout
+    n = len(data) // (w * h * 3)
+    if r.returncode != 0 or n == 0:
+        _FRAMES_INK[key] = None
+        return None
+    a = np.frombuffer(data[:n * w * h * 3], np.uint8).reshape(n, h, w, 3).astype(np.float32)
+    luma = a @ np.array([0.299, 0.587, 0.114], np.float32)
+    share = float((luma > CAPTION_GUARD_INK_LUMA).mean(axis=(1, 2)).max())
+    _FRAMES_INK[key] = share
+    return share
+
+
+_FRAMES_INK: dict = {}
+
+
+def badge_corner_free(clip: Path, local: tuple[float, float], corner: str, width: int, height: int) -> str | None:
+    """Why `corner` is not free over graphic `clip` for its own seconds `local`, None when it is: an element box of
+    its record under the plate (grown by RECON_BADGE_CLEAR), or drawn ink over CAPTION_GUARD_INK_SHARE on ANY decoded
+    frame of that stretch; only a clip with no decodable video falls back to its poster (badge_corner_occupied)."""
+    geo = recon_badge_geometry(width, height, corner)
+    clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
+    x0, y0, x1, y1 = geo["box"]
+    rect = (x0 - clear, y0 - clear, x1 + clear, y1 + clear)
+    sidecar = Path(str(clip) + CAPTION_CONTRAST_SIDECAR)
+    if sidecar.is_file():
+        got = badge_corner_occupied(clip, rect, width, height)
+        if got is not None:
+            return got
+    share = _frames_ink(clip, local[0], local[1], rect, width, height)
+    if share is None:
+        return badge_corner_occupied(clip, rect, width, height)
+    if share > CAPTION_GUARD_INK_SHARE:
+        return f"drawn ink over {share:.1%} of the corner on a frame of {local[0]:.2f}-{local[1]:.2f} s"
+    return None
+
+
+def badge_plan(intervals: list[tuple[float, float]], graphic_clips: list[tuple[float, float, Path]] | None,
+               width: int, height: int) -> list[dict[str, Any]]:
+    """Freeze cycle 6 round 2 (review B1, B2; RECON_BADGE_RULE): the badge's stretches for each reconstruction
+    interval, cut at the graphic clips: {start, end, corner (None: yields), graphic, why}. Over a graphic a corner is
+    judged on every decoded frame the badge would cover (badge_corner_free). The badge stands in its place
+    (top_left); it takes the alternative only for a stretch of RECON_BADGE_MIN_S or more that starts on a cut (a
+    graphic's first frame) or is the whole interval; any other stretch whose place is taken yields, as base did; and a
+    drawn stretch under RECON_BADGE_MIN_S yields too. Every stretch is recorded."""
+    rows: list[dict[str, Any]] = []
+    gc = [(float(a), float(b), Path(c)) for a, b, c in (graphic_clips or [])]
+    for start_t, end_t in intervals:
+        cuts = sorted({start_t, end_t} | {t for a, b, _ in gc for t in (a, b) if start_t < t < end_t})
+        mine = []
+        for a, b in itertools.pairwise(cuts):
+            over = [(ga, gb, c) for ga, gb, c in gc if ga < b - 1e-6 and gb > a + 1e-6]
+            whys: list[str] = []
+            free = list(RECON_BADGE_CORNERS)
+            for ga, gb, c in over:
+                for cn in list(free):
+                    why = badge_corner_free(c, (a - ga, b - ga), cn, width, height)
+                    if why is not None:
+                        free.remove(cn)
+                        whys.append(f"{cn} over {c.name}: {why}")
+            corner = "top_left" if "top_left" in free else None
+            if corner is None and "top_right" in free:
+                on_cut = any(abs(a - ga) < 1e-6 for ga, _, _ in over) or (a == start_t and b == end_t)
+                if b - a >= RECON_BADGE_MIN_S - 1e-6 and on_cut:
+                    corner = "top_right"
+                else:
+                    whys.append(f"top_right free, but the stretch is {b - a:.2f} s"
+                                + ("" if on_cut else " and does not start on a cut")
+                                + f": the badge does not change corner for it (under {RECON_BADGE_MIN_S:g} s)")
+            mine.append({"start": round(a, 3), "end": round(b, 3), "corner": corner,
+                         "graphic": ", ".join(c.name for _, _, c in over) or None, "why": whys or None})
+        # merge same-corner neighbours, then no drawn stretch under the minimum dwell
+        merged: list[dict[str, Any]] = []
+        for r in mine:
+            if merged and merged[-1]["corner"] == r["corner"] and abs(merged[-1]["end"] - r["start"]) < 1e-6:
+                merged[-1]["end"] = r["end"]
+                if r["why"]:
+                    merged[-1]["why"] = (merged[-1]["why"] or []) + r["why"]
+            else:
+                merged.append(dict(r))
+        for r in merged:
+            if r["corner"] is not None and r["end"] - r["start"] < RECON_BADGE_MIN_S - 1e-6 and len(merged) > 1:
+                r["why"] = (r["why"] or []) + [f"a {r['end'] - r['start']:.2f} s stretch is under the badge's "
+                                               f"minimum dwell ({RECON_BADGE_MIN_S:g} s)"]
+                r["corner"] = None
+        rows += merged
+    return rows
+
+
 def clear_badge_intervals(intervals: list[tuple[float, float]], scene_images: list[Path], durations: list[float],
                           width: int, height: int) -> tuple[list[tuple[float, float]], list[dict[str, Any]]]:
     """The reconstruction badge's intervals with every stretch over a graphic clip whose badge corner is not free
@@ -6118,26 +6357,24 @@ def clear_badge_intervals(intervals: list[tuple[float, float]], scene_images: li
     side (reconstruction_badge_intervals), so it reaches a neighbouring graphic for TRANS_DUR / 2: there it stays
     only where its plate (recon_badge_geometry, grown by RECON_BADGE_CLEAR) is shown free of the graphic's drawn
     elements (badge_corner_occupied); else the badge yields at the cut (the drawn content keeps its corner; the
-    illustration's own beat is disclosed whole). Freeze cycle 6 (panel 7 C4): the badge yields only where NEITHER of
-    its corners is free (badge_corner_for: its place, then its documented alternative); build_subtitles takes the
-    free one, recorded."""
+    illustration's own beat is disclosed whole). Freeze cycle 6 round 2 (review B1, B2): the stretches are
+    badge_plan's (corners judged on every decoded frame the badge covers; a corner change only for a stretch of
+    RECON_BADGE_MIN_S or more that starts on a cut; no stretch under it); build_subtitles draws the same plan."""
     if not intervals:
         return list(intervals or []), []
     geo = recon_badge_geometry(width, height)
-    kept, yielded = [tuple(i) for i in intervals], []
-    for start, end, clip in caption_graphic_clips(scene_images, durations):
-        if not any(a < end and b > start for a, b in kept):
+    kept: list[tuple[float, float]] = []
+    yielded: list[dict[str, Any]] = []
+    for r in badge_plan([tuple(i) for i in intervals], caption_graphic_clips(scene_images, durations), width, height):
+        if r["corner"] is not None:
+            if kept and abs(kept[-1][1] - r["start"]) < 1e-6:
+                kept[-1] = (kept[-1][0], r["end"])
+            else:
+                kept.append((r["start"], r["end"]))
             continue
-        corner, whys = badge_corner_for(clip, width, height)
-        if corner is not None:
-            continue   # a corner is free (build_subtitles draws the badge there, recorded)
-        why = "; ".join(whys)
-        cut = [(max(a, start), min(b, end)) for a, b in kept if a < end and b > start]
-        kept = [piece for a, b in kept for piece in ((a, min(b, start)), (max(a, end), b))
-                if piece[1] - piece[0] > 1e-6]
-        row = {"clip": Path(clip).name, "cut": [[round(a, 3), round(b, 3)] for a, b in cut], "box": list(geo["box"]),
-               "reason": f"the AI badge yields over {Path(clip).name}: {why} (rule: the badge never overlaps drawn "
-                         "content)"}
+        row = {"clip": r["graphic"], "cut": [[r["start"], r["end"]]], "box": list(geo["box"]),
+               "reason": f"the AI badge yields over {r['graphic']}: {'; '.join(r['why'] or [])} (rule: the badge "
+                         "never overlaps drawn content; RECON_BADGE_RULE)"}
         yielded.append(row)
         log.warning("%s", row["reason"])
     return kept, yielded
@@ -6584,7 +6821,8 @@ def single_gold_span(shown: list[str], gold: list[int]) -> list[int]:
     range are in the run), else the first."""
     runs: list[list[int]] = []
     for ji in sorted(gold):
-        if runs and ji == runs[-1][-1] + 1:
+        # round 2 (review C3): a range is one span though its joiner is bone (1,090 TONNES to 1,168 TONNES)
+        if runs and (ji == runs[-1][-1] + 1 or (ji == runs[-1][-1] + 2 and _norm(shown[ji - 1]) in ACCENT_NEVER)):
             runs[-1].append(ji)
         else:
             runs.append([ji])
@@ -6882,7 +7120,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     "set_by": [" ".join(_phrase_words(p)) for p in phrases if clip_px < FONT_SIZE and len(p) > 1
                                and _clip_form(tuple(str(w.get("word", "")) for w in p), up) is None][:12],
                     "under": list(clip["under"]), "no_legal_form": list(clip["no_legal_form"]),
-                    "two_line": list(clip.get("two_line") or []), "rule": clip["rule"]}
+                    "two_line": list(clip.get("two_line") or []), "rule": clip["rule"],
+                    "forced_rung": list(clip.get("forced_rung") or [])}
             else:
                 clip_px = caption_clip_size(fits)
                 held = [min(f, clip_px) for f in fits]
@@ -7111,31 +7350,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # over a graphic clip (graphic_clips) it stands in the first corner the graphic leaves free
             # (badge_corner_for: its place, then its documented alternative), and where neither is free it yields
             # there; each stretch is recorded (self.last_badge, rates["badge"]). Never an overprint.
-            pieces: list[tuple[float, float, str | None, str | None, list[str]]] = []
-            for start_t, end_t in reconstruction_intervals:
-                cuts = sorted({start_t, end_t} | {t for a, b, _ in (graphic_clips or []) for t in (a, b)
-                                                  if start_t < t < end_t})
-                for a, b in itertools.pairwise(cuts):
-                    over = [c for ga, gb, c in (graphic_clips or []) if ga < b - 1e-6 and gb > a + 1e-6]
-                    free = list(RECON_BADGE_CORNERS)
-                    whys, name = [], None
-                    for c in over:
-                        name = Path(c).name
-                        clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
-                        for cn in list(free):
-                            x0, y0, x1, y1 = recon_badge_geometry(width, height, cn)["box"]
-                            why = badge_corner_occupied(Path(c), (x0 - clear, y0 - clear, x1 + clear, y1 + clear),
-                                                        width, height)
-                            if why is not None:
-                                free.remove(cn)
-                                whys.append(f"{cn}: {why}")
-                    pieces.append((a, b, free[0] if free else None, name, whys))
-            badge_rows = []
-            for a, b, corner, name, whys in pieces:
-                badge_rows.append({"start": round(a, 3), "end": round(b, 3), "corner": corner, "graphic": name,
-                                   "why": whys or None})
+            plan = badge_plan(list(reconstruction_intervals), graphic_clips, width, height)
+            badge_rows = plan
+            for r in plan:
+                a, b, corner = r["start"], r["end"], r["corner"]
                 if corner is None:
-                    log.warning("the AI badge yields over %s (%.2f-%.2f s): %s", name, a, b, "; ".join(whys))
+                    log.warning("the AI badge yields over %s (%.2f-%.2f s): %s", r["graphic"], a, b,
+                                "; ".join(r["why"] or []))
                     continue
                 badge_geo = recon_badge_geometry(width, height, corner)
                 x0, y0 = badge_geo["box"][:2]

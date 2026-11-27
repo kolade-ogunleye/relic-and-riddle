@@ -62,6 +62,8 @@ def main() -> None:
         key = pk.replace(":", "_")
         for kind in kinds:
             t0 = time.time()
+            if (out / f"{kind}__{key}.png").is_file() and os.environ.get("PF_REDRAW") != "1":
+                continue   # drawn already for this form (PF_REDRAW=1 draws again)
             try:
                 if kind == "hook":
                     plan = fc.hook_plan(ph)
@@ -84,6 +86,8 @@ def main() -> None:
                                      "ground": ground, "contrast": meta.get("drawn_contrast_min")}
             print(kind, key, round(time.time() - t0), "s", flush=True)
     f = out / "records.json"
+    if not res:
+        return
     old = json.loads(f.read_text(encoding="utf-8")) if f.is_file() else {}
     old.update(res)
     f.write_text(json.dumps(old, indent=1, default=str), encoding="utf-8")

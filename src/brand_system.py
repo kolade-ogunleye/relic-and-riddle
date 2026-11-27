@@ -570,6 +570,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:_kicker": "F",
     "design_cards:_lead": "F",
     "design_cards:_myth_compose": "F",
+    "design_cards:_myth_ink_boxes": "F",            # cycle 6 PLATEFORM: the block's kicker ink box
     "design_cards:_myth_ink_boxes.line": "F",       # cycle 6 PLATEFORM: the block's ink boxes, at the lines' own sizes
     "design_cards:_myth_fit.fwrap": "F",
     "design_cards:_myth_fit.lone.alone": "F",

@@ -1698,7 +1698,9 @@ class MultiFormatGenerator:
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
         shade_rows, shade_block = rows, block
-        if i == 0 and not pointer:
+        from . import plate_form as _pf
+        formed = _pf.active() != "base"   # PLATEFORM (design switch): a form is laid for the drawn lines only
+        if i == 0 and not pointer and not formed:
             # Rulings N1 / N2 (2026-11-26, review 2 of the PLATES c5 fix): the band and its step are laid for the block
             # as designed, the withheld pointer's line included (its room, as the base laid it), so withholding the
             # line by ruling neither lightens the band under the other lines nor moves the kicker off its plate
@@ -1708,7 +1710,8 @@ class MultiFormatGenerator:
             shade_rows = rows + [ghost]
             shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
         base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block,
-                                                 plain=[tuple(credit["backing"])] if credit.get("backing") else ())
+                                                 plain=[tuple(credit["backing"])] if credit.get("backing") and not formed
+                                                 else ())
         rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")

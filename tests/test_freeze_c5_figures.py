@@ -368,7 +368,7 @@ def test_a_word_form_is_a_derived_claim_with_its_threshold(v, unit, dim):
     d, pay = st["derivation"], {"scale_fact": fact}
     word = copy.deepcopy(d)
     word.update(shown="", text="nearly the same" if d["rule"] == "ratio" else "NEARLY LEVEL",
-                threshold=figures.NEAR_RATIO if d["rule"] == "ratio" else graphics.LEVEL_GAP[u])
+                form_limit=figures.NEAR_RATIO if d["rule"] == "ratio" else graphics.LEVEL_GAP[u])
     said = "is nearly the same height." if d["rule"] == "ratio" else "would reach nearly to the surface."
     assert figures.derivation_faults(word)
     assert figure_gate.derived_faults("meaning1", said, word, pay)
@@ -376,7 +376,7 @@ def test_a_word_form_is_a_derived_claim_with_its_threshold(v, unit, dim):
     # and a word form drawn where the record states a number
     assert figure_gate.derived_faults("meaning1", said, d, pay)
     # a word form with no threshold recorded is refused
-    assert figures.derivation_faults({k: v_ for k, v_ in word.items() if k != "threshold"})
+    assert figures.derivation_faults({k: v_ for k, v_ in word.items() if k != "form_limit"})
 
 
 def test_the_landmark_is_drawn_as_its_signed_figure_and_the_arithmetic_adds_up():

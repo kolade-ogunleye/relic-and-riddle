@@ -842,7 +842,7 @@ def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, tex
     rec = {"rule": rule, "operands": [dict(o) for o in operands], "result": round(result, 6), "shown": shown,
            "hedged": not exact, "text": text}
     if not shown:
-        rec["threshold"] = float(threshold if threshold is not None else NEAR_RATIO if rule == "ratio" else 0.0)
+        rec["form_limit"] = float(threshold if threshold is not None else NEAR_RATIO if rule == "ratio" else 0.0)
     return rec
 
 
@@ -900,7 +900,7 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
             out.append(f"its drawn figure {shown} is not the {rule} of its operands' signed values ({want:g}) "
                        "rounded once")
     else:                            # a word form ("NEARLY LEVEL", "nearly the same"): its stated threshold holds
-        limit = rec.get("threshold")
+        limit = rec.get("form_limit")
         if not isinstance(limit, (int, float)) or isinstance(limit, bool):
             out.append(f"its word form {rec.get('text')!r} records no threshold")
         elif rule == "ratio" and not want < float(limit):

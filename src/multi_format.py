@@ -29,7 +29,6 @@ from .brand_system import (
     type_px,
 )
 from .config import VIDEO_HEIGHT, VIDEO_WIDTH
-from .safe_zones import STORY as _SAFE_STORY, TEXT_INSET as _TEXT_INSET
 from .font_engine import GlyphRefused, choose_face, surface
 from .heading import (
     GOLD_ROLES,
@@ -505,27 +504,18 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     return max(floor, min(sizes)) if sizes else design
 
 
-def story_inset() -> int:
-    """The Story's margin inside its safe box, every side (PLATES-14; the 9:16 margin token safe_zones.TEXT_INSET):
-    the text column was 19 px inside the box and the photo credit's foot 12 px above it, no margin at feed size."""
-    from .safe_zones import TEXT_INSET
-    return round(TEXT_INSET * VIDEO_WIDTH / 1080)
-
-
-# The Story's text column starts here (PLATES-14): the safe box's 65 and the margin token (safe_zones.TEXT_INSET): 90.
-# It was 84 (2026-10-29 to the freeze cycle 5), 19 px inside the box. A kicker on its held label plate stands with
-# the PLATE on the column and its words the plate's pad inside it (draw_kicker plate_on_column), so the plate keeps
-# the token too (it stood 5 px inside the box).
-STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET + 1   # + 1: a round capital's ink overshoots its origin by 1 px (dev
-# corpus: 6 Story bodies' ink at 23 px from the safe box with the column at 89)
+# The Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned). PLATES-14 (freeze c5):
+# moving it to the margin token moved the type over another ground (and the photo window with it): 31 Story elements
+# read lower than base, against ruling N2 (2026-11-26, review 2): kept at 84; PLATES-14 recorded open on the Story.
+STORY_MARGIN = 84
 
 
 def story_body_width() -> int:
-    """The Story text column: the safe box less the margin token on each side (902 px at 1080x1920; 912 before
-    PLATES-14)."""
+    """The Story text column: the safe box less STORY_MARGIN's inset on each side (912 px at 1080x1920)."""
     from .safe_zones import safe_box
     sx0, _, sx1, _ = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
-    return (sx1 - story_inset()) - STORY_MARGIN
+    inset = STORY_MARGIN - sx0
+    return (sx1 - inset) - (sx0 + inset)
 
 
 def story_window(photo: Path, text_box: tuple[float, float, float, float]) -> tuple[Image.Image, dict[str, Any]]:
@@ -901,8 +891,7 @@ def kickers_on(lays, step) -> bool:
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
-                name: str = "kicker", plates=None, plate_on_column: bool = False
-                ) -> tuple[Image.Image, tuple[int, int, int, int]]:
+                name: str = "kicker", plates=None) -> tuple[Image.Image, tuple[int, int, int, int]]:
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
     eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
     ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
@@ -915,16 +904,6 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     rule_box = (round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1)
     plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track,
                              rule=rule_box)
-    if plate_on_column and plate is not None and getattr(plate, "backing", None) is not None:
-        # PLATES-14: on a held plate, the PLATE stands on the column (its words the plate's pad inside), so the plate
-        # keeps the column's margin to the safe box; planned again there, the same step
-        pad = max(0, round(x - plate.backing.parent.box[0]))
-        if pad:
-            x += pad
-            mid = baseline - ch / 2
-            rule_box = (round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1)
-            plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls",
-                                     track=font.size * track, rule=rule_box)
     if isinstance(getattr(lay, "meta", None), dict):
         lay.meta.setdefault("kickers", {})[name] = rec
     if plate is None:   # fail closed: no rule and no words under the gate (recorded)
@@ -1422,7 +1401,7 @@ class MultiFormatGenerator:
             c_px, font_c, c_drawn = setting["px"], setting["font"], setting["drawn"]
             credit["fits"] = setting["fits"]
             c_lead = _story_credit_lead(c_px)
-            c_bottom = sy1 - story_inset()   # PLATES-14: the safe-box margin token, as on every side
+            c_bottom = sy1 - 10
             c_top = c_bottom - len(c_drawn) * c_lead
             c_w = max(text_size(d, ln, font_c)[0] for ln in c_drawn)
             backing = (x - 16, c_top - 8, x + c_w + 16, c_bottom + 6)
@@ -1682,7 +1661,7 @@ class MultiFormatGenerator:
             lay.meta_room = [int(v) for v in room_box]
         if kicker:
             im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, colour_of("kicker.colour"), lay,
-                                    plates=lay.plates, plate_on_column=True)
+                                    plates=lay.plates)
         by_name: dict[str, list] = {}
         for name, yy, txt, f, fill, track, dx in rows:
             plate = plan_text(im, (x + dx, top + yy), txt, f, fill, "ls", track=track)

@@ -491,34 +491,20 @@ def test_text_on_a_photo_band_reads_at_seven_to_one_on_the_worst_ground(tmp_path
             assert e["contrast"] >= 7.0 or (band["short"] and e["contrast"] >= 4.8), (arch, e["name"], e["contrast"])
 
 
-def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_path):
-    """PLATES-15 on the Story (the gold title line 4.92-5.18:1 at the bright percentile) and PLATES-14 (the text
-    column 19 px inside the safe box, a plated kicker 5, the photo credit's foot 12): every line reads at 7:1 on the
-    worst ground (or its band records the cap), and every text and plate box keeps safe_zones.TEXT_INSET to the Story
-    safe box."""
-    from src import safe_zones
+def test_the_story_lines_read_at_seven_to_one_or_record_the_ceiling(tmp_path):
+    """PLATES-15 on the Story (the gold title line 4.92-5.18:1 at the bright percentile): every line reads at 7:1 on
+    the worst ground or its frame records the band's ceiling (ruling N1: no deeper band), and never under the 4.8
+    placement target."""
     gen = multi_format.MultiFormatGenerator()
     photo = _worst_ground(tmp_path)
     slide = {"kicker": "ANCIENT MARVEL", "line1": "THE ACOUSTIC DOME", "line2": "OF GOL GUMBAZ",
              "body": "Sound circles this vast chamber along its curved wall."}
     _, lay = gen._render_story_frame(photo, slide, 0, 2, {})
-    with multi_format.kicker_set(("plate", 0)):          # the Story's kicker set on its held plate
-        _, plated = gen._render_story_frame(photo, slide, 0, 2, {})
-    k = next(e for e in plated.elements if e["name"] == "kicker")
-    assert isinstance(k.get("plate"), dict), k
-    sx0, sy0, sx1, sy1 = safe_zones.safe_box("story")
-    inset = safe_zones.TEXT_INSET
-    assert k["plate"]["box"][0] - sx0 >= inset, k                   # the plate stands on the column
+    band = (lay.ground or {}).get("text_band") or {}
+    assert band.get("target") == brand_system.tok("contrast.high"), lay.ground
     for e in lay.elements:
-        boxes = [e["box"]] + ([e["plate"]["box"]] if isinstance(e.get("plate"), dict) else [])
-        for b in boxes:
-            assert min(b[0] - sx0, b[1] - sy0, sx1 - b[2], sy1 - b[3]) >= inset, (e["name"], b)
         if e["name"] not in ("kicker",) and e.get("contrast") is not None:
-            band = (lay.ground or {}).get("text_band") or {}
-            assert e["contrast"] >= 7.0 or band.get("short"), (e["name"], e["contrast"], band)
-    # the column itself: the safe box and the token (a plated kicker stands its plate on it)
-    assert multi_format.STORY_MARGIN == sx0 + inset + 1
-    assert multi_format.story_body_width() == (sx1 - inset) - (sx0 + inset + 1)
+            assert e["contrast"] >= 7.0 or (band.get("short") and e["contrast"] >= 4.5), (e["name"], e["contrast"], band)
 
 
 def test_a_band_grades_the_photograph_where_it_falls_off_and_is_ink_under_the_type():

@@ -57,12 +57,19 @@ for run in pr.runs(a.tip):
                 keep[max(0, y0 - PAD):y1 + PAD, max(0, x0 - PAD):x1 + PAD] = False
             share = round(100.0 * float(((lb - lt > DARK) & keep).mean()), 2)
             ok = share <= SLACK
-            row = {"run": run.name[4:], "surface": sub or "reel_cover", "still": name, "darker_share": share, "ok": ok}
+            mt = (et.get("meta") or {}).get("masthead") or {}
+            mb = (eb.get("meta") or {}).get("masthead") or {}
+            # the masthead's longer top-scrim reach (PLATES-05, first builder; ruled "no FURTHER lengthening") or a
+            # masthead the base withheld and the tree draws: named, still counted
+            cause = ("masthead margin reach (PLATES-05)" if mt.get("margin_step") else
+                     "masthead newly drawn" if mt.get("shown") and not mb.get("shown") else "band")
+            row = {"run": run.name[4:], "surface": sub or "reel_cover", "still": name, "darker_share": share, "ok": ok,
+                   "cause": cause}
             dark_rows.append(row)
             if not ok:
                 bad.append(row)
-                print(f"DARKER {run.name[4:40]:36} {(sub or 'reel_cover')[:11]:11} {name[-12:-4]:8} {share:6.2f} %",
-                      flush=True)
+                print(f"DARKER {run.name[4:40]:36} {(sub or 'reel_cover')[:11]:11} {name[-12:-4]:8} {share:6.2f} % "
+                      f"{cause}", flush=True)
             cb = {e["name"]: e for e in eb.get("elements") or []}
             ct = {e["name"]: e for e in et.get("elements") or []}
             for k, e in cb.items():
@@ -88,9 +95,11 @@ for run in pr.runs(a.tip):
 
 by = {}
 for r in dark_rows:
-    s = by.setdefault(r["surface"], {"stills": 0, "darker": 0, "max share": 0.0})
+    s = by.setdefault(r["surface"], {"stills": 0, "darker": 0, "max share": 0.0, "darker by cause": {}})
     s["stills"] += 1
     s["darker"] += not r["ok"]
+    if not r["ok"]:
+        s["darker by cause"][r["cause"]] = s["darker by cause"].get(r["cause"], 0) + 1
     s["max share"] = max(s["max share"], r["darker_share"])
 cby = {}
 for r in con_rows:

@@ -315,15 +315,19 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
     name = (loc.get("name") or "").strip()
     from . import free_llm
     if not (name and free_llm.ready()):
+        LAST_REFUSAL.append({"reason": "no location name to search" if not name else
+                             "the vision check is not available (free_llm not ready)"})
         return None
     keywords = [normalize(w) for w in name.split() if len(w) > 3]
     try:
         olds = _candidates(f"{name} historical photograph", keywords, old=True) + _candidates(name, keywords, old=True)
     except requests.RequestException as e:
         log.warning("Then-and-now search failed: %s", e)
+        LAST_REFUSAL.append({"reason": f"the Commons search failed: {str(e)[:120]}"})
         return None
     if not olds:
         log.info("Then-and-now: no dated old/new pair on Commons for %s.", name)
+        LAST_REFUSAL.append({"reason": "no dated old photograph of the place on Commons"})
         return None
     work_dir.mkdir(parents=True, exist_ok=True)
     place = ", ".join(v for v in (name, loc.get("country")) if v)
@@ -384,9 +388,24 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
 
 
 # Review round 1 (lander ruling 2026-11-27): production draws REGISTERED pairs only; source() refuses every other
-# pairing and says why, per old photograph (LAST_REFUSAL, written beside the run by make() as REFUSAL_SIDECAR).
+# pairing and says why, per old photograph (LAST_REFUSAL, written beside the run by make() as REFUSAL_SIDECAR), and
+# make() adds a format the rules refuse for a registered pair (Unfit). One record per run, refusals appended.
 LAST_REFUSAL: list[dict[str, Any]] = []
 REFUSAL_SIDECAR = "graphic_thennow.refused.json"
+
+
+def _record_refusal(work_dir: Path, rows: list[dict[str, Any]]) -> None:
+    import json
+    path = Path(work_dir) / REFUSAL_SIDECAR
+    rec = {"drawn": False, "refused": []}
+    if path.is_file():
+        try:
+            rec = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+    rec["refused"] = list(rec.get("refused", [])) + rows
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(rec, indent=1), encoding="utf-8", newline="\n")
 
 
 # The comparison ends on both photographs (panel round 2, 2026-11-02: the last frame showed only the recent one,
@@ -821,22 +840,27 @@ FRAME_U = (0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9)
 FRAME_MIDDLE = 0.6                  # the share of a pane's columns read as its middle
 # Freeze cycle 6 (THENNOW T2, review round 1, lander ruling 2026-11-27): production draws only REGISTERED pairs (make()
 # -> source() -> register(): one picture, both photographs at one size, one shared window, the divider across it). The
-# window must keep that picture's central region: on each axis the photograph's central half (photo_fitness's
-# centre_half), or, where the frame's aspect cannot hold half of that axis even at the least zoom, all of what the
-# centred least-zoom window holds of it. A window the search (T7) would move or zoom past that is not taken: the
-# centred window is kept and the reason recorded. (A registered 4:3 picture at 9:16 holds 0.42 of its width at the
-# least zoom: its window stays centred and unzoomed.) An unregistered pair is not a then-and-now (production refuses
-# it, source()); render() draws one as before, recorded "unregistered", for stand-in evidence only.
+# window must keep that picture's central region: its central half on both axes (photo_fitness's centre_half), never
+# redefined for a picture the frame is too narrow or too short for. Round 3 (R4, ruling 2026-11-27): there is NO
+# fallback window. A registered pair is drawn in a format only on a window that passes the rules: the least-zoom
+# centred window keeps the central half, and on 9:16 its THEN pane carries structure, or the T7 search (base's windows)
+# finds one that keeps the central half and passes both panes. Otherwise the pair is UNFIT for that format, recorded
+# with the reason (info["unfit"]); render() refuses it (Unfit) and make() writes the refusal beside the run. Each
+# format is decided on its own. (A 4:3 picture at 9:16 shows 0.42 of its width: unfit for 9:16, drawn at 16:9.)
+# An unregistered pair is not a then-and-now (production refuses it, source()); render() draws one as before,
+# recorded "unregistered", for stand-in evidence only.
 CENTRE_HALF = 0.25
 
 
-def central_region(size: tuple[int, int], big: tuple[int, int]) -> tuple[float, float, float, float]:
-    """The part of a picture `size` every shared window must keep in view at rest (shares of its width and height)."""
-    rest = _rest_view(_cover_window(size, big), size)
-    out = []
-    for lo, hi in ((rest[0], rest[2]), (rest[1], rest[3])):
-        out.append((lo, hi) if hi - lo < 2 * CENTRE_HALF else (CENTRE_HALF, 1 - CENTRE_HALF))
-    return out[0][0], out[1][0], out[0][1], out[1][1]
+class Unfit(Exception):
+    """A registered pair the rules refuse in this format (frame_pair's info["unfit"] says why)."""
+
+
+def central_region(size: tuple[int, int] | None = None, big: tuple[int, int] | None = None
+                   ) -> tuple[float, float, float, float]:
+    """The part of a picture every shared window must keep in view at rest (shares of its width and height): its
+    central half on both axes, whatever the picture and the frame."""
+    return CENTRE_HALF, CENTRE_HALF, 1 - CENTRE_HALF, 1 - CENTRE_HALF
 
 
 def _rest_view(window: tuple[float, ...], size: tuple[int, int]) -> tuple[float, float, float, float]:
@@ -933,6 +957,12 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
 
     def _fitted(m: Image.Image) -> Image.Image:
         return ImageOps.fit(m, big, Image.NEAREST)
+    if info["registered"] and not keeps_centre(_cover_window(ims[0].size, big), ims[0].size, big):
+        v = _rest_view(_cover_window(ims[0].size, big), ims[0].size)
+        info["unfit"] = (f"then-and-now {width}x{height}: the frame cannot keep the picture's central half (it shows "
+                         f"{v[2] - v[0]:.2f} of its width and {v[3] - v[1]:.2f} of its height at the least zoom; "
+                         f"picture {ims[0].size[0]}x{ims[0].size[1]}); not drawn in this format")
+        return _out(srcs[0], srcs[1], _fitted)
     if width > height:
         return _out(srcs[0], srcs[1], _fitted)
     size = (width, height)
@@ -965,6 +995,10 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
         log.info("Then-and-now 9:16: the THEN pane is empty and no shared window fixes it (%s); centred crop kept.",
                  "no subject found" if subject is None else f"zoom limit {z_max:.2f}")
         info["window"] = "centred (no window found)"
+        if info["registered"]:
+            info["unfit"] = (f"then-and-now {width}x{height}: the THEN pane is empty and no window can be searched "
+                             f"({'no subject top found' if subject is None else f'zoom limit {z_max:.2f}'}); "
+                             "not drawn in this format")
         return _out(srcs[0], srcs[1], _fitted)
     ch = big[1] / (1 + PUSH)                      # the big image's rows the frame shows at rest
     lead = (big[1] - ch) / 2
@@ -1018,6 +1052,12 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
     # under Canny(50, 150), so no window passed and the pane stayed sky. The in-band window (the subject's top at
     # SUBJECT_TOP of the pane) with the most THEN structure is taken when it carries at least FRAME_BEST_GAIN x the
     # centred pane's, and recorded as below the threshold; otherwise the centred crop is kept.
+    if info["registered"]:      # round 3 (R4): no fallback window for what production draws
+        info["window"] = "none (unfit)"
+        info["unfit"] = (f"then-and-now {width}x{height}: the THEN pane is empty and none of the searched windows "
+                         f"keeps the picture's central half and carries both panes ({info.get('centre_kept', 0)} "
+                         "set aside for the central half); not drawn in this format")
+        return _out(srcs[0], srcs[1], _fitted)
     if best is not None and best[0] >= FRAME_BEST_GAIN * dens:
         dt, dl, z, v, row, cand, u, _score = best
         info.update({"zoom": z, "window": "shared (most THEN structure; under FRAME_EDGE_MIN)", "v_centre": round(v, 4),
@@ -1811,6 +1851,11 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     size = (width, height)
     subjects: list = []
     a_src, b_src, framing = frame_pair(old, new, width, height, subjects=subjects)
+    if framing.get("unfit"):
+        last_meta.clear()
+        last_meta.update({"framing": framing, "refused": framing["unfit"]})
+        log.info("Then-and-now: %s.", framing["unfit"])
+        raise Unfit(framing["unfit"])
     n = int(CLIP_SECONDS * VIDEO_FPS)
     key = "landscape" if width > height else "portrait"
     k_font, y_font, track = kicker_font(key), year_font(key), kicker_track(key)
@@ -2090,16 +2135,17 @@ def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height
         LAST_REFUSAL.clear()
         found = source(topic, work_dir)
         if not found:
-            import json
-            refused = list(LAST_REFUSAL) or [{"reason": "no dated, licensed old/new pair to compare"}]
-            (work_dir / REFUSAL_SIDECAR).write_text(json.dumps({"drawn": False, "refused": refused},
-                                                               indent=1), encoding="utf-8", newline="\n")
+            _record_refusal(work_dir, list(LAST_REFUSAL) or [{"reason": "no dated, licensed old/new pair to compare"}])
             return None, []
         old, old_c, new, new_c = found
         from .photo_grade import using
-        with using(grade_bias):
-            clip = render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width,
-                          height=height)
+        try:
+            with using(grade_bias):
+                clip = render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width,
+                              height=height)
+        except Unfit as e:      # round 3 (R4): this format refused, recorded beside the run
+            _record_refusal(work_dir, [{"format": f"{width}x{height}", "reason": str(e)}])
+            return None, []
         reg = Path(old).parent / REGISTRATION_SIDECAR
         if clip and reg.exists():   # the registration's measured numbers beside the clip, as its contrast is
             Path(str(clip) + ".registration.json").write_text(reg.read_text(encoding="utf-8"), encoding="utf-8")

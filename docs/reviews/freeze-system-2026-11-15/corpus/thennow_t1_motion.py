@@ -40,7 +40,15 @@ def render_one(tree: Path, dev: Path, out: Path, pid: str, w: int, h: int) -> No
     pair = next(p for p in all_pairs(tree, dev, out, then_now) if p["id"] == pid)
     tag = "916" if h > w else "169"
     clip = out / f"thennow__{pid}__{tag}.mp4"
-    then_now.render(pair["old"], pair["old_year"], pair["new"], pair["new_year"], clip, w, h)
+    unfit = getattr(then_now, "Unfit", None)
+    try:
+        then_now.render(pair["old"], pair["old_year"], pair["new"], pair["new_year"], clip, w, h)
+    except Exception as e:      # round 3 (R4): a registered pair unfit for this format is refused, recorded
+        if unfit is None or not isinstance(e, unfit):
+            raise
+        clip.with_suffix(".refused.json").write_text(json.dumps({"pair": pid, "format": f"{w}x{h}", "refused": str(e)}),
+                                                     encoding="utf-8", newline="\n")
+        return
     meta = json.loads(json.dumps(then_now.last_meta, default=str))
     n = len(meta["schedule"]["then"])
     text = None
@@ -215,10 +223,15 @@ def main() -> int:
             if any(list(ex.map(run, todo))):
                 return 2
     import figures_corpus as fc
+    refused = sorted(out.glob("thennow__*.refused.json"))
+    for r in refused:
+        rec = json.loads(r.read_text(encoding="utf-8"))
+        print(f"refused  {rec['pair']}  {rec['format']}: {rec['refused']}")
     rows = [r for clip in sorted(out.glob("thennow__*.mp4")) for r in measure(clip, "--strips" in sys.argv)]
     print(fc.table(rows, ("clip", "part", "measure", "verdict")))
     fails = sum(1 for r in rows if r[3] == "FAIL")
-    print(f"\nTHENNOW T1: {len(rows)} rows over {len(list(out.glob('thennow__*.mp4')))} clips, FAIL {fails}")
+    print(f"\nTHENNOW T1: {len(rows)} rows over {len(list(out.glob('thennow__*.mp4')))} clips, FAIL {fails}; "
+          f"{len(refused)} formats refused (recorded unfit)")
     return 1 if fails else 0
 
 

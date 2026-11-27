@@ -41,6 +41,20 @@ def _photo(path: Path, w: int, h: int, blocks=(), sky=(214, 208, 196), seed=0) -
     return path
 
 
+def _tall_pair(tmp_path: Path) -> tuple[Path, Path]:
+    """A pair of near-square pictures with two figures (0.92): registered, the 9:16 frame keeps their central half
+    (0.59 of the width) and the THEN pane carries the figures (fit for 9:16; at 16:9 it shows 0.50 of the height)."""
+    old = _photo(tmp_path / "then_t.png", 1200, 1300, [(0.12, 0.2, 0.42, 0.9), (0.58, 0.3, 0.86, 0.9)], seed=51)
+    new = _photo(tmp_path / "now_t.png", 1150, 1250, [(0.1, 0.15, 0.45, 0.9), (0.6, 0.25, 0.9, 0.9)],
+                 sky=(110, 160, 220), seed=52)
+    return old, new
+
+
+def _pair_for(tmp_path: Path, size) -> tuple[Path, Path]:
+    """A registered pair fit for `size`: the near-square pair on 9:16, the landscape (Memnon-shaped) one on 16:9."""
+    return _registered(tmp_path, *(_tall_pair(tmp_path) if size == TALL else _memnon_like(tmp_path)))
+
+
 def _memnon_like(tmp_path: Path) -> tuple[Path, Path]:
     """Two photographs of one place framed apart, of different sizes (not registered), as the dev Memnon pair:
     a 1.29 landscape with two figures, and a 1.22 one whose larger figure stands left and the other far right."""
@@ -111,12 +125,7 @@ def test_the_encoded_reveal_is_monotonic_and_the_markers_stay(tmp_path, size):
     (thennow_t1_motion.py) applies the same measure to every dev pair; it FAILS at the cycle-5 base (the divider 384
     px past the split on 9:16, the THEN marker gone 1.4-2 s)."""
     import thennow_t1_motion as t1
-    if size == TALL:    # a busy portrait THEN (Roman 1934 is 0.86): the panel cuts its rows, the frame shows its foot
-        old = _photo(tmp_path / "then_p.png", 1000, 1160, [(0.1, 0.1, 0.9, 0.95)], seed=13)
-        new = _memnon_like(tmp_path)[1]
-    else:
-        old, new = _memnon_like(tmp_path)
-    old, new = _registered(tmp_path, old, new)          # the pair production draws (source() -> register())
+    old, new = _pair_for(tmp_path, size)                # the pair production draws (source() -> register())
     fr, meta = _encoded(tmp_path, old, new, size)
     w, h = size
     axis = 0 if w > h else 1
@@ -178,26 +187,59 @@ def test_an_unregistered_pair_is_refused_by_production_and_recorded(tmp_path, mo
 
 
 @pytest.mark.parametrize("size", [TALL, WIDE])
-def test_a_registered_window_keeps_the_pictures_central_region(tmp_path, size):
-    """Review round 1 (ruling 2026-11-27): a registered pair is one picture on one shared window. The window keeps
-    the picture's central region: here a 4:3 picture whose top is empty sky, which the T7 search would zoom and lift
-    (base: the window went up to 1.6x round the subject's top, holding under 0.3 of the picture's width at 9:16)."""
+def test_a_registered_window_keeps_the_pictures_central_half(tmp_path, size):
+    """Round 3 (R4, ruling 2026-11-27): a registered pair is one picture on one shared window, drawn only on a window
+    that keeps the picture's central half on both axes (never redefined for a wide picture)."""
+    old, new = _pair_for(tmp_path, size)
+    _, _, info = then_now.frame_pair(old, new, *size)
+    assert info["registered"] is True and not info.get("unfit"), info
+    big = (round(size[0] * (1 + then_now.PUSH)), round(size[1] * (1 + then_now.PUSH)))
+    with Image.open(old) as im:
+        psize = im.size
+    win = then_now._cover_window(psize, big, info.get("zoom", 1.0), info.get("v_centre", 0.5), info.get("u_centre", 0.5))
+    assert then_now.keeps_centre(win, psize, big) and then_now.central_region() == (0.25, 0.25, 0.75, 0.75)
+
+
+def test_a_wide_picture_is_unfit_for_916_and_refused(tmp_path, monkeypatch):
+    """R4: a 4:3 registered picture shows 0.42 of its width at 9:16: it cannot keep its central half, so the pair is
+    unfit for 9:16, recorded, refused by render() and written beside the run by make(); 16:9 is decided on its own.
+    (Round 2 redefined the centre for it and drew it, cutting both Memnon colossi.)"""
+    old, new = _registered(tmp_path, *_memnon_like(tmp_path))
+    _, _, tall = then_now.frame_pair(old, new, *TALL)
+    _, _, wide = then_now.frame_pair(old, new, *WIDE)
+    assert "central half" in tall["unfit"] and not wide.get("unfit")
+    with pytest.raises(then_now.Unfit):
+        then_now.render(old, 1876, new, 2011, tmp_path / "x.mp4", *TALL)
+    monkeypatch.setattr(then_now, "source", lambda topic, wd: (old, {"year": 1876}, new, {"year": 2011}))
+    assert then_now.make({"location": {"name": "x"}}, tmp_path, *TALL) == (None, [])
+    rec = json.loads((tmp_path / then_now.REFUSAL_SIDECAR).read_text(encoding="utf-8"))
+    assert rec["drawn"] is False and rec["refused"][-1]["format"] == "1080x1920"
+    assert "central half" in rec["refused"][-1]["reason"]
+
+
+def test_a_then_pane_that_stays_empty_is_never_drawn(tmp_path):
+    """R4: no fallback window. A near-square registered picture (it keeps its central half at 9:16) whose THEN pane
+    is empty sky and whose subject no window can lift into the pane without leaving the central half: unfit for
+    9:16, recorded, refused (round 2 drew it centred with its record still saying 'THEN pane empty')."""
     rng = np.random.default_rng(21)
-    a = np.full((1500, 2000, 3), 220, np.float32) + rng.normal(0, 2, (1500, 2000, 1))   # an empty sky
-    a[700:] = rng.integers(30, 200, (800, 2000, 1))                                     # a busy lower half
+    a = np.full((1300, 1200, 3), 222, np.float32) + rng.normal(0, 2, (1300, 1200, 1))   # an empty sky
+    a[900:] = rng.integers(30, 200, (400, 1200, 1))                                     # a busy foot
     old = tmp_path / "old.png"
     Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(old)
     reg = _registered(tmp_path, old, old)
-    _, _, info = then_now.frame_pair(reg[0], reg[1], *size)
-    assert info["registered"] is True
-    big = (round(size[0] * (1 + then_now.PUSH)), round(size[1] * (1 + then_now.PUSH)))
-    with Image.open(reg[0]) as im:
-        psize = im.size
-    win = then_now._cover_window(psize, big, info.get("zoom", 1.0), info.get("v_centre", 0.5), info.get("u_centre", 0.5))
-    assert then_now.keeps_centre(win, psize, big), info
-    r = then_now.central_region(psize, big)
-    if size == TALL:
-        assert r[2] - r[0] < 0.5 and info.get("zoom", 1.0) == 1.0     # a 4:3 picture at 9:16: centred, unzoomed
+    _, _, info = then_now.frame_pair(reg[0], reg[1], *TALL)
+    assert info.get("gate") == "THEN pane empty" and info.get("unfit"), info
+    assert info["window"] in ("none (unfit)", "centred (no window found)")
+    with pytest.raises(then_now.Unfit):
+        then_now.render(reg[0], 1876, reg[1], 2011, tmp_path / "x.mp4", *TALL)
+
+
+def test_make_records_its_early_refusals_truly(tmp_path, monkeypatch):
+    """An early return (no location name) is recorded as itself, not as an unregistered pair."""
+    then_now.LAST_REFUSAL.clear()
+    assert then_now.make({"location": {}}, tmp_path) == (None, [])
+    rec = json.loads((tmp_path / then_now.REFUSAL_SIDECAR).read_text(encoding="utf-8"))
+    assert rec["refused"][-1]["reason"] == "no location name to search"
 
 
 def test_a_registered_916_pair_keeps_the_shared_window(tmp_path):
@@ -275,7 +317,7 @@ def test_the_place_is_the_same_in_every_palette_and_every_plate_holds_contrast_h
     """B3: the place is chosen on the photographs' own pixels (no divider, INK or plate in a candidate box), so it is
     the same in the three palettes. B2: each plate's text holds contrast.high (7.0) through its tiers (held, then
     opaque INK); the second palettes' held plates read 5.99-6.25 at the cycle-6 first tip."""
-    old, new = _registered(tmp_path, *_memnon_like(tmp_path))
+    old, new = _pair_for(tmp_path, size)
     sides, worst = {}, {}
     for pal in PALETTES:
         _palette(pal)
@@ -292,8 +334,8 @@ def test_a_held_plate_under_the_margin_goes_opaque(monkeypatch, tmp_path, defaul
     """B2's tier: on a bright ground the held plate (plate.held 0.875) lets light through; under contrast.high plus
     the re-encode margin it is drawn opaque INK, and its text then reads its fill against INK."""
     _palette("second-colours")     # its gold on the held plate read 6.19-6.25 over these grounds at the first tip
-    old, new = _registered(tmp_path, *_memnon_like(tmp_path))
-    meta = _plan_only(monkeypatch, tmp_path, old, new, TALL)
+    old, new = _pair_for(tmp_path, WIDE)
+    meta = _plan_only(monkeypatch, tmp_path, old, new, WIDE)
     tiers = {w: meta["side"][w]["tier"] for w in ("then", "now")}
     assert any(t["tier"] == "opaque" for t in tiers.values()), tiers
     for t in tiers.values():
@@ -309,9 +351,9 @@ def test_the_now_marker_enters_on_the_tokens_after_the_landing(monkeypatch, tmp_
     if size == WIDE:   # NOW busy against the divider, calm at its outer edge: it takes "outer"
         old = _photo(tmp_path / "t.png", 1920, 1080, [(0.05, 0.1, 0.3, 0.6)], seed=41)
         new = _photo(tmp_path / "n.png", 1920, 1080, [(0.5, 0.1, 0.72, 0.6)], seed=42)
+        old, new = _registered(tmp_path, old, new)
     else:
-        old, new = _memnon_like(tmp_path)
-    old, new = _registered(tmp_path, old, new)
+        old, new = _pair_for(tmp_path, size)
     meta = _plan_only(monkeypatch, tmp_path, old, new, size)
     if size == WIDE:
         assert meta["side"]["now"]["side"] == "outer"

@@ -308,6 +308,23 @@ def row_form_fault(text: str, unit: str, subject: float, approximate: bool) -> s
     return ""
 
 
+def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value: float) -> str:
+    """Review 3b (N5), on the measure's own reading: a row naming the landmark draws only the landmark's figure (within
+    3 % of its file value), a row led by the subject's name only the subject's own figure."""
+    low = " ".join(text.lower().split())
+    ref = ref_label.split(" (")[0].lower()
+    sub = re.sub(r"\s+(height|depth|tall|deep|length|long)$", "", subject.lower()).strip()
+    role = "landmark" if ref and ref in low else "subject" if sub and low.startswith(sub) else ""
+    for key, _h, u, v in _quantities(text):
+        if not u:
+            continue
+        if role == "landmark" and abs(v - r_value) > 0.03 * r_value:
+            return f"draws {key.rstrip('#')} {u} in the landmark's row (its figure is about {r_value:.3f})"
+        if role == "subject" and abs(v - s_value) > 1e-6:
+            return f"draws {key.rstrip('#')} {u} in the subject's row (its figure is {s_value:g})"
+    return ""
+
+
 def landmark_fault(text: str, ref: dict[str, Any] | None, unit: str) -> str:
     """Review 3 (B3), on its own arithmetic: every landmark figure `text` draws (a number within 3 % of the landmark's
     file value) is a figure its statement states (hedged where the statement hedges it), or the file value correctly
@@ -316,6 +333,9 @@ def landmark_fault(text: str, ref: dict[str, Any] | None, unit: str) -> str:
         return ""
     value = float(ref["feet"]) * (0.3048 if unit == "M" else 1.0)
     statement = str(ref.get("statement") or "")
+    for _key, _h, u, _v in _quantities(text):         # review 3b: never another unit than the drawing's
+        if u and {"m": "M", "ft": "FT", "in": "FT"}[u.lower()] != unit:
+            return f"draws the landmark in {u}, in a drawing measured in {unit.lower()}"
     pat = (r"((?:approximately|about)\W+(?:\w+\W+){0,3})?(\d[\d,]*(?:\.\d+)?)\s*(?:metres|meters|m)\b" if unit == "M"
            else r"((?:approximately|about)\W+(?:\w+\W+){0,3})?(\d[\d,]*)\s*(?:feet|foot|ft)\b"
                 r"(?:\s*(\d+)\s*(?:inches|inch|in)\b)?")
@@ -356,12 +376,40 @@ def _ratio_text(ratio: float) -> str:
 LEVEL_MAX = {"M": 0.05, "FT": 1 / 24}   # "nearly level" may be said of a gap no larger than half the last digit drawn
 
 
+# review 3b (N4), on the measure's own reading: the relation each comparison phrase states ("which is larger")
+RELATION_PHRASES = ((r"would stick out", "reference"), (r"would vanish", "subject"),
+                    (r"would reach nearly to the surface|nearly level", "level"),
+                    (r"times as tall as|times the height of", "subject"),
+                    (r"times as tall(?!\s+as)|times its length", "reference"),
+                    (r"nearly the same height|nearly its length", "level"))
+COMPARATIVES = re.compile(r"\b(shorter|smaller|taller|larger|bigger|longer|deeper|shallower|higher|lower|less|more|"
+                          r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|nearly)\b",
+                          re.I)
+
+
+def relation_fault(text: str, shown: str, subject: float, reference: float) -> tuple[str, bool]:
+    """(what is wrong with the comparison `text` draws, whether it draws one): every comparison word belongs to a known
+    phrase, and each phrase states the true relation (the reference larger, the subject larger, level / nearly the
+    same when the record draws no number)."""
+    rest, said = text, []
+    for pat, rel in RELATION_PHRASES:
+        said += [rel for _m in re.finditer(pat, rest, re.I)]
+        rest = re.sub(pat, " ", rest, flags=re.I)
+    left = [m.group(0) for m in COMPARATIVES.finditer(rest)]
+    if left:
+        return f"draws a comparison the measure cannot read ({', '.join(left)})", bool(said)
+    want = "level" if not shown else ("reference" if reference > subject else "subject")
+    bad = [r for r in said if r != want]
+    return (f"says the {bad[0]} is larger / level where it is the {want}" if bad else ""), bool(said)
+
+
 def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subject: float, reference: float,
-                unit: str = "M", hedged: bool = False) -> str:
+                unit: str = "M", hedged: bool = False, derived_slot: bool = False) -> str:
     """'' when every derived number `text` draws is the rule's result on the SIGNED SOURCE values (`subject`, the
     fact's own value; `reference`, the reference file's figure in the drawing's unit, unrounded) rounded once; else
     what is wrong. Numbers that restate an operand's own drawn figure are not derived numbers."""
-    drawn = [n for n in _numbers(text) if n not in operands_drawn]
+    # review 3b (N5): in the derived slot (the comparison row, the bracket) every number is the derived figure
+    drawn = [n for n in _numbers(text) if derived_slot or n not in operands_drawn]
     if shown and not drawn and re.search(r"\bnearly\b", text, re.IGNORECASE):
         return f"says {text!r}, a word form, where its record draws {shown}"
     if rule == "ratio":
@@ -437,8 +485,13 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                 rows.append((*where, f"draws {extra} with no derivation record", "FAIL"))
                 continue
             faults = figures.derivation_faults(d, labelled if rec.get("layout") else None)
-            wrong = (truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true,
-                                 unit, bool(d.get("hedged"))) or landmark_fault(e["text"], reference_by_label(ref[0]), unit)
+            rel_wrong, comparison = relation_fault(e["text"], str(d.get("shown") or ""), s_true, r_true)
+            slot = comparison or e["name"] == "bracket"
+            wrong = (rel_wrong or truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true,
+                                              r_true, unit, bool(d.get("hedged")), slot)
+                     or (landmark_fault(e["text"], reference_by_label(ref[0]), unit) if not slot else "")
+                     or (role_fault(e["text"], ref[0], str(fact.get("subject") or ""), s_true, r_true) if not slot
+                         else "")
                      or row_form_fault(e["text"], unit, s_true, bool(fact.get("approximate", True))))
             if wrong:
                 faults = [*faults, wrong]

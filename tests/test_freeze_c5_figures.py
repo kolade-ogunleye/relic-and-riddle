@@ -521,3 +521,98 @@ def test_an_operands_drawn_figure_is_its_value_rounded_at_its_own_digit():
     for fact in ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "S", "approximate": True},
                  {"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": True}):
         assert not figures.derivation_faults(_statement_rows(fact)[0]["derivation"])
+
+
+DIRECTION_CASES = [   # (fact, the comparison row index, the row with its relation flipped)
+    (W327, 1, "would stick out about 181 m."),
+    ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True}, 1,
+     "would stick out about 1.7 m."),
+    ({"value": 147.0, "unit": "m", "dimension": "depth", "subject": "Shaft", "approximate": True}, 1,
+     "would stick out about 0.5 m."),
+    ({"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "Mine", "approximate": True}, 1,
+     "would stick out about 592 ft."),
+    ({"value": 470.0, "unit": "ft", "dimension": "depth", "subject": "Shaft", "approximate": True}, 1,
+     "would vanish about 10 ft 8 in deep."),
+    ({"value": 28.0, "unit": "m", "dimension": "height", "subject": "Tower", "approximate": False}, 1,
+     "about 1.5 times shorter than"),
+    (A138, 2, "is about 2 times shorter than it"),
+]
+
+
+@pytest.mark.parametrize("fact,row,flipped", DIRECTION_CASES)
+def test_a_flipped_comparison_fails_in_production(tmp_path, fact, row, flipped):
+    """Review 3b (N4): the relation a comparison draws (which is larger) is machine-read (figures.RELATION_FORMS) and
+    judged against the record's relation, which is its signed operands'; a comparison word no form reads fails closed.
+    Gate (check_run), derivation_faults (a record claiming the flipped relation) and the corpus measure each catch it."""
+    import copy
+    st, rows = _statement_rows(fact)
+    assert _scale_run(tmp_path, fact, rows) == []
+    bad = copy.deepcopy(rows)
+    bad[row] = (bad[row][0], flipped, bad[row][2])
+    assert _scale_run(tmp_path, fact, bad), flipped
+    rec = copy.deepcopy(st["derivation"])
+    rec["relation"] = rec["relation"].replace("reference", "x").replace("subject", "reference").replace("x", "subject")
+    assert figures.derivation_faults(rec)
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    per = graphics.per_ft(graphics.lead_unit(fact))
+    wrong, _said = fm.relation_fault(flipped, st["derivation"]["shown"], fact["value"] if (fact["unit"] == "m") ==
+                                     (graphics.lead_unit(fact) == "M") else feet * per,
+                                     graphics.pick_reference(feet)[1] * per)
+    assert wrong, flipped
+
+
+N5_CASES = [   # (fact, element index, what the derived slot draws instead, record kept)
+    (W327, 1, "would vanish about 327 m deep."), (W327, 1, "would vanish about 146.5 m deep."),
+    (W327, 2, "ABOUT 327 M"), (W327, 2, "ABOUT 146.5 M"),
+    ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True}, 1,
+     "would vanish about 20 m deep."),
+    ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "Well", "approximate": True}, 1,
+     "would vanish about 18.3 m deep."),
+    ({"value": 147.0, "unit": "m", "dimension": "depth", "subject": "Shaft", "approximate": True}, 1,
+     "would vanish about 147 m deep."),
+    ({"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "Mine", "approximate": True}, 1,
+     "would vanish about 1,073 ft deep."),
+    ({"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "Mine", "approximate": True}, 0,
+     "The Great Pyramid, about 1,073 ft,"),
+    ({"value": 470.0, "unit": "ft", "dimension": "depth", "subject": "Shaft", "approximate": True}, 1,
+     "would stick out about 470 ft."),
+    ({"value": 28.0, "unit": "m", "dimension": "height", "subject": "Tower", "approximate": False}, 1,
+     "about 18.3 times as tall as"),
+    (A138, 2, "stands about 305 times its length."),
+    (A138, 0, "Unfinished obelisk: about 305 ft long."),
+]
+
+
+@pytest.mark.parametrize("fact,idx,drawn", N5_CASES)
+def test_each_number_is_bound_to_its_role_in_production(tmp_path, fact, idx, drawn):
+    """Review 3b (N5): the comparison row and the bracket draw the derived figure and nothing else; a row naming the
+    landmark draws its figure, a row led by the subject its own. Another true figure of the run in a slot fails at
+    check_run (record kept) and in the corpus measure."""
+    import copy
+    st, rows = _statement_rows(fact)
+    bad = copy.deepcopy(rows)
+    bad[idx] = (bad[idx][0], drawn, bad[idx][2])
+    assert _scale_run(tmp_path, fact, bad), drawn
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    unit = graphics.lead_unit(fact)
+    per = graphics.per_ft(unit)
+    ref = graphics.pick_reference(feet)
+    s_true = fact["value"] if (fact["unit"] == "m") == (unit == "M") else feet * per
+    rel, slot = fm.relation_fault(drawn, st["derivation"]["shown"], s_true, ref[1] * per)
+    slot = slot or bad[idx][0] == "bracket"
+    from src.reference_facts import reference_by_label, stated_figures
+    stated = stated_figures(reference_by_label(ref[0]), unit)
+    fig, metric = graphics.scale_figure(fact, feet, fact["dimension"] == "depth")
+    op_drawn = {n for t in (fig, metric, *(c[1] for c in stated)) for n in fm._numbers(t)}
+    corpus = (rel or fm.truth_fault(st["derivation"]["rule"], drawn, st["derivation"]["shown"], op_drawn, s_true,
+                                    ref[1] * per, unit, st["derivation"]["hedged"], slot)
+              or ("" if slot else fm.role_fault(drawn, ref[0], fact["subject"], s_true, ref[1] * per)))
+    assert corpus, drawn
+
+
+def test_a_legend_with_the_right_digits_in_the_wrong_unit_fails():
+    """Review 3b: '146.5 FT' on a metre drawing's legend fails the gate and the corpus measure."""
+    from src.reference_facts import reference_by_label
+    ref = reference_by_label("Great Pyramid (original)")
+    assert figure_gate.landmark_faults("146.5 FT", ref) and fm.landmark_fault("146.5 FT", ref, "M")
+    assert not fm.landmark_fault("146.5 M", ref, "M")

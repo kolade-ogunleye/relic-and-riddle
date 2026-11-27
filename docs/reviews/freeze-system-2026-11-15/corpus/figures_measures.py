@@ -316,7 +316,8 @@ def mask_text(text: str, names: list[str]) -> str:
     return out
 
 
-def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value: float, recorded: str = "") -> str:
+def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value: float, recorded: str = "",
+               raw: str = "", landmark_name: str = "") -> str:
     """Review 3b (N5), on the measure's own reading: a row naming the landmark draws only the landmark's figure (within
     3 % of its file value), a row led by the subject's name only the subject's own figure."""
     low = " ".join(text.lower().split())
@@ -324,6 +325,10 @@ def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value:
     sub = re.sub(r"\s+(height|depth|tall|deep|length|long)$", "", subject.lower()).strip()
     role = ({"landmark": "landmark", "subject": "subject"}.get(recorded) if recorded else
             "landmark" if ref and ref in low else "subject" if sub and low.startswith(sub) else "")
+    names_low = " ".join((raw or text).lower().split())
+    if role == "landmark" and _quantities(text) and not any(
+            n and n in names_low for n in (ref, " ".join(landmark_name.lower().split()))):
+        return f"a landmark row drawing a figure without naming its landmark ({ref_label})"
     for key, _h, u, v in _quantities(text):
         if not u:
             continue
@@ -513,8 +518,8 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
             wrong = (rel_wrong or truth_fault(str(d.get("rule")), text, str(d.get("shown") or ""), op_drawn, s_true,
                                               r_true, unit, bool(d.get("hedged")), slot)
                      or (landmark_fault(text, reference_by_label(ref[0]), unit) if not slot else "")
-                     or (role_fault(text, ref[0], str(fact.get("subject") or ""), s_true, r_true, role) if not slot
-                         else "")
+                     or (role_fault(text, ref[0], str(fact.get("subject") or ""), s_true, r_true, role,
+                                    e["text"], str(row.get("landmark_name") or "")) if not slot else "")
                      or row_form_fault(text, unit, s_true, bool(fact.get("approximate", True))))
             if wrong:
                 faults = [*faults, wrong]

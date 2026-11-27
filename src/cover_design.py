@@ -633,14 +633,16 @@ def cover_windows(top=COVER_TYPE_TOP):
     foot = min(1920, int(top) - COVER_INK_CLEAR)
     # a reviewed feature lies whole above the type or the fade (`hold`: it is whole on the Reel cover and no type is
     # set on it), and COVER_GRID_FOCUS of it inside the profile square (the grid tile may trim its top, never more)
+    # an unreviewed photograph: half its salience in the Reel's view, half of that in the profile tile's, and its
+    # central half in the crop (lander ruling on the second review); else it stands contained on INK
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
                                      hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
-                                     shown_min=COVER_SHOWN_MIN,
-                                     name="reel cover full_bleed")),
+                                     shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, top - 40),
+                                     centre_half=True, name="reel cover full_bleed")),
             ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
                                          hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
-                                         shown_min=COVER_SHOWN_MIN,
-                                         name="reel cover photo_over_ink")))
+                                         shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, foot),
+                                         centre_half=True, name="reel cover photo_over_ink")))
 
 
 def _filled(source, focus, top, lay):
@@ -743,6 +745,16 @@ def _photograph(im, source, aperture, lay, bottom=False):
             "source_box": [0, 0, source.width, source.height], "image_box": box,
             "aperture": [x0, y0, x1, y1],
         }
+        if lay.meta.get("photo_fit") is None:
+            # every cover style records its photograph's fit (second review, D8: lower_third, minimal and the
+            # sandwich recorded nothing): contained whole, the photograph's own frame shows when it has one
+            from . import photo_fitness as pf
+            share = pf.analyse(source.convert("RGB")).matte_share
+            problems = ["matte"] if share > pf.MATTE_MAX else []
+            why = (pf.reason({"problems": problems}, "the cover's contained photograph") if problems
+                   else "the photograph stands whole in its window (no crop)")
+            lay.meta["photo_fit"] = {"fit": not problems, "layout": "contain", "tried": [], "matte": round(share, 4),
+                                     "problems": problems, "reason": why}
     return im
 
 

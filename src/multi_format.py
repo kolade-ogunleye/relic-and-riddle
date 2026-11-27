@@ -1412,7 +1412,10 @@ class MultiFormatGenerator:
             need_c = band_edge.text_strength(base, [(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"),
                                                      c_fill) for k, ln in enumerate(c_drawn)], brand.INK)
             got_c: dict = {}
-            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c)
+            # not graded (ruling N2): the credit's small data face sits in the band's fall-off, and a graded ground there
+            # read 0.05-0.25 lower after the platform re-encode
+            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
+                         grade=False)
             credit["text_band"] = text_band_record(need_c, got_c.get("strength", 0.0))
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
@@ -1650,7 +1653,18 @@ class MultiFormatGenerator:
         # for no narrative reason). The scrim and each line's measured halo hold the contrast on any photo.
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
-        base, rows, ground = story_ground(base, d, rows, x, top, block)
+        shade_rows, shade_block = rows, block
+        if i == 0 and not pointer:
+            # Rulings N1 / N2 (2026-11-26, review 2 of the PLATES c5 fix): the band and its step are laid for the block
+            # as designed, the withheld pointer's line included (its room, as the base laid it), so withholding the
+            # line by ruling neither lightens the band under the other lines nor moves the kicker off its plate
+            # (31 Story elements read lower than base without it); the line itself is still not drawn
+            ghost = ("reel_pointer", y + 96, STORY_POINTER, font_p, brand.BONE,
+                     font_p.size * 0.11, 0)
+            shade_rows = rows + [ghost]
+            shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
+        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block)
+        rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")
         if sticker:

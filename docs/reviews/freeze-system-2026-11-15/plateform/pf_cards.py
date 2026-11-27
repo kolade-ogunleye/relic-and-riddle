@@ -60,6 +60,13 @@ def main() -> None:
                 continue
             ph = hits[0]
         key = pk.replace(":", "_")
+        if "myth" in kinds:
+            # the 9:16 myth's bare ground (the photograph as it shows outside the panel, no type): the measures'
+            # reference where the no-ground form ("none") refuses
+            g = out_root / "ground" / f"myth__{key}.png"
+            if not g.is_file():
+                g.parent.mkdir(parents=True, exist_ok=True)
+                dc._photo_outside(ph, dc._Geo(*fc.TALL), fc.TALL[1], top=-fc.TALL[1])[0].save(g)
         for kind in kinds:
             t0 = time.time()
             if (out / f"{kind}__{key}.png").is_file() and os.environ.get("PF_REDRAW") != "1":

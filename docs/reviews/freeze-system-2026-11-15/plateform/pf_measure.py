@@ -292,6 +292,9 @@ def main() -> None:
             got = {fm: source(a, fm, case) for fm in set(forms) | {"base", "none"}}
             base_im, _r, base_els = got["base"]
             none_im = got["none"][0]
+            if none_im is None and case[0] == "card":
+                g = a.cards / "ground" / f"{case[1]}__{case[2]}.png"
+                none_im = Image.open(g).convert("RGB") if g.is_file() else None
             cells = {}
             for fm in forms:
                 im, refused, els = got[fm]

@@ -1,0 +1,3702 @@
+{
+"12e7fd63fd0ca913ab5805cae26300d46997d64e752dbc70eb7f834b79b8e2ef": {
+"name": "amber_room_heist/01_commons.jpg",
+"box": [
+0.1094,
+0.0813,
+1.0,
+1.0
+],
+"confidence": 0.0001
+},
+"73ce475ce641bdc76d9e1381a06e12ca4a757f9bd9742715513c3ac182834b9b": {
+"name": "amber_room_heist/02_commons.jpg",
+"box": [
+0.4188,
+0.325,
+0.7906,
+0.9969
+],
+"confidence": 0.0003
+},
+"a556621cfff1693b9affa17e7fdffa52d9e4a1fa77c2a807998b8798be6baa68": {
+"name": "amber_room_heist/03_commons.jpg",
+"box": [
+0.75,
+0.5906,
+1.0,
+1.0
+],
+"confidence": 0.0
+},
+"9f7191ecf60966a9f345a9ae16de1f6695e9d127c6f9c56fe193fe49002027cf": {
+"name": "amber_room_heist/04_commons.jpg",
+"box": [
+0.1313,
+0.0,
+0.9688,
+0.8844
+],
+"confidence": 0.0003
+},
+"def83d59abce21cac7ecde47268b07027fe13d62c2fabb34b8014d062b678186": {
+"name": "amber_room_heist/05_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.9969,
+1.0
+],
+"confidence": 0.0178
+},
+"9c8ca50a9f9ff94583743001228cfa708e50c0fc64da452d81eb6c74c4cdcd95": {
+"name": "amber_room_heist/06_commons.jpg",
+"box": [
+0.0563,
+0.4719,
+0.8812,
+1.0
+],
+"confidence": 0.0001
+},
+"0a5d420f0b58d3411aee50403eb4786470598830006abcdc82d1c0eb58279bb3": {
+"name": "amber_room_heist/07_commons.jpg",
+"box": [
+0.0,
+0.0,
+1.0,
+1.0
+],
+"confidence": 0.0002
+},
+"8a10b7abeba550b1b3103ee85ba9acda9a79bfc0f2c3070f76486d3623f30a2d": {
+"name": "amber_room_heist/08_commons.jpg",
+"box": [
+0.2531,
+0.3344,
+0.8219,
+1.0
+],
+"confidence": 0.0
+},
+"d1b71ce702275adabe5d146a7bf74012ee3ccba0293d34e30f9b6ef1fa6ba8e8": {
+"name": "amber_room_heist/09_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.9125,
+1.0
+],
+"confidence": 0.0624
+},
+"31715d2071d9d40e09a7f7d4afb80f2278b8f87fc6ff8db08395cc8f68443049": {
+"name": "amber_room_heist/10_commons.jpg",
+"box": [
+0.0781,
+0.0,
+0.6531,
+1.0
+],
+"confidence": 0.1531
+},
+"371f8d1d92cc8eb26f463019e9a5ac449ddd3f8ebc1cee4e2a0428a2bab1ebbc": {
+"name": "amber_room_heist/11_commons.jpg",
+"box": [
+0.1,
+0.15,
+0.6281,
+0.8219
+],
+"confidence": 0.0
+},
+"d39b259f9f082745136d8701acade32cfeae95e7f2e780830ccfbc13ca3a3fad": {
+"name": "amber_room_heist/12_commons.jpg",
+"box": [
+0.6594,
+0.225,
+0.925,
+1.0
+],
+"confidence": 0.0
+},
+"113160f3db6a4c27669ce95cd7d8a0a48e0dba6b3133c7e68d632cc37ab4df5a": {
+"name": "amber_room_heist/13_commons.jpg",
+"box": [
+0.25,
+0.1375,
+0.6344,
+0.3688
+],
+"confidence": 0.0
+},
+"9ec2c5408489c27901994dfe69d89b6157b6fd257be323c1dc7fbd141d55c189": {
+"name": "amber_room_heist/14_commons.jpg",
+"box": [
+0.0,
+0.0,
+1.0,
+1.0
+],
+"confidence": 0.0076
+},
+"fac6414ff31155f061a04b2b5023c9dac29f697fe29adb5d466ed908749d9b56": {
+"name": "amber_room_heist/15_commons.jpg",
+"box": [
+0.4906,
+0.0,
+0.8625,
+0.7063
+],
+"confidence": 0.0013
+},
+"847e8e5aad9149339f7e8c48f85fec542db69c2f727630debc85bcda2951d1f5": {
+"name": "amber_room_heist/16_commons.jpg",
+"box": [
+0.4062,
+0.0,
+0.6625,
+0.775
+],
+"confidence": 0.1216
+},
+"dd02f3ce3335a157ba2256beae1986be4bf09eb3348a9c9c191d393b5cb2e790": {
+"name": "amber_room_heist/17_commons.jpg",
+"box": [
+0.0219,
+0.0,
+0.8125,
+0.8875
+],
+"confidence": 0.0056
+},
+"411e091270a1ecba216fef6aa444b4ae79f62ca276bd31d4a4987e66ad07233c": {
+"name": "amber_room_heist/18_commons.jpg",
+"box": [
+0.1344,
+0.3719,
+0.5094,
+0.8469
+],
+"confidence": 0.0
+},
+"2b1dd2b567442baff14a24e7784f16e6d0280d5755989dcb26d2cb10bd2e29a0": {
+"name": "amber_room_heist/19_commons.jpg",
+"box": [
+0.2781,
+0.3937,
+0.7406,
+0.6687
+],
+"confidence": 0.2306
+},
+"b2c22ff70696f2952768f025569a52bf0898d7f9422ce222a012b00979ecbd15": {
+"name": "amber_room_heist/20_commons.jpg",
+"box": [
+0.05,
+0.2812,
+0.6469,
+0.8781
+],
+"confidence": 0.0
+},
+"d74ab4a95cf13f30e3e9efde462c9dab31782867f6588c545d332679dd9be4ee": {
+"name": "damascus_steel_nanotubes/01_commons.jpg",
+"box": [
+0.2062,
+0.1,
+0.7719,
+0.8594
+],
+"confidence": 0.8971
+},
+"ef20a9a5d9d0a391764011e49d8e74dcf7a0921151f83f08a46e1bbecda1e1bd": {
+"name": "damascus_steel_nanotubes/02_commons.jpg",
+"box": [
+0.2625,
+0.1938,
+0.9375,
+0.8344
+],
+"confidence": 0.1095
+},
+"a4104d94a2b440767fb5e78610015e1ccc52c712244cb820eefc81237e132cc5": {
+"name": "damascus_steel_nanotubes/03_commons.jpg",
+"box": [
+0.1219,
+0.1594,
+0.8625,
+1.0
+],
+"confidence": 0.8581
+},
+"fe15d8877a5d68f99c3c71a6a901f3b440d0f109e7a93ebd225ecbe738f10139": {
+"name": "damascus_steel_nanotubes/04_commons.jpg",
+"box": [
+0.2844,
+0.0156,
+0.8,
+1.0
+],
+"confidence": 0.4206
+},
+"954f0022c21f0aa27f8a781d8348c615f9b9883d76c069bcf9cecb5f9c582a59": {
+"name": "damascus_steel_nanotubes/05_commons.jpg",
+"box": [
+0.0594,
+0.1562,
+0.9313,
+0.9656
+],
+"confidence": 0.1804
+},
+"7f1f7dd9dbbb8025e37737a443aa2988000962071bcf4af978bdf2567748c6e9": {
+"name": "damascus_steel_nanotubes/06_commons.jpg",
+"box": [
+0.0,
+0.2219,
+0.8656,
+0.8938
+],
+"confidence": 0.7423
+},
+"44569da39c1e7dd59a75257d7ad9ebcf9d66b240948fbe1e6eeceefd46a8133a": {
+"name": "damascus_steel_nanotubes/07_commons.jpg",
+"box": [
+0.1969,
+0.0,
+1.0,
+0.7375
+],
+"confidence": 0.861
+},
+"75e52e34398e05f306f0107e66c91f1a323b69a8bf537c81019b10ee432289b3": {
+"name": "damascus_steel_nanotubes/08_commons.jpg",
+"box": [
+0.1875,
+0.05,
+0.7031,
+0.875
+],
+"confidence": 0.7362
+},
+"6c165a475252026a654b943c97665dd81911852eaaad9050bcc806dbfc7e56a9": {
+"name": "damascus_steel_nanotubes/09_commons.jpg",
+"box": [
+0.0625,
+0.0,
+0.9219,
+0.7719
+],
+"confidence": 0.4684
+},
+"2612edb74b8205dc9ee2c7a483e5495a73299a3abd341477af154fb83be11145": {
+"name": "damascus_steel_nanotubes/10_commons.jpg",
+"box": [
+0.4437,
+0.0719,
+0.5437,
+0.9313
+],
+"confidence": 0.8882
+},
+"dcbf8fb54838cd0f7bc34017f861fb4f13dcfd8104961e947f01ecc5c2d4ac41": {
+"name": "damascus_steel_nanotubes/11_commons.jpg",
+"box": [
+0.2219,
+0.0719,
+0.7375,
+0.9281
+],
+"confidence": 0.7449
+},
+"2eed3b49241f24fca8e827635e43dfb5a0c4f2c3afae49dd10064a4f2d90e3b1": {
+"name": "damascus_steel_nanotubes/12_commons.jpg",
+"box": [
+0.4125,
+0.0156,
+0.6219,
+0.9625
+],
+"confidence": 0.7433
+},
+"0122ed63a7297aced95ad12b5cbb920ce954a420a05082f71d9d17ce8846c989": {
+"name": "damascus_steel_nanotubes/13_commons.jpg",
+"box": [
+0.3406,
+0.0781,
+0.6625,
+1.0
+],
+"confidence": 0.9083
+},
+"db78edc6f1ea79a8d0c54d4050f841ca86c6ce9c2e2ae36cc502a7f47b60bd77": {
+"name": "damascus_steel_nanotubes/14_commons.jpg",
+"box": [
+0.3656,
+0.0219,
+0.6375,
+0.9781
+],
+"confidence": 0.7563
+},
+"f19017255d53f41face8f7c3b8978e79b77e63ccb829a6a2afe9449140f2a3ac": {
+"name": "damascus_steel_nanotubes/15_commons.jpg",
+"box": [
+0.3375,
+0.125,
+0.6969,
+1.0
+],
+"confidence": 0.8991
+},
+"580ba756be275d06d7a0a3417655d3befc96f4b6bff665aab38c462fa05219ae": {
+"name": "damascus_steel_nanotubes/16_commons.jpg",
+"box": [
+0.0688,
+0.2531,
+0.9688,
+0.7594
+],
+"confidence": 0.8129
+},
+"5de66a0fe20d816d8aa0f6ad1ea7a08882985813a8571258ad248a176e5d2f69": {
+"name": "damascus_steel_nanotubes/17_commons.jpg",
+"box": [
+0.025,
+0.2344,
+0.9437,
+0.7063
+],
+"confidence": 0.8039
+},
+"f22596d1753bf5e3f06c45b26972ec213f8d0b74c13e2ab29949a5c322b49237": {
+"name": "damascus_steel_nanotubes/18_commons.jpg",
+"box": [
+0.2219,
+0.0781,
+0.8719,
+0.9563
+],
+"confidence": 0.8245
+},
+"98be22aeb87e53325f79850c5e4d3986794ebe49d6a1dee438c180c1965a54e0": {
+"name": "damascus_steel_nanotubes/19_commons.jpg",
+"box": [
+0.3875,
+0.0469,
+0.6625,
+0.9625
+],
+"confidence": 0.7619
+},
+"d14681289fff723c10af9d57ccd45a1174ca9f769f752a2a56badf823c34c174": {
+"name": "flannan_isle_lighthouse_disappearance/01_commons.jpg",
+"box": [
+0.0,
+0.0,
+1.0,
+1.0
+],
+"confidence": 0.0005
+},
+"dba6afb35726c4822a869ea733541e20e297d78451dad4166bb171e7b571db25": {
+"name": "flannan_isle_lighthouse_disappearance/02_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.8438,
+0.8812
+],
+"confidence": 0.0082
+},
+"ed7c5c865779643249c04a8dc13713e590a6935a0c236bb7cf57f7a68e80979b": {
+"name": "flannan_isle_lighthouse_disappearance/06_commons.jpg",
+"box": [
+0.0437,
+0.0125,
+0.9563,
+0.9906
+],
+"confidence": 0.1051
+},
+"22f691f899eb51affc6e34fc256feed92a6ea118d90cc9f75b3f339475f5e9d6": {
+"name": "flannan_isle_lighthouse_disappearance/07_commons.jpg",
+"box": [
+0.0719,
+0.0281,
+0.9313,
+0.9875
+],
+"confidence": 0.1769
+},
+"ae89af2773f553a1f229969885935068406e111a49ce25cf7c538f8113e0f3ba": {
+"name": "flannan_isle_lighthouse_disappearance/08_commons.jpg",
+"box": [
+0.0656,
+0.0719,
+0.9531,
+1.0
+],
+"confidence": 0.0
+},
+"eee10c80d4a36fb7a02dd8ca52e834662f917a63d3838d895554648923058adc": {
+"name": "gobekli_tepe_enclosure_d/01_commons.jpg",
+"box": [
+0.0,
+0.0156,
+0.9219,
+0.4344
+],
+"confidence": 0.0016
+},
+"ba18e2a537749949a1224c2325097f986bc7c01efb76b10af8b5e4f1cec788ae": {
+"name": "gobekli_tepe_enclosure_d/02_commons.jpg",
+"box": [
+0.1531,
+0.1313,
+0.8344,
+0.8812
+],
+"confidence": 0.0154
+},
+"aec5bd2bfd4fa8efe6a6f6a4fd0095cebec4680507f1af6092dd3c1be37d3af7": {
+"name": "gobekli_tepe_enclosure_d/03_commons.jpg",
+"box": [
+0.2156,
+0.5844,
+0.7219,
+0.7281
+],
+"confidence": 0.0017
+},
+"f0f93d09f4657b8600ddad89ec7c0761731f5578ebe48d4280c5ab37a270bdbd": {
+"name": "gobekli_tepe_enclosure_d/04_commons.jpg",
+"box": [
+0.3031,
+0.0,
+0.7125,
+1.0
+],
+"confidence": 0.0
+},
+"4a0b8e36b53781e8fdcaa805cb1d597df899b649e38c870f6e1913d6c9098c9c": {
+"name": "gobekli_tepe_enclosure_d/05_commons.jpg",
+"box": [
+0.3656,
+0.0,
+0.9969,
+0.9531
+],
+"confidence": 0.0
+},
+"87ac4e3a7324addc74ba41b3058b1efed06632a4519f27cdc4c794b70cc930bc": {
+"name": "gobekli_tepe_enclosure_d/06_commons.jpg",
+"box": [
+0.3187,
+0.0719,
+0.8063,
+1.0
+],
+"confidence": 0.3133
+},
+"82da470cd1c796b5817e924ded3ca0182087073a2478603d267eb26e87735d10": {
+"name": "gobekli_tepe_enclosure_d/07_commons.jpg",
+"box": [
+0.0,
+0.0531,
+1.0,
+1.0
+],
+"confidence": 0.001
+},
+"58a042d0ce5cf625dedb12d0c1ffa9f1e01a1c274b76908f62db38d6c6b62d04": {
+"name": "gobekli_tepe_enclosure_d/08_commons.jpg",
+"box": [
+0.4188,
+0.0281,
+0.6031,
+0.3219
+],
+"confidence": 0.2653
+},
+"353f3aa739217c29b9b0a9fd6917e69b7498acfc118dca2525f54a9ad584da89": {
+"name": "gobekli_tepe_enclosure_d/09_commons.jpg",
+"box": [
+0.0219,
+0.3969,
+0.8469,
+0.6937
+],
+"confidence": 0.0001
+},
+"372bb104dea594c6a076ccb1f0cc6b5dc5d57d50b47de140ed5e666fbd5d3af7": {
+"name": "gobekli_tepe_enclosure_d/10_commons.jpg",
+"box": [
+0.0,
+0.5719,
+0.5094,
+1.0
+],
+"confidence": 0.0014
+},
+"af7df4900e596066bc07935db2d53f4d90dce1cc0266f1fc95cfff9e67c6bcef": {
+"name": "gobekli_tepe_enclosure_d/11_commons.jpg",
+"box": [
+0.0344,
+0.3375,
+1.0,
+0.9219
+],
+"confidence": 0.6838
+},
+"d20a5075c394d10a7e8de5839bedeeebc4ab591d4beeb98dc7d1fe9d46bee2fc": {
+"name": "greek_fire_siphon/01_commons.jpg",
+"box": [
+0.0187,
+0.0312,
+0.9812,
+0.9313
+],
+"confidence": 0.595
+},
+"99967708685d16b776b1328c011a079e9cd0801d3e0ba92c672a3b657336075f": {
+"name": "greek_fire_siphon/02_commons.jpg",
+"box": [
+0.1406,
+0.0375,
+0.9125,
+0.8656
+],
+"confidence": 0.0283
+},
+"b7892c9d175cea8fe29460e9007381ce6a14b572f888492fd8f66c005199cc4f": {
+"name": "greek_fire_siphon/03_commons.jpg",
+"box": [
+0.0,
+0.0469,
+1.0,
+1.0
+],
+"confidence": 0.3609
+},
+"1fbe19c91f6ed4903bfcf6609a42a9d67311925b83754fbfd8b983fc7d0a07c1": {
+"name": "greek_fire_siphon/04_commons.jpg",
+"box": [
+0.1969,
+0.1406,
+0.925,
+0.7719
+],
+"confidence": 0.1724
+},
+"04a94fb66ad3c436cdb6e256d8e83741c0232d1d6eadb9ec0cf62aea03314a3e": {
+"name": "greek_fire_siphon/05_commons.jpg",
+"box": [
+0.1625,
+0.1219,
+0.9688,
+0.8313
+],
+"confidence": 0.0639
+},
+"7e2e8022302304da862e9f9d525f9071c7596267a42f103dc28a30a600581575": {
+"name": "greek_fire_siphon/06_commons.jpg",
+"box": [
+0.0375,
+0.0437,
+0.9844,
+0.9344
+],
+"confidence": 0.4292
+},
+"5f4d7f02ccca35277fef1cda5e36d34b9a1048b0fbe468c4979d32ef7476f5b0": {
+"name": "greek_fire_siphon/07_commons.jpg",
+"box": [
+0.1625,
+0.1406,
+0.8938,
+0.85
+],
+"confidence": 0.1472
+},
+"5ce205fea4272ac248a0c272f74522b3db2a7469f3895429f31e2a56f8320983": {
+"name": "greek_fire_siphon/08_commons.jpg",
+"box": [
+0.2594,
+0.2938,
+0.825,
+0.6406
+],
+"confidence": 0.4691
+},
+"d4f0426f566d4938bff1fc536f0286bf8a54effc136810fae0423eac9267fa90": {
+"name": "greek_fire_siphon/09_commons.jpg",
+"box": [
+0.0031,
+0.0,
+1.0,
+0.9906
+],
+"confidence": 0.1965
+},
+"e9bec5b257e603d73a81b6fbd79996c860235c7f5e0de379043870b81e96a1ec": {
+"name": "greek_fire_siphon/10_commons.jpg",
+"box": [
+0.0938,
+0.1437,
+0.8031,
+0.8406
+],
+"confidence": 0.0267
+},
+"c05271f62ca1e3218e46e93f3e94b74d7b2e4ff626480212c54cfab4c2099e73": {
+"name": "greek_fire_siphon/11_commons.jpg",
+"box": [
+0.0125,
+0.0,
+0.8875,
+0.9969
+],
+"confidence": 0.1648
+},
+"d2d302fe4a0a332497f20a43f84892da38c18b53be69ae6a7b894d5c73fc7894": {
+"name": "greek_fire_siphon/12_commons.jpg",
+"box": [
+0.1594,
+0.1594,
+0.9625,
+0.8719
+],
+"confidence": 0.0486
+},
+"be4ea6b9413d90f1d497fa6458e60750908695c1bb096d58cea77c94c312865b": {
+"name": "greek_fire_siphon/13_commons.jpg",
+"box": [
+0.0,
+0.0938,
+0.7438,
+0.9125
+],
+"confidence": 0.0766
+},
+"fd2559f1ff9eac294a9e3377801a087062cbdee9d54537eb9ef887494c7cf5d3": {
+"name": "greek_fire_siphon/14_commons.jpg",
+"box": [
+0.0844,
+0.2156,
+0.9,
+0.8781
+],
+"confidence": 0.0422
+},
+"30f1f5a25e6fa107fc29e89e26e8fcf59473fc131d6421394cd9b31ce148f774": {
+"name": "greek_fire_siphon/15_commons.jpg",
+"box": [
+0.025,
+0.1031,
+0.9844,
+0.8219
+],
+"confidence": 0.5982
+},
+"34357e9fff544bd6aa6d8eff5b2a428734c93f8c1cda08d9f94dae3c95c7826a": {
+"name": "greek_fire_siphon/16_commons.jpg",
+"box": [
+0.05,
+0.1625,
+0.9062,
+0.8688
+],
+"confidence": 0.3914
+},
+"48ddd89557470e6eb15407a4a17ed116ed11af91616430a5ae85780a97ee73d3": {
+"name": "greek_fire_siphon/17_commons.jpg",
+"box": [
+0.0406,
+0.2687,
+0.8031,
+0.825
+],
+"confidence": 0.0492
+},
+"0c41ae55fef852476dbff91cb4d8536f541becfe882255700223b16410ad3f1f": {
+"name": "greek_fire_siphon/18_commons.jpg",
+"box": [
+0.1,
+0.4125,
+0.9437,
+0.675
+],
+"confidence": 0.1698
+},
+"d7a3a44bde2bba1e602f235b9ce132ad428f12baa19c7a11c6c89d100de6140c": {
+"name": "greek_fire_siphon/19_commons.jpg",
+"box": [
+0.0281,
+0.2281,
+0.9875,
+0.8156
+],
+"confidence": 0.5031
+},
+"06deb8adea104e8d1812384088f75621e63c374b97a82f2ff1808bce1b466373": {
+"name": "greek_fire_siphon/20_commons.jpg",
+"box": [
+0.1875,
+0.3719,
+0.9344,
+0.8219
+],
+"confidence": 0.0605
+},
+"6c9b300adf39efcf81cc270611f68eee8148d2d17b851196be38a3d5488ce42a": {
+"name": "hal_saflieni_hypogeum/01_commons.jpg",
+"box": [
+0.2969,
+0.4656,
+0.6969,
+0.825
+],
+"confidence": 0.0
+},
+"3c0203f4bfe6dac7da440cd76dce2c1c538bc0fc0a56d211e785e18454c93b49": {
+"name": "hal_saflieni_hypogeum/02_commons.jpg",
+"box": [
+0.4844,
+0.4156,
+0.7156,
+0.8594
+],
+"confidence": 0.0029
+},
+"eee852ece42379cf04751c598fbac1dcdab03039fb990dc1a3c8798574f31da3": {
+"name": "hal_saflieni_hypogeum/03_commons.jpg",
+"box": [
+0.0969,
+0.0,
+0.8875,
+0.8125
+],
+"confidence": 0.0274
+},
+"50e5fa6dbc3278a454cf2d125456a185faab8bc6ad9c9f3511a7d31d3813b742": {
+"name": "hal_saflieni_hypogeum/04_commons.jpg",
+"box": [
+0.325,
+0.7219,
+0.8656,
+1.0
+],
+"confidence": 0.0
+},
+"25d9fcacd374d309184d2cecc0a96c459e38380a16863196f3ab86f1071643e1": {
+"name": "hal_saflieni_hypogeum/05_commons.jpg",
+"box": [
+0.5594,
+0.2188,
+0.7219,
+0.7094
+],
+"confidence": 0.0
+},
+"854ef7532e319b6e2fb40d077cd9c3890ffef3e4167b55e7550cc71cd47048de": {
+"name": "hal_saflieni_hypogeum/06_commons.jpg",
+"box": [
+0.3812,
+0.0187,
+0.9344,
+0.7281
+],
+"confidence": 0.0
+},
+"0e2f4a2c99a1c163e31baf5cd8e930982eb8435fb04f878fabe50e11f7ffb3e5": {
+"name": "hal_saflieni_hypogeum/07_commons.jpg",
+"box": [
+0.1125,
+0.7344,
+0.925,
+1.0
+],
+"confidence": 0.0353
+},
+"741b5c9ff0fd85ccd5711c95fd7fd66707c6942aebd47644ae1f0434629ee475": {
+"name": "hal_saflieni_hypogeum/08_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.7937,
+1.0
+],
+"confidence": 0.0178
+},
+"6e4b9c420168ff09327c4e665bf19a85e3ca13edc1b2278130f5990380de438e": {
+"name": "hal_saflieni_hypogeum/09_commons.jpg",
+"box": [
+0.1219,
+0.1625,
+0.8906,
+0.8469
+],
+"confidence": 0.9525
+},
+"7f94fdc62c88c6fab4b718fc61128edc41e1894f0bc798c6ba27abae4f2b6c9f": {
+"name": "hal_saflieni_hypogeum/10_commons.jpg",
+"box": [
+0.1219,
+0.1625,
+0.8844,
+0.85
+],
+"confidence": 0.9343
+},
+"61ef9f05dcc2862643a05c3e5ed28903d7c6280fa6d1ba100a161a6d77791509": {
+"name": "hal_saflieni_hypogeum/11_commons.jpg",
+"box": [
+0.0031,
+0.0063,
+0.9969,
+0.9938
+],
+"confidence": 0.0587
+},
+"1853dc7afbfa85881abe1c1944cfa64872c679ace17ad30c319641e4c3813361": {
+"name": "hal_saflieni_hypogeum/12_commons.jpg",
+"box": [
+0.0063,
+0.0063,
+0.9938,
+0.9969
+],
+"confidence": 0.0608
+},
+"6bcae02478c2d8d52a8e0d4ceae67606d6e1d3fed1d495d13c141d05362a2e59": {
+"name": "hal_saflieni_hypogeum/13_commons.jpg",
+"box": [
+0.0063,
+0.0063,
+0.9938,
+0.8812
+],
+"confidence": 0.0713
+},
+"27a0ca814c7a8c9033d8fb90327fecd185c76d6761678ed7a6ad30e64a8ab0b2": {
+"name": "hal_saflieni_hypogeum/14_commons.jpg",
+"box": [
+0.1656,
+0.1156,
+0.8562,
+0.8938
+],
+"confidence": 0.8246
+},
+"f6dffa1425559ec3eae018cc4f53630cb646e1ba087d7a6de7b0c68e2c13f4c4": {
+"name": "kailasa_temple_monolith/01_commons.jpg",
+"box": [
+0.0,
+0.0469,
+0.9469,
+1.0
+],
+"confidence": 0.0
+},
+"f04b9633e6cd221378a701888e33e21d1669142d8501d315f369a6a2054dfe8c": {
+"name": "kailasa_temple_monolith/02_commons.jpg",
+"box": [
+0.1281,
+0.0,
+0.7219,
+1.0
+],
+"confidence": 0.2936
+},
+"eff7b53529c7fa8784efef048c0f625f2e3839fc82c096237aa6339dff2dd369": {
+"name": "kailasa_temple_monolith/03_commons.jpg",
+"box": [
+0.4281,
+0.4344,
+0.775,
+0.7937
+],
+"confidence": 0.0003
+},
+"f66176faa45a0813fb480320db217fde814bf6cc44a81addd61a13ce3a2c9f47": {
+"name": "kailasa_temple_monolith/04_commons.jpg",
+"box": [
+0.0,
+0.3281,
+0.7063,
+1.0
+],
+"confidence": 0.0
+},
+"0004f12f8092cd21525217bcb5b8d755a67a23a12d9adfb286dd5efd85e8be91": {
+"name": "kailasa_temple_monolith/05_commons.jpg",
+"box": [
+0.2313,
+0.0719,
+0.5687,
+0.9156
+],
+"confidence": 0.2022
+},
+"5c8f46264f4f997f4cab6a055dab8cf49aa34c740c6dacc27aaecf31fecba439": {
+"name": "kailasa_temple_monolith/06_commons.jpg",
+"box": [
+0.4344,
+0.5188,
+0.4562,
+0.5969
+],
+"confidence": 0.3135
+},
+"5ea418e9fcc735537ccb9eb60ea618259071f1ff2c1879e9dc16bb24be02fed2": {
+"name": "kailasa_temple_monolith/07_commons.jpg",
+"box": [
+0.2625,
+0.7312,
+0.8375,
+1.0
+],
+"confidence": 0.0
+},
+"7d597877d923f10b844a28014cd282b5fcdc91446021758e67ccbe0bf852de6f": {
+"name": "kailasa_temple_monolith/08_commons.jpg",
+"box": [
+0.0,
+0.1062,
+0.8906,
+0.8156
+],
+"confidence": 0.068
+},
+"9913a13ff8ed1b88438fc74172c2fca5d596414825ad088037dd7f1d3e592e25": {
+"name": "kailasa_temple_monolith/09_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.7969,
+0.8719
+],
+"confidence": 0.0046
+},
+"0b53afb80ab4b1140428c28dea0a372c4dbc498375b4fce00febcd266ca28177": {
+"name": "kailasa_temple_monolith/10_commons.jpg",
+"box": [
+0.4,
+0.2375,
+0.7531,
+1.0
+],
+"confidence": 0.0
+},
+"2864979cad152d326a1754a65b884f54de2bb98f1ba34db3308789cd1658e901": {
+"name": "kailasa_temple_monolith/11_commons.jpg",
+"box": [
+0.8219,
+0.0,
+1.0,
+0.7875
+],
+"confidence": 0.0
+},
+"7841f891c48776e278ba958bcb48399913657fc3771273a6948f9f62050d42b6": {
+"name": "kailasa_temple_monolith/12_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.5969,
+0.6937
+],
+"confidence": 0.0
+},
+"e84ee8885265753e77bc55fcd38957f79ea1d86ebd8cc98c5bee319b9c7d8f96": {
+"name": "kailasa_temple_monolith/13_commons.jpg",
+"box": [
+0.0594,
+0.0125,
+0.95,
+0.9563
+],
+"confidence": 0.0
+},
+"7f8d8f26b14063acf07031592c09c554606c0a1f43b1228bfcb32c47810703a6": {
+"name": "kailasa_temple_monolith/14_commons.jpg",
+"box": [
+0.0,
+0.1906,
+1.0,
+0.7
+],
+"confidence": 0.0
+},
+"ed62dd4108d9ddf933973a5f679e4dd82a64b90bac3b316dd935e6d22a361444": {
+"name": "kailasa_temple_monolith/15_commons.jpg",
+"box": [
+0.0,
+0.1469,
+0.6656,
+1.0
+],
+"confidence": 0.0001
+},
+"6c97d308d0524fc65a6301aa2c17671d1f6120a1ac141f70f06b8f07c26d2c7c": {
+"name": "kailasa_temple_monolith/16_commons.jpg",
+"box": [
+0.0187,
+0.1656,
+0.8594,
+0.9594
+],
+"confidence": 0.0
+},
+"d6769651791bafd970c240e69fa04da9df263bbe77db2cf234a33714f965c12f": {
+"name": "kailasa_temple_monolith/17_commons.jpg",
+"box": [
+0.0312,
+0.3094,
+0.9594,
+0.8438
+],
+"confidence": 0.3655
+},
+"031ec999e1b45a83f44cfd6b5461096f95db13cabe421e68e5278d952a1f8f01": {
+"name": "kailasa_temple_monolith/18_commons.jpg",
+"box": [
+0.0,
+0.2062,
+0.9313,
+0.4375
+],
+"confidence": 0.0585
+},
+"3c72a225038dc4c8730137d90e6f84d01cbf66ce8e558f31d0da207fa047aa7a": {
+"name": "kailasa_temple_monolith/19_commons.jpg",
+"box": [
+0.175,
+0.2094,
+0.8063,
+0.7875
+],
+"confidence": 0.0
+},
+"9da95e252c6b7569aac769adccba141b52fa74df88eea3b3a6b3b02be3a3f7d7": {
+"name": "kailasa_temple_monolith/20_commons.jpg",
+"box": [
+0.1969,
+0.3156,
+0.5594,
+0.6625
+],
+"confidence": 0.0001
+},
+"227aedafca4648228da8cc3bcde582b0a467dfe63582af09f5e63d8f17904174": {
+"name": "lycurgus_cup_nanotech/01_commons.jpg",
+"box": [
+0.0,
+0.1281,
+0.8688,
+1.0
+],
+"confidence": 0.9375
+},
+"fbedb77acf34606a38b6e9c1a268b3a41cc4b669065954aebca5fec2259020fe": {
+"name": "lycurgus_cup_nanotech/02_commons.jpg",
+"box": [
+0.1594,
+0.1,
+0.8031,
+0.825
+],
+"confidence": 0.9304
+},
+"7170f558517c15674fcadf6255afd675895720b626f57630d27df37e92f6b599": {
+"name": "lycurgus_cup_nanotech/03_commons.jpg",
+"box": [
+0.1031,
+0.1281,
+0.8719,
+0.9281
+],
+"confidence": 0.8632
+},
+"a6b73a936012c41a0b3891ff78b4592dd2461c4ddd88331458a145f4d9c1f9b3": {
+"name": "lycurgus_cup_nanotech/04_commons.jpg",
+"box": [
+0.0906,
+0.0813,
+0.9187,
+0.9375
+],
+"confidence": 0.8158
+},
+"4320f03092286bde2eb752bb96cb637f4d591882ec695fca6df89f13c29615bc": {
+"name": "lycurgus_cup_nanotech/05_commons.jpg",
+"box": [
+0.1187,
+0.1031,
+0.8781,
+0.9281
+],
+"confidence": 0.9179
+},
+"86f1866a6fcf08b403b05cb4529d4d4a2650f0fd84ca2ef70a26b9e9f78f3b3a": {
+"name": "lycurgus_cup_nanotech/06_commons.jpg",
+"box": [
+0.0656,
+0.0813,
+0.9594,
+0.8812
+],
+"confidence": 0.948
+},
+"fa2d407668bd793b5ad91796f69a05fdf69832242ec32421fb2fe368af87d834": {
+"name": "lycurgus_cup_nanotech/07_commons.jpg",
+"box": [
+0.125,
+0.0906,
+0.8688,
+0.9469
+],
+"confidence": 0.8128
+},
+"f1d36394506c1e8d200e329a31496d2dece2c643775a818a1e51328de9e26dd8": {
+"name": "lycurgus_cup_nanotech/08_commons.jpg",
+"box": [
+0.1375,
+0.1125,
+0.8531,
+0.9281
+],
+"confidence": 0.9494
+},
+"4091b519641e16474fde6494538c044616c031dfc4a46b1779903e72a44c1efb": {
+"name": "lycurgus_cup_nanotech/09_commons.jpg",
+"box": [
+0.05,
+0.125,
+0.975,
+0.9812
+],
+"confidence": 0.7287
+},
+"02ade8a989fd087dc4c474118263984c8b21de01cfab135e147bd6a131eb665d": {
+"name": "lycurgus_cup_nanotech/10_commons.jpg",
+"box": [
+0.0187,
+0.0156,
+1.0,
+1.0
+],
+"confidence": 0.4592
+},
+"6cb170a080f48bdca1099805e4c393a05b407e90a57335f231d22f443dbd38e3": {
+"name": "lycurgus_cup_nanotech/11_commons.jpg",
+"box": [
+0.0281,
+0.0063,
+0.9656,
+1.0
+],
+"confidence": 0.8815
+},
+"5a192f201ccfec74624d37fc7d4a576d2ccf908902c78fedaed3dcf5c661430a": {
+"name": "lycurgus_cup_nanotech/12_commons.jpg",
+"box": [
+0.0,
+0.0219,
+0.9906,
+1.0
+],
+"confidence": 0.5227
+},
+"1d1ebc19264fa0d89c3af6b64673b0680011d6ccca6f75a995d4bab485902245": {
+"name": "lycurgus_cup_nanotech/13_commons.jpg",
+"box": [
+0.0406,
+0.1625,
+0.9437,
+1.0
+],
+"confidence": 0.9748
+},
+"6772eb4d52c6f8cc79f0920e2d87e817e3f94a0ded63ab6258e2d524a90eb7de": {
+"name": "lycurgus_cup_nanotech/14_commons.jpg",
+"box": [
+0.0563,
+0.15,
+0.9656,
+1.0
+],
+"confidence": 0.1646
+},
+"7543a51b2687ba3dd3b098459984685cdca54b2458098813beeedcdac3e26671": {
+"name": "lycurgus_cup_nanotech/15_commons.jpg",
+"box": [
+0.1125,
+0.0656,
+0.9375,
+0.9594
+],
+"confidence": 0.8848
+},
+"141757c227b7084f094514c65e8797d50da038be38f9fdbf7e0cb3a72ae506fb": {
+"name": "lycurgus_cup_nanotech/16_commons.jpg",
+"box": [
+0.0656,
+0.0625,
+0.9313,
+0.9875
+],
+"confidence": 0.947
+},
+"016961885b4804db95a430ca9281d9ce10f43279fe93a91b181f4a3ae1c6c44b": {
+"name": "lycurgus_cup_nanotech/17_commons.jpg",
+"box": [
+0.0656,
+0.0813,
+0.9594,
+0.8812
+],
+"confidence": 0.9251
+},
+"d646f7f6b8286fce602a8d4688fa393bc850fe7e57f5d8b7be4af5baa8b226fd": {
+"name": "nazca_lines_runway_paradox/01_commons.jpg",
+"box": [
+0.05,
+0.0125,
+0.95,
+0.9969
+],
+"confidence": 0.1962
+},
+"2c9706f2db3b298d120acac6e2ee07b9f045bd8f8b8baa0c63e9613e2332f296": {
+"name": "nazca_lines_runway_paradox/02_commons.jpg",
+"box": [
+0.2875,
+0.1219,
+0.6719,
+0.875
+],
+"confidence": 0.0521
+},
+"609cb2d1293876eddfd53d6d72391e5e0bc22bf5fc8de3e004c223ca13e4e30d": {
+"name": "nazca_lines_runway_paradox/03_commons.jpg",
+"box": [
+0.0,
+0.1313,
+0.5312,
+0.4156
+],
+"confidence": 0.0
+},
+"9159b6579c8910136143cb42447fc981b505a3736a6d2803b79cdbd0130c4e82": {
+"name": "nazca_lines_runway_paradox/04_commons.jpg",
+"box": [
+0.075,
+0.175,
+0.925,
+0.9031
+],
+"confidence": 0.9629
+},
+"5c77a06dd658f378c336c866c63f8ffd4feeeead6fe2e9751244db82f2e17a68": {
+"name": "nazca_lines_runway_paradox/05_commons.jpg",
+"box": [
+0.0531,
+0.2188,
+0.7469,
+1.0
+],
+"confidence": 0.0
+},
+"abfdd00ea4fb07d65e60dc2f92ed21a7234c692259974e1b2814475b2a3d5d89": {
+"name": "nazca_lines_runway_paradox/06_commons.jpg",
+"box": [
+0.0,
+0.0312,
+0.6469,
+0.5938
+],
+"confidence": 0.0
+},
+"fc5ad4da7ac813ac8fad83cebf14149009aff2d338b7e926e6047fbae497152d": {
+"name": "nazca_lines_runway_paradox/07_commons.jpg",
+"box": [
+0.0,
+0.3406,
+0.6125,
+1.0
+],
+"confidence": 0.5342
+},
+"4e83ad9a780271379e69b16a89febae85a3f5d81e1c6a85ead1f30a40c458044": {
+"name": "nazca_lines_runway_paradox/08_commons.jpg",
+"box": [
+0.4531,
+0.4188,
+1.0,
+1.0
+],
+"confidence": 0.0173
+},
+"1c2bda1a7ce146a58560f68dcd92a469f453e9c015ce5c611e39c45e77ea7864": {
+"name": "nazca_lines_runway_paradox/09_commons.jpg",
+"box": [
+0.1344,
+0.4156,
+0.8844,
+0.7469
+],
+"confidence": 0.0449
+},
+"b820c1a1f0a38f3fa64ba37eeeaa64879d92a49c9c4fa8743c1b0defd4182245": {
+"name": "nazca_lines_runway_paradox/10_commons.jpg",
+"box": [
+0.1812,
+0.3,
+0.7656,
+0.9031
+],
+"confidence": 0.0032
+},
+"62ab8c5e14f130396ca1271eea987652f3505895c12867bef62669e6fa69e9f0": {
+"name": "nazca_lines_runway_paradox/11_commons.jpg",
+"box": [
+0.1594,
+0.2781,
+0.8344,
+1.0
+],
+"confidence": 0.0
+},
+"5a5d0c7897bfbc25fb681d7a4184018163683aa5ccc17f9a1a1a8ec293857fc7": {
+"name": "nazca_lines_runway_paradox/12_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.5531,
+0.4375
+],
+"confidence": 0.0
+},
+"5a87b6ddb2defd2bf0786544b0618354d05191a00b79ad6b0fb40b74b9b68542": {
+"name": "nazca_lines_runway_paradox/13_commons.jpg",
+"box": [
+0.0,
+0.2969,
+0.8125,
+0.6531
+],
+"confidence": 0.0001
+},
+"24c2a76d7580324071172e2429c8af8e9259d85958174c4d2923029992559794": {
+"name": "nazca_lines_runway_paradox/14_commons.jpg",
+"box": [
+0.3781,
+0.6406,
+0.4281,
+0.6844
+],
+"confidence": 0.0
+},
+"6f0a6c3227aa3e74fe9a108c6dc04cfe880cb82044266826b0a8c90e0971fe58": {
+"name": "nazca_lines_runway_paradox/15_commons.jpg",
+"box": [
+0.1344,
+0.0,
+0.7594,
+0.9094
+],
+"confidence": 0.0003
+},
+"e7e79fcef18d27cd532e16940ffb7e05b62e8c1485e52be7ba24ccd4ea902149": {
+"name": "nazca_lines_runway_paradox/16_commons.jpg",
+"box": [
+0.05,
+0.5406,
+0.375,
+0.6219
+],
+"confidence": 0.8032
+},
+"859066b7548b15300475a344abb292707c6863a9ebb99e04c3fa1566728ac1c0": {
+"name": "nazca_lines_runway_paradox/17_commons.jpg",
+"box": [
+0.4594,
+0.4,
+0.525,
+0.6094
+],
+"confidence": 0.1474
+},
+"242d1ad17e737632612c2f3333f6885ec0954d9d909c365737f2cdd0f5ad6ee7": {
+"name": "nazca_lines_runway_paradox/18_commons.jpg",
+"box": [
+0.5531,
+0.5719,
+0.75,
+0.7875
+],
+"confidence": 0.1414
+},
+"dccfaa282d65854cc7d0a83265b1bdcff8652a163342c3db8d445a4f8ee96141": {
+"name": "nazca_lines_runway_paradox/19_commons.jpg",
+"box": [
+0.0094,
+0.5188,
+0.4031,
+0.7812
+],
+"confidence": 0.6162
+},
+"75e2fb805c570d53db619d8914e63988a3100a3901c3479a5aee8a06e6e227e7": {
+"name": "nazca_lines_runway_paradox/20_commons.jpg",
+"box": [
+0.4469,
+0.7281,
+0.5906,
+0.8594
+],
+"confidence": 0.1426
+},
+"1640ce53b257b5f40faedfe2ca200761efb66d7fbaebd045cd5cdf5b00c2106e": {
+"name": "odessa_catacombs/01_commons.jpg",
+"box": [
+0.1406,
+0.3312,
+0.8781,
+0.6781
+],
+"confidence": 0.0637
+},
+"86022964be6f253fddb9763fd49d26062e5ec756d7ac0689888e091f1f2b0c08": {
+"name": "odessa_catacombs/02_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.5594,
+1.0
+],
+"confidence": 0.4579
+},
+"0daedbcf3b31c0df71f6b5b4776847eb6d5ebe3b9f36788db025f8a6dd1ba6c1": {
+"name": "odessa_catacombs/03_commons.jpg",
+"box": [
+0.3219,
+0.1281,
+0.6844,
+0.9656
+],
+"confidence": 0.8696
+},
+"2e0620911f33fda48baa063a98b713bbb136a439c26e42ed2803dd2261362470": {
+"name": "odessa_catacombs/04_commons.jpg",
+"box": [
+0.1812,
+0.1875,
+1.0,
+1.0
+],
+"confidence": 0.8741
+},
+"c84d84107cbefce1e850fd90a91e449ce7ce1194c72950ae94d080b74cf7de52": {
+"name": "odessa_catacombs/05_commons.jpg",
+"box": [
+0.4437,
+0.4406,
+0.9625,
+0.8
+],
+"confidence": 0.0
+},
+"f8a866e5e10c4f2bc71c2d24f146105f52f4d9e3710a7acd9bb98c8d611aed64": {
+"name": "odessa_catacombs/06_commons.jpg",
+"box": [
+0.0938,
+0.3906,
+0.5969,
+0.7438
+],
+"confidence": 0.0
+},
+"4a1bfe22451788165ebaeb49bcc41d9f99252ecb4a2d0311573bedb2dd4db26b": {
+"name": "odessa_catacombs/07_commons.jpg",
+"box": [
+0.3125,
+0.3937,
+0.5875,
+0.6937
+],
+"confidence": 0.0011
+},
+"fc14243d841372e77e574e5dae834fa8dd32e442d19561873fb4985fbe633b49": {
+"name": "odessa_catacombs/08_commons.jpg",
+"box": [
+0.0,
+0.2469,
+0.7719,
+0.7156
+],
+"confidence": 0.0739
+},
+"4b6870624225aaf571230ef9d65da1d4327a090a8da92c796db30e85d6079969": {
+"name": "odessa_catacombs/09_commons.jpg",
+"box": [
+0.0,
+0.2406,
+0.6156,
+0.6719
+],
+"confidence": 0.0
+},
+"a2e8ec0ca7dfb47a2efec821016fac2f8ff031d760ed2b55114953f5b7a0f56f": {
+"name": "odessa_catacombs/10_commons.jpg",
+"box": [
+0.3281,
+0.0094,
+0.725,
+0.7375
+],
+"confidence": 0.0004
+},
+"67bee6b9fa2d0a34cb4de2a8bfc0c16e04e68275e276fc100dcc13fe698932f3": {
+"name": "odessa_catacombs/11_commons.jpg",
+"box": [
+0.0156,
+0.4281,
+0.7469,
+0.6031
+],
+"confidence": 0.055
+},
+"2f5270ccb177ba2eabb1f9b87549cacc6f0b9b796e74b6e15c5a9c73cee778e7": {
+"name": "odessa_catacombs/12_commons.jpg",
+"box": [
+0.2188,
+0.1062,
+1.0,
+0.85
+],
+"confidence": 0.4031
+},
+"5f346c98d7b420fc22dbb492fee5fdc1df8021aba2625ef5386dce88e481d9de": {
+"name": "odessa_catacombs/13_commons.jpg",
+"box": [
+0.1125,
+0.2219,
+0.8187,
+0.8125
+],
+"confidence": 0.054
+},
+"6e9865490d53a70dbd1b58e43f9d7660952671512a8d7434c39da832d1b1d6bd": {
+"name": "odessa_catacombs/14_commons.jpg",
+"box": [
+0.0625,
+0.2062,
+1.0,
+0.8906
+],
+"confidence": 0.1979
+},
+"97c7f129f91cf00c4d0d6aeb061befef083c55fd1001aefcfd7d168662c562bf": {
+"name": "odessa_catacombs/15_commons.jpg",
+"box": [
+0.0,
+0.2344,
+0.7,
+0.925
+],
+"confidence": 0.0
+},
+"bd98144405eee24d3892c3650579ce3f161e1aee56dd50a37cb55e274e126d06": {
+"name": "odessa_catacombs/16_commons.jpg",
+"box": [
+0.4406,
+0.3281,
+0.7812,
+0.8781
+],
+"confidence": 0.7191
+},
+"0d7270ed541d329fbf5ed2f9370e53c78e8f42de56269002a6eea9cf3ffd2430": {
+"name": "odessa_catacombs/17_commons.jpg",
+"box": [
+0.0063,
+0.0,
+1.0,
+0.3625
+],
+"confidence": 0.0
+},
+"0725179c7119b35d1b592e3826f95566a5ee97426504ec5b3f1fa49ea8383e88": {
+"name": "odessa_catacombs/18_commons.jpg",
+"box": [
+0.025,
+0.3656,
+0.2406,
+0.9969
+],
+"confidence": 0.7369
+},
+"2b1ba006cc06eecf0be8a4a19b5c257412fbf505c33c634624ffb2a3241deb05": {
+"name": "odessa_catacombs/19_commons.jpg",
+"box": [
+0.1219,
+0.2625,
+0.4906,
+1.0
+],
+"confidence": 0.4341
+},
+"75c28f1711c9106c2c3f033dbdfd42a2ececf35e5bc96584e56f2bf8f6c6f19a": {
+"name": "richat_structure_sahara_eye/01_commons.jpg",
+"box": [
+0.1031,
+0.2281,
+0.6625,
+0.9125
+],
+"confidence": 0.0208
+},
+"51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339": {
+"name": "richat_structure_sahara_eye/02_commons.jpg",
+"box": [
+0.3125,
+0.2094,
+0.7406,
+0.7562
+],
+"confidence": 0.0023
+},
+"77a024748c4a174905fb0a17dea5b8a5a4f3f77eadd53818b1abc2bcd4334374": {
+"name": "richat_structure_sahara_eye/03_commons.jpg",
+"box": [
+0.2906,
+0.2,
+0.6813,
+0.7656
+],
+"confidence": 0.0074
+},
+"1bcbaf21db777a97087f6f833b88767dffaaf7fb273d9c4be6b5ae635cfe3ff4": {
+"name": "richat_structure_sahara_eye/04_commons.jpg",
+"box": [
+0.3219,
+0.1906,
+0.6969,
+0.6813
+],
+"confidence": 0.0073
+},
+"4be11f17d8f9003a98501b7dd2f2a21a958a6e30841f390f33e852fcd7633c52": {
+"name": "richat_structure_sahara_eye/05_commons.jpg",
+"box": [
+0.3219,
+0.0969,
+0.7875,
+0.8688
+],
+"confidence": 0.0619
+},
+"3ef186031cbc0a900b7b0735ab4394301293fd52c1b31c683a25c448e0d4cd0c": {
+"name": "richat_structure_sahara_eye/06_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.3844,
+0.8063
+],
+"confidence": 0.4913
+},
+"2fa3b1bb335f69e972e70ca025db737961333a814aac8ba2eb383c2d99eb4981": {
+"name": "richat_structure_sahara_eye/07_commons.jpg",
+"box": [
+0.2625,
+0.2313,
+0.975,
+0.8187
+],
+"confidence": 0.0018
+},
+"6a975f85558e1d944c1d54511d4715309b40c056a6e770c7d129d3533410b02b": {
+"name": "richat_structure_sahara_eye/08_commons.jpg",
+"box": [
+0.1187,
+0.325,
+0.6281,
+0.6438
+],
+"confidence": 0.0578
+},
+"71bcf2727fb5b64e8bbae7a356a07d3ca997bf859a0ab12256236324cce60065": {
+"name": "richat_structure_sahara_eye/09_commons.jpg",
+"box": [
+0.0469,
+0.2188,
+0.7719,
+0.6719
+],
+"confidence": 0.0
+},
+"087a1413ab0b7f02b4e3bf2f92e07491a7452f811a46399f70165a0b23b190b3": {
+"name": "richat_structure_sahara_eye/10_commons.jpg",
+"box": [
+0.3281,
+0.375,
+0.8063,
+0.5875
+],
+"confidence": 0.0
+},
+"108188c8b17fac0225f14bd5f864589bc214767237736ca2ab663e4d537f96bb": {
+"name": "richat_structure_sahara_eye/11_commons.jpg",
+"box": [
+0.0,
+0.075,
+1.0,
+0.7562
+],
+"confidence": 0.0
+},
+"b4cbf829d667aef39d78a0772071afbbb05fe032ae930ca2861971f08b19808d": {
+"name": "richat_structure_sahara_eye/12_commons.jpg",
+"box": [
+0.2938,
+0.25,
+0.7219,
+0.8063
+],
+"confidence": 0.3615
+},
+"37dbd31ec73b8fa96abf0f896d8efe705da5079a056ec808ba4ca55aeca81e58": {
+"name": "richat_structure_sahara_eye/13_commons.jpg",
+"box": [
+0.375,
+0.225,
+1.0,
+0.9187
+],
+"confidence": 0.0031
+},
+"54c0337f2b9563a0a19428f1f9f51f14a56e1b7925c7786942c24677fe390c91": {
+"name": "richat_structure_sahara_eye/14_commons.jpg",
+"box": [
+0.0219,
+0.3719,
+1.0,
+1.0
+],
+"confidence": 0.1554
+},
+"0a3717c1ad9c4c68e1e010583598d783fa56cca1c6de578bd0013054df667601": {
+"name": "richat_structure_sahara_eye/15_commons.jpg",
+"box": [
+0.1812,
+0.45,
+1.0,
+0.7406
+],
+"confidence": 0.0007
+},
+"b07a82f2052ed47b343e125d12dc37bf503ab80f140ed13541f1060d15cd3a38": {
+"name": "richat_structure_sahara_eye/16_commons.jpg",
+"box": [
+0.2125,
+0.1062,
+0.8844,
+0.8656
+],
+"confidence": 0.4083
+},
+"0b36850dc1a07b664779c3305ae415d79b975c1b1c8b483c33a316e40ae20d06": {
+"name": "richat_structure_sahara_eye/17_commons.jpg",
+"box": [
+0.0625,
+0.125,
+0.775,
+0.6094
+],
+"confidence": 0.0
+},
+"58718b177c461abfb5e3636049daaa30dc316667b9c1e943b1090d0243b39b22": {
+"name": "richat_structure_sahara_eye/18_commons.jpg",
+"box": [
+0.2969,
+0.1437,
+1.0,
+0.7375
+],
+"confidence": 0.0986
+},
+"7dd416b99611679ce68e9cb4bb2cecffd7b5bfa2b28e0100c8b0eec35a7e97ab": {
+"name": "richat_structure_sahara_eye/19_commons.jpg",
+"box": [
+0.2281,
+0.0,
+0.8094,
+0.9187
+],
+"confidence": 0.0703
+},
+"d68bea9d1a98aaa6416a3b0d66fb89daa774ca4d06c05456648ba779b0fbb564": {
+"name": "richat_structure_sahara_eye/20_commons.jpg",
+"box": [
+0.0844,
+0.3219,
+1.0,
+0.8156
+],
+"confidence": 0.7343
+},
+"40adacf58694076d1951a1424df83c02c4b1df73e7b59ffb164e5da8fe61dbc1": {
+"name": "roman_self_healing_concrete/01_commons.jpg",
+"box": [
+0.1531,
+0.2281,
+1.0,
+0.9344
+],
+"confidence": 0.0264
+},
+"2b30b5d830335424a2873bb05d401b51ba48dcab2c2fd22d8e68eb346f6526a4": {
+"name": "roman_self_healing_concrete/02_commons.jpg",
+"box": [
+0.3688,
+0.0406,
+0.9812,
+0.6281
+],
+"confidence": 0.1045
+},
+"b5946d164ad86e9a26fd5e11f83f992690c9207132168b8b94738c28604a3d16": {
+"name": "roman_self_healing_concrete/03_commons.jpg",
+"box": [
+0.05,
+0.0688,
+0.9469,
+0.9563
+],
+"confidence": 0.9615
+},
+"8896598f66ff2c66b6177023760b6f0177ea1824e7d04867fb73886093850563": {
+"name": "roman_self_healing_concrete/04_commons.jpg",
+"box": [
+0.0875,
+0.0813,
+0.9719,
+0.8063
+],
+"confidence": 0.6408
+},
+"8fab026b7d97287c0e030b706fd4f1bfc323782bdd6bbf7c100b5216e5fa5580": {
+"name": "roman_self_healing_concrete/05_commons.jpg",
+"box": [
+0.1812,
+0.1594,
+0.8125,
+0.8594
+],
+"confidence": 0.9573
+},
+"50e064d3de84cc8499b9118e83db9a6f4477726537138fc70cc5217c197b1e8e": {
+"name": "roman_self_healing_concrete/06_commons.jpg",
+"box": [
+0.2531,
+0.1281,
+0.75,
+0.8688
+],
+"confidence": 0.001
+},
+"a08c33fa6594f7e37f2888b6248a3b930ce2be1f0276dc820fd7245541ee08e9": {
+"name": "roman_self_healing_concrete/07_commons.jpg",
+"box": [
+0.3688,
+0.15,
+0.5906,
+0.5813
+],
+"confidence": 0.0629
+},
+"f61aa82152e3e4ef3440a70efd5136e4f7cf5c879ca71bb3bdb619583cf4bda0": {
+"name": "roman_self_healing_concrete/08_commons.jpg",
+"box": [
+0.4031,
+0.5156,
+0.6125,
+0.7625
+],
+"confidence": 0.5589
+},
+"c9bab656569315ee9c38781fc01aadc20f97e7d62ce17e27f336d0e9f66988b9": {
+"name": "roman_self_healing_concrete/09_commons.jpg",
+"box": [
+0.0281,
+0.0344,
+0.6937,
+0.6594
+],
+"confidence": 0.9652
+},
+"888879b9e4ddece93b60ca46d20af57219917a4001bb520cd42e11081fa89e02": {
+"name": "roman_self_healing_concrete/10_commons.jpg",
+"box": [
+0.2094,
+0.0,
+0.7625,
+0.9437
+],
+"confidence": 0.0001
+},
+"09e15ef4e2ed2cc647317fa1ea8d8792d951041225a5a04181384ff151dcf362": {
+"name": "roman_self_healing_concrete/11_commons.jpg",
+"box": [
+0.0,
+0.0875,
+0.6969,
+0.4938
+],
+"confidence": 0.0002
+},
+"46b83808f6cb8ef1fb235f923f4eaf465b314f6550bdff893b39168ed699bec9": {
+"name": "roman_self_healing_concrete/12_commons.jpg",
+"box": [
+0.1406,
+0.1281,
+0.5781,
+0.4719
+],
+"confidence": 0.0
+},
+"6a49af81b67899ed474969cdf96ba69def133447fac9d973fcdf20962da9137f": {
+"name": "roman_self_healing_concrete/13_commons.jpg",
+"box": [
+0.2,
+0.25,
+0.8313,
+0.6813
+],
+"confidence": 0.9496
+},
+"006810f4e328d695790539c8aff0fd341f22a66bfef016262399a70a09bc36be": {
+"name": "roman_self_healing_concrete/14_commons.jpg",
+"box": [
+0.0,
+0.0406,
+1.0,
+0.9938
+],
+"confidence": 0.6608
+},
+"726fa681a51789507d202f3b0b80f7c1baa81c98d3bd19619c449d27f1547b3f": {
+"name": "roman_self_healing_concrete/15_commons.jpg",
+"box": [
+0.45,
+0.6125,
+0.7219,
+0.7688
+],
+"confidence": 0.0003
+},
+"8c79b1f5c6af8962f7d1e83fc61ff1373a04d6d75e794e6472f18f3e099d1636": {
+"name": "roman_self_healing_concrete/16_commons.jpg",
+"box": [
+0.0187,
+0.0281,
+0.9812,
+1.0
+],
+"confidence": 0.3083
+},
+"9d6155bcff706191af9a2151788c64093c198c97827f8fd2e2f93ddde772672a": {
+"name": "roman_self_healing_concrete/17_commons.jpg",
+"box": [
+0.1625,
+0.1,
+0.9469,
+0.8625
+],
+"confidence": 0.0
+},
+"dac335511d2cb0101e62170a79c9bfa53b30aeceb77e8724b66dbe4ea6a0a015": {
+"name": "roman_self_healing_concrete/18_commons.jpg",
+"box": [
+0.2,
+0.0375,
+0.8469,
+0.8719
+],
+"confidence": 0.3098
+},
+"01605c2b9f3f62716de5ec849591ce89813f473b30996affb1aa6674cfa4bb18": {
+"name": "roman_self_healing_concrete/19_commons.jpg",
+"box": [
+0.1625,
+0.3531,
+0.7531,
+1.0
+],
+"confidence": 0.4165
+},
+"c1b47a40a7ef2886a6383b3a975f279d8c68063a37f86a69a0b91095472bb7b3": {
+"name": "roman_self_healing_concrete/20_commons.jpg",
+"box": [
+0.0063,
+0.0063,
+0.6,
+0.8406
+],
+"confidence": 0.2307
+},
+"e54a0146806d9557b3c61d2246c8062ccb44a610d7129895bbc12881e5d523a7": {
+"name": "roman_self_healing_concrete/21_commons.jpg",
+"box": [
+0.2,
+0.0469,
+0.8469,
+0.9688
+],
+"confidence": 0.8766
+},
+"e9ba78ad93a5ff229abe5dd7cec8dbb2c5fefb4baa57e249bbc4808c9a36a71b": {
+"name": "roman_self_healing_concrete/22_commons.jpg",
+"box": [
+0.0406,
+0.1219,
+0.9656,
+0.9
+],
+"confidence": 0.3405
+},
+"6d56739480fce3f9632e34030247710767021c10d113b0880fb078faa23b2203": {
+"name": "roman_self_healing_concrete/23_commons.jpg",
+"box": [
+0.0875,
+0.0125,
+0.5,
+0.8125
+],
+"confidence": 0.0
+},
+"a3792a09ebea9e29e0cf912f37dbf8b34c45cab98768f3269737763182dcc8da": {
+"name": "roman_self_healing_concrete/24_commons.jpg",
+"box": [
+0.0063,
+0.0844,
+1.0,
+0.8969
+],
+"confidence": 0.0987
+},
+"587097321f69c14f9bb0912ea0a08cff4c24839fe94b8ed25f8f6d670a3b7b02": {
+"name": "roman_self_healing_concrete/25_commons.jpg",
+"box": [
+0.0688,
+0.0,
+0.8313,
+1.0
+],
+"confidence": 0.0147
+},
+"47929280e2332ca196484c2cbf9f252758879aa2a307b04dbf7722e1ad0a45c5": {
+"name": "roman_self_healing_concrete/26_commons.jpg",
+"box": [
+0.1031,
+0.1031,
+0.9219,
+0.9156
+],
+"confidence": 0.3852
+},
+"0551e4589c344c0739260177a13cf69415160251d91f1eb425bf5bbfff62a620": {
+"name": "roman_self_healing_concrete/27_commons.jpg",
+"box": [
+0.0437,
+0.075,
+0.9656,
+0.9062
+],
+"confidence": 0.4705
+},
+"bff4c51c7ba3631338f531dbbc7e6c6240349ad0f8f3718725b3800778f3a5ab": {
+"name": "roman_self_healing_concrete/28_commons.jpg",
+"box": [
+0.0312,
+0.0719,
+0.8125,
+0.8438
+],
+"confidence": 0.0
+},
+"543f47fe8042c5f290194f6af05db03cae806239217e43cb6a4b983ec2d8a883": {
+"name": "singing_colossi_of_memnon/01_commons.jpg",
+"box": [
+0.2406,
+0.1313,
+0.8,
+0.975
+],
+"confidence": 0.6596
+},
+"e3db6ca3020802c83a6db926277ba9ea54f9a7cc587d67f1ae3f888bb71b9feb": {
+"name": "singing_colossi_of_memnon/02_commons.jpg",
+"box": [
+0.2188,
+0.1875,
+0.8219,
+0.8094
+],
+"confidence": 0.7606
+},
+"1aef934f4e8bb8c5c2e436c1c8b1a0fd44eba08a8fa92bd36e5f288cee7e9220": {
+"name": "singing_colossi_of_memnon/03_commons.jpg",
+"box": [
+0.2531,
+0.425,
+0.6438,
+0.9469
+],
+"confidence": 0.3169
+},
+"4492068c46f6559151bb4b4494233c1b3308cb258dcc64ba0d769e4e6773c332": {
+"name": "singing_colossi_of_memnon/04_commons.jpg",
+"box": [
+0.175,
+0.125,
+0.8562,
+0.8594
+],
+"confidence": 0.7479
+},
+"496e995d423f18f8bdbc233ecf06077046ca42f6bb9bac0ba051f505da7a2fab": {
+"name": "singing_colossi_of_memnon/05_commons.jpg",
+"box": [
+0.1625,
+0.0719,
+0.9281,
+0.9594
+],
+"confidence": 0.9396
+},
+"5593bcb0bc4355c694b6e90131c2f4390167ba96a7204b8c98e297022f71e259": {
+"name": "singing_colossi_of_memnon/06_commons.jpg",
+"box": [
+0.05,
+0.0219,
+0.7188,
+0.8656
+],
+"confidence": 0.6077
+},
+"d23cc01df21a226cae53fa0a7388ad8ce694fbffcb97a382fdf0e0eb75f38ccc": {
+"name": "singing_colossi_of_memnon/07_commons.jpg",
+"box": [
+0.1313,
+0.1156,
+1.0,
+0.8
+],
+"confidence": 0.8827
+},
+"717c60e09ed4574c3f13b0e0ce88465aad7410aff7eca2eeb597f3488a9d0a1a": {
+"name": "singing_colossi_of_memnon/08_commons.jpg",
+"box": [
+0.25,
+0.2313,
+0.7531,
+0.6438
+],
+"confidence": 0.9546
+},
+"64020bfae13797f006b51a88faf636b4b0ce81f16f2b4549bedd946d7c77f441": {
+"name": "singing_colossi_of_memnon/09_commons.jpg",
+"box": [
+0.1437,
+0.1313,
+0.8875,
+0.7625
+],
+"confidence": 0.0431
+},
+"34a78757bcf00c9d8110ca20b5093d43c3359adf14f95fdc8eacdf0f99286d28": {
+"name": "singing_colossi_of_memnon/10_commons.jpg",
+"box": [
+0.2062,
+0.2469,
+0.7094,
+0.7219
+],
+"confidence": 0.5306
+},
+"302ee7edf165199344e867714d380c4344db1074a87ca16511e0b7a5bc150151": {
+"name": "singing_colossi_of_memnon/11_commons.jpg",
+"box": [
+0.275,
+0.0531,
+0.7312,
+0.9531
+],
+"confidence": 0.9556
+},
+"35e5856b236a33c9085bc7cfad0d8a911be74766b796596a5abd6bb8d46cd367": {
+"name": "singing_colossi_of_memnon/12_commons.jpg",
+"box": [
+0.1406,
+0.175,
+0.8438,
+0.7969
+],
+"confidence": 0.2151
+},
+"74d517350f61dcff9dd730958aab8532b80610d69439332ab970460270633697": {
+"name": "singing_colossi_of_memnon/13_commons.jpg",
+"box": [
+0.0281,
+0.025,
+0.8375,
+0.9906
+],
+"confidence": 0.4252
+},
+"da7f39756dd6a87d33b14306b09191cc47ad8460cb2cb915fe0d84fab1ea7f96": {
+"name": "singing_colossi_of_memnon/14_commons.jpg",
+"box": [
+0.125,
+0.3812,
+0.875,
+0.6469
+],
+"confidence": 0.2594
+},
+"e973102947d8624275f9d4305e61a63641a074b242f27fe9f0bab1cba1110816": {
+"name": "singing_colossi_of_memnon/15_commons.jpg",
+"box": [
+0.0375,
+0.2562,
+0.9281,
+0.8969
+],
+"confidence": 0.6775
+},
+"94b3ddffef302310efdf37a53da9dcba3c7e8de5abe84cf1c69d77a81cd16e11": {
+"name": "singing_colossi_of_memnon/16_commons.jpg",
+"box": [
+0.1156,
+0.4625,
+0.6719,
+0.8594
+],
+"confidence": 0.225
+},
+"9248be99e620644adbef482338d471e6f277052de8acb81ecb407d74552612b5": {
+"name": "singing_colossi_of_memnon/17_commons.jpg",
+"box": [
+0.0469,
+0.4906,
+0.7344,
+0.8812
+],
+"confidence": 0.2363
+},
+"6d246ed6df116ce9f80c18974057637ae3373e4d41ff65d05be88752f010d02d": {
+"name": "singing_colossi_of_memnon/18_commons.jpg",
+"box": [
+0.2062,
+0.2656,
+0.7656,
+0.9406
+],
+"confidence": 0.4696
+},
+"65a5cfcdcabe928f903c38839accfbc93dbe8f5bfc57b60d0fd702b285c74ebb": {
+"name": "singing_colossi_of_memnon/19_commons.jpg",
+"box": [
+0.4313,
+0.3531,
+0.7969,
+0.6094
+],
+"confidence": 0.0972
+},
+"541b2ab7ded5d00dde283c3f2d7a74ce9df1adac10f4e7803b727566278b3166": {
+"name": "singing_colossi_of_memnon/20_commons.jpg",
+"box": [
+0.1313,
+0.3656,
+0.625,
+0.7375
+],
+"confidence": 0.252
+},
+"4907eac1c7aa7cbfe97137113429f55e7b726c0a31014ea3226e7adb41b8e379": {
+"name": "trepanation_miracle/01_commons.jpg",
+"box": [
+0.1062,
+0.0125,
+0.9375,
+0.9563
+],
+"confidence": 0.7467
+},
+"8adb7c41472b7dc8f45443e411b7b24e76ac110f3fdde21fe6b4e05f307eb7dd": {
+"name": "trepanation_miracle/02_commons.jpg",
+"box": [
+0.0594,
+0.0187,
+0.8125,
+0.9719
+],
+"confidence": 0.7671
+},
+"cc4f9db0f19be88e0d3d22bd4dd2e43f5b55f5924e54fe54dc03bf48949e9a20": {
+"name": "trepanation_miracle/03_commons.jpg",
+"box": [
+0.0406,
+0.1094,
+0.9469,
+0.8313
+],
+"confidence": 0.1635
+},
+"3534218e7bd14813a97df3337ddabe1e6cc804721cd72436e932ea55a41ec6d0": {
+"name": "trepanation_miracle/04_commons.jpg",
+"box": [
+0.025,
+0.0375,
+0.9844,
+0.8531
+],
+"confidence": 0.0192
+},
+"e6776ea102995759c6e01549ab520d0acd46ee87099c97e8327f4218fb31e4b6": {
+"name": "trepanation_miracle/05_commons.jpg",
+"box": [
+0.3219,
+0.6594,
+0.6375,
+0.8875
+],
+"confidence": 0.2183
+},
+"adc6762c39901fff61b0571d5c7790d6a775969dc0dbd8b0ca69ee1791e6cdc3": {
+"name": "trepanation_miracle/06_commons.jpg",
+"box": [
+0.0281,
+0.1219,
+0.9688,
+0.6188
+],
+"confidence": 0.8662
+},
+"4b0ec2637235141ef5f5627b1e766b9da4e96da39508b47e8b01057c90f1572b": {
+"name": "trepanation_miracle/07_commons.jpg",
+"box": [
+0.0,
+0.0375,
+0.9688,
+1.0
+],
+"confidence": 0.588
+},
+"f8f2bfaddc5216590a14e4ff4bd2a014e5292262ac0ff5fcac6998871305023f": {
+"name": "trepanation_miracle/08_commons.jpg",
+"box": [
+0.0219,
+0.0281,
+0.9563,
+0.9875
+],
+"confidence": 0.0003
+},
+"56b27718552d2fad18217d25e8a9ad3ea926de15d3fdfa65af44af5ecb1e39aa": {
+"name": "trepanation_miracle/09_commons.jpg",
+"box": [
+0.025,
+0.0375,
+0.9719,
+0.8562
+],
+"confidence": 0.7674
+},
+"fa487a4bc219cb8639b50747c36995f328303d6693c67a14dd409ccea975ba34": {
+"name": "trepanation_miracle/10_commons.jpg",
+"box": [
+0.1094,
+0.0938,
+0.8719,
+0.8969
+],
+"confidence": 0.9517
+},
+"29dc91bffc15fcc46222e58685e297729d47b737e0c81a1e78fb0da6b4d1f198": {
+"name": "trepanation_miracle/11_commons.jpg",
+"box": [
+0.1344,
+0.0312,
+0.825,
+1.0
+],
+"confidence": 0.9598
+},
+"0d49996023f8ee3491fb6e7462b695209bf354d603ff8dd768b077f214497068": {
+"name": "trepanation_miracle/12_commons.jpg",
+"box": [
+0.0,
+0.0563,
+0.9406,
+0.9844
+],
+"confidence": 0.3183
+},
+"65c3973d361ef3f6201edecad799747625694c51ac41e37e93da1deb6af513a5": {
+"name": "trepanation_miracle/13_commons.jpg",
+"box": [
+0.1969,
+0.0187,
+1.0,
+1.0
+],
+"confidence": 0.0029
+},
+"2af0d401ec124c376aac7e0c1c9852cf1679cb8ee48e43d06a5b49368b1224d8": {
+"name": "trepanation_miracle/14_commons.jpg",
+"box": [
+0.1562,
+0.0813,
+0.8438,
+0.7875
+],
+"confidence": 0.9737
+},
+"7de1dc708faa34384f10be4f1fd8ba4e1bb3d3e4f7033077cd5ade2439b28041": {
+"name": "trepanation_miracle/15_commons.jpg",
+"box": [
+0.05,
+0.0625,
+0.9375,
+0.8469
+],
+"confidence": 0.9013
+},
+"de06b645d794689153274a9a07c7b46a248b215abab40e56f98e42caaa4aa571": {
+"name": "trepanation_miracle/16_commons.jpg",
+"box": [
+0.0625,
+0.0,
+1.0,
+1.0
+],
+"confidence": 0.076
+},
+"4c170a50e6a1249960a5304f542beb0d90f36c0b9e78dd9ad517ef0f76af415c": {
+"name": "trepanation_miracle/17_commons.jpg",
+"box": [
+0.0437,
+0.1625,
+0.95,
+0.8688
+],
+"confidence": 0.9757
+},
+"2b3f61d538fb3450be3233d99d421a95ed64a08cb84442c462f6797a187c62d6": {
+"name": "trepanation_miracle/18_commons.jpg",
+"box": [
+0.1,
+0.0406,
+0.8938,
+0.8531
+],
+"confidence": 0.9207
+},
+"d3024428f5dfd107e327d22ca297f3329178f4692ea60ad76f9dddae0e9d0eb8": {
+"name": "trepanation_miracle/19_commons.jpg",
+"box": [
+0.0969,
+0.1406,
+0.8812,
+0.9375
+],
+"confidence": 0.7679
+},
+"6539cd00f4102db4a686dab4b6ced914ce4a596ef9e54676ba68a31439e67274": {
+"name": "trepanation_miracle/20_commons.jpg",
+"box": [
+0.0469,
+0.0813,
+0.9812,
+0.8031
+],
+"confidence": 0.9715
+},
+"1f1e314c4fec63a5b754681b63b884744eac1d1dd936283d74ac727845bb8ab4": {
+"name": "tunguska_event_1908/01_commons.jpg",
+"box": [
+0.0406,
+0.0,
+1.0,
+1.0
+],
+"confidence": 0.0027
+},
+"98b30c72d90142a92616eed523d4be1782eaaef54379dcfd260fd77af5d97805": {
+"name": "tunguska_event_1908/02_commons.jpg",
+"box": [
+0.2062,
+0.125,
+0.8406,
+0.9375
+],
+"confidence": 0.9673
+},
+"f68f63dbdf5b9a4adbe18e66e53e109e12925a84b8f5a63d134450bd3e0bcdbc": {
+"name": "tunguska_event_1908/03_commons.jpg",
+"box": [
+0.0,
+0.1187,
+1.0,
+1.0
+],
+"confidence": 0.4611
+},
+"fda001e0e3be4c621eac5298f31ab5bf26847146f031762cebf4acac0785764e": {
+"name": "tunguska_event_1908/04_commons.jpg",
+"box": [
+0.0437,
+0.1406,
+0.9406,
+0.9563
+],
+"confidence": 0.952
+},
+"92d0165b5050a38eef40a9ac21c7be84312849c2eea164c852d98016d1d25661": {
+"name": "tunguska_event_1908/05_commons.jpg",
+"box": [
+0.0531,
+0.0094,
+0.9781,
+0.9625
+],
+"confidence": 0.0137
+},
+"b5686bfd1c0c49ee8ac493d7c68cf565ecce6beebe111bf1deb5bc137e28194b": {
+"name": "tunguska_event_1908/06_commons.jpg",
+"box": [
+0.0437,
+0.0656,
+0.9875,
+0.9719
+],
+"confidence": 0.5969
+},
+"d96d8ea8f3ac282d813145b67b70260d9d47e173dbea2bfe6c862a906cc907b4": {
+"name": "tunguska_event_1908/07_commons.jpg",
+"box": [
+0.0406,
+0.0594,
+0.9094,
+0.9313
+],
+"confidence": 0.0781
+},
+"146410c3621b9283a806279320a102befe8f2d6f491a344eb2e577fbbba2b4c4": {
+"name": "tunguska_event_1908/08_commons.jpg",
+"box": [
+0.0187,
+0.1437,
+0.9375,
+0.8531
+],
+"confidence": 0.5554
+},
+"1ddc7d6919c58f5d24393821eea3323cad2a5a69359d205d67009067609e65d1": {
+"name": "tunguska_event_1908/09_commons.jpg",
+"box": [
+0.1,
+0.2031,
+0.6969,
+0.7688
+],
+"confidence": 0.9622
+},
+"afc14aed34cf2b29d234830854bfe0d69f393703326336fd0965972ea2a0b4f7": {
+"name": "tunguska_event_1908/10_commons.jpg",
+"box": [
+0.2875,
+0.3469,
+0.7688,
+0.75
+],
+"confidence": 0.6384
+},
+"b50cdc18adfca20f6573441b829f3c3ea584a84795dfa6cdfffc8e259c255833": {
+"name": "tunguska_event_1908/11_commons.jpg",
+"box": [
+0.0813,
+0.0,
+0.9969,
+0.9688
+],
+"confidence": 0.0375
+},
+"61945444b7ae719b405e68eca4d7e5ca1679ba290c117f9e5e0cc7f70e701d5b": {
+"name": "tunguska_event_1908/12_commons.jpg",
+"box": [
+0.2281,
+0.2125,
+0.8344,
+0.9906
+],
+"confidence": 0.1442
+},
+"d7a33d6006defd535947a34619422138ff9420de56d3c7c9626266bbc56147a0": {
+"name": "tunguska_event_1908/13_commons.jpg",
+"box": [
+0.2844,
+0.3312,
+0.7562,
+0.75
+],
+"confidence": 0.4733
+},
+"f1ca1a6b83714c45240bde95dd1c6e68c79173865854cf14494b0fbbdeb3adaf": {
+"name": "tunguska_event_1908/14_commons.jpg",
+"box": [
+0.0656,
+0.2094,
+0.5906,
+0.45
+],
+"confidence": 0.0
+},
+"477d8a3d11b1383dfd6feec2983a63d243c3e2aa82bec4b0b6ca3c6b2febabb3": {
+"name": "tunguska_event_1908/15_commons.jpg",
+"box": [
+0.0,
+0.1156,
+1.0,
+0.4469
+],
+"confidence": 0.0
+},
+"82cb0245b0efcfaa143cfc5e98cf57611fdfe2af76417a3df4049a0ae971f72c": {
+"name": "unfinished_obelisk_aswan/01_commons.jpg",
+"box": [
+0.175,
+0.125,
+0.7031,
+0.9781
+],
+"confidence": 0.2397
+},
+"5d2f72362e2f327019100e0da3b9c71ed0ac014d653439a082350ee67c39564c": {
+"name": "unfinished_obelisk_aswan/02_commons.jpg",
+"box": [
+0.4531,
+0.3844,
+0.8688,
+1.0
+],
+"confidence": 0.0
+},
+"868aec8de68cf269f14f5d0f5d38f5f09030204952ea7efa813adeb39973b3e5": {
+"name": "unfinished_obelisk_aswan/03_commons.jpg",
+"box": [
+0.8406,
+0.4906,
+0.9469,
+0.875
+],
+"confidence": 0.379
+},
+"d4721cecbf2b332a8ca155dec883c6fda355b0d6e083c517e058871c2bee74bb": {
+"name": "unfinished_obelisk_aswan/04_commons.jpg",
+"box": [
+0.125,
+0.4781,
+0.7438,
+0.6969
+],
+"confidence": 0.0
+},
+"f4d09ad07c433178166b2f4ac107af5200d7834bbaa66a7b00a1a0f726781211": {
+"name": "unfinished_obelisk_aswan/05_commons.jpg",
+"box": [
+0.3344,
+0.2562,
+0.7188,
+0.3406
+],
+"confidence": 0.0
+},
+"ed8f6cf6be55124394298bfd0f6e6c113beae0a5c093741a2431da6698b0a924": {
+"name": "unfinished_obelisk_aswan/06_commons.jpg",
+"box": [
+0.2469,
+0.275,
+0.9437,
+1.0
+],
+"confidence": 0.0
+},
+"a8bf1f46c6c7f262bdf123b82c6f33cad4e4e534ed3222ed6319c283e74ec5a3": {
+"name": "unfinished_obelisk_aswan/07_commons.jpg",
+"box": [
+0.0969,
+0.3844,
+0.8,
+0.6312
+],
+"confidence": 0.0001
+},
+"0ea85740815dbf6a5e416d6c22f17bbde99fe2e10b84405f0d5f348a405e0eb0": {
+"name": "unfinished_obelisk_aswan/08_commons.jpg",
+"box": [
+0.4594,
+0.1625,
+0.8719,
+0.6719
+],
+"confidence": 0.0544
+},
+"53719dd4a12ab7f4f69abaeea7e2d1ff43d89029de08c69f8358a27125192386": {
+"name": "unfinished_obelisk_aswan/09_commons.jpg",
+"box": [
+0.3594,
+0.55,
+0.4625,
+0.8688
+],
+"confidence": 0.011
+},
+"d97d2790a749ae42128c41b5ab36ea6ead3066fb011a18331ab5e2182fc705cc": {
+"name": "unfinished_obelisk_aswan/10_commons.jpg",
+"box": [
+0.0187,
+0.425,
+0.7781,
+0.9437
+],
+"confidence": 0.0
+},
+"e26048e3094dd3421c21023f635a42df886b4e4b4659f1373128f733ef77da99": {
+"name": "unfinished_obelisk_aswan/11_commons.jpg",
+"box": [
+0.6125,
+0.325,
+0.8844,
+1.0
+],
+"confidence": 0.9049
+},
+"845cc1c0ac5982406d65514b29ff2966b621690b977e6790916155071f2359a6": {
+"name": "unfinished_obelisk_aswan/12_commons.jpg",
+"box": [
+0.3375,
+0.0,
+1.0,
+0.4844
+],
+"confidence": 0.0049
+},
+"ae7763dbab491f38534cfd37054475c25ac964470b93a2145b826773481ef7c1": {
+"name": "unfinished_obelisk_aswan/13_commons.jpg",
+"box": [
+0.1187,
+0.2594,
+0.2875,
+0.8781
+],
+"confidence": 0.817
+},
+"9303c4f16fdd6a774b4a0878b729abfc2e58d2ab490a3250fea895ddb5b2a98b": {
+"name": "unfinished_obelisk_aswan/14_commons.jpg",
+"box": [
+0.4156,
+0.225,
+0.6125,
+0.4156
+],
+"confidence": 0.016
+},
+"8562e38423d81da83c193405cc79297f91b80975733fe4e88d3c80e3ca3e48a5": {
+"name": "unfinished_obelisk_aswan/15_commons.jpg",
+"box": [
+0.2313,
+0.2531,
+0.6844,
+0.5094
+],
+"confidence": 0.0
+},
+"578aff5752b7d36d2ec87bc39217399efc2f10eaef652fe223752cf6ff2da61b": {
+"name": "unfinished_obelisk_aswan/16_commons.jpg",
+"box": [
+0.0,
+0.1094,
+0.2344,
+0.9938
+],
+"confidence": 0.8533
+},
+"1b7431770c3c2e18ee74e2880da1e0b308ef2c4d9087c076eb0d0ded2925c2ad": {
+"name": "unfinished_obelisk_aswan/17_commons.jpg",
+"box": [
+0.3219,
+0.4875,
+0.775,
+0.6594
+],
+"confidence": 0.0
+},
+"b5795b7e24e0f187c6bd1ec0e2f3fa95ca81f1baf7b89727bc9baa17b4c924c0": {
+"name": "unfinished_obelisk_aswan/18_commons.jpg",
+"box": [
+0.1906,
+0.4406,
+0.4125,
+0.7625
+],
+"confidence": 0.0
+},
+"c7c740063f0889bd494bcbff3a14563278a3646eb2668edde237543b71413da0": {
+"name": "unfinished_obelisk_aswan/19_commons.jpg",
+"box": [
+0.5406,
+0.1906,
+0.7125,
+1.0
+],
+"confidence": 0.005
+},
+"421a320478f8430943acd5c9dce71f132fcafba627e147fe5512e4e6cbbb2c72": {
+"name": "unfinished_obelisk_aswan/20_commons.jpg",
+"box": [
+0.6875,
+0.5437,
+0.8625,
+1.0
+],
+"confidence": 0.0
+},
+"28a5c54cbde4c70a531822e83e0f0eee97e21e55a34a4f36bfd56028713f44ae": {
+"name": "voynich_manuscript/01_commons.jpg",
+"box": [
+0.2406,
+0.0406,
+0.8906,
+0.8219
+],
+"confidence": 0.0425
+},
+"e0da2f0c2370878a971c4a367ac4838a2ce942bc321823cd0e847e6dfcdf0322": {
+"name": "voynich_manuscript/02_commons.jpg",
+"box": [
+0.0187,
+0.0375,
+0.9812,
+0.95
+],
+"confidence": 0.9342
+},
+"6fb406afdf8936bf1dc2dad552394e856b0fb85abe46ae110639a3dbf25821d5": {
+"name": "voynich_manuscript/03_commons.jpg",
+"box": [
+0.025,
+0.0406,
+0.9719,
+0.95
+],
+"confidence": 0.9662
+},
+"cfc649d6a94a980a2ed80071bacc3f7695b7d8062937eff8ecd6427b966cce44": {
+"name": "voynich_manuscript/04_commons.jpg",
+"box": [
+0.2344,
+0.0125,
+1.0,
+0.9969
+],
+"confidence": 0.0039
+},
+"f32343a9379033ad83b43824f605e03437053d8911bc0353f0494c7b834e3d9d": {
+"name": "voynich_manuscript/05_commons.jpg",
+"box": [
+0.2719,
+0.0156,
+0.9844,
+0.9563
+],
+"confidence": 0.1167
+},
+"5cd5b8a666a0ce312f69afbf19dcfbace91f4760165b1c35039918dd9a5ed83a": {
+"name": "voynich_manuscript/06_commons.jpg",
+"box": [
+0.2812,
+0.1062,
+0.9563,
+0.9219
+],
+"confidence": 0.008
+},
+"ee1a04e020b574ed1a393125c05363f21d421d8d5f541afec0326784da49ea99": {
+"name": "voynich_manuscript/07_commons.jpg",
+"box": [
+0.0187,
+0.0063,
+1.0,
+0.9156
+],
+"confidence": 0.039
+},
+"c228901e0a9e0a0ac979211a8eda518b5f746d5a34c2e105634a2b80d5ca7254": {
+"name": "voynich_manuscript/08_commons.jpg",
+"box": [
+0.2375,
+0.0094,
+0.9844,
+0.7812
+],
+"confidence": 0.0719
+},
+"d7e30e6725e78e62fee204e648aef85ecd0808bc49d181f91a756b25fc47a2c7": {
+"name": "voynich_manuscript/09_commons.jpg",
+"box": [
+0.3312,
+0.0219,
+0.9875,
+0.7875
+],
+"confidence": 0.1567
+},
+"3df66434d6205a138c6fc35863e3c89f888462c9767808b16c537288973b7dcc": {
+"name": "voynich_manuscript/10_commons.jpg",
+"box": [
+0.3563,
+0.0375,
+0.9875,
+0.8094
+],
+"confidence": 0.0243
+},
+"7fd9594ffdee4df4055b1acb5beef00b8710fdbea3757e92565f88cff6bc55a8": {
+"name": "voynich_manuscript/11_commons.jpg",
+"box": [
+0.2469,
+0.0187,
+1.0,
+0.9906
+],
+"confidence": 0.19
+},
+"f00495db915e36dc4d2067963981ea207cae3f45453fe4afa0170b0edcf5d886": {
+"name": "voynich_manuscript/12_commons.jpg",
+"box": [
+0.0187,
+0.0125,
+1.0,
+0.9812
+],
+"confidence": 0.6631
+},
+"73b775bffced5a37ccf05f3118613732b19bc967b14c5b9714e086d018e4e582": {
+"name": "voynich_manuscript/13_commons.jpg",
+"box": [
+0.3469,
+0.0375,
+0.9437,
+0.8969
+],
+"confidence": 0.0
+},
+"540065cd7c341c2fbdd44a28466642375566a31c318bc86907401f7e9463a383": {
+"name": "voynich_manuscript/14_commons.jpg",
+"box": [
+0.2031,
+0.1625,
+0.7844,
+0.95
+],
+"confidence": 0.038
+},
+"ca839bcc7cb96faa352acd067852da9c9a5a4255d45a9fce76aefb04c5c739a7": {
+"name": "voynich_manuscript/15_commons.jpg",
+"box": [
+0.1281,
+0.05,
+0.8906,
+0.925
+],
+"confidence": 0.0018
+},
+"109331e1cfb94b0963a7559bc7d7550c77d62e29acab6beccb2c1c8dab59c78c": {
+"name": "voynich_manuscript/16_commons.jpg",
+"box": [
+0.0,
+0.0031,
+0.9875,
+1.0
+],
+"confidence": 0.0365
+},
+"cc3de476f6dcf5d764dbe378b23e5be2ea98ab7e56837a39086cd1e32554bbc7": {
+"name": "voynich_manuscript/17_commons.jpg",
+"box": [
+0.5656,
+0.05,
+0.9594,
+0.9719
+],
+"confidence": 0.0114
+},
+"6367d438da187dc17a92f9b68d86dd06fa8687f535ca2c19afcc10089962365d": {
+"name": "voynich_manuscript/18_commons.jpg",
+"box": [
+0.3781,
+0.5281,
+0.9719,
+0.7812
+],
+"confidence": 0.6055
+},
+"9fbc02497278df3a4282df78d6cf2e6a7c9a1a6d3f86769ec51194dff1415920": {
+"name": "voynich_manuscript/19_commons.jpg",
+"box": [
+0.4781,
+0.2375,
+0.9844,
+0.9625
+],
+"confidence": 0.342
+},
+"b1290b474336a35cf1a6e8137eac0c9abd46b44606e421340028bee69cd89ee8": {
+"name": "voynich_manuscript/20_commons.jpg",
+"box": [
+0.0,
+0.0281,
+0.9844,
+0.9875
+],
+"confidence": 0.1402
+},
+"c71860c1bdd25fd57dc6553a55808ddda8585e485942de257731a1ce020ccea5": {
+"name": "wieliczka_salt_mine/01_commons.jpg",
+"box": [
+0.4031,
+0.3781,
+0.5625,
+0.8969
+],
+"confidence": 0.0803
+},
+"14a46d60fae9719ca893fd40ddc1abaf328a98d9b0ce00c59ae81604af1128e6": {
+"name": "wieliczka_salt_mine/02_commons.jpg",
+"box": [
+0.4781,
+0.3688,
+0.575,
+0.5906
+],
+"confidence": 0.0001
+},
+"c150af765654787d0a0d86be31838cc1e9d98ae011f0eb7a18971aa164ea0410": {
+"name": "wieliczka_salt_mine/03_commons.jpg",
+"box": [
+0.0094,
+0.325,
+0.4781,
+0.6469
+],
+"confidence": 0.0
+},
+"6c45fa2e4f8edd4776f11a1a0eddb9b86b580c9c7d56f2a812f0fc10b0879fd0": {
+"name": "wieliczka_salt_mine/04_commons.jpg",
+"box": [
+0.0,
+0.0,
+0.675,
+0.8406
+],
+"confidence": 0.0562
+},
+"ce09ff1548e87ed804fa286bfc0761d612afe070c95a1dda79098b2ec9931fb4": {
+"name": "wieliczka_salt_mine/05_commons.jpg",
+"box": [
+0.0688,
+0.2781,
+0.9656,
+0.925
+],
+"confidence": 0.0
+},
+"559f4c31f3dae6be07e014c76c41d19bc3d824addca86bd7ff6b3bb8ec979cda": {
+"name": "wieliczka_salt_mine/06_commons.jpg",
+"box": [
+0.0344,
+0.0469,
+0.9656,
+0.9375
+],
+"confidence": 0.0199
+},
+"8e83664e154e05deb5ad2d8419599bf608b6a906190209fc0e99fead59b9dd8d": {
+"name": "wieliczka_salt_mine/07_commons.jpg",
+"box": [
+0.0,
+0.2594,
+0.7906,
+0.7688
+],
+"confidence": 0.0
+},
+"d7ac8c6be0d4331866fca1e8b7a5acfe8d4386fe2d4c2a4bc9d91300d90bce0f": {
+"name": "wieliczka_salt_mine/08_commons.jpg",
+"box": [
+0.0312,
+0.0156,
+0.9375,
+0.9313
+],
+"confidence": 0.0
+},
+"cb1f5208f66918d3d6d89843fb3782b78340604e038de1dfa2d91f3d14272e36": {
+"name": "wieliczka_salt_mine/09_commons.jpg",
+"box": [
+0.0437,
+0.0594,
+0.9531,
+0.9031
+],
+"confidence": 0.0002
+},
+"0abc34b85565ebb2026d707932e826a09d233853cdadda9280f8e4c4fb59bfe0": {
+"name": "wieliczka_salt_mine/10_commons.jpg",
+"box": [
+0.0156,
+0.0281,
+0.9812,
+0.9719
+],
+"confidence": 0.0
+},
+"a8e9fe6fea19b36b133b5df0a6522c8bbb935182f736d57f48620b4ae3ebe502": {
+"name": "wieliczka_salt_mine/11_commons.jpg",
+"box": [
+0.0281,
+0.0156,
+0.975,
+0.9844
+],
+"confidence": 0.0
+},
+"975965c0cb1d296a2a457fe71b31ddbd9d15b59e0fb76c80de2fc2d19dc0e209": {
+"name": "wieliczka_salt_mine/12_commons.jpg",
+"box": [
+0.0187,
+0.025,
+0.9844,
+0.9719
+],
+"confidence": 0.0886
+},
+"aa5f2ba8b1333d0c62651a7d8c70be13966d3ff669ab58650e1a7241c43d6b00": {
+"name": "wieliczka_salt_mine/13_commons.jpg",
+"box": [
+0.225,
+0.0,
+0.8313,
+0.9
+],
+"confidence": 0.6456
+},
+"4a07b7ea7eac72947eb09022bbfd77560a3ebb8d725e1ac615c119056ed5d730": {
+"name": "wieliczka_salt_mine/14_commons.jpg",
+"box": [
+0.0437,
+0.0563,
+0.7812,
+1.0
+],
+"confidence": 0.2563
+},
+"ddceacd8a4c42951919aee98db9705fb77bff07a56a9eb7e020c057e241788fb": {
+"name": "wieliczka_salt_mine/15_commons.jpg",
+"box": [
+0.0,
+0.0312,
+1.0,
+1.0
+],
+"confidence": 0.0015
+},
+"9eed63258b5958dda4490aad47fece0ced7c98018c78a774178dc8148e07995a": {
+"name": "wieliczka_salt_mine/16_commons.jpg",
+"box": [
+0.1,
+0.3906,
+0.9062,
+1.0
+],
+"confidence": 0.0013
+},
+"38f2df4cdd12bbc6ed76126cea6bcc411a88a11f6cb83f86a8673d3ee153deb2": {
+"name": "wieliczka_salt_mine/17_commons.jpg",
+"box": [
+0.3656,
+0.6125,
+0.5437,
+0.8375
+],
+"confidence": 0.0
+},
+"9daac6021b7ce1db7ef205d2cd45d97c37fa9dc212e44538223f93b7abcba979": {
+"name": "wieliczka_salt_mine/18_commons.jpg",
+"box": [
+0.1437,
+0.4,
+0.9969,
+0.7594
+],
+"confidence": 0.0
+},
+"3ff702e522fb7de0cbd0d8aaf1bfc8104826806a96303c5cb4974b8600633241": {
+"name": "wieliczka_salt_mine/19_commons.jpg",
+"box": [
+0.4437,
+0.4375,
+0.825,
+0.6562
+],
+"confidence": 0.0
+},
+"f2f92f50e0061323b898f30c7a2e4f652e6da3c6303cf7faaa99e65f9c901051": {
+"name": "wieliczka_salt_mine/20_commons.jpg",
+"box": [
+0.125,
+0.0,
+1.0,
+0.8781
+],
+"confidence": 0.0937
+},
+"654fa83533b52c7664a2990075f539874126199af8a9a221250c1d17c6132f98": {
+"name": "privacy/02_commons_c6cb586e4f80b165_f33132c587b02ecc.jpg",
+"box": [
+0.0,
+0.05,
+0.9656,
+1.0
+],
+"confidence": 0.239
+},
+"115a05d6fb3604d9cf9c41852f041edc516d491eae7234eb1f37970a00075495": {
+"name": "089cc4fc72e4c63b/03_commons.jpg",
+"box": [
+0.2906,
+0.1781,
+0.6875,
+0.9563
+],
+"confidence": 0.3158
+},
+"40460dbf972188b42045803f9529af710b12f904a7883abcf5804479c605577c": {
+"name": "20eb7e4e8fa4cb46/04_commons.jpg",
+"box": [
+0.3187,
+0.2,
+0.6969,
+0.7906
+],
+"confidence": 0.0118
+},
+"91314ee210179d6b8243d9760afc2645e84db782c7067851fc20a1b1c7b8c5b8": {
+"name": "39aa01ff3d533d7d/01_commons.jpg",
+"box": [
+0.1,
+0.2781,
+0.6625,
+0.9906
+],
+"confidence": 0.0106
+},
+"7a856af77e481c34a3ef659e81f2a5366c69acb9b3cd2d07eb8459f5e72fc6ce": {
+"name": "57094acd9a01b378/08_commons.jpg",
+"box": [
+0.1187,
+0.3781,
+0.6062,
+0.7344
+],
+"confidence": 0.0404
+},
+"6afe3a6b76fbebe58efa23d0b9810809ce506694876bbeec67046430206eca39": {
+"name": "d0b4c6dc69efa115/02_commons.jpg",
+"box": [
+0.3156,
+0.225,
+0.7406,
+0.7969
+],
+"confidence": 0.0092
+},
+"35344971602560f85f564637afc9c4099cef9548a64b411dbcf40a7b8d4c1519": {
+"name": "upscaled/03_commons_749e0ecf629ab119.jpg",
+"box": [
+0.0,
+0.0813,
+0.975,
+1.0
+],
+"confidence": 0.9127
+},
+"209ebff1262aaf195bc953c9037b728f61b5880cc4acda17c7b23cfc740e220a": {
+"name": "upscaled/03_commons_8553d4052c3cd146.jpg",
+"box": [
+0.2906,
+0.1812,
+0.6844,
+0.7469
+],
+"confidence": 0.0474
+},
+"967fda278b8736a2e407778c5e432a63c55d4f08c670a8b9dbf5d77d50447d93": {
+"name": "upscaled/04_commons_2545f068e11dc8eb.jpg",
+"box": [
+0.3187,
+0.1688,
+0.6969,
+0.6813
+],
+"confidence": 0.0113
+},
+"c66b5d82dc7f0a079ce963ef890e4e8c22eec8d4473931ffb7df62f6a0d3ec9a": {
+"name": "upscaled/04_commons_fad489b1b2468caa.jpg",
+"box": [
+0.3594,
+0.0781,
+0.9344,
+0.8187
+],
+"confidence": 0.6906
+},
+"497bb6b59f343fb0dd57e8058049e4794a980858fb717857a74e7e7af8658f32": {
+"name": "upscaled/05_commons_44c1fba56ab64598.jpg",
+"box": [
+0.2437,
+0.325,
+0.8094,
+1.0
+],
+"confidence": 0.6161
+},
+"4bc07868e4eee6691165f5f9cfb12db004a49b0ee4a78a3c15a9fc0dbbae3f2a": {
+"name": "upscaled/06_commons_6dc822485da090bf.jpg",
+"box": [
+0.0,
+0.0,
+0.6344,
+0.7688
+],
+"confidence": 0.0
+},
+"38b1e2427e017b165c311137710835b4d9816fbb1107681e39f9dc0c76ffcd13": {
+"name": "upscaled/06_commons_e3cf85989c79a369.jpg",
+"box": [
+0.0,
+0.0125,
+0.6438,
+0.4562
+],
+"confidence": 0.0027
+},
+"f9419f8706182a8eeb7b5ad4767bdc0141b4528592251c18e92f89544798cd3a": {
+"name": "upscaled/14_commons_f278c785b4299352.jpg",
+"box": [
+0.2938,
+0.1156,
+1.0,
+1.0
+],
+"confidence": 0.0
+},
+"9e8c9a6e22c311f3b8d692848b549ddb938f03e4a54ab1a734cc702ffebeac1a": {
+"name": "upscaled/15_commons_5176bcee9e7530cb.jpg",
+"box": [
+0.1031,
+0.1688,
+0.575,
+0.6469
+],
+"confidence": 0.4838
+},
+"5256bb8d06f3c67afbd9f57013848518f6c6844414e2c20ab86965989357e068": {
+"name": "upscaled/20_commons_7b0bff8940d901ba.jpg",
+"box": [
+0.1344,
+0.0281,
+0.6438,
+0.6281
+],
+"confidence": 0.0044
+},
+"de4bf135249fc1ee313263f7795b4c4de3a095552b8422abc3e138385c5a1051": {
+"name": "upscaled/22_commons_466e53f5c2d25a35.jpg",
+"box": [
+0.3031,
+0.525,
+0.6469,
+0.8156
+],
+"confidence": 0.8323
+},
+"55f939194d0ee1b7ccf2c2c43937f4b5c2f418d01318e20febb0e26ae60cee91": {
+"name": "upscaled/23_commons_49430d838523f856.jpg",
+"box": [
+0.2313,
+0.4437,
+0.8031,
+0.9344
+],
+"confidence": 0.857
+},
+"42d64cfb91903f504062d6140d9b7ab9b8713526b0df080d467d14319a542713": {
+"name": "upscaled/24_commons_b3593d8c94b1c5f2.jpg",
+"box": [
+0.0,
+0.3594,
+1.0,
+0.7906
+],
+"confidence": 0.3111
+},
+"491d5f9484a3e437069a0c07c1778d897a3ba875d25518542e5de569afb701ce": {
+"name": "upscaled/26_commons_568126e2b8f34c54.jpg",
+"box": [
+0.0,
+0.3594,
+1.0,
+0.6719
+],
+"confidence": 0.8332
+},
+"13cc61aef192e711ded5ffec716b6e2c9420f87a648b1fd90618cce00d75274f": {
+"name": "upscaled/28_commons_c0c39cc2427b977a.jpg",
+"box": [
+0.4062,
+0.6406,
+0.6625,
+1.0
+],
+"confidence": 0.0
+},
+"5e8f4b665968731ea552a243ebda7885bc508b9010eb0dcd184ebbaf047d78f9": {
+"name": "upscaled/30_commons_2f7bfb0c39fc411f.jpg",
+"box": [
+0.1156,
+0.175,
+0.8219,
+1.0
+],
+"confidence": 0.3295
+},
+"6ad07c5f4852a5cb2001c31fe0d2f933bb67ee0d0ebdb75907e2f10c93a7236e": {
+"name": "antikythera_mechanism/01_commons.jpg",
+"box": [
+0.0688,
+0.1531,
+0.9531,
+1.0
+],
+"confidence": 0.0426
+},
+"fa1fb629e3fe97dc8db0db48f08cffa86a27e79e37d70fbf7929bfdf2e2c9503": {
+"name": "antikythera_mechanism/02_commons.jpg",
+"box": [
+0.1031,
+0.175,
+0.8688,
+1.0
+],
+"confidence": 0.2912
+},
+"9166af43120f034e566165806587822b4735af7bba34d67f9972b763d3e0ce31": {
+"name": "antikythera_mechanism/03_commons.jpg",
+"box": [
+0.2344,
+0.3281,
+0.8875,
+0.9156
+],
+"confidence": 0.075
+},
+"940dff65081c35c25f364c2c7c9c920853cd3a673353ee09fcf5b9ea5c56a432": {
+"name": "antikythera_mechanism/04_commons.jpg",
+"box": [
+0.0156,
+0.0,
+1.0,
+0.9187
+],
+"confidence": 0.0
+},
+"27542e6e76563f8830fc918bdebbd4dca786f5f04eff8bf515570de599f04afc": {
+"name": "antikythera_mechanism/05_commons.jpg",
+"box": [
+0.0125,
+0.0813,
+0.9313,
+0.8187
+],
+"confidence": 0.9491
+},
+"0234f32e5ecffaca7d1330b7573449f0f7c85a5acf8c498c325aa9cae28d414e": {
+"name": "antikythera_mechanism/06_commons.jpg",
+"box": [
+0.2313,
+0.1938,
+0.7562,
+0.8844
+],
+"confidence": 0.8847
+},
+"8178ec647e48dfcc25b0fd1efbf3824375b05ec36339ec4dfd5012b047dea793": {
+"name": "antikythera_mechanism/07_commons.jpg",
+"box": [
+0.175,
+0.2281,
+0.8219,
+0.9563
+],
+"confidence": 0.1196
+},
+"f538c9ab7a3b3a829fc2f4171645df8927b885758abc96d49d845df2502ac97d": {
+"name": "antikythera_mechanism/08_commons.jpg",
+"box": [
+0.6469,
+0.1656,
+0.8469,
+0.8063
+],
+"confidence": 0.1619
+},
+"7236b616fd804c4d915fd9241e6df7296a35bd0c231ee26fd6233a0a17b0480f": {
+"name": "antikythera_mechanism/09_commons.jpg",
+"box": [
+0.0,
+0.0625,
+0.9469,
+0.9906
+],
+"confidence": 0.9139
+},
+"5557d09c96824478d1bc5dd644c156c0eca93176632c5c1c5fb65cd81a33ddd1": {
+"name": "antikythera_mechanism/10_commons.jpg",
+"box": [
+0.1594,
+0.0344,
+0.8406,
+1.0
+],
+"confidence": 0.9573
+},
+"30a2e159d213bf4ca6c60e194b0c3676a91aa12d0594bc0f8b9655f01b8d3fa4": {
+"name": "antikythera_mechanism/11_commons.jpg",
+"box": [
+0.0187,
+0.2437,
+0.9219,
+0.7406
+],
+"confidence": 0.2199
+},
+"0f840d6522892c29288195bd9ff3ebd38bfa8f718758feef3a0598cca986e8b5": {
+"name": "antikythera_mechanism/12_commons.jpg",
+"box": [
+0.2687,
+0.1625,
+0.8625,
+0.9656
+],
+"confidence": 0.9361
+},
+"9b94ce387e1441648f22f6b1729e7e4c4b4b28b1f19031ac0b4e84ce3ed2c861": {
+"name": "antikythera_mechanism/13_commons.jpg",
+"box": [
+0.0625,
+0.275,
+1.0,
+0.8375
+],
+"confidence": 0.0
+},
+"3a574fd1e883eda8c5e315537d1901fcd1484125f8603a9b94e04bc685cacf00": {
+"name": "antikythera_mechanism/14_commons.jpg",
+"box": [
+0.0031,
+0.5844,
+0.9812,
+0.8438
+],
+"confidence": 0.1558
+},
+"4b9ea4dd6bf3f87e831b57d2d79036106ebb1ddf0a55569e2b9e8b6417d116e1": {
+"name": "antikythera_mechanism/15_commons.jpg",
+"box": [
+0.1187,
+0.1031,
+0.8,
+1.0
+],
+"confidence": 0.7517
+},
+"18d5c759f6a5b8df5a281decfee0b100c9d94e3836488f6728f2b8d7816b1ac3": {
+"name": "antikythera_mechanism/16_commons.jpg",
+"box": [
+0.3844,
+0.1406,
+0.8219,
+0.9219
+],
+"confidence": 0.9221
+},
+"9a426696822c3b3f7201b8b3f4477d255d4bfd5ca0ec1af8da829067b971a52c": {
+"name": "antikythera_mechanism/17_commons.jpg",
+"box": [
+0.0469,
+0.1,
+0.8562,
+0.9062
+],
+"confidence": 0.1526
+},
+"38411ec93cc3d2812c67b881c379e696133a24f35a586ec4925cbb1bc404cf97": {
+"name": "antikythera_mechanism/18_commons.jpg",
+"box": [
+0.1969,
+0.0,
+0.9656,
+1.0
+],
+"confidence": 0.5082
+},
+"9dd1ab0ee540c60291b4c748cce941ef57308f359454a9d20d86161478544d7a": {
+"name": "antikythera_mechanism/19_commons.jpg",
+"box": [
+0.0312,
+0.0,
+0.9,
+0.9656
+],
+"confidence": 0.0
+},
+"8dba3180bcd192489518aa6f86617d42b9504f423a8984ba19625b11b02a88cb": {
+"name": "antikythera_mechanism/20_commons.jpg",
+"box": [
+0.4281,
+0.1031,
+0.7031,
+0.9344
+],
+"confidence": 0.9296
+}
+}

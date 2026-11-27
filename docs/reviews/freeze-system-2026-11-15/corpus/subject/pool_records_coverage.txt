@@ -1,0 +1,5 @@
+confidence >= 0.5: 106 of 370 photographs (29%)
+confidence >= 0.7: 82 of 370 photographs (22%)
+confidence >= 0.85: 55 of 370 photographs (15%)
+confidence >= 0.9: 39 of 370 photographs (11%)
+confidence >= 0.95: 18 of 370 photographs (5%)

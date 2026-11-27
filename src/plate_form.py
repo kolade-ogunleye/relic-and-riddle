@@ -65,7 +65,9 @@ TOKENS: dict[str, Any] = {
     "block.gap_reach": 1.0,      # x the block's pad_y: how far a facing edge may grow to make the gap the token
     "block.width_snap": 0.08,    # of the frame width: blocks whose widths differ by less share the wider width
     "block.radius": "plate.radius",      # the system's plate radius (14 px at 1080)
-    "block.tiers": ("plate.held", 1.0),  # the held tier, then opaque
+    "block.tiers": (1.0,),       # the system's opaque plate tier: a held (0.875) block read 0.3-0.4 under base's
+    #                              label plate on the kicker (Richat Story 7.04 -> 6.67, cycle 6 corpus check) and
+    #                              lets a busy or lettered ground show through (Tunguska map cover)
     "block.encode_margin": 1.2,  # the tier is chosen for target x this (a platform re-encode takes 10-18 % off)
     "field.grow": 0.35,          # em: the envelope's full-strength core past the ink
     "field.sigma": 0.45,         # em: its Gaussian fall-off

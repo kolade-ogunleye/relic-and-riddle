@@ -1,0 +1,77 @@
+window rows 1844 changed crops 272
+gt: subject less visible 75, more visible 117
+   worse damascus_steel 09_commons.j ig carousel comparison 0.834 -> 0.615 ['subject']
+   worse damascus_steel 09_commons.j fb carousel comparison 0.696 -> 0.477 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel cover 0.299 -> 0.233 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 05_commons.j fb carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 05_commons.j fb carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel comparison 0.126 -> 0.037 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel cover 0.299 -> 0.233 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 08_commons.j fb carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 08_commons.j fb carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel comparison 0.126 -> 0.037 ['subject']
+   worse greek_fire_sip 09_commons.j ig carousel cover 0.252 -> 0.22 ['subject']
+d: subject less visible 75, more visible 117
+   worse damascus_steel 09_commons.j ig carousel comparison 0.834 -> 0.615 ['subject']
+   worse damascus_steel 09_commons.j fb carousel comparison 0.696 -> 0.477 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel cover 0.299 -> 0.233 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 05_commons.j fb carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 05_commons.j fb carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 05_commons.j ig carousel comparison 0.126 -> 0.037 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel cover 0.299 -> 0.233 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 08_commons.j fb carousel immersive 0.359 -> 0.28 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 08_commons.j fb carousel debate 0.228 -> 0.178 ['subject']
+   worse flannan_isle_l 08_commons.j ig carousel comparison 0.126 -> 0.037 ['subject']
+   worse greek_fire_sip 09_commons.j ig carousel cover 0.252 -> 0.22 ['subject']
+fit base->tip {(True, True): 789, (False, False): 198, (True, False): 819, (False, True): 38}
+covers base->tip Counter({('contain', 'contain'): 54, ('photo_over_ink', 'photo_over_ink'): 30, ('photo_over_ink', 'contain'): 27, ('contain', 'photo_over_ink'): 6, ('photo_over_ink', 'full_bleed'): 5, ('contain', 'full_bleed'): 1})
+structure under type base 45 tip 14
+worse by surface Counter({'ig carousel cover': 9, 'ig carousel immersive': 8, 'fb carousel immersive': 8, 'ig carousel debate': 8, 'fb carousel debate': 8, 'fb carousel cover': 8, 'story frame': 7, 'ig carousel comparison': 6, 'fb carousel comparison': 6, 'ig carousel editorial_split': 2, 'carousel comparison lower': 2, 'fb carousel editorial_split': 1, '9:16 ground (cover_crop)': 1, 'hook ground': 1})
+worse photos 20
+cover damascus_steel_n 05_commons photo_over_ink -> contain ['subject']
+cover damascus_steel_n 09_commons photo_over_ink -> contain ['subject']
+cover damascus_steel_n 17_commons photo_over_ink -> contain ['subject']
+cover gobekli_tepe_enc 01_commons photo_over_ink -> contain ['subject']
+cover gobekli_tepe_enc 05_commons photo_over_ink -> contain ['subject']
+cover gobekli_tepe_enc 09_commons photo_over_ink -> contain ['subject']
+cover greek_fire_sipho 05_commons contain -> photo_over_ink None
+cover greek_fire_sipho 13_commons photo_over_ink -> contain ['subject']
+cover greek_fire_sipho 17_commons contain -> photo_over_ink None
+cover hal_saflieni_hyp 01_commons photo_over_ink -> contain ['subject']
+cover hal_saflieni_hyp 09_commons photo_over_ink -> contain ['subject']
+cover lycurgus_cup_nan 13_commons photo_over_ink -> contain ['subject']
+cover nazca_lines_runw 07_commons photo_over_ink -> full_bleed None
+cover nazca_lines_runw 08_commons photo_over_ink -> contain ['subject']
+cover nazca_lines_runw 10_commons contain -> photo_over_ink None
+cover odessa_catacombs 01_commons photo_over_ink -> contain ['subject']
+cover odessa_catacombs 08_commons photo_over_ink -> contain ['subject']
+cover odessa_catacombs 12_commons photo_over_ink -> contain ['subject']
+cover richat_structure 01_commons photo_over_ink -> contain ['subject']
+cover richat_structure 08_commons photo_over_ink -> full_bleed None
+cover richat_structure 10_commons photo_over_ink -> full_bleed None
+cover richat_structure 13_commons contain -> photo_over_ink None
+cover richat_structure 14_commons contain -> full_bleed None
+cover richat_structure 19_commons photo_over_ink -> contain ['subject']
+cover roman_self_heali 03_commons photo_over_ink -> contain ['subject']
+cover roman_self_heali 17_commons photo_over_ink -> contain ['subject']
+cover roman_self_heali 25_commons photo_over_ink -> contain ['subject']
+cover singing_colossi_ 09_commons photo_over_ink -> full_bleed None
+cover singing_colossi_ 12_commons photo_over_ink -> full_bleed None
+cover trepanation_mira 01_commons photo_over_ink -> contain ['subject']
+cover trepanation_mira 13_commons photo_over_ink -> contain ['subject']
+cover unfinished_obeli 09_commons photo_over_ink -> contain ['subject']
+cover unfinished_obeli 11_commons photo_over_ink -> contain ['subject']
+cover unfinished_obeli 13_commons photo_over_ink -> contain ['subject']
+cover unfinished_obeli 18_commons photo_over_ink -> contain ['subject']
+cover wieliczka_salt_m 01_commons contain -> photo_over_ink None
+cover wieliczka_salt_m 06_commons photo_over_ink -> contain ['subject']
+cover wieliczka_salt_m 13_commons photo_over_ink -> contain ['subject']
+cover upscaled 06_commons contain -> photo_over_ink None

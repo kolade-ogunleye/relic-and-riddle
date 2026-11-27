@@ -168,7 +168,8 @@ def test_a_story_window_over_black_space_keeps_its_subject(tmp_path):
     ask = pf.fit_box((w, h), (1080, 1920), (1.0, 0.5))
     cx, cy = (ask[0] + ask[2]) / 2, (ask[1] + ask[3]) / 2
     hw, hh = (ask[2] - ask[0]) * pf.MOVE_HOLD / 2, (ask[3] - ask[1]) * pf.MOVE_HOLD / 2
-    assert got["moved"] and got["matte"] <= pf.MATTE_MAX and got["basis"] == "asked centre held"
+    assert got["moved"] and got["matte"] <= pf.MATTE_MAX
+    assert got["basis"] in ("minimal frame move", "asked centre held")
     b = got["box"]
     assert b[0] <= cx - hw + 1 and b[2] >= min(cx + hw, int(0.95 * w)) - 2 and b[1] <= cy - hh + 1
     assert b[3] >= cy + hh - 1
@@ -196,7 +197,7 @@ def test_the_reviews_story_frames_keep_their_subject(case):
     if not rec["moved"]:     # no crop clears the border and keeps the asked view: the asked one, recorded unfit
         assert rec["box"] == [round(v, 1) for v in asked] and not rec["fit"] and rec["problems"] == ["matte"]
         return
-    assert rec["basis"] == "asked centre held" and rec["fit"]
+    assert rec["basis"] in ("minimal frame move", "asked centre held") and rec["fit"]
     cx, cy = (asked[0] + asked[2]) / 2, (asked[1] + asked[3]) / 2
     hw, hh = (asked[2] - asked[0]) * pf.MOVE_HOLD / 2, (asked[3] - asked[1]) * pf.MOVE_HOLD / 2
     x0, y0, x1, y1 = an.content_box

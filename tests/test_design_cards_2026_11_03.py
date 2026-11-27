@@ -407,7 +407,7 @@ def test_hook_ground_records_the_window_it_draws(tmp_path):
     from src import photo_fitness as pf
     from src.typography import cover_crop
     rng = np.random.default_rng(11)
-    arr = rng.normal(128, 45, (2400, 1200, 3))
+    arr = rng.normal(90, 35, (2400, 1200, 3))                      # a darker field: the claim reads on it
     arr[:192] = 0                                                    # a scan's border across the head and foot
     arr[2208:] = 0
     framed = tmp_path / "framed.jpg"

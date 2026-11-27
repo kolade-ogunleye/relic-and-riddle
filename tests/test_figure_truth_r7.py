@@ -140,7 +140,7 @@ def test_the_signed_facts_unit_leads():
                                          480.6430446, True)
     # freeze cycle 5 (review D2): the landmark is named with its own figure (the operand, on the drawing)
     # review 2 (N1, N7): the landmark at its signed precision, one phrase with its name
-    assert lines == ["The Great Pyramid (146.5 m)", "would vanish about 181 m deep."]
+    assert lines == ["The Great Pyramid, 146.5 m,", "would vanish about 181 m deep."]
     assert "ft" not in " ".join(lines)
 
 

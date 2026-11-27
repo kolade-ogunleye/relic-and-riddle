@@ -316,7 +316,10 @@ def test_a_carousel_diagram_is_the_drawing_alone_at_the_carousel_label_floor(tmp
     rec = _record(graphics.render_scale(fact, tmp_path / "d.mp4", *box, drawing_floor=floor))
     names = {e["name"] for e in rec["elements"]}
     assert not names & {"subject", "figure", "figure_metric"} and not any(n.startswith("meaning") for n in names)
-    assert "block_label" in names or "bracket" in names
+    # review 2 (ruling R2): a depth whose landmark legend has no place in the slide's room draws the depth alone,
+    # recorded, never a landmark with no figure
+    alone = bool((rec.get("layout") or {}).get("derived_withheld")) and "ref_label" not in names
+    assert "block_label" in names or "bracket" in names or (alone and "floor_figure" in names), names
     for pl in plan_only["_plates"]:
         if not pl.empty:
             assert pl.font.size >= floor - 0.5, (pl.text, pl.font.size, floor)

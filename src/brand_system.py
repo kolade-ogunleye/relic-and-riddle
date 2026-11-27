@@ -636,6 +636,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:data_font": "A",          # cycle 0 round 7: the data, figure and place roles' fonts
     "graphics:figure_font": "A",
     "graphics:subject_figure_font": "A",
+    "graphics:slide_legend": "A",          # review 2 (N3): the slide drawing's landmark legend
     "graphics:label_plates_for": "A",
     "graphics:marker_label_lines": "A",
     "graphics:neighbour_plates": "A",

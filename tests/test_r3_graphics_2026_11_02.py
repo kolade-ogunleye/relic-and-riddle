@@ -232,10 +232,10 @@ def test_height_meaning_says_which_is_taller() -> None:
     fact = dict(HEIGHT)
     # round 4 (2026-11-02): the subject first (scale_meaning_lines, in capitals here)
     assert graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, ABOUT 305 FT, IS ABOUT 3 TIMES AS TALL."]
+        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, ABOUT 305 FT,", "IS ABOUT 3 TIMES AS TALL."]
     taller = dict(HEIGHT, subject="Kailasa Temple monolith height")
     assert graphics.scale_meaning(taller, 457.5, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS THE STATUE OF LIBERTY, ABOUT 305 FT."]
+        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS", "THE STATUE OF LIBERTY, ABOUT 305 FT."]
     assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[1].endswith(
         "IS NEARLY THE SAME HEIGHT.")
     assert not any("TALLER" in t for t in graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False))

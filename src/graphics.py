@@ -10111,9 +10111,9 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
             gap_txt = f"{gap_v:.2f} M" if u == "M" else "0 FT 1 IN"
         # the drawn number: a single figure, or a feet-and-inches gap as ONE figure (review 2, N2: it is recorded)
         shown = gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 else gap_txt
-        # review 2 (N7): the landmark and its figure as one phrase on one row ("The Great Pyramid (146.5 m)"), never an
-        # appositive split across rows; each sentence short enough to set whole at the meaning's size
-        named = f"{_cap_first(ref)} ({say(ref_feet)})"
+        # review 2 (N7): the landmark and its figure as one phrase on its own row ("The Great Pyramid, 146.5 m,"),
+        # never an appositive split across rows; each line short enough to set whole at the meaning's size
+        named = f"{_cap_first(ref)}, {say(ref_feet)},"
         if not any(_lead_values(gap_txt)):
             # freeze cycle 5 (review D1): a gap under half its last stated digit is never "about 0": it is level, a
             # derived claim with its threshold (half the last digit the drawing states a gap to; review 2, N2)
@@ -10151,26 +10151,26 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
             lines, at = [f"{_cap_first(ref)}: {say(ref_feet)} tall.",
                          "Nearly the same length." if near else f"About {ratio} times the length."], 1
         else:
+            # review 2 (N7): each phrase its own sentence line, the landmark and its figure never split across rows
             first = f"{subject}: {hedge}{say(feet, own=True)} long"
             if near:
-                lines = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)} tall, is nearly its length."]
+                lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", "stands nearly its length."], 2
             elif ref_feet > feet:
-                lines = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)} tall, is about {ratio} times its length."]
+                lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},",
+                             f"stands about {ratio} times its length."], 2
             else:
-                lines = [first + ",", f"about {ratio} times the height of {ref}, {say(ref_feet)}."]
-            at = 1
+                lines, at = [first + ",", f"about {ratio} times the height of", f"{ref}, {say(ref_feet)}."], 1
     elif not subject:
         lines, at = [f"{_cap_first(ref)}: {say(ref_feet)}.",
                      "Nearly the same height." if near else f"About {ratio} times as tall."], 1
     else:
         first = f"{subject}: {hedge}{say(feet, own=True)}"
         if near:
-            lines = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)}, is nearly the same height."]
+            lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", "is nearly the same height."], 2
         elif ref_feet > feet:
-            lines = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)}, is about {ratio} times as tall."]
+            lines, at = [first + ".", f"{_cap_first(ref)}, {say(ref_feet)},", f"is about {ratio} times as tall."], 2
         else:
-            lines = [first + ",", f"about {ratio} times as tall as {ref}, {say(ref_feet)}."]
-        at = 1
+            lines, at = [first + ",", f"about {ratio} times as tall as", f"{ref}, {say(ref_feet)}."], 1
     out.update(lines=lines, derived_line=at, derivation=rec)
     return out
 
@@ -10906,11 +10906,15 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         ref_note = ""
         if drawing and landmark:
             # review 2 (N3, ruling R2): on the slide's drawing the landmark is named in a LEGEND row on the ground right
-            # of the shaft (its name, then its signed figure), never at its apex beside the depth ruler
+            # of the shaft, else in the shaft's own air clear of the landmark and the bracket (its name, then its signed
+            # figure), never at its apex beside the depth ruler
             fig_pl, rows_n, tick_d = None, [], None
-            leg = slide_legend(ground, _landmark_name(ref_label), landmark_text(ref_label, ref_feet, unit),
-                               max(28, floor), shaft[1] + 24, line_y, floor_y, label_x1,
-                               [*taken, *hard], lm)
+            leg = None
+            for lx0, lx1 in ((shaft[1] + 24, label_x1), (shaft[0] + 18, shaft[1] - 18)):   # right of it, else in it
+                leg = slide_legend(ground, _landmark_name(ref_label), landmark_text(ref_label, ref_feet, unit),
+                                   max(28, floor), lx0, line_y, floor_y, lx1, [*taken, *hard], lm)
+                if leg:
+                    break
             rec_n = {"form": "legend"} if leg else {"reason": "no clear place for the landmark's legend row right of "
                                                               "the shaft"}
             if leg:

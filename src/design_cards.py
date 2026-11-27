@@ -2899,6 +2899,17 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
         from .safe_zones import safe_box
         pic = _photo_outside(photo, geo, geo.height, top=-geo.height)[0]
         lyr, prec = plate_form.layer(pic, ink_boxes, safe=safe_box("reel", geo.width, geo.height))
+        shipped = None
+        if prec["form"] == "block" and prec.get("blocks"):
+            # laid only where it darkens no more of the frame than the shipped panel (else the panel, recorded)
+            shipped = _myth_ground(photo, geo, last_t, dim, y0, y1, opening=opening)
+            done = Image.alpha_composite(pic.convert("RGBA"), lyr).convert("RGB")
+            prec["dark_share"] = round(plate_form.dark_share(pic, done), 4)
+            prec["band_dark_share"] = round(plate_form.dark_share(pic, shipped[1]), 4)
+            prec["laid"] = "block" if prec["dark_share"] <= prec["band_dark_share"] + 1e-4 else "band"
+            if prec["laid"] == "band":
+                shipped[0].edges = {**(getattr(shipped[0], "edges", None) or {}), "plate_form": prec}
+                return shipped
         if prec["form"] == "block" and prec.get("blocks"):
             # the block family on video (lander ruling 5): the block arrives with its first element, fading in over
             # the caption plate's own fade (CAPTION_PLATE_FADE_IN_MS), holds still while the photograph drifts, and

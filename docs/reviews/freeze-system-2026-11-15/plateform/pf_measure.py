@@ -11,8 +11,9 @@ at all: the photograph as the type finds it), both drawn by the same calls.
 
 Measures (per tile):
 - contrast: the lowest text element's ratio after a platform-like re-encode (JPEG q75, 4:2:0): the element's glyph
-  pixels (within 40 levels of its fill) at their 10th percentile luminance against the 95th of the box's other pixels
-  (every type fill's pixels dilated 3 px excluded: a gold run in a bone line is ink, not ground), WCAG ratio. The masthead is listed apart (no form changes it).
+  pixels (within 40 levels of its fill) at their 10th percentile luminance against the 95th percentile of the ring
+  3-10 px round them (every type fill's pixels dilated 3 px excluded: a gold run in a bone line is ink, not ground),
+  WCAG ratio. The masthead is listed apart (no form changes it).
 - dark: the share of the frame darker than base by > 20 luma (8-bit BT.709), outside the type boxes grown by 6 px;
   and "abs", the share darker than the bare photograph ("none") by > 20, beside base's own.
 - edge: the darkening map D = luma(none) - luma(tile), outside the type boxes grown by 12 px: pixels where D steps by
@@ -96,7 +97,9 @@ def element_contrast(a: np.ndarray, el: dict, fills=()) -> float | None:
     ink = g.copy()
     for f in fills:   # every type fill on the frame is ink, never ground (a gold run inside a bone line, a strike)
         ink |= np.abs(r - np.array(f[:3], np.float32)).max(-1) < 40
-    bg = ~binary_dilation(ink, iterations=3)
+    # the ground the eye reads a glyph against: a ring 3-10 px round the glyphs (not the whole box: a multi-line
+    # element's box also holds photograph beside a short line, which no reader reads its glyphs against)
+    bg = binary_dilation(g, iterations=10) & ~binary_dilation(ink, iterations=3)
     if bg.sum() < 30:
         return None
     lt, lb = np.percentile(yy[g], 10), np.percentile(yy[bg], 95)
@@ -161,6 +164,8 @@ def measure(form_im: Image.Image, base_im: Image.Image, none_im: Image.Image | N
     a = reencode(form_im)
     cs = []
     fills = {tuple(e["fill"][:3]) for e in els if isinstance(e.get("fill"), (list, tuple)) and len(e["fill"]) >= 3}
+    fills = {f for f in fills if float(Y(np.array(f, np.float32))) > 0.2}   # an INK-type fill (the light-ground
+    #                                       masthead) is the plates' own colour: never counted as another line's ink
     fills |= set(TEXT_FILLS) | {(c[2], c[1], c[0]) for c in TEXT_FILLS}   # runs in another fill (the test palettes
     #                                                                       swap red and blue: QF-35a second_brand)
     for e in els:

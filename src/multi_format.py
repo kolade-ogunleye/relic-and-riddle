@@ -588,7 +588,11 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
         banded = scrim(im, y0, y1, feather, target, cap, floor, colour, pct, grade, out=got, plain=boxes, shipped=True)
         rec["dark_share"] = round(plate_form.dark_share(im, shaded), 4)
         rec["band_dark_share"] = round(plate_form.dark_share(im, banded), 4)
-        rec["laid"] = rec["form"] if rec["dark_share"] <= rec["band_dark_share"] + 1e-4 else "band"
+        # and never a lighter ground under the type than the band gives it (a band over a photograph darker than
+        # INK reads darker than an INK block: cycle 6 corpus, three Story titles 0.2-0.5 under base)
+        rec["under_type"] = [plate_form.ground_under(shaded, boxes), plate_form.ground_under(banded, boxes)]
+        darker = rec["dark_share"] <= rec["band_dark_share"] + 1e-4
+        rec["laid"] = rec["form"] if darker and rec["under_type"][0] <= rec["under_type"][1] + 0.5 else "band"
         if out is not None:
             out["plate_form"] = rec
             out["strength"] = 0.0 if rec["laid"] != "band" else got.get("strength", 0.0)

@@ -433,6 +433,18 @@ def _block_alpha(G: np.ndarray, items, size, safe, rec) -> np.ndarray:
     return mask * tier
 
 
+def ground_under(im: Image.Image, boxes, ring: int = 10) -> float:
+    """The 90th percentile luma (8-bit BT.709) of the ground round and under the type boxes (each grown by `ring` px,
+    the ring a line's contrast is read on), the brighter tail a line is measured against."""
+    L = np.asarray(im.convert("RGB"), np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    H, W = L.shape
+    m = np.zeros((H, W), bool)
+    for b in boxes:
+        x0, y0, x1, y1 = (int(round(v)) for v in b[:4])
+        m[max(0, y0 - ring):min(H, y1 + ring), max(0, x0 - ring):min(W, x1 + ring)] = True
+    return round(float(np.percentile(L[m], 90)), 2) if m.any() else 0.0
+
+
 def dark_share(before: Image.Image, after: Image.Image, step: float = 20.0) -> float:
     """The share of the frame `after` darkens by more than `step` luma (8-bit BT.709) against `before`."""
     L = np.array([0.2126, 0.7152, 0.0722], np.float32)

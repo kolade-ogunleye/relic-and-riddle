@@ -570,8 +570,11 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "design_cards:_kicker": "F",
     "design_cards:_lead": "F",
     "design_cards:_myth_compose": "F",
-    "design_cards:_myth_ink_boxes": "F",            # cycle 6 PLATEFORM: the block's kicker ink box
-    "design_cards:_myth_ink_boxes.line": "F",       # cycle 6 PLATEFORM: the block's ink boxes, at the lines' own sizes
+    # cycle 6 PLATEFORM, BLOCK-ONLY sites (reached only with RR_PLATE_FORM=block; observed by the registry's
+    # "design_cards.plan_myth_fact" / "block" branch, which renders the myth with the switch on): the 9:16 myth
+    # block's ink boxes, measured at the lines' own sizes before the type is drawn
+    "design_cards:_myth_ink_boxes": "F",
+    "design_cards:_myth_ink_boxes.line": "F",
     "design_cards:_myth_fit.fwrap": "F",
     "design_cards:_myth_fit.lone.alone": "F",
     "design_cards:_myth_fit.lone_last": "F",        # cycle 0 round 8: a short last word alone (ruling 4)

@@ -95,6 +95,9 @@ def test_the_kicker_heading_and_body_are_one_block_and_a_share_line_its_own():
     assert len(blocks) == 2, rec
     main = next(b for b in blocks if b["tag"] == "main")
     assert main["box"][1] < 934 and main["box"][3] > 1442 and main["lines"] == 6
+    # a text block stays ONE plate even where its own lines stand far apart (a kicker 120 px above its heading)
+    apart = [((112, 700, 900, 731), GOLD, "main"), ((114, 851, 890, 971), BONE, "main")]
+    assert len(plate_form.block_rects(apart, (1440, 1800))[0]) == 1
 
 
 def test_blocks_share_the_column_left_edge_a_snapped_width_and_the_gap_token():

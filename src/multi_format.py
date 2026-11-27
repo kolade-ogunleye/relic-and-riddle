@@ -833,6 +833,14 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
         return plan_text(im, xy, text, font, tuple(colour), anchor, track=track), {
             "variant": "colour", "contrast": None, "gate": gate, "shown": True}
     member = kicker_label(im, xy, text, font, colour, anchor, track, rule, target)
+    from . import plate_form
+    if step is None and plate_form.active() == "block":
+        # PLATEFORM (the block family, lander ruling 1): every kicker stands on INK: inside its text block the block
+        # is its ground (its own held plate, INK on the opaque block, adds nothing visible); on a frame that keeps
+        # the shipped band (the block would darken more) it takes its own held plate, the family's smallest block,
+        # so a deck whose bright slides move onto blocks never drops a dark slide's kicker off its plate (cycle 6
+        # corpus check: 7 kickers 0.5-0.7 under base when the deck's one step fell to bare colour)
+        step = ("plate", 0)
     # cycle 0 round 8 (R1, one treatment per set): a deck's kickers take ONE step (the deck's, kicker_step); the
     # first drawing of a deck surveys every step each kicker's ground holds (kicker_survey) so the deck can choose
     forced = step if step is not None else getattr(_render_state, "kicker_step", None)

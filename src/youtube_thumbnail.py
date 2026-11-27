@@ -403,6 +403,10 @@ def mast_size_rule() -> dict:
             "step": ladder.index(px) if px in ladder else None, "floor": ladder[-1],
             "measured_px": measured_mast_px(), "worst_hook_row": WORST_HOOK_ROW,
             "hook_ratio_max": tok("masthead.hook_ratio_max"),
+            # freeze cycle 6 (MASTHEAD M4, panel 7 PL r2 backlog): the drawn capitals at YouTube's feed widths. At the
+            # floor they read as a texture at 246 px (YouTube prints the channel name under the tile); no change under
+            # the floor, recorded for the next YouTube token review
+            "cap_px_at_feed": {str(w): round(cap_height(masthead.font_for(px)) * w / W, 1) for w in FEED_WIDTHS},
             "why": ("one size on every thumbnail: the largest step of the masthead's fit ladder whose group is at most "
                     "masthead.hook_ratio_max of the narrowest real hook row (WORST_HOOK_ROW), never under the ladder's "
                     "floor (lane B cycle 3 ruling B-S2-1; SYS-B-5)")}
@@ -589,9 +593,9 @@ def _lockup(measure, l1: str, l2: str, width: float, kickerless: bool = False, r
                 rows_ = got[3]["drawn_rows"]
                 ws = [width_at(r, s) for r, s in zip(rows_, got[3]["row_sizes"])]
                 if held_first:
-                    # SYS-B-6 (freeze SYS batch 3, the heading engine's rule): a held one-word first row gives way only to
-                    # a form AT the balance minimum at its own size; never a shrink only to move a word, never a trade for
-                    # another form under the minimum
+                    # SYS-B-6 (freeze SYS batch 3, the heading engine's rule): a held one-word first row gives way
+                    # only to a form AT the balance minimum at its own size; never a shrink only to move a word, never
+                    # a trade for another form under the minimum
                     if (got[3]["sizes"] == deferred[0][3]["sizes"] and unbalanced_lone(rows_, ws) is None
                             and (len(rows_) < 2 or min(ws) / max(ws) >= SPEC["heading.balance_min"])):
                         return done(got, name, why)

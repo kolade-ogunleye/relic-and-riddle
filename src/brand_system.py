@@ -225,6 +225,14 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # the step at which the hook-ratio rule holds on the worst real copy (a 424 px first row), at its feed floor.
     # youtube_thumbnail draws every thumbnail's masthead at it (lane B, mast_px).
     "masthead.youtube_px": 48,
+    # Freeze cycle 6 (MASTHEAD M4, panel 7 BC r1 BC-G4 / TY r2): why the YouTube thumbnail (48, the token above) and the
+    # 16:9 end screen (64, TYPE["wide"]["masthead"]) set the mark at two sizes on one 1920 canvas: the thumbnail is a
+    # HOOK surface (the mark sits over the headline's first row and must not compete with it: masthead.hook_ratio_max,
+    # one size at the ladder's floor); the end screen is the sign-off, where the mark is the card's subject over a
+    # share line and no hook (PL3 is not applicable there: panel 7 protocol). Unifying either way would break one rule.
+    # The gold rule under the end card's / end screen's wordmark (it was a layout literal, 240 x 4 px on both canvases):
+    "masthead.rule_len": 240,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
+    "masthead.rule_thick": 4,         # px: its stroke
     # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
     "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
     "map.home_edge_w": 1.5,           # px: the casing's GOLD_LIGHT edge inside the core
@@ -339,6 +347,8 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "map.coast_w": (1.0, 3.0),
     "globe.limb_dark": (0.0, 0.25),
     "masthead.hook_ratio_max": (0.6, 0.9),
+    "masthead.rule_len": (120, 480),
+    "masthead.rule_thick": (2, 8),
     "masthead.youtube_px": (48, 64),      # a step of masthead.fit_ladder(64): 64 / 60 / 56 / 52 / 48   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em

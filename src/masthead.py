@@ -167,7 +167,7 @@ def hook_ratio(group: float | None, row: float | None) -> float | None:
 
 
 def hook_holds(group: float | None, row: float | None) -> bool:
-    """The ratio is at most the token (a surface with no masthead or no title row holds by having nothing to compete)."""
+    """The ratio is at most the token (no masthead or no title row: nothing competes, it holds)."""
     r = hook_ratio(group, row)
     return r is None or r <= tok("masthead.hook_ratio_max") + 1e-9
 
@@ -395,6 +395,17 @@ def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int, f
 VALIDATION_GROUNDS = (("near white", 246, 3.0, 0.0), ("bright stone", 212, 26.0, 1.5), ("mid tone", 128, 30.0, 1.5),
                       ("dark", 24, 6.0, 0.0))   # name, mean level, spread, blur px (a deterministic texture)
 VALIDATION_FRAME = (1440, 700, 107, 131, 53.33, 531, 960)   # the carousel's masthead: canvas, x0, baseline, size, reach, room
+# Freeze cycle 6 (stream MASTHEAD M3; panel 7 BC r1/r2 BC7-R2-01, 9.3 on both brand runs): the four grounds above all
+# accepted the second colour set, whose masthead the board's bright stress ground (row 2, bright Aswan: a near-white sky
+# under the name's first glyphs, dark foliage beyond) then withheld at 5.41:1 on every cover and slide it reaches (the
+# default draws 5.51 there with the halo exception). A uniform ground never asks for that case: on a near-white ground
+# the light variant takes the name, on a dark one bone does; only a SPLIT ground, near white under the first glyphs and
+# dark beyond, makes the light variant fail on the dark part while bone needs every ruled step on the bright part.
+# BRIGHT_STRESS is that ground, stored (deterministic, no photograph shipped): its verdicts are the real ground's on the
+# test palettes (default drawn 5.55 / 5.51 real; second colours withheld 5.49 / 5.41 real; second withheld 5.49 / 5.35
+# real on Aswan slide 2) and hold for a bright level 235-246 and a split anywhere over the name's first two glyphs.
+BRIGHT_STRESS = ("bright stress (near white under the name's first glyphs, dark beyond)", 246, 40, 220, 6.0, 1.5)
+# name, the bright level, the dark level, the split x (canvas px; the ramp 8 px), the spread, blur px
 
 
 def validation_ground(mean: float, spread: float, blur: float) -> Image.Image:
@@ -403,6 +414,20 @@ def validation_ground(mean: float, spread: float, blur: float) -> Image.Image:
     w, h = VALIDATION_FRAME[:2]
     rng = np.random.default_rng(20261126)
     a = np.clip(rng.normal(mean, spread, (h, w, 1)).repeat(3, axis=2), 0, 255).astype(np.uint8)
+    im = Image.fromarray(a, "RGB")
+    return im.filter(ImageFilter.GaussianBlur(blur)) if blur else im
+
+
+def stress_ground(bright: float, dark: float, split: float, spread: float, blur: float) -> Image.Image:
+    """BRIGHT_STRESS's ground on the validation frame: `bright` left of `split`, `dark` right of it (an 8 px ramp),
+    a deterministic texture of `spread` levels, blurred by `blur` px."""
+    import numpy as np
+    from PIL import ImageFilter
+    w, h = VALIDATION_FRAME[:2]
+    rng = np.random.default_rng(20261126)
+    t = np.clip((np.arange(w) - split) / 8.0 + 0.5, 0.0, 1.0)
+    level = bright * (1 - t) + dark * t
+    a = np.clip(level[None, :, None] + rng.normal(0, spread, (h, w, 1)), 0, 255).repeat(3, axis=2).astype(np.uint8)
     im = Image.fromarray(a, "RGB")
     return im.filter(ImageFilter.GaussianBlur(blur)) if blur else im
 
@@ -428,8 +453,10 @@ def palette_problems(config) -> list[str]:
     w, h, x0, base, size, reach, room = VALIDATION_FRAME
     fails = []
     with brand.use(config, validate=False):
-        for name, mean, spread, blur in VALIDATION_GROUNDS:
-            _, _, rec = plan(validation_ground(mean, spread, blur), x0, base, size, reach=reach, max_width=room)
+        grounds = [(name, validation_ground(mean, spread, blur)) for name, mean, spread, blur in VALIDATION_GROUNDS]
+        grounds.append((BRIGHT_STRESS[0], stress_ground(*BRIGHT_STRESS[1:])))   # freeze cycle 6 (M3)
+        for name, ground in grounds:
+            _, _, rec = plan(ground, x0, base, size, reach=reach, max_width=room)
             if not rec.get("shown") and rec.get("fit_floor_px") is None:
                 fails.append(f"masthead on a {name} ground: the name reaches at best {rec.get('best_tried')}:1 "
                              f"({rec.get('best_step')}; {config.name}: masthead.colour_dark best "

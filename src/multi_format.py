@@ -4894,15 +4894,15 @@ SWIPE_STRIP = 72          # design px of the strip on slide 1 (96 at 1440)
 # ended ~45 px right of the heading at its cap line, a near-collision tick): it meets the heading or clears it by the
 # ledger's 48 canvas px (24 half px), else slide 1 draws no part and says why (lay.meta["swipe_strip"])
 SWIPE_CLEAR = 36
-# Freeze cycle 6 (stream MASTHEAD M2; panel 7 PL1 9.0 on both IG covers, "a decorative element clipped by a crop"): slide
-# 1 is the post's profile-grid tile, and the grid shows its centre 3:4 (safe_zones.grid_crop: x 45-1395 at 1440). The
-# strip's slide-1 part runs to the slide's right edge (that is what makes it meet slide 2's across the seam), so the
+# Freeze cycle 6 (stream MASTHEAD M2; panel 7 PL1 9.0 on both IG covers, "a decorative element clipped by a crop"):
+# slide 1 is the post's profile-grid tile, and the grid shows its centre 3:4 (safe_zones.grid_crop: x 45-1395 at 1440).
+# The strip's slide-1 part runs to the slide's right edge (that is what makes it meet slide 2's across the seam), so the
 # crop always cut it to a 51 px stub at the tile's edge. One rule: slide 1 draws a decorative part only inside the grid
 # crop; a part the crop would cut is not drawn, recorded (lay.meta["swipe_strip"]["skipped"]). On the 4:5 carousel that
 # is every slide-1 part: the Instagram cover then draws none, as the Facebook cover never did; slide 2's part (from its
 # left edge to its kicker rule) keeps its meaning, the kicker's lead rule run in from the seam. Decision (trade-off
-# order: one system across the two covers and the platform's crop above an ornament): a part shortened to end inside
-# the crop would no longer meet the seam (a dash 45 px short of the edge, a second stray mark on the grid tile).
+# order: one system across the two covers and the platform's crop above an ornament): a part shortened to end inside the
+# crop would no longer meet the seam (a dash 45 px short of the edge, a second stray mark on the grid tile).
 
 
 def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
@@ -4923,7 +4923,8 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
         if not inside(tuple(box), crop):   # freeze c6 M2: the profile grid would cut it to a stub
             lay.meta["swipe_strip"] = {"side": "right", "skipped": (
                 f"the profile grid's 3:4 crop (x {crop[0]}-{crop[2]}) would cut it at the tile's edge (x {box[0]}-"
-                f"{box[2]}): slide 1 draws no decorative part outside the grid crop (freeze c6 M2)"), "grid_crop": list(crop)}
+                f"{box[2]}): slide 1 draws no decorative part outside the grid crop (freeze c6 M2)"),
+                "grid_crop": list(crop)}
             return im
         clear = px(SWIPE_CLEAR)
         hit = [e["name"] for e in lay.elements if e["name"] != "header_brand" and e["box"][2] + clear > box[0]

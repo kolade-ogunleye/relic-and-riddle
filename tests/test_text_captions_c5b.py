@@ -375,3 +375,49 @@ def test_a_new_cut_never_parts_a_noun_phrase_over_two_modifiers():
     raw = "Near Ouadane a subsurface igneous intrusion deformed overlying rock".split()
     assert vc.noun_phrase_cut(raw, raw.index("igneous")) is not None
     assert vc.noun_phrase_cut(raw, raw.index("intrusion")) is None                    # subject | verb is a boundary
+
+
+# ------------------------------------------------------------------- round 4: the shipped defaults; D9 on record
+def test_the_shipped_caption_defaults_are_pinned():
+    """Second review T1: the capacity pass and the clip's majority are the shipped behaviour (lander rulings R1 / R2,
+    2026-11-26); turning either off fails here, whatever the other tests set for themselves."""
+    assert vc.CAPTION_CAPACITY_AWARE is True
+    assert vc.CAPTION_CLIP_MAJORITY == 0.9
+    assert vc.CAPTION_RUN_ONE_WORD is False and vc.CAPTION_SIZE_AFTER_RUNS is False
+    # and the delivered phrasing is the capacity pass's (the default call, no flag set by the test)
+    words = _words("amber")
+    phrases = vc.caption_phrases(words, CLIPS["amber"]["emphasis_words"])
+    lines = [2 if vc.reel_caption_lines([w["word"] for w in p]) else 1 for p in phrases]
+    orig = vc._capacity_pass
+    try:
+        vc._capacity_pass = lambda phrases, *a, **k: [list(p) for p in phrases]
+        off = vc.caption_phrases(_words("amber"), CLIPS["amber"]["emphasis_words"])
+    finally:
+        vc._capacity_pass = orig
+    off_lines = [2 if vc.reel_caption_lines([w["word"] for w in p]) else 1 for p in off]
+    assert _height_changes(phrases, lines) < _height_changes(off, off_lines)
+
+
+def _hook_words() -> list[dict]:
+    # labelled synthetic narration, timed like a real hook whose fourth word is spoken at 0.6 s (Nazca: HOW DO YOU ETCH)
+    text = "How do you etch massive desert lines without flying above them? Archaeologists still debate the answer."
+    out, at = [], 0.0
+    for w in text.split():
+        dur = 0.18 if len(w) < 5 else 0.34
+        out.append({"word": w, "start": round(at, 3), "dur": dur})
+        at += dur + (0.45 if w.endswith("?") or w.endswith(".") else 0.02)
+    return out
+
+
+def test_a_hook_shown_whole_records_every_word_shown_early(tmp_path):
+    """Second review D9 / M1: the hook burst shown whole on frame 0 shows a later word before it is heard; every word
+    on screen more than CAPTION_EARLY_RECORD_S early is in reading_rates["hook_whole_early"]."""
+    words = _hook_words()
+    comp = vc.VideoComposer()
+    comp.build_subtitles([dict(w) for w in words], tmp_path / "h.ass", first_frame_whole=vc.CAPTION_FIRST_FRAME_WHOLE_S)
+    rec = comp.last_reading_rate.get("hook_whole_early")
+    assert rec is not None
+    first = vc.caption_phrases([dict(w) for w in words], None)[0]
+    late = [w["word"] for w in first if float(w["start"]) > vc.CAPTION_EARLY_RECORD_S]
+    assert late and [e["word"] for e in rec] == late
+    assert all(e["early_ms"] > 250 for e in rec)

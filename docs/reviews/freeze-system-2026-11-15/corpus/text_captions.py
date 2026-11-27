@@ -313,6 +313,9 @@ def judge_production(data: dict, cut: dict | None = None) -> tuple[list[tuple], 
                     shown = next((t for t, vis in b["steps"] if vis > j), None)
                     if shown is not None and shown - start < -0.25:
                         tot["words shown > 250 ms before spoken"] += 1
+                        hooked = i == 0 and any(_key(e.get("word", "")) == _key(raw[j])
+                                                for e in rate.get("hook_whole_early") or [])
+                        tot[f"words shown > 250 ms early {'recorded (hook shown whole)' if hooked else 'not recorded'}"] += 1
                         tot["worst early (ms)"] = max(tot["worst early (ms)"], round((start - shown) * 1000))
     for run, v in sorted((cut or {}).get("runs", {}).items()):
         rate = v.get("rate") or {}
@@ -354,6 +357,8 @@ def production(dev: Path) -> int:
     print(f"share at the top size: {tot['bursts at the top size'] / n:.3f}")
     print(f"two-line share: {tot['two-line bursts'] / n:.3f}")
     print(f"plate-height-change rate: {tot['plate HEIGHT steps back-to-back'] / pairs:.3f}")
+    print("note: the phrase-unit counts (cuts, line breaks, the 'phrase_unit' two-line reason) are UPPER BOUNDS: "
+          "line_policy.phrase_unit is a word-shape heuristic with false hits (a subject | verb seam: THE ROOM | ENDS)")
     bad = sum(v for k, v in tot.items() if k.endswith("UNRECORDED"))
     print(f"unrecorded violations: {bad}")
     return 1 if bad else 0

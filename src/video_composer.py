@@ -2152,6 +2152,7 @@ CAPTION_MISFIT_OWN_SIZE = False
 # lander ruling, cycle 5 round 3: bursts are built for ONE line at the clip's size wherever a legal division exists
 # (_capacity_pass), and the clip's size is chosen on the bursts as built for each rung (_clip_size_capacity)
 CAPTION_CAPACITY_AWARE = True
+CAPTION_EARLY_RECORD_S = 0.25   # s: a word on screen this long before it is heard is recorded (hook_whole_early)
 CAPTION_SIZE_AFTER_RUNS = False   # measured alternative: the size judged on the bursts after the run re-cut
 CLIP_RULE = ("one caption size per clip (lander ruling 2026-11-26): the largest ladder size at which at least "
              "nine in ten of its bursts set on their legal lines; a burst that fits one line at that size is one "
@@ -6264,6 +6265,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                                       "no legal re-cut of its sentence holds it longer (caption line rule)"),
                                   "after_cut_snap": bool(cuts)})
         rates["recut"] = recut
+        if whole_first and not is_widescreen:
+            # D9 (second review): the hook burst shown whole on frame 0 shows its later words before they are heard;
+            # each word on screen more than CAPTION_EARLY_RECORD_S before its voice is recorded (the builder's hook,
+            # as the phrase rules form it; how do you etch: 600 ms)
+            rates["hook_whole_early"] = [
+                {"word": str(w.get("word", "")), "early_ms": round(float(w.get("start", 0.0)) * 1000)}
+                for w in phrases[0] if float(w.get("start", 0.0)) > CAPTION_EARLY_RECORD_S + 1e-9]
         if timeline_offset_s:
             # QF-25 on QF-88: the record's times are on the master's clock, like the events below (a hooked master
             # starts its captions timeline_offset_s late; the release gate prints these times for the operator)

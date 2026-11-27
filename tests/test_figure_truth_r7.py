@@ -138,7 +138,9 @@ def test_the_signed_facts_unit_leads():
     # the line of meaning in the same unit (the landmark's sourced figure converted, never more precise)
     lines = graphics.scale_meaning_lines(WIELICZKA, 327 * graphics.FT_PER_M, "Great Pyramid (original)",
                                          480.6430446, True)
-    assert lines == ["The Great Pyramid would vanish:", "its top about 181 m below the surface."]
+    # freeze cycle 5 (review D2): the landmark is named with its own figure (the operand, on the drawing)
+    # review 2 (N1, N7): the landmark at its signed precision, one phrase with its name
+    assert lines == ["The Great Pyramid, 146.5 m,", "would vanish about 181 m deep."]
     assert "ft" not in " ".join(lines)
 
 

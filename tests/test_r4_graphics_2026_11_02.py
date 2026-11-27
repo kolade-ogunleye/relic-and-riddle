@@ -180,13 +180,15 @@ def test_wide_timeline_secondary_type_is_larger(tmp_path, monkeypatch) -> None:
 
 # ============================================================================ scale
 def test_scale_meaning_is_sentence_case_with_the_subject_first() -> None:
+    # freeze cycle 5 (review 2, N1/N4/N7): the landmark as its file signs it (Liberty: 'approximately 305 feet'),
+    # the depth's landmark and figure one phrase
     lines = graphics.scale_meaning_lines(HEIGHT, 107.0, LIBERTY, 305.0, False)
-    assert lines == ["Kailasa Temple: about 107 ft.", "The Statue of Liberty, 305 ft, is about 3 times as tall."]
+    assert lines == ["Kailasa Temple: about 107 ft.", "The Statue of Liberty, about 305 ft,", "is about 3 times as tall."]
     taller = dict(HEIGHT, subject="Kailasa Temple monolith height")
     assert graphics.scale_meaning_lines(taller, 457.5, LIBERTY, 305.0, False) == [
-        "Kailasa Temple monolith: about 458 ft,", "about 1.5 times as tall as the Statue of Liberty, 305 ft."]
+        "Kailasa Temple monolith: about 458 ft,", "about 1.5 times as tall as", "the Statue of Liberty, about 305 ft."]
     depth = graphics.scale_meaning_lines(DEPTH, 280.0, LIBERTY, 305.0, True)
-    assert depth == ["The Statue of Liberty, 305 ft,", "would show only its top about 25 ft."]
+    assert depth == ["The Statue of Liberty, about 305 ft,", "would stick out about 25 ft."]
     # the same figures as the capitals version, never more precise
     caps = " ".join(graphics.scale_meaning(HEIGHT, 107.0, LIBERTY, 305.0, False))
     assert "305 FT" in caps and "3 TIMES" in caps
@@ -226,7 +228,7 @@ def test_height_carries_the_shared_ruler_and_the_landmark_note(tmp_path, monkeyp
     assert marks >= {"0 FT", "100", "200"} and (size[0] < size[1] or "300" in marks)   # 9:16: 300 meets the heading's air
     note = " ".join(p.text for n, p in st["plates"] if n.startswith("ref_note"))
     assert note == "GROUND TO TORCH TIP"
-    assert all(p.font.size >= (graphics.SCALE_RULER_PX - 4 if size[0] < size[1] else 20)
+    assert all(p.font.size >= (graphics.SCALE_REFERENT_NOTE_PX if size[0] < size[1] else 20)
                for n, p in st["plates"] if n.startswith("ref_note"))
     assert all(p.contrast >= brand.TEXT_CONTRAST for _n, p in st["plates"])
     assert rows["meaning0"].text.startswith("Kailasa Temple")

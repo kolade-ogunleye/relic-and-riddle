@@ -232,12 +232,12 @@ def test_height_meaning_says_which_is_taller() -> None:
     fact = dict(HEIGHT)
     # round 4 (2026-11-02): the subject first (scale_meaning_lines, in capitals here)
     assert graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, 305 FT, IS ABOUT 3 TIMES AS TALL."]
+        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, ABOUT 305 FT,", "IS ABOUT 3 TIMES AS TALL."]
     taller = dict(HEIGHT, subject="Kailasa Temple monolith height")
     assert graphics.scale_meaning(taller, 457.5, "Statue of Liberty (total)", 305.0, False) == [
-        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS THE STATUE OF LIBERTY, 305 FT."]
-    assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[1].endswith(
-        "IS NEARLY THE SAME HEIGHT.")
+        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS", "THE STATUE OF LIBERTY, ABOUT 305 FT."]
+    assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[-1].endswith(
+        "IS NEARLY THE SAME HEIGHT.")   # review 2 (N7): its own line
     assert not any("TALLER" in t for t in graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False))
 
 
@@ -250,7 +250,8 @@ def test_depth_ruler_marks() -> None:
     assert graphics._depth_ruler(280.0, "ABOUT ") == [(0.0, "0 FT", False), (100.0, "100", False),
                                                       (200.0, "200", False), (280.0, "ABOUT 280 FT", True)]
     assert [t for _, t, _ in graphics._depth_ruler(120.0, "")] == ["0 FT", "50", "100", "120 FT"]
-    assert [t for _, t, _ in graphics._depth_ruler(105.0, "")] == ["0 FT", "50", "105 FT"]   # none just above
+    # freeze cycle 5 (review D3): the tick just above the floor is planned; the renderer yields it, on the record
+    assert [t for _, t, _ in graphics._depth_ruler(105.0, "")] == ["0 FT", "50", "100", "105 FT"]
 
 
 @pytest.mark.parametrize("size", FORMATS)
@@ -263,8 +264,18 @@ def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, mo
                                                                          ("25 FT", tuple(brand.GOLD))]
     assert "ABOUT 25 FT" in " ".join(graphics.scale_meaning(DEPTH, 280.0, "Statue of Liberty (total)", 305.0, True))
     rulers = [p for n, p in st["plates"] if n.startswith("ruler")]
-    assert [p.text for p in rulers][0] == "0 FT" and rulers[-1].text == "ABOUT 280 FT"
+    assert [p.text for p in rulers][0] == "0 FT"
     assert all(brand.DATA_FONT.replace(" ", "") in Path(p.font.path).stem for p in rulers)
+    # freeze cycle 5 (FIGURES, rulings 3 and 8): the floor's figure is the fact, a stated quantity in the figure face
+    # (hedge bone, number and unit gold), never an axis figure; no axis figure carries a hedge or the figure colour
+    floor = rows["floor_figure"]
+    assert floor.text == "ABOUT 280 FT"
+    assert [(p.text, tuple(p.fill)) for p in floor.plates] == [("ABOUT", tuple(brand.BONE)), ("280 FT", tuple(brand.GOLD))]
+    assert all(Path(p.font.path) == Path(graphics.figure_font(40).path) for p in floor.plates)
+    assert not any("ABOUT" in p.text or tuple(p.fill) == tuple(brand.GOLD) for p in rulers)
+    # freeze cycle 5 (review D2): the landmark's height is stated by the line of meaning, never beside the ruler
+    assert "ref_label" not in rows and rows["bracket"].derived["rule"] == "difference"
+    assert "305 ft" in " ".join(p.text for n, p in st["plates"] if n.startswith("meaning"))   # "about 305 ft"
     figure = " ".join(p.text for n, p in st["plates"] if re.fullmatch(r"figure\d*", n))
     assert figure == "ABOUT 280 FT DEEP" and rows["figure_metric"].text == "85 M"
     assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in st["record"]["elements"]), st["record"]["elements"]
@@ -277,7 +288,7 @@ def test_depth_carries_a_bracket_with_the_gap_and_a_data_face_ruler(tmp_path, mo
 def test_height_labels_the_landmarks_figure_at_its_top(tmp_path, monkeypatch, size) -> None:
     st = _render(monkeypatch, lambda: graphics.render_scale(HEIGHT, tmp_path / "s.mp4", width=size[0], height=size[1]))
     rows = dict(st["plates"])
-    assert rows["ref_label"].text == "305 FT" and rows["block_label"].text == "ABOUT 107 FT"
+    assert rows["ref_label"].text == "ABOUT 305 FT" and rows["block_label"].text == "ABOUT 107 FT"   # review 2
     meaning = [p for n, p in st["plates"] if n.startswith("meaning")]
     assert " ".join(p.text for p in meaning).upper().endswith("IS ABOUT 3 TIMES AS TALL.")   # round 4: subject first
     if size[0] < size[1]:
@@ -604,7 +615,14 @@ def test_the_route_map_names_its_country_off_the_legs_and_labels(tmp_path, monke
     st = _render(monkeypatch, lambda: graphics.render_route(stops, tmp_path / "r.mp4", width=size[0], height=size[1]))
     probe = ImageDraw.Draw(Image.new("L", (8, 8)))
     drawn = {t: probe.textbbox(xy, t, font=f, anchor="mm") for t, xy, f in names}
-    assert "T U R K E Y" in drawn, list(drawn)
+    # freeze cycle 5 (FIGURES, panel 6 FIG-10): the base never names the home (it set it in the neighbours' light
+    # stone on its own lit fill, unmeasured); the home's name is the route's own measured plate (country_name)
+    assert "T U R K E Y" not in drawn, list(drawn)
+    home = [p for n, p in st["plates"] if n.startswith("country")]
+    assert home and "".join(p.text for p in home).replace(" ", "") == "TURKEY", [n for n, _ in st["plates"]]
+    assert all(p.contrast is not None and p.contrast >= graphics.brand.TEXT_CONTRAST for p in home)
+    stops_ = [p.box for n, p in st["plates"] if n.startswith("stop")]
+    assert not any(graphics.LayoutConstraintSolver.boxes_intersect(p.box, b) for p in home for b in stops_)
     for text, box in drawn.items():                                 # base px (2x): clear of every reserved box
         assert not any(graphics.LayoutConstraintSolver.boxes_intersect(box, r) for r in seen["reserved"]), text
         design = tuple(v / 2 for v in box)

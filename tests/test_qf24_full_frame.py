@@ -182,7 +182,7 @@ def test_the_height_scale_keeps_the_landmark_measurement_note_whole_on_the_narro
     plates = _plates(monkeypatch, lambda: graphics.render_scale(OBELISK, tmp_path / "s.mp4"))
     notes = [p for n, p in plates if n.startswith("ref_note")]
     assert " ".join(p.text for p in notes).split() == ["GROUND", "TO", "TORCH", "TIP"]
-    f_rn = graphics.SCALE_RULER_PX - 4
+    f_rn = graphics.SCALE_REFERENT_NOTE_PX
     assert all(p.font.size == f_rn for p in notes)                     # at the ruler's size, never smaller
     assert all(p.box[2] <= graphics.get_text_box(W, H)[2] for p in notes)
 

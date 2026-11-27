@@ -183,6 +183,11 @@ def omit(surface: str, element: str, rule: str, reason: str) -> dict:
     return row
 
 
+def ledger_open() -> bool:
+    """Whether an omission ledger is open (collecting): an omit() here would be recorded, not refused."""
+    return _LEDGER.get() is not None
+
+
 def omissions() -> list:
     """The rows on the open ledger (a copy; [] when none is open)."""
     return list(_LEDGER.get() or [])

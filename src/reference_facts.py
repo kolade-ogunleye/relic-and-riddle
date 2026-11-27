@@ -1,6 +1,7 @@
 """Source-backed scale references shared by rendering and factual review."""
 import json
 import math
+import re
 
 from .config import DATA_DIR
 
@@ -33,8 +34,12 @@ def measurement_text(feet):
     CONVERT_TOL of the feet ("15 FT (4.6 M)"; whole metres drew "5 M", 9 % over)."""
     from .figures import converted_number
     metres = converted_number(feet, "FT", "M")
-    return (f"{feet:,.0f} FT ({metres} M)" if feet >= 20 else
-            f"{int(feet)} FT {round((feet % 1) * 12)} IN ({metres} M)")
+    if feet >= 20:
+        return f"{feet:,.0f} FT ({metres} M)"
+    whole, inches = int(feet), round((feet % 1) * 12)
+    if inches == 12:                 # review 2 (N6): 11.5 in and over round up into the next foot, never "12 IN"
+        whole, inches = whole + 1, 0
+    return f"{whole} FT {inches} IN ({metres} M)"
 
 
 def with_reference_evidence(sheet, payload):
@@ -44,6 +49,40 @@ def with_reference_evidence(sheet, payload):
     fact = {"id": ref["id"], "statement": ref["statement"], "disputed": False, "hedge": "",
             "evidence": [{"url": ref["source_url"], "tier": 1, "quote": ref["quote"]}]}
     return {**sheet, "facts": [f for f in sheet["facts"] if f["id"] != fact["id"]] + [fact]}
+
+
+_HEDGED_BEFORE = re.compile(r"(approximately|about|around|roughly|nearly)\W+(?:\w+\W+){0,3}$", re.IGNORECASE)
+
+
+def stated_figures(ref, unit):
+    """The figures the reference's own statement states in `unit` ("M" or "FT"), each (value, text, hedged) at its
+    stated precision: "146.5 metres" -> (146.5, "146.5 M", False); "approximately 481 feet" -> (481.0, "481 FT", True);
+    "5 feet 9 inches" -> (5.75, "5 FT 9 IN", ...). A figure is hedged when a hedge word stands just before it (review 2,
+    N1: a landmark is drawn as a signed figure, at its signed precision)."""
+    text = str((ref or {}).get("statement") or "")
+    out = []
+    if unit == "M":
+        pat = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(?:metres|meters|metre|meter|m)\b", re.IGNORECASE)
+        for m in pat.finditer(text):
+            num = m.group(1).replace(",", "")
+            out.append((float(num), f"{m.group(1)} M", bool(_HEDGED_BEFORE.search(text[:m.start()]))))
+        return out
+    pat = re.compile(r"(\d[\d,]*)\s*(?:feet|foot|ft)\b(?:\s*(\d+)\s*(?:inches|inch|in)\b)?", re.IGNORECASE)
+    for m in pat.finditer(text):
+        ft = float(m.group(1).replace(",", ""))
+        if m.group(2):
+            out.append((ft + int(m.group(2)) / 12, f"{m.group(1)} FT {m.group(2)} IN",
+                        bool(_HEDGED_BEFORE.search(text[:m.start()]))))
+        else:
+            out.append((ft, f"{m.group(1)} FT", bool(_HEDGED_BEFORE.search(text[:m.start()]))))
+    return out
+
+
+def reference_is_rounded(ref):
+    """Whether the reference file calls its figure rounded or approximate (its context or its statement): a gap or a
+    ratio derived from it is then never exact (review 2, N4)."""
+    words = (str((ref or {}).get("context") or "") + " " + str((ref or {}).get("statement") or "")).lower()
+    return any(w in words for w in ("rounded", "approximately", "about ", "around "))
 
 
 def reference_by_label(label):

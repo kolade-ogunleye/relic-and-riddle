@@ -24,6 +24,7 @@ Topic-agnostic: closed vocabularies of units, count units, hedges and dimension 
 """
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -757,6 +758,224 @@ def gap_record(a: Mapping[str, Any], b: Mapping[str, Any]) -> dict[str, Any] | N
         return None
     return {"rule": "elapsed_years", "from": int(a["year"]), "to": int(b["year"]), "approximate": approx,
             "years": got[0], "hedged": got[1]}
+
+
+# ------------------------------------------------------------------ derived comparisons (freeze cycle 5, FIGURES)
+# Lander ruling 2026-11-26. A figure no signed field holds (a scale's "ABOUT 181 M" between a 327 m mine and a 146 m
+# pyramid, "about 2 times its length") is DERIVED and may be drawn only when: every operand is a signed figure (the
+# run's signed fact, or the reference file's sourced landmark figure, named with its source); the operation is one of
+# DERIVED_OPS; the result carries a hedge unless it is exact; its operands are labelled on the drawing (so the reader
+# sees what the figure is the difference or the ratio of); and the surface's record stores the operands, the operation
+# and the result (derivation). Otherwise it is withheld and the omission recorded.
+# TRUTH (lander ruling 2026-11-26, second part): the arithmetic is done on the operands' SIGNED SOURCE values (the
+# fact's own value, the reference file's figure in the drawing's unit, unrounded) and the result is rounded ONCE for
+# display, with its hedge. Never on operands as already rounded for drawing: a 20 m well against a 60 ft (18.288 m)
+# landmark labelled "18 M" is "ABOUT 1.7 M" below it, not 20 - 18 = "2.0". The drawn-figure gate re-computes the
+# result from the record's source values (derivation_faults) and checks each against what it claims to be.
+DERIVED_OPS = ("difference", "ratio", "sum")
+DERIVED_RULE = ("a derived figure is drawn only from signed operands labelled on the drawing, by difference, ratio "
+                "or sum, hedged unless exact, with its derivation recorded (lander ruling 2026-11-26)")
+
+
+NEAR_RATIO = 1.1         # review 2 (N2): "nearly the same" is a derived claim: the ratio of the signed values under this
+FT_IN = re.compile(r"^\s*(\d[\d,]*)\s*FT\s+(\d+)\s*IN\s*$", re.IGNORECASE)
+IN_ONLY = re.compile(r"^\s*(\d+)\s*IN\s*$", re.IGNORECASE)
+# review 3 (B4): the word forms' limits are these constants, never the record's own word for them (the renderer reads
+# them too: graphics.LEVEL_GAP is LEVEL_LIMITS): "nearly level" up to half the last digit a gap is drawn to
+LEVEL_LIMITS = {"M": 0.05, "FT": 1 / 24}
+
+
+# Review 3b (N4): the relation a comparison draws is machine-read and judged against the record. Every comparison
+# phrase the scale renderer draws (graphics.scale_statement) is one of these forms; each names the relation it states,
+# "<rule>:<which is larger>" (the reference larger, the subject larger, level / nearly the same). A recorded element
+# that draws a comparison word outside these forms fails closed (UNREAD_COMPARISON).
+RELATION_FORMS: tuple[tuple[Any, str], ...] = (
+    (re.compile(r"\bwould stick out\b", re.I), "difference:reference"),
+    (re.compile(r"\bwould vanish\b", re.I), "difference:subject"),
+    (re.compile(r"\bwould reach nearly to the surface\b", re.I), "difference:level"),
+    (re.compile(r"\bnearly level\b", re.I), "difference:level"),
+    (re.compile(r"\btimes as tall as\b|\btimes the height of\b", re.I), "ratio:subject"),
+    (re.compile(r"\btimes as tall\b(?!\s+as\b)|\btimes its length\b", re.I), "ratio:reference"),
+    (re.compile(r"\bnearly the same height\b|\bnearly its length\b", re.I), "ratio:level"),
+)
+UNREAD_COMPARISON = re.compile(r"\b(shorter|smaller|taller|larger|bigger|longer|deeper|shallower|higher|lower|less|more|"
+                               r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|"
+                               r"nearly|not|never|no|neither|nor|isn|aren|wouldn|almost|roughly|around|approximately|over|under)\b", re.I)
+
+
+def relations_drawn(text: str) -> tuple[list[str], list[str]]:
+    """(the relations `text` draws by RELATION_FORMS, the comparison words left over that no form reads)."""
+    rels, rest = [], str(text or "")
+    for pat, rel in RELATION_FORMS:
+        for m in list(pat.finditer(rest)):
+            rels.append(rel)
+        rest = pat.sub(" ", rest)
+    return rels, [m.group(0) for m in UNREAD_COMPARISON.finditer(rest)]
+
+
+def relation_of(rule: str, operands: Sequence[Mapping[str, Any]], shown: str) -> str:
+    """The relation a derivation states: which operand is larger by the signed values (level / nearly the same when
+    the record draws no number)."""
+    if not shown:
+        return f"{rule}:level"
+    by_role = {str(o.get("role")): float(o.get("value", 0.0)) for o in operands}
+    sub, ref = by_role.get("subject"), by_role.get("reference")
+    if sub is None or ref is None:
+        return f"{rule}:unknown"
+    return f"{rule}:{'reference' if ref > sub else 'subject'}"
+
+
+def shown_value(shown: str) -> tuple[float, float] | None:
+    """(value, its last place) of a drawn derived number: "181" -> (181, 1); "1.7" -> (1.7, 0.1); a feet-and-inches
+    figure "10 FT 8 IN" -> (10.667, 1/12) in feet; None for no number ("" or a word form)."""
+    raw = str(shown or "").replace(",", "").strip()
+    m = FT_IN.match(raw)
+    if m:
+        return int(m.group(1)) + int(m.group(2)) / 12, 1 / 12
+    m = IN_ONLY.match(raw)                 # review 3: a gap under a foot drawn in inches alone ("5 IN")
+    if m:
+        return int(m.group(1)) / 12, 1 / 12
+    try:
+        v = float(raw)
+    except ValueError:
+        return None
+    return v, 10 ** -len(raw.partition(".")[2])
+
+
+def comparison_ratio(big: float, small: float) -> str:
+    """How many times one figure is the other, never stated more confidently than the figures: one decimal below 2
+    ("1.5"), else the whole number rounded half up (2.5 -> 3)."""
+    ratio = big / small
+    if ratio < 2:
+        return f"{math.floor(ratio * 10 + 0.5) / 10:g}"
+    return str(math.floor(ratio + 0.5))
+
+
+def operand(role: str, name: str, text: str, value: float, unit: str, approximate: bool, source: str,
+            **more: Any) -> dict[str, Any]:
+    """One operand of a derivation: what it is (`role`, `name`), its figure as drawn (`text`), its SIGNED SOURCE
+    `value` in `unit` (never the drawn rounding: the arithmetic is done on this), whether it is approximate (a hedged
+    fact, or a figure drawn rounded or converted) and the signed field or sourced reference it is."""
+    return {"role": role, "name": name, "text": text, "value": float(value), "unit": unit,
+            "approximate": bool(approximate), "source": source, **more}
+
+
+def rounded_once(shown: str, true: float) -> bool:
+    """Whether the drawn number `shown` is `true` rounded once at shown's own precision (within half a unit of its
+    last drawn place: "1.7" for 1.712, "180" for 180.39; never "2.0" for 1.712, nor "181" for 180.39)."""
+    got = shown_value(shown)
+    return got is not None and abs(got[0] - float(true)) <= 0.5 * got[1] + 1e-9
+
+
+def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, text: str,
+               threshold: float | None = None) -> dict[str, Any]:
+    """The record of a derived figure: its `rule` (DERIVED_OPS), its operands (operand), the exact result of the rule
+    on the operands' signed source values, `shown` (the number as drawn: "181", "2", "" for a comparison that states none,
+    "nearly the same height"), whether it is hedged (never exact unless every operand is exact and the drawn number
+    is the result itself) and `text` (the words that state it on the surface: "ABOUT 181 M", "about 2 times").
+    A word form that states no number ("NEARLY LEVEL", "nearly the same") is a derived claim too (review 2, N2): its
+    `threshold` (a difference: the largest result it may state; a ratio: NEAR_RATIO) is recorded and re-checked."""
+    vals = [float(o["value"]) for o in operands]
+    if rule == "difference":
+        result = abs(vals[0] - vals[1])
+    elif rule == "sum":
+        result = sum(vals)
+    elif rule == "ratio":
+        result = max(vals[0], vals[1]) / min(vals[0], vals[1])
+    else:
+        raise ValueError(f"not a derivation rule: {rule!r}")
+    got = shown_value(shown)
+    exact = (not any(o.get("approximate") for o in operands) and got is not None and abs(got[0] - result) < 1e-9)
+    rec = {"rule": rule, "operands": [dict(o) for o in operands], "result": round(result, 6), "shown": shown,
+           "hedged": not exact, "text": text, "relation": relation_of(rule, operands, shown)}
+    if not shown:
+        rec["form_limit"] = float(threshold if threshold is not None else NEAR_RATIO if rule == "ratio" else 0.0)
+    return rec
+
+
+def _is_number(text: str) -> bool:
+    try:
+        float(text.replace(",", ""))
+    except ValueError:
+        return False
+    return True
+
+
+HEDGE_WORDS = ("ABOUT", "NEARLY", "ROUGHLY", "AROUND", "ALMOST", "APPROXIMATELY", "OVER", "UNDER", "UP TO")
+
+
+def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | None = None) -> list[str]:
+    """[] when a derived figure's record satisfies the ruling; else one line per breach. Structural and arithmetical:
+    an allowed rule; two operands or more, each with a drawn text, a value, a unit and a source; the result
+    re-computed from the operands' signed source values; every operand's drawn figure a statement of its source
+    value (within CONVERT_TOL); the drawn number that result rounded once (rounded_once; a ratio by
+    comparison_ratio), never the arithmetic of the figures as rounded for drawing; a hedge unless it is exact. With
+    `labelled` (the roles whose figures the drawing labels), every operand's role must be among them."""
+    if not isinstance(rec, Mapping):
+        return ["a derived figure without a derivation record"]
+    out = []
+    rule, ops = rec.get("rule"), rec.get("operands") or []
+    if rule not in DERIVED_OPS:
+        return [f"its operation {rule!r} is not one of {', '.join(DERIVED_OPS)}"]
+    if len(ops) < 2:
+        return ["a derivation needs two operands"]
+    for o in ops:
+        missing = [k for k in ("text", "value", "unit", "source") if o.get(k) in (None, "")]
+        if missing:
+            out.append(f"its operand {o.get('name') or o.get('role')!r} carries no {', '.join(missing)}")
+    if out:
+        return out
+    vals = [float(o["value"]) for o in ops]
+    for o in ops:                    # the figure an operand is labelled with states its source value
+        # review 3 (B3): rounded at its own last digit (a feet-and-inches figure to the inch), never within the 2 %
+        # conversion tolerance ('146.6 M' for 146.5 m fails; '18.3 M' for 18.288 m holds)
+        t = re.sub(r"^(ABOUT|NEARLY|APPROXIMATELY)\s+", "", str(o["text"]).strip().upper())
+        got_o = shown_value(t) if FT_IN.match(t) else shown_value(re.sub(r"\s*(M|FT)$", "", t))
+        if got_o is not None and abs(got_o[0] - float(o["value"])) > 0.5 * got_o[1] + 1e-9:
+            out.append(f"its operand {o.get('name') or o.get('role')!r} is drawn {o['text']!r} for a source value "
+                       f"of {float(o['value']):g} {o['unit']}")
+    want = (abs(vals[0] - vals[1]) if rule == "difference" else sum(vals) if rule == "sum"
+            else max(vals[:2]) / min(vals[:2]))
+    if abs(want - float(rec.get("result", float("nan")))) > 1e-4 * max(1.0, abs(want)):
+        out.append(f"its recorded result {rec.get('result')} is not the {rule} of its operands ({want:g})")
+    shown = str(rec.get("shown") or "")
+    got = shown_value(shown)
+    if shown and got is None:
+        out.append(f"its drawn figure {shown!r} is not a number")
+    elif got is not None:
+        if rule == "ratio":
+            if shown != comparison_ratio(max(vals[:2]), min(vals[:2])):
+                out.append(f"its drawn ratio {shown} is not its operands' ({want:.2f})")
+        elif not rounded_once(shown, want):
+            out.append(f"its drawn figure {shown} is not the {rule} of its operands' signed values ({want:g}) "
+                       "rounded once")
+    else:                            # a word form ("NEARLY LEVEL", "nearly the same"): its stated threshold holds
+        limit = rec.get("form_limit")
+        unit = str((ops[0] or {}).get("unit") or "").upper()
+        fixed = NEAR_RATIO if rule == "ratio" else LEVEL_LIMITS.get(unit)
+        if not isinstance(limit, (int, float)) or isinstance(limit, bool):
+            out.append(f"its word form {rec.get('text')!r} records no threshold")
+        elif fixed is None or abs(float(limit) - fixed) > 1e-9:
+            # review 3 (B4): the limit is the rule's constant, never the record's own word for it
+            out.append(f"its word form {rec.get('text')!r} records the limit {float(limit):g}, not the rule's "
+                       f"{fixed if fixed is not None else 'none'}")
+        elif rule == "ratio" and not want < float(limit):
+            out.append(f"it says {rec.get('text')!r} for a ratio of {want:.3f} (the form holds under {limit:g})")
+        elif rule != "ratio" and not want <= float(limit) + 1e-9:
+            out.append(f"it says {rec.get('text')!r} for a {rule} of {want:g} (the form holds to {limit:g})")
+    if rec.get("relation") != relation_of(str(rule), ops, shown):     # review 3b (N4): which operand is larger
+        out.append(f"its relation {rec.get('relation')!r} is not its operands' "
+                   f"({relation_of(str(rule), ops, shown)!r})")
+    exact = (not any(o.get("approximate") for o in ops) and got is not None and abs(got[0] - want) < 1e-9)
+    text = str(rec.get("text") or "").upper()
+    if not exact and not any(re.search(rf"\b{re.escape(h)}\b", text) for h in HEDGE_WORDS):
+        out.append(f"its text {rec.get('text')!r} carries no hedge and it is not exact")
+    if labelled is not None:
+        have = set(labelled)
+        for o in ops:
+            if o.get("role") not in have:
+                out.append(f"its operand {o.get('name') or o.get('role')!r} is not labelled on the drawing")
+    return out
 
 
 # ------------------------------------------------------------------ converted units (SYS-R8-1, cycle 0 round 8)

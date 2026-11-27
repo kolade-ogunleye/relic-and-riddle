@@ -49,7 +49,9 @@ from . import figures
 
 # Elements whose numbers are derived from signed values, from a photo's own record (then-and-now capture years:
 # then_now's honesty rule) or structural (named and counted, never a claim):
-DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_secondary|scale_bar|meaning|ref_label|"
+# review 2 (N1): no "meaning" / "ref_label" exemption: a scale's line of meaning is judged against its derivation
+# record (derived_faults), a landmark's label as a signed figure (the reference file's statement is signed copy)
+DERIVED = re.compile(r"^(then_year|now_year|ruler|axis|tick|scale$|scale_secondary|scale_bar|"
                      r"ref_note|bracket|numeral|total|chapter|header_brand|masthead|photo_credit|credit|licence|swipe|progress|counter|"
                      r"source|badge)", re.IGNORECASE)
 CONVERSION = re.compile(r"^(figure_metric|secondary|conversion|figure_conv)", re.IGNORECASE)
@@ -112,6 +114,8 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
     if isinstance(fact, Mapping) and fact.get("value"):
         hedge = "about " if fact.get("approximate", True) else ""
         out.append(f"{hedge}{float(fact['value']):g} {fact.get('unit') or 'ft'}")
+        # review 3 (scope ruling): the reference statement is NOT signed copy for the run; it is evidence only for the
+        # scale graphic's own landmark figures (landmark_faults, derived_faults), never for a headline or a caption
     cs = payload.get("cross_section")
     if isinstance(cs, Mapping):
         if cs.get("total_depth_ft"):
@@ -544,6 +548,261 @@ def gap_faults(text: str, derived: Mapping[str, Any] | None, payload: Mapping[st
     return [f"no two signed timeline years are {'about ' if hedged else ''}{shown:,} years apart by the timeline's rule"]
 
 
+SOURCE_TOL = 1e-4     # an operand's recorded value against its signed source: the same number, in the drawing's unit
+
+
+def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payload: Mapping[str, Any]) -> list[str]:
+    """[] when a derived comparison (a scale's bracket figure, its line of meaning: freeze cycle 5, lander ruling
+    2026-11-26, figures.DERIVED_RULE) holds; else one line per fault. Its record is re-computed (figures.
+    derivation_faults: an allowed operation, sourced operands, the result from their signed source values rounded
+    once, the hedge) and every operand's value is checked against what it claims to be (the same number, SOURCE_TOL:
+    never a figure as rounded for drawing): the run's signed scale_fact, or the reference file's sourced landmark. A bracket's
+    drawn figure is the record's. A bracket that states a figure with no record fails closed."""
+    if not isinstance(derived, Mapping):
+        return ["a derived figure without its derivation record (figures.DERIVED_RULE)"]
+    out = figures.derivation_faults(derived)
+    fact = payload.get("scale_fact") if isinstance(payload.get("scale_fact"), Mapping) else None
+    for o in derived.get("operands") or []:
+        unit = str(o.get("unit") or "").upper()
+        per_ft = _FT_PER.get(unit)
+        if o.get("source") == "scale_fact":
+            try:
+                feet = float(fact["value"]) * _FT_PER["M" if str(fact.get("unit")).lower() == "m" else "FT"]
+            except (TypeError, KeyError, ValueError):
+                out.append(f"its operand {o.get('name')!r} claims the run's scale_fact, which the run does not sign")
+                continue
+            # the operand's VALUE is the signed value itself (the arithmetic is done on it: figures.DERIVED_RULE);
+            # its drawn figure may round it within CONVERT_TOL (figures.derivation_faults)
+            if per_ft is None or abs(float(o["value"]) * per_ft - feet) > SOURCE_TOL * max(feet, 1e-9):
+                out.append(f"its operand {o.get('text')!r} ({float(o['value']):g}) is not the run's signed scale_fact "
+                           f"({fact.get('value')} {fact.get('unit')})")
+        elif o.get("role") == "reference":
+            from .reference_facts import references
+            ref = next((r for r in references() if r.get("id") == o.get("reference_id")
+                        or r.get("label") == o.get("name")), None)
+            if ref is None or not ref.get("source_url") or o.get("source") != ref.get("source_url"):
+                out.append(f"its operand {o.get('name')!r} is not a sourced landmark of the reference file")
+            elif per_ft is None or abs(float(o["value"]) * per_ft - float(ref["feet"])) > SOURCE_TOL * float(ref["feet"]):
+                out.append(f"its operand {o.get('text')!r} ({float(o['value']):g}) is not the reference file's "
+                           f"figure for {ref['label']}")
+            else:                    # review 2 (N1): its drawn figure is one the reference's statement states
+                from .reference_facts import stated_figures
+                said = drawn_numbers(str(o.get("text") or ""))
+                stated = [c[0] for c in stated_figures(ref, unit)]
+                for fault in landmark_faults(("ABOUT " if o.get("hedged") else "") + str(o.get("text") or ""), ref):
+                    out.append(f"its operand: {fault}")
+        else:
+            out.append(f"its operand {o.get('name') or o.get('role')!r} is neither a signed field of the run nor a "
+                       "sourced reference")
+    # review 2 (N2): EVERY number the element draws is the record's derived figure (as recorded, a feet-and-inches gap
+    # as one number) or an operand's own drawn figure; a bracket draws the derived figure; a word form ("nearly ...")
+    # is drawn only for a record that states no number
+    # review 3 (B2): and each is drawn with its hedge and its unit as the record states them
+    shown = str(derived.get("shown") or "")
+    got = figures.shown_value(shown) if shown else None
+    ops_ = list(derived.get("operands") or [])
+    d_unit = str((ops_[0] if ops_ else {}).get("unit") or "").upper()
+    # review 3c: each row's role comes from the renderer's own row record ("row": subject, landmark or comparison; a
+    # bracket by its name), never from a name read in the text; the relation scan reads the row with every recorded
+    # name masked, so no word of a subject's or a landmark's name is read as a comparison word
+    row = derived.get("row") if isinstance(derived.get("row"), Mapping) else {}
+    role = "bracket" if name == "bracket" else str(row.get("row") or "")
+    if role not in ("subject", "landmark", "comparison", "bracket"):
+        out.append(f"its row records no role (subject, landmark, comparison): {role or 'none'}")
+    masked = mask_names(text, row, ops_)
+    # review 3b (N4): the comparison is read by figures.RELATION_FORMS and must be the record's relation, which is its
+    # operands' (which is larger); a comparison word no form reads fails closed
+    rels, unread = figures.relations_drawn(masked)
+    want_rel = figures.relation_of(str(derived.get("rule")), ops_, shown)
+    if unread:
+        out.append(f"it draws a comparison no relation form reads ({', '.join(unread)})")
+    if rels and role not in ("comparison", "bracket"):
+        out.append(f"its {role or 'unrecorded'} row draws a relation ({', '.join(rels)})")
+    for rel in rels:
+        if rel != want_rel or rel != derived.get("relation"):
+            out.append(f"it draws the relation {rel!r}; its operands' is {want_rel!r}")
+    # review 3b (N5): each number in its ROLE: the comparison row and the bracket draw the derived figure and nothing
+    # else; the landmark row the landmark's figure (and it names the record's landmark), the subject row the subject's
+    derived_slot = role in ("comparison", "bracket")
+    row_role = {"landmark": "reference", "subject": "subject"}.get(role)
+    if role == "landmark" and drawn_quantities(text) and not _names_in(text, [row.get("landmark_name"),
+                                                                            str(row.get("landmark") or "").split(" (")[0]]):
+        out.append(f"its landmark row draws a figure without naming its landmark ({row.get('landmark_name')!r})")
+    for v, hedged, unit_, raw in drawn_quantities(masked):
+        if row_role is not None and not any(abs(v - a) < 1e-9 for o in ops_ if o.get("role") == row_role
+                                            for a in drawn_numbers(str(o.get("text") or ""))):
+            out.append(f"it draws {raw!r} in the {role} row, which draws only that operand's figure")
+            continue
+        if derived_slot and not (got is not None and abs(v - got[0]) < 1e-9):
+            out.append(f"it draws {raw!r} in the derived slot, which draws only its derivation's figure "
+                       f"({shown or 'none'})")
+            continue
+        if got is not None and abs(v - got[0]) < 1e-9 and not derived_slot and not any(
+                abs(v - a) < 1e-9 for o in ops_ for a in drawn_numbers(str(o.get("text") or ""))):
+            out.append(f"it draws its derived figure {raw!r} outside the comparison that states it")
+            continue
+        if got is not None and abs(v - got[0]) < 1e-9 and derived_slot:
+            if derived.get("hedged") and not hedged:
+                out.append(f"it draws its derived figure {raw!r} without the hedge its record carries")
+            if derived.get("rule") == "ratio":
+                if unit_:
+                    out.append(f"it draws the ratio {raw!r} with a unit")
+            elif not unit_:
+                out.append(f"it draws its derived figure {raw!r} without its unit ({d_unit})")
+            elif not _unit_ok(unit_, d_unit):
+                out.append(f"it draws its derived figure {raw!r} in {unit_.upper()}, not its record's {d_unit}")
+            continue
+        same = [o for o in ops_ if any(abs(v - a) < 1e-9 for a in drawn_numbers(str(o.get("text") or "")))
+                and (row_role is None or o.get("role") == row_role)]
+        # a figure two operands share (a 60 ft subject beside a 60 ft landmark) holds if it holds for one of them
+        op = next((o for o in same if hedged or not o.get("hedged")), same[0] if same else None)
+        if op is not None:
+            if op.get("hedged") and not hedged:
+                out.append(f"it draws the {op.get('role')}'s figure {raw!r} without the hedge its source carries")
+            if unit_ and not _unit_ok(unit_, str(op.get("unit") or "").upper()):
+                out.append(f"it draws the {op.get('role')}'s figure {raw!r} in {unit_.upper()}, not {op.get('unit')}")
+            continue
+        out.append(f"it draws {v:g}, which is neither its derivation's figure ({shown or 'none'}) nor an operand's")
+    if name == "bracket" and shown and not any(got and abs(v - got[0]) < 1e-9 for v in drawn_numbers(text)):
+        out.append(f"it draws {text!r}, not its derivation's {derived.get('text')!r}")
+    if got is not None and re.search(r"\bnearly\b", masked, re.IGNORECASE):   # names masked (review 3c)
+        out.append(f"it says {text!r}, a word form, for a derivation that draws {shown}")
+    return out
+
+
+def _names_in(text: str, names: Sequence[Any]) -> bool:
+    low = " ".join(str(text or "").lower().split())
+    return any(str(n or "").strip() and " ".join(str(n).lower().split()) in low for n in names)
+
+
+def mask_names(text: str, row: Mapping[str, Any], operands: Sequence[Mapping[str, Any]]) -> str:
+    """Review 3c: `text` with every recorded name (the subject's, the landmark's, as recorded and as drawn) blanked,
+    longest first, so a name's own words ("Times Square Tower", "Lower Manhattan", "Taller of the two") are never
+    read as comparison words or as figures ("Tower 42", "Level 7 Bunker")."""
+    names = {str(row.get(k) or "") for k in ("subject", "subject_name", "landmark", "landmark_name")}
+    names |= {str(o.get("name") or "") for o in operands}
+    names |= {n.split(" (")[0] for n in list(names)}
+    out = str(text or "")
+    ordered = sorted((n.strip() for n in names if n.strip()), key=len, reverse=True)
+    for n in ordered:
+        out = re.sub(re.escape(n), " ", out, flags=re.IGNORECASE)
+    return _mask_fragments(out, ordered)
+
+
+def _mask_fragments(text: str, names: list[str]) -> str:
+    """Review 3c: a name a row wrap split ("Lower Manhattan's" / "Woolworth Building: 57 m.") is masked too: the longest
+    run of a name's words that a row starts with (its tail) or ends with (its head)."""
+    out = text
+    for n in names:
+        words = n.split()
+        for i in range(len(words)):                 # a row that starts with the name's tail
+            frag = " ".join(words[i:])
+            if frag and out.strip().lower().startswith(frag.lower()):
+                k = out.lower().index(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
+        for j in range(len(words), 0, -1):          # a row that ends with the name's head
+            frag = " ".join(words[:j])
+            if frag and out.rstrip(" ,.:").lower().endswith(frag.lower()):
+                k = out.lower().rindex(frag.lower())
+                out = out[:k] + " " + out[k + len(frag):]
+                break
+    return out
+
+
+def _row_role(text: str, operands: Sequence[Mapping[str, Any]]) -> str | None:
+    """Review 3b (N5): the operand a row of the line of meaning is about: the reference when it names the landmark,
+    the subject when it opens with the subject's name; None when it names neither."""
+    low = " ".join(str(text or "").lower().split())
+    names = {str(o.get("role")): str(o.get("name") or "").split(" (")[0].lower() for o in operands}
+    ref = names.get("reference", "")
+    if ref and ref in low:
+        return "reference"
+    sub = re.sub(r"\s+(height|depth|tall|deep|length|long)$", "", names.get("subject", "")).strip()
+    if sub and low.startswith(sub):
+        return "subject"
+    return None
+
+
+HEDGE_RE = r"(?:about|nearly|approximately|roughly|around|almost|over|under|up to)"
+QUANTITY = re.compile(rf"(?:\b({HEDGE_RE})\s+)?(?<![\w.])(\d[\d,]*(?:\.\d+)?)(?:\s*(m|ft|in)\b(?:\s+(\d+)\s*in\b)?)?",
+                      re.IGNORECASE)
+
+
+def drawn_quantities(text: str) -> list[tuple[float, bool, str, str]]:
+    """(value, hedged, unit, as drawn) of every number `text` draws: a feet-and-inches figure is ONE value in feet
+    (unit "ft"), inches alone are feet too (unit "in"), a bare number has no unit (review 3, B2)."""
+    out = []
+    for m in QUANTITY.finditer(text):
+        v = float(m.group(2).replace(",", ""))
+        unit_ = (m.group(3) or "").lower()
+        if unit_ == "ft" and m.group(4):
+            v += int(m.group(4)) / 12
+        elif unit_ == "in":
+            v /= 12
+        out.append((v, bool(m.group(1)), unit_, m.group(0).strip()))
+    return out
+
+
+def _unit_ok(drawn: str, unit: str) -> bool:
+    return {"m": "M", "ft": "FT", "in": "FT"}.get(drawn.lower()) == unit.upper()
+
+
+LANDMARK_NAMES = re.compile(r"^ref_label")
+
+
+def landmark_faults(text: str, ref: Mapping[str, Any] | None) -> list[str]:
+    """Review 3 (B3): a scale graphic's landmark figure ('146.5 M', 'ABOUT 305 FT', a slide legend's): each drawn figure
+    is a figure the reference's statement states, at its precision, hedged where the statement hedges it; or the
+    file's own value correctly rounded at the drawn digit, hedged. Never the 2 % conversion tolerance ('about 482 ft'
+    for 480.64 ft, '94 M' for 92.96 m fail)."""
+    from .reference_facts import stated_figures
+    if not ref:
+        return [f"{text!r}: no reference landmark to judge it against"]
+    out = []
+    for v, hedged, unit_, raw in drawn_quantities(text):
+        unit = {"m": "M", "ft": "FT", "in": "FT"}.get(unit_)
+        if unit is None:
+            out.append(f"{raw!r}: a landmark figure without its unit")
+            continue
+        value_u = float(ref["feet"]) * (1 / 3.28084 if unit == "M" else 1.0)
+        stated = [c for c in stated_figures(ref, unit) if abs(c[0] - v) < 1e-6]
+        if any(not c[2] for c in stated) or (hedged and stated):
+            continue                     # the statement's own figure (hedged where it hedges it)
+        if stated and not hedged:
+            out.append(f"{raw!r} drops the hedge its statement carries ({stated[0][1]})")
+            continue
+        step = _last_place(raw)
+        if not hedged:
+            out.append(f"{raw!r} is not a figure the reference states (and is not hedged)")
+        elif abs(v - value_u) > 0.5 * step + 1e-9:
+            out.append(f"{raw!r} is not the reference's {value_u:g} {unit} rounded at its last digit")
+    return out
+
+
+def _last_place(raw: str) -> float:
+    """The last place of a drawn figure: a feet-and-inches one is an inch (1/12 ft); else its decimals."""
+    if re.search(r"\d\s*in\b", raw, re.IGNORECASE):
+        return 1 / 12
+    m = re.search(r"\d[\d,]*(?:\.(\d+))?", raw)
+    return 10 ** -len((m.group(1) or "") if m else "")
+
+
+def drawn_numbers(text: str) -> list[float]:
+    """The numbers `text` draws, a feet-and-inches figure ("10 ft 8 in") as ONE number in feet; years in a label's
+    parenthesis are numbers too (nothing is exempt)."""
+    out: list[float] = []
+    rest = text
+    for m in list(re.finditer(r"(\d[\d,]*)\s*ft\s+(\d+)\s*in\b", text, re.IGNORECASE))[::-1]:
+        out.append(int(m.group(1).replace(",", "")) + int(m.group(2)) / 12)
+        rest = rest[:m.start()] + " " + rest[m.end():]
+    for m in list(re.finditer(r"(?<![\w.])(\d+)\s*in\b", rest, re.IGNORECASE))[::-1]:   # inches alone, in feet
+        out.append(int(m.group(1)) / 12)
+        rest = rest[:m.start()] + " " + rest[m.end():]
+    out += [float(m.group(0).replace(",", "")) for m in re.finditer(r"(?<![\w.])\d[\d,]*(?:\.\d+)?", rest)]
+    return out
+
+
 def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
     """The gate on one run: {"faults": [...], "unrecorded": [...], "judged": n, "derived": n, "surfaces": n}. Each
     fault names the surface, the element, the drawn figure, what is wrong and the nearest signed value."""
@@ -566,7 +825,39 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
         before, prev = (prev[1] if prev[0] == surface else ""), (surface, text)
         if e.get("_captions"):
             text = caption_text(text, spoken)
+        rec = e.get("derived")
+        if (isinstance(rec, Mapping) and rec.get("rule") in figures.DERIVED_OPS) or name == "bracket":
+            # review 3 (B1): BEFORE the digit filter, so a word form drawn over a numeric record is judged
+            derived += 1      # a derived comparison: re-computed from its recorded operands, never a claim
+            for fault in derived_faults(name, text, rec if isinstance(rec, Mapping) else None, payload):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
+            continue
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
+            continue
+        srole = e.get("scale_role") if isinstance(e.get("scale_role"), Mapping) else None
+        if srole is not None and isinstance(payload.get("scale_fact"), Mapping):
+            # review 3c: a row of a withheld comparison, by its own row record: its names masked; a landmark row is
+            # judged against its reference (scale-graphic scope only) and names its landmark; a subject row as a figure
+            text = mask_names(text, srole, [])
+            if srole.get("row") == "landmark":
+                from .reference_facts import selected_reference
+                derived += 1
+                raw_text = str(e.get("text") or "")
+                for fault in landmark_faults(text, selected_reference(payload["scale_fact"])):
+                    faults.append(f"{surface} ({name}): drew {raw_text!r}: {fault}")
+                if drawn_quantities(text) and not _names_in(raw_text, [srole.get("landmark_name"),
+                                                                    str(srole.get("landmark") or "").split(" (")[0]]):
+                    faults.append(f"{surface} ({name}): drew {raw_text!r}: a landmark row that does not name its "
+                                  "landmark")
+                continue
+            if not any(ch.isdigit() for ch in text):
+                continue
+        if LANDMARK_NAMES.match(name) and isinstance(payload.get("scale_fact"), Mapping):
+            # review 3 (B3 and the scope ruling): a scale graphic's landmark figure, judged against its reference only
+            from .reference_facts import selected_reference
+            derived += 1
+            for fault in landmark_faults(text, selected_reference(payload["scale_fact"])):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
             continue
         if GAP.match(name):         # a derived gap label: its arithmetic between two signed years, never a claim
             derived += 1

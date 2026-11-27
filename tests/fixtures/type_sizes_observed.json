@@ -296,9 +296,7 @@
   42.0,
   47.0,
   49.0,
-  51.0,
-  61.0,
-  63.0
+  51.0
  ],
  "graphics:_plan": [
   28.0,
@@ -331,15 +329,23 @@
   28.0
  ],
  "graphics:_render_cross_section.compose": [
+  28.0,
   44.0,
   54.0,
   68.0,
   80.0
  ],
+ "graphics:_render_cross_section.f_conv": [
+  28.0
+ ],
  "graphics:_render_scale_vertical": [
   28.0,
+  35.0,
   38.0,
   76.0
+ ],
+ "graphics:_render_scale_wide": [
+  38.0
  ],
  "graphics:_render_timeline_tall": [
   42.0
@@ -511,8 +517,6 @@
   42.0,
   47.0,
   51.0,
-  61.0,
-  63.0,
   271.0,
   273.0,
   301.0,
@@ -787,6 +791,9 @@
  "graphics:scale_figure_lines": [
   92.0,
   94.0
+ ],
+ "graphics:subject_figure_font": [
+  38.0
  ],
  "graphics:water_labels": [
   21.0,

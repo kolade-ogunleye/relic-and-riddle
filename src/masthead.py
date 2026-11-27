@@ -294,8 +294,119 @@ def mark_contrast(before: Image.Image, after: Image.Image, diamond, edge: int, f
     return round(best, 2), counts
 
 
+# Freeze cycle 5 (stream PLATES, panel 6 BC r1 / AD r1: on the second palettes the bright cover lost its masthead at
+# 5.41, and nothing had asked whether the palette's masthead roles hold on a bright ground at all): a palette is asked
+# when the brand is configured (brand.configure -> palette_problems), on four stored grounds from near white to INK,
+# through the ruled order and the margin step. A palette whose name cannot be drawn on one of them is refused there
+# with the ratios reached, never found out run by run as a missing mark.
+VALIDATION_GROUNDS = (("near white", 246, 3.0, 0.0), ("bright stone", 212, 26.0, 1.5), ("mid tone", 128, 30.0, 1.5),
+                      ("dark", 24, 6.0, 0.0))   # name, mean level, spread, blur px (a deterministic texture)
+VALIDATION_FRAME = (1440, 700, 107, 131, 53.33, 531, 960)   # the carousel's masthead: canvas, x0, baseline, size, reach, room
+
+
+def validation_ground(mean: float, spread: float, blur: float) -> Image.Image:
+    import numpy as np
+    from PIL import ImageFilter
+    w, h = VALIDATION_FRAME[:2]
+    rng = np.random.default_rng(20261126)
+    a = np.clip(rng.normal(mean, spread, (h, w, 1)).repeat(3, axis=2), 0, 255).astype(np.uint8)
+    im = Image.fromarray(a, "RGB")
+    return im.filter(ImageFilter.GaussianBlur(blur)) if blur else im
+
+
+_palette_checked: dict[tuple, tuple[str, ...]] = {}
+
+
+def palette_problems(config) -> list[str]:
+    """Why `config`'s masthead cannot be drawn on a stored ground ([]: on every one its name reaches the gate through
+    the ruled order): one line per ground it fails on, with the best ratio each variant reached. A name that does
+    not fit the carousel's room is the fit ladder's refusal, not the palette's, and is not listed here."""
+    def roles(cfg):
+        return (str(cfg.text.get("masthead")),
+                tuple(sorted((k, tuple(v) if not isinstance(v, str) else v) for k, v in cfg.palette.items())),
+                tuple(sorted((k, str(v)) for k, v in cfg.system.items()
+                             if k.startswith(("masthead.", "plate.shade", "halo.step")))),
+                str(cfg.font("masthead")))
+    key = roles(config)
+    if key == roles(brand.DEFAULT_BRAND):   # the default brand's roles: held by the corpus proof and the tests
+        return []
+    if key in _palette_checked:
+        return list(_palette_checked[key])
+    w, h, x0, base, size, reach, room = VALIDATION_FRAME
+    fails = []
+    with brand.use(config, validate=False):
+        for name, mean, spread, blur in VALIDATION_GROUNDS:
+            _, _, rec = plan(validation_ground(mean, spread, blur), x0, base, size, reach=reach, max_width=room)
+            if not rec.get("shown") and rec.get("fit_floor_px") is None:
+                fails.append(f"masthead on a {name} ground: the name reaches at best {rec.get('best_tried')}:1 "
+                             f"({rec.get('best_step')}; {config.name}: masthead.colour_dark best "
+                             f"{rec.get('best_dark')}, masthead.colour_light best {rec.get('best_light')}), under "
+                             f"the {tok('contrast.masthead_gate')}:1 gate")
+    _palette_checked[key] = tuple(fails)
+    return fails
+
+
+MARGIN = 6.0                      # the worst glyph's ratio a drawn masthead should clear (the gate is 5.5)
+# the longer top-scrim reaches tried where the ruled order ends short: none. Lander ruling N1 (2026-11-26, review 2 of
+# the PLATES c5 fix: no band darkens more of the photograph than base on any surface): the x1.25 / x1.5 / x2 reaches
+# darkened 18 dev carousel slides by > 20 luma on 3.9-32.5 % of the frame and lowered a heading the x2 reach reached
+# (Tunguska Facebook cover 3.70 -> 3.59); a masthead short of MARGIN is recorded (margin_short), never lengthened
+MARGIN_REACH: tuple[float, ...] = ()
+MARGIN_REACH_FREE = 1.5           # past this a reach is taken only to draw a withheld name or to leave the halo exception
+# (measured on the dev decks: x1.25 keeps 0.72-0.94 of the top half's luma against 0.79-0.95 at the surface's own
+# reach; x2 kept 0.57 against 0.77, a fifth of the photograph's top half for a ratio already over the gate)
+
+
 def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
          target: float | None = None, max_width: float | None = None) -> tuple[Image.Image, Any, dict[str, Any]]:
+    """`plan_at` with MARGIN above the gate (freeze cycle 5, stream PLATES; panel 6, eight of twelve lens-runs: real
+    mastheads sat on the 5.5 floor: 5.51 with the halo exception, 5.55, 5.62). Where the ruled order at the surface's
+    own reach ends short of the target, is withheld, or needs the halo exception, the same ruled order is solved
+    again on a LONGER REACH of the same top-edge gradient (MARGIN_REACH x the reach, the least first): the name then
+    stands higher on the ramp, so the ruled peak (scrim.masthead_peak, never raised) gives it more of its strength;
+    no other value moves. The first reach whose result reaches the target without the exception is taken; else the
+    best of all (drawn before withheld, no exception before an exception, then the ratio). The record says which
+    (`margin_step`, `reach`) and, when the drawn name is still under MARGIN, that no step reached it
+    (`margin_short`: the recorded ceiling of the ruled steps on that ground)."""
+    goal = tok("contrast.masthead_target") if target is None else target
+    spec_font = font_for(size)
+    asked = baseline + 6 * cap_height(spec_font) if reach is None else float(reach)
+
+    def rank(rec):
+        c = float(rec.get("contrast") or 0.0)
+        return (bool(rec.get("shown")), not rec.get("halo_exception"), min(c, goal), c)
+
+    def short(rec):
+        return (not rec.get("shown")) or rec.get("halo_exception") or float(rec.get("contrast") or 0.0) < goal
+
+    best = plan_at(im, x0, baseline, size, asked, target, max_width, floor=MARGIN)
+    best[2]["reach"] = round(asked)
+    if short(best[2]) and best[2].get("fit_floor_px") is None:      # a group that does not fit its room stays refused
+        first = best[2]
+        for k in MARGIN_REACH:
+            if k > MARGIN_REACH_FREE and best[2].get("shown") and not best[2].get("halo_exception"):
+                break   # drawn within the ruled caps: the photograph is not darkened further for margin alone
+            trial = plan_at(im, x0, baseline, size, asked * k, target, max_width, floor=MARGIN)
+            trial[2].update(reach=round(asked * k), margin_step=f"reach x{k:g}",
+                            margin_from={"contrast": first.get("contrast"), "shown": first.get("shown"),
+                                         "halo_exception": bool(first.get("halo_exception")),
+                                         "reach": round(asked)})
+            if rank(trial[2]) > rank(best[2]):
+                best = trial
+            if not short(best[2]):
+                break
+    rec = best[2]
+    if rec.get("shown") and float(rec.get("contrast") or 0.0) < MARGIN:
+        rec["margin_short"] = True
+        rec["margin_note"] = (f"drawn at {rec.get('contrast')}:1, under the {MARGIN}:1 margin: no ruled step on any "
+                              f"reach up to x{(MARGIN_REACH or (1,))[-1]:g} reaches it on this ground (best "
+                              f"{rec.get('best_tried')}:1, {rec.get('best_step')})")
+    return best
+
+
+def plan_at(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
+            target: float | None = None, max_width: float | None = None, floor: float | None = None
+            ) -> tuple[Image.Image, Any, dict[str, Any]]:
     """(the image with the masthead's ground solved, the name's TextPlate, the record). `x0`: the diamond's left
     point; `baseline`: the name's baseline; `reach`: where the top scrim has eased out (default: baseline + 6 caps);
     `max_width`: the room the group may take (default: the canvas less x0 each side). The record's `contrast` is the
@@ -351,6 +462,9 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
             v = variant or ("light" if "light" in step else "dark")   # by the step tried, never by colour (r7)
             if got > seen["best"]:
                 seen.update(best=got, step=f"{step} halo {round(halo, 2)}".strip(), trial=(ground, p, v))
+            if v == "dark" and not step.startswith("exception") and got > seen.get("dark_ruled", 0.0):
+                # the best bone trial within the ruled caps (never an exception halo: that stays the last resort)
+                seen.update(dark_ruled=got, dark_trial=(ground, p), dark_step=f"{step} halo {round(halo, 2)}".strip())
             seen[v] = max(seen[v], got)
             if best is None or got > best[1]:
                 best = (p, got)
@@ -470,6 +584,13 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
         ground, p, v = seen["trial"]
         got = seen["best"]
         rec.update(variant=v, best_trial_taken=seen["step"])
+    elif (floor is not None and gate <= got < floor and rec["variant"] == "dark"
+          and seen.get("dark_ruled", 0.0) > got and seen.get("dark_trial") is not None):
+        # freeze cycle 5 (`floor`, the margin): nor is a drawn bone name left under the margin while a ruled bone
+        # trial of the same path read better (the same variant: INK stays for light grounds, ruling 1)
+        ground, p = seen["dark_trial"]
+        got = seen["dark_ruled"]
+        rec.update(best_trial_taken=seen["dark_step"], halo_exception=False)
     _, detail = glyph_contrast(ground, p)
     rec.update(halo=p.halo, contrast=round(got, 2), contrast_whole=p.measure(p.draw(ground)),
                contrast_unaided=p.contrast_unaided, best_tried=round(seen["best"], 2), best_step=seen["step"],

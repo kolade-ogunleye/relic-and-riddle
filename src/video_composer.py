@@ -5585,6 +5585,107 @@ def graphic_caption_intrusion(clip: Path, rect: tuple[int, int, int, int], width
     return float(ink.mean()) > CAPTION_GUARD_INK_SHARE
 
 
+RECON_BADGE_CLEAR = 12   # px at 1080 wide: the badge plate keeps this clear of a graphic's drawn elements
+
+
+def recon_badge_geometry(width: int, height: int) -> dict[str, Any]:
+    """Where the AI-reconstruction badge stands on a `width` x `height` frame: its type size (px and libass size),
+    the plate's box (x0, y0, x1, y1) and the text's position. Bone on an INK plate, top-left: title-safe's corner on
+    16:9 (lane F cycle 3, panel 4 PL r1: the 5 % corner sat under the YouTube player's title band); on 9:16 inside
+    the Reel box below the Reel's top bar, 19 px in from its left edge and 12 px under its top (caption review
+    2026-11-02). One place per format (the disclosure is a small corner label): build_subtitles draws it here and
+    clear_badge_intervals measures this box."""
+    from .typography import get_font
+    wide = width > height
+    badge_px = round(RECON_SIZE_WIDE * height / 1080) if wide else RECON_SIZE_PORTRAIT
+    badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, BADGE_WEIGHT)
+    scale = height / 1080 if wide else 1
+    pad_x, pad_y = round(14 * scale), round(8 * scale)
+    b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, BADGE_WEIGHT)
+    label = RECON_BADGE_LABEL
+    tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=BADGE_WEIGHT), label) + 1.5 * len(label)
+    if wide:
+        from .graphics import WIDE_TITLE_SAFE
+        x0, y0 = round(WIDE_TITLE_SAFE[0] * width / 1920), round(WIDE_TITLE_SAFE[1] * height / 1080)
+    else:
+        reel_x0, reel_y0, _, _ = _REEL_UI.box(width, height)
+        x0, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
+    plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)
+    return {"px": badge_px, "fs": badge_fs, "box": (x0, y0, x0 + plate_w, y0 + plate_h),
+            "plate": (plate_w, plate_h), "text_pos": (x0 + pad_x, round(y0 + pad_y - b_top))}
+
+
+def badge_corner_occupied(clip: Path, rect: tuple[int, int, int, int], width: int, height: int) -> str | None:
+    """Why the badge's corner `rect` (frame px) is not free on a graphic clip, None when it is shown free: an
+    element box of its <clip>.contrast.json overlaps it; else (no boxes recorded) its poster still (graphic_*.jpg)
+    has drawn ink there (more than CAPTION_GUARD_INK_SHARE of the rect brighter than CAPTION_GUARD_INK_LUMA: type and
+    figures of any colour); with neither record nor poster nothing shows the corner free, so it counts as taken."""
+    x0, y0, x1, y1 = rect
+    sidecar = Path(str(clip) + CAPTION_CONTRAST_SIDECAR)
+    if sidecar.is_file():
+        try:
+            elements = json.loads(sidecar.read_text(encoding="utf-8")).get("elements") or []
+        except (OSError, ValueError):
+            elements = []
+        boxes = [e for e in elements if isinstance(e, dict) and len(e.get("box") or []) == 4]
+        if boxes:
+            for e in boxes:
+                bx0, by0, bx1, by1 = e["box"]
+                if bx0 < x1 and bx1 > x0 and by0 < y1 and by1 > y0:
+                    area = (min(bx1, x1) - max(bx0, x0)) * (min(by1, y1) - max(by0, y0))
+                    return (f"its element {str(e.get('name') or '?')} {str(e.get('text') or '')[:24]!r} "
+                            f"{[int(v) for v in e['box']]} is under the badge ({int(area)} px)")
+            return None
+    poster = Path(clip).with_suffix(".jpg")
+    if not poster.is_file():
+        return "no element record and no poster still show the corner free"
+    import numpy as np
+    with Image.open(poster) as im:
+        rgb = im.convert("RGB")
+        if rgb.size != (width, height):
+            rgb = rgb.resize((width, height))
+        a = np.asarray(rgb.crop((max(0, x0), max(0, y0), min(width, x1), min(height, y1)))).astype(int)
+    if not a.size:
+        return None
+    share = float((0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2] > CAPTION_GUARD_INK_LUMA).mean())
+    if share > CAPTION_GUARD_INK_SHARE:
+        return f"its poster has drawn ink over {share:.1%} of the badge's corner"
+    return None
+
+
+def clear_badge_intervals(intervals: list[tuple[float, float]], scene_images: list[Path], durations: list[float],
+                          width: int, height: int) -> tuple[list[tuple[float, float]], list[dict[str, Any]]]:
+    """The reconstruction badge's intervals with every stretch over a graphic clip whose badge corner is not free
+    taken out, and what was taken out (freeze cycle 5, stream PLATES; panel 6 AD r2: the plate overprinted the top
+    of a numbers graphic's figure). The badge is on for a generated illustration's beat and half a crossfade either
+    side (reconstruction_badge_intervals), so it reaches a neighbouring graphic for TRANS_DUR / 2: there it stays
+    only where its plate (recon_badge_geometry, grown by RECON_BADGE_CLEAR) is shown free of the graphic's drawn
+    elements (badge_corner_occupied); else the badge yields at the cut (the drawn content keeps its corner; the
+    illustration's own beat is disclosed whole). One corner per format, never a second position."""
+    if not intervals:
+        return list(intervals or []), []
+    geo = recon_badge_geometry(width, height)
+    clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
+    x0, y0, x1, y1 = geo["box"]
+    rect = (x0 - clear, y0 - clear, x1 + clear, y1 + clear)
+    kept, yielded = [tuple(i) for i in intervals], []
+    for start, end, clip in caption_graphic_clips(scene_images, durations):
+        if not any(a < end and b > start for a, b in kept):
+            continue
+        why = badge_corner_occupied(clip, rect, width, height)
+        if why is None:
+            continue
+        cut = [(max(a, start), min(b, end)) for a, b in kept if a < end and b > start]
+        kept = [piece for a, b in kept for piece in ((a, min(b, start)), (max(a, end), b))
+                if piece[1] - piece[0] > 1e-6]
+        row = {"clip": Path(clip).name, "cut": [[round(a, 3), round(b, 3)] for a, b in cut], "box": list(geo["box"]),
+               "reason": f"the AI badge yields over {Path(clip).name}: {why} (rule: the badge never overlaps drawn "
+                         "content)"}
+        yielded.append(row)
+        log.warning("%s", row["reason"])
+    return kept, yielded
+
+
 def _fits_wide(phrase: Any, max_width: int, max_chars: int | None = CAPTION_WIDE_MAX_CHARS) -> bool:
     """A 16:9 burst fits one line: at most `max_chars` characters (CAPTION_WIDE_MAX_CHARS; None for a bonded name,
     freeze pass N2) and inside `max_width` (its plate included) in Montserrat Bold at CAPTION_WIDE_SIZE, so it is
@@ -6532,22 +6633,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # box below the Reel's top bar, 19 px in from its left edge and 12 px under its top (x 132, y 300 on the
             # organic box; x 84 on the ads box until QF-24). The 9:16 badge was 22px, centred and unplated until the
             # caption review of 2026-11-02 (operator approved moving it).
-            scale = height / 1080 if is_widescreen else 1
-            pad_x, pad_y = round(14 * scale), round(8 * scale)
-            b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, BADGE_WEIGHT)
-            tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=BADGE_WEIGHT), label) + 1.5 * len(label)
-            if is_widescreen:
-                # lane F cycle 3 (panel 4 PL r1): the 5 % corner (y 54) sat under the YouTube player's title and
-                # controls band; the badge stands at 16:9 title-safe's top-left corner (graphics.WIDE_TITLE_SAFE,
-                # x 153, y 129), where every other 16:9 text starts
-                from .graphics import WIDE_TITLE_SAFE
-                x0, y0 = round(WIDE_TITLE_SAFE[0] * width / 1920), round(WIDE_TITLE_SAFE[1] * height / 1080)
-            else:
-                reel_x0, reel_y0, _, _ = _REEL_UI.box(width, height)
-                x0, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
-            text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
+            # freeze cycle 5 (PLATES): the one geometry, recon_badge_geometry (clear_badge_intervals measures it too)
+            badge_geo = recon_badge_geometry(width, height)
+            (x0, y0), text_pos = badge_geo["box"][:2], badge_geo["text_pos"]
             badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
-            plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)
+            plate_w, plate_h = badge_geo["plate"]
             plate_text = f"{{\\pos({x0},{y0})\\p1}}{rounded_rect_path(plate_w, plate_h, 8)}{{\\p0}}"
             for start_t, end_t in reconstruction_intervals:
                 raw_events.append((2, start_t, end_t, "ReconPlate", plate_text))
@@ -6866,6 +6956,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         # Historical reconstruction badge intervals (crossfades included: reconstruction_badge_intervals)
         recon_intervals = reconstruction_badge_intervals(scene_images, caption_durations, vo_dur - caption_offset_s)
+        # freeze cycle 5 (PLATES): the badge never overprints a neighbouring graphic's drawn elements (recorded)
+        recon_intervals, badge_yielded = clear_badge_intervals(recon_intervals, scene_images, caption_durations,
+                                                               width, height)
 
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
         self.build_subtitles(caption_words, ass_path, emphasis=emphasis, width=width, height=height,
@@ -7173,6 +7266,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         manifest["loop_seam"] = loop_seam
         if caption_overlap:   # freeze pass G1: the bursts drawn opaque over a graphic's text
             manifest["caption_graphic_overlap"] = caption_overlap
+        if badge_yielded:     # freeze c5: where the AI badge yielded to a graphic's drawn elements, and why
+            manifest["recon_badge_yielded"] = badge_yielded
         manifest_path = output_mp4_path.with_suffix(".composition.json")
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         size_mb = os.path.getsize(output_mp4_path) / (1024 * 1024)

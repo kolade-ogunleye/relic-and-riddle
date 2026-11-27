@@ -103,6 +103,17 @@ STORY_BODY_PX = 46      # the Story body's size; never shrunk below it (2026-10-
                         # the overhaul of 2026-10-29, which sets it at the critic's measured 46-48 px, ~16 pt)
 STORY_BODY_LINES = 3
 STORY_POINTER = "FULL STORY ON OUR PROFILE"   # the hook frame's pointer to the Reel (lane D cycle 4: no link sticker)
+# Lander ruling 2026-11-26 (panel 6 PL r1 / r2: the pointer is drawn text with no tap target): a pointer line is drawn
+# only when the publisher can attach a tap target to the frame (a link sticker). The Story API posts none today, so
+# the line is withheld (recorded on the frame: lay.meta["pointer"], kept in stories/still_layout.json) and the block
+# is laid without its row, as every later frame of the Story is. The publisher that can attach one sets this.
+STORY_TAP_TARGET = False
+STORY_POINTER_RULE = "a Story pointer is drawn only with a tap target the publisher can attach (ruling 2026-11-26)"
+
+
+def story_tap_target() -> bool:
+    """Whether the publisher can attach a tap target (a link sticker) to a Story frame today."""
+    return bool(STORY_TAP_TARGET)
 STORY_BODY_WEIGHT = 600  # Montserrat SemiBold (2026-11-02 round 2: stated, so a default elsewhere cannot thin it)
 STORY_TITLE_W = 860      # the title's measure: three lines at its design size before it shrinks (2026-11-02)
 STORY_TITLE_LINES = 3
@@ -493,7 +504,10 @@ def story_title_px(slides: list[dict[str, Any]], tight: bool = False, poll: dict
     return max(floor, min(sizes)) if sizes else design
 
 
-STORY_MARGIN = 84       # the Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned)
+# The Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned). PLATES-14 (freeze c5):
+# moving it to the margin token moved the type over another ground (and the photo window with it): 31 Story elements
+# read lower than base, against ruling N2 (2026-11-26, review 2): kept at 84; PLATES-14 recorded open on the Story.
+STORY_MARGIN = 84
 
 
 def story_body_width() -> int:
@@ -540,13 +554,19 @@ def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, i
 
 
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
-          floor: float = 0.18, colour=None, pct: float = 95) -> Image.Image:
+          floor: float = 0.18, colour=None, pct: float = 95, grade: bool | None = None,
+          out: dict | None = None, plain=()) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
     left bright stone at 3:1 and dark photos darker than they needed). Each line's own halo (place_text) does
     the rest, line by line. `feather` is the designed minimum: each edge's feather grows with the luma step it
-    crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid."""
+    crosses (band_edge.feather: the band-edge token, cycle 0 round 7, panel F8), so a bright ground never gets a lid.
+    `out`: a dict that receives the band's strength (PLATES-15 records its lines' ceiling against it). `plain`: the
+    type's boxes, round which a graded band stays the plain INK alpha (band_edge.graded, ruling N2).
+    `grade` (default: a band whose cap is under 1, never opaque): the band grades the photograph where it grades out,
+    its full-strength body under the type the plain INK alpha (band_edge.graded,
+    PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
     import numpy as np
 
     from . import band_edge
@@ -556,14 +576,57 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     band = lum[max(0, int(y0)):max(int(y0) + 1, int(y1))] / 255.0
     p = float(np.percentile(band, pct)) if band.size else 0.0
     strength = float(np.clip(1 - target / max(p, 1e-3), floor, cap))
-    up = band_edge.feather(lum, y0, "up", colour, strength, feather) if y0 > 0 else feather
-    down = band_edge.feather(lum, y1, "down", colour, strength, feather) if y1 < H - 1 else feather
+    if out is not None:
+        out["strength"] = round(strength, 4)
+    # freeze cycle 5 (PLATES): a band with the photograph above AND below it is a floating band (the lower ceiling)
+    floating = y0 > 0 and y1 < H - 1
+    up = band_edge.feather(lum, y0, "up", colour, strength, feather, floating=floating) if y0 > 0 else feather
+    down = band_edge.feather(lum, y1, "down", colour, strength, feather, floating=floating) if y1 < H - 1 else feather
     v = band_edge.band_profile(H, y0, y1, up, down)
     mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
+    if (cap < 1.0) if grade is None else grade:
+        out = band_edge.graded(im, np.asarray(mask, np.float32) / 255.0, colour, full=strength, plain=plain)
+        return out.convert("RGBA") if im.mode == "RGBA" else out.convert(im.mode)
     layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
     layer.putalpha(mask)
     out = Image.alpha_composite(im.convert("RGBA"), layer)
     return out if im.mode == "RGBA" else out.convert(im.mode)
+
+
+def text_band_boxes(d, rows, x: float, bottom: float) -> list:
+    """The ink boxes of a carousel stack's rows as _stack sets them (bottom-aligned on `bottom`, at column `x`)."""
+    drawn = [r for r in rows if r.get("text")]
+    if not drawn:
+        return []
+    low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+    off = bottom - low
+    return [d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls") for r in drawn]
+
+
+def text_band_need(im: Image.Image, d, rows, x: float, bottom: float) -> float:
+    """The strength a carousel stack's band needs for its lines (band_edge.text_strength, PLATES-15): `rows` as
+    _stack sets them (bottom-aligned on `bottom`, at column `x`); kicker rows are labels with their own rule."""
+    from . import band_edge
+    drawn = [r for r in rows if r.get("text")]
+    if not drawn:
+        return 0.0
+    low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+    off = bottom - low
+    boxes = [(d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls"), r["fill"])
+             for r in drawn if not r.get("kicker")]
+    return band_edge.text_strength(im, boxes, brand.INK)
+
+
+def text_band_record(need: float, strength: float) -> dict[str, Any]:
+    """A text band's record (PLATES-15; lander ruling N1, 2026-11-26: 7:1 is the target, the gate floors are the gate,
+    and a band never darkens more of the photograph than the base design did): the target, the strength its lines
+    would need to read at it (band_edge.text_strength), the strength the band has (its own rule, unchanged), and
+    `short` when that is less: the lines then read at the best the band and each line's halo give, the recorded
+    ceiling (each line's ratio is on its element)."""
+    from . import band_edge
+    return {"target": band_edge.text_target(), "need": round(float(need), 3), "strength": round(float(strength), 4),
+            "short": bool(need > strength + 0.005),
+            "rule": "7:1 target within the base band's darkening (ruling N1): no deeper band, ceiling recorded"}
 
 
 # Ground-aware legibility (round 4, 2026-11-02), measured and fail-closed. A Story's text band is shaded deeper while
@@ -615,7 +678,7 @@ def gold_clash(im: Image.Image, box, gold=None) -> float:
     return round(float(near.mean()), 3)
 
 
-def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float):
+def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float, plain=()):
     """The Story's text band shaded (scrim) only as deep as its ground needs (GROUND_ENERGY_MAX, GOLD_CLASH_SHARE),
     trying STORY_SCRIM_STEPS in turn; returns (image, rows, record). A gold row still clashing at the deepest step
     is set in bone (its fill changed, nothing else)."""
@@ -623,13 +686,21 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float)
         return [d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls") for r in rows
                 if r[2] and ((r[4] == brand.GOLD) if gold else True)]
     every, golds = boxes(False), boxes(True)
+    from . import band_edge
+    # PLATES-15: what the lines would need for 7:1 on their own ground (band_edge.text_strength), recorded against the
+    # band's own strength (ruling N1: never a deeper band)
+    need = band_edge.text_strength(base, [(d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls"), r[4])
+                                          for r in rows if r[2]], brand.INK)
+    got: dict = {}
     for target in STORY_SCRIM_STEPS:
-        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target)
+        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, out=got,
+                       plain=list(every) + list(plain))
         energy = max((ground_energy(shaded, b) for b in every), default=0.0)
         clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
             break
-    record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False}
+    record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False,
+              "text_band": text_band_record(need, got.get("strength", 0.0))}
     if clash >= GOLD_CLASH_SHARE:
         rows = [(r[0], r[1], r[2], r[3], brand.BONE if r[4] == brand.GOLD else r[4], r[5], r[6]) for r in rows]
         record["gold_to_bone"] = True
@@ -1372,7 +1443,15 @@ class MultiFormatGenerator:
             before = _contrast(base, backing, c_fill)
             # A soft band of ink across the frame, not a box (a feathered rectangle read as a caption bar, 2026-10-29);
             # each line then gets its own halo if the photo still shows through too brightly.
-            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0)
+            from . import band_edge
+            need_c = band_edge.text_strength(base, [(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"),
+                                                     c_fill) for k, ln in enumerate(c_drawn)], brand.INK)
+            got_c: dict = {}
+            # not graded (ruling N2): the credit's small data face sits in the band's fall-off, and a graded ground there
+            # read 0.05-0.25 lower after the platform re-encode
+            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
+                         grade=False)
+            credit["text_band"] = text_band_record(need_c, got_c.get("strength", 0.0))
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
                           contrast=_contrast(base, backing, c_fill),
@@ -1399,6 +1478,7 @@ class MultiFormatGenerator:
         b_step = round(STORY_BODY_PX * brand_system.SPEC["lead.body"])
         b_gap = round(STORY_BODY_PX * tok("band.body_gap_tall"))  # title's last baseline to the body's first (F3)
         font_p = get_font(brand.TEXT_FONT, 32 if tight else 36, weight=800)
+        pointer = i == 0 and story_tap_target()   # ruling 2026-11-26: no pointer line without a tap target
         sticker = STORY_STICKER_H if asks_poll else 0
         room = text_floor - (sy0 + 30)                           # the height the whole block may take
 
@@ -1507,7 +1587,7 @@ class MultiFormatGenerator:
         n_body = len(wrap_text(d, " ".join(body.split()), f_body, max_w)) if body.strip() else 0
 
         def choose(sticker_h: int, lines: int):
-            fixed_ = (cap_k + k_gap if kicker else 0) + (110 if i == 0 else 0) + (
+            fixed_ = (cap_k + k_gap if kicker else 0) + (110 if pointer else 0) + (
                 sticker_h + 2 * STORY_STICKER_GAP if sticker_h else 0)
             need = (lines - 1) * b_step + b_gap + 12 if lines else 0
             for size_, wrap_ in trials:
@@ -1541,7 +1621,7 @@ class MultiFormatGenerator:
         got = got or (t_min, False, None, 0)   # one line a field at the floor: drawn whole or refused below
         size, wrap, fixed, fig_from = got
         if fixed is None:
-            fixed = (cap_k + k_gap if kicker else 0) + (110 if i == 0 else 0) + (
+            fixed = (cap_k + k_gap if kicker else 0) + (110 if pointer else 0) + (
                 sticker + 2 * STORY_STICKER_GAP if sticker else 0)
         if asks_poll and not sticker:
             lay.meta_room = [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]
@@ -1585,7 +1665,13 @@ class MultiFormatGenerator:
         for j, line in enumerate(body_lines):
             y = title_base + b_gap + j * b_step
             rows.append(("body", y, line, font_b, brand.BONE, 0, 0))
-        if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
+        pointer_rec = None
+        if i == 0 and not pointer:
+            pointer_rec = {"shown": False, "by_rule": True, "text": STORY_POINTER,
+                           "reason": f"pointer line {STORY_POINTER!r} not drawn: the publisher can attach no tap "
+                                     f"target to a Story frame (rule: {STORY_POINTER_RULE})"}
+        if pointer:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
+            pointer_rec = {"shown": True, "text": STORY_POINTER}
             y += 96
             # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
             # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
@@ -1602,7 +1688,19 @@ class MultiFormatGenerator:
         # for no narrative reason). The scrim and each line's measured halo hold the contrast on any photo.
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
-        base, rows, ground = story_ground(base, d, rows, x, top, block)
+        shade_rows, shade_block = rows, block
+        if i == 0 and not pointer:
+            # Rulings N1 / N2 (2026-11-26, review 2 of the PLATES c5 fix): the band and its step are laid for the block
+            # as designed, the withheld pointer's line included (its room, as the base laid it), so withholding the
+            # line by ruling neither lightens the band under the other lines nor moves the kicker off its plate
+            # (31 Story elements read lower than base without it); the line itself is still not drawn
+            ghost = ("reel_pointer", y + 96, STORY_POINTER, font_p, brand.BONE,
+                     font_p.size * 0.11, 0)
+            shade_rows = rows + [ghost]
+            shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
+        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block,
+                                                 plain=[tuple(credit["backing"])] if credit.get("backing") else ())
+        rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")
         if sticker:
@@ -1659,6 +1757,7 @@ class MultiFormatGenerator:
                     "safe_box": [sx0, sy0, sx1, sy1],
                     **({"poll_sticker_room": getattr(lay, "meta_room", None)} if asks_poll else {}),
                     "ground": ground,
+                    **({"pointer": pointer_rec} if pointer_rec else {}),
                     **({"hero_figure": hero["number"]} if hero else {})}
         return base, lay
 
@@ -2576,10 +2675,21 @@ class MultiFormatGenerator:
         if full and drawn:
             low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
             high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+            cap = 0.95 if deep else 0.90
+            need = text_band_need(im, d, drawn, px(margin), stack_bottom)
+            got: dict = {}
             im = scrim(im, stack_bottom - (low - high) - px(40), chh, feather=px(300), target=0.08 if deep else 0.26,
-                       cap=0.95 if deep else 0.90)
+                       cap=cap, out=got, plain=text_band_boxes(d, drawn, px(margin), stack_bottom))
+            if lay is not None:
+                lay.meta["text_band"] = text_band_record(need, got.get("strength", 0.0))
             if lay is not None and deep:
                 lay.meta["ink_band"] = True
+        elif drawn and lay is not None:
+            # PLATES-15: a split's stack stands on its INK panel (no band of its own); a line that starts on the
+            # photograph's fade under 7:1 is recorded with its ceiling (ruling N1: no band is added)
+            need = text_band_need(im, d, drawn, px(margin), stack_bottom)
+            if need > 0:
+                lay.meta["text_band"] = text_band_record(need, 0.0)
         plates = getattr(lay, "plates", None) if lay is not None else None
         if plates is None:
             plates = {}
@@ -3269,6 +3379,7 @@ class MultiFormatGenerator:
                 if hedges:   # lane B c3c: the figures drawn with their signed hedge, on the slide's own record
                     lay.meta["figure_hedged"] = hedges
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
+            record_masthead_withheld(script_payload, gate_surface, i + 1, lay)   # freeze c5: never an unrecorded drop
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
@@ -3322,6 +3433,7 @@ class MultiFormatGenerator:
                         hedges = slide_hedged(gate_hedged, gate_surface, j + 1)
                         if hedges:
                             lay.meta["figure_hedged"] = hedges
+                    record_masthead_withheld(script_payload, gate_surface, j + 1, lay)
                     self._save_slide(im, path)
                     _delivered_contrast(lay, path)
                     still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide",
@@ -3579,6 +3691,34 @@ def record_comparator_omitted(script_payload: dict[str, Any], surface: str, comp
         log.warning("%s: %s", name, reason)
     with contextlib.suppress(refusal.Declined):
         refusal.omit(name, comparator["line"], COMPARATOR_RULE, reason)
+
+
+MASTHEAD_RULE = "a masthead under its gate is not drawn (contrast.masthead_gate, src/masthead.py)"
+
+
+def record_masthead_withheld(script_payload: dict[str, Any] | None, surface: str, slide: int, lay) -> dict | None:
+    """A slide delivered WITHOUT its masthead because the gate withheld it (freeze cycle 5, stream PLATES; panel 6
+    AD r2 / BC r2: on the second palettes a bright interior slide lost its masthead and its scrim, and nothing but
+    the slide's in-memory layout said so) on the run's ledger, as a drawn-without row (payload["layout_holds"]: the
+    review card and the release gate name it) and on the open omissions ledger when one is open (the evidence
+    board's surfaces.json). A masthead a rule leaves off (a Facebook interior slide) is no omission: its own record
+    says so. Returns the row, None when the masthead was drawn or left off by rule."""
+    from . import refusal
+    m = (getattr(lay, "meta", None) or {}).get("masthead") or {}
+    if not m or m.get("shown") or m.get("fb_interior") or m.get("by_rule"):
+        return None
+    name, omitted = f"{surface} slide {slide}", "the masthead"
+    why = str(m.get("reason") or "its record gives no reason")
+    row = {"surface": name, "omitted": omitted, "rule": MASTHEAD_RULE, "drawn": True, "slide": slide,
+           "reason": f"drawn without {omitted!r}: {why} (rule: {MASTHEAD_RULE})"}
+    if script_payload is not None:
+        holds = script_payload.setdefault("layout_holds", [])
+        if not any(h.get("surface") == name and h.get("omitted") == omitted for h in holds if isinstance(h, dict)):
+            holds.append(row)
+            log.warning("%s: %s", name, row["reason"])
+    with contextlib.suppress(refusal.Declined):   # no ledger open: the run's own ledger above holds the record
+        refusal.omit(name, omitted, MASTHEAD_RULE, why)
+    return row
 
 
 REDRAWN_DIR = "graphics_redrawn"   # <run>/graphics_redrawn/<brand+code key>/graphic_<kind>.jpg (cycle 0 round 8)
@@ -4701,7 +4841,10 @@ def _redraw_strip(kept: dict[str, Any] | None, path: Path | None = None) -> dict
 # words (operator, 2026-10-28). The Facebook copy is a standalone grid and draws none. Slide 1 draws its part only
 # where nothing of its own text is near; else it draws none and says why (lay.meta["swipe_strip"]).
 SWIPE_STRIP = 72          # design px of the strip on slide 1 (96 at 1440)
-SWIPE_CLEAR = 24          # design px it keeps from any text of slide 1
+# design px it keeps from any text of slide 1: 36 (48 at 1440; was 24, 32): PLATES-13, panel 6 (the Aswan cover's strip
+# ended ~45 px right of the heading at its cap line, a near-collision tick): it meets the heading or clears it by the
+# ledger's 48 canvas px (24 half px), else slide 1 draws no part and says why (lay.meta["swipe_strip"])
+SWIPE_CLEAR = 36
 
 
 def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:

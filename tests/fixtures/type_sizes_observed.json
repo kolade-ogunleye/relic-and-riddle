@@ -871,9 +871,6 @@
   126.0,
   127.0
  ],
- "video_composer:VideoComposer.build_subtitles": [
-  26.0
- ],
  "video_composer:_caption_line_run": [
   1000.0
  ],
@@ -915,5 +912,8 @@
  "youtube_thumbnail:_render": [
   44.0,
   116.0
+ ],
+ "video_composer:recon_badge_geometry": [
+  26.0
  ]
 }

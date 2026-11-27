@@ -144,8 +144,9 @@ def test_the_4px_stripe_that_hid_a_whole_letter_is_caught():
         _check(_stripe(4, NAME_X + off, 0))
 
 
-def test_a_failed_search_records_the_best_step_it_tried():
+def test_a_failed_search_records_the_best_step_it_tried(monkeypatch):
     """r2 finding 5: the reason and best_tried report the best of every step, not the base ratio."""
+    monkeypatch.setattr(masthead, "MARGIN_REACH", ())   # freeze cycle 5: the ruled order at the surface's own reach
     yy, xx = np.indices((H, W))
     g = np.where((xx // 2 + yy // 2) % 2, 255, 0).astype(np.uint8)
     _, _, rec = masthead.plan(Image.fromarray(np.repeat(g[..., None], 3, axis=2)), X, BASE, SIZE, reach=BASE + 400)

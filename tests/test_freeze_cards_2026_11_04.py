@@ -1088,11 +1088,21 @@ def test_h6_plate_flush_left_and_feathered(photos):
     assert "brand" not in e and "brand_mark" not in e   # QF-87 (was: the masthead centred on AXIS on the plate)
     y0, y1 = plan.meta["scrim"]["plate"]
     lum = np.asarray(dc.frame_at(plan, 0).convert("L"), np.float32)[:, 900:1060].mean(axis=1)
-    for a_, b_ in ((y0 - 70, y0 + 2), (y1 - 2, y1 + 70)):
+    sc = plan.meta["scrim"]
+    crisp = sc.get("crisp_edges") or []
+    # lander ruling 2026-11-26 (review of the PLATES c5 fix, D1): an edge whose ground (this flat sky) needs a ramp
+    # past the designed reach keeps the plate's crisp designed edge, recorded with its rule; every other edge ramps
+    # as H6 (4) asks
+    assert crisp == ["top", "foot"] and "ruling R1" in sc["crisp_rule"], sc   # the plate's one form (ruling R1)
+    for edge, (a_, b_) in (("top", (y0 - 70, y0 + 2)), ("foot", (y1 - 2, y1 + 70))):
         seg = lum[a_:b_]
-        assert np.abs(np.diff(seg)).max() <= 20, np.abs(np.diff(seg)).max()
-    top = lum[y0 - 64:y0]
-    assert (top[0] - top[-1]) > 0 and np.count_nonzero(np.abs(np.diff(top)) > 0.5) >= 40
+        if edge in crisp:
+            assert np.count_nonzero(np.abs(np.diff(seg)) > 20) == 1, edge          # one deliberate edge, no ramp
+        else:
+            assert np.abs(np.diff(seg)).max() <= 20, np.abs(np.diff(seg)).max()
+    if "top" not in crisp:
+        top = lum[y0 - 64:y0]
+        assert (top[0] - top[-1]) > 0 and np.count_nonzero(np.abs(np.diff(top)) > 0.5) >= 40
 
 
 def test_h6_dissolve(photos):

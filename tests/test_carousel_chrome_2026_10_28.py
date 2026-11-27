@@ -258,6 +258,7 @@ def test_the_text_uses_the_band_the_cues_reserved(gen, tmp_path):
 
 
 def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
+    monkeypatch.setattr("src.multi_format.STORY_TAP_TARGET", True)   # the pointer as drawn with a tap target (ruling 2026-11-26)
     drawn = []
     real_text = ImageDraw.ImageDraw.text
     monkeypatch.setattr(ImageDraw.ImageDraw, "text", lambda self, xy, text, *a, **k: drawn.append(str(text)) or real_text(self, xy, text, *a, **k))

@@ -136,6 +136,13 @@ def save(still: Path, layout: Layout, recipe: Dict[str, Any], attempts: int = 1)
     still = Path(still)
     entry = {**layout.to_dict(), "problems": layout.problems(), "attempts": attempts, "recipe": recipe,
              **text_records(layout)}
+    # freeze cycle 5 (stream PLATES): the frame's masthead decision (drawn and how, withheld and why, left off by
+    # rule) is kept with the still; an undrawn masthead has no element, so its record lived only in memory
+    # (and a Story frame's pointer decision, ruling 2026-11-26: withheld without a tap target, by rule)
+    for key in ("masthead", "pointer"):
+        kept = (getattr(layout, "meta", None) or {}).get(key)
+        if isinstance(kept, dict):
+            entry[key] = dict(kept)
     with _lock:
         path = sidecar(still)
         try:

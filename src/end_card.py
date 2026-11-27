@@ -53,6 +53,13 @@ WHOOSH_AT, BELL_AT = 0.0, 1.95   # seconds into the card
 # (motion.push_cap): the names are served by __getattr__ below for their readers. The rest are this card's own.
 DIM_IN = 0.45            # the dim comes in (9:16: ease_out over this; 16:9: ease_io, a field between two rests)
 SOFTEN_IN = 0.6          # the softening comes in (on the dim's curve)
+# Freeze cycle 5 (stream PLATES, panel 6 MO r1 / r2: on the brightest ground the 16:9 dim took the frame's mean luma
+# 167 -> 56 in DIM_IN, 12.3-12.5 luma a frame at its steepest: eased, but felt as a hard darkening). The dim is a
+# scrim coming in over time, so its curve takes the field's rule in time: on the 16:9 screen the frame's mean luma
+# never changes faster than DIM_STEP_MAX a frame; DIM_IN is the least duration, a deeper drop takes longer
+# (dim_seconds), never past DIM_IN_MAX (the lines' reveal follows the dim).
+DIM_STEP_MAX = 8.0       # mean luma (0-255) per frame at FPS: the dim's steepest frame on the 16:9 end screen
+DIM_IN_MAX = 0.9         # s: the longest the dim takes
 MAST_AT = 0.15           # the masthead and its mark start to fade in (over MAST_IN)
 RULE_AT, RULE_IN = 0.25, 0.5     # the gold rule draws out
 SHARE_AT = 0.45          # the share line's first word starts to rise
@@ -247,6 +254,20 @@ def end_card_note(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 def ease(t: float) -> float:
     """The system's ease_out (src/brand_system.py: an element arriving)."""
     return ease_out(t)
+
+
+def dim_seconds(drop: float, curve=None) -> float:
+    """How long the dim takes to come in for a mean-luma `drop` (0-255, the frame's mean before less after): DIM_IN,
+    or as many whole frames as keep the steepest frame of `curve` (ease_io by default) at or under DIM_STEP_MAX,
+    never over DIM_IN_MAX."""
+    curve = ease_io if curve is None else curve
+    n = max(1, round(DIM_IN * FPS))
+    while n < round(DIM_IN_MAX * FPS):
+        steepest = max(curve((i + 1) / n) - curve(i / n) for i in range(n))
+        if steepest * max(0.0, float(drop)) <= DIM_STEP_MAX:
+            break
+        n += 1
+    return n / FPS
 
 
 def ease_io(t: float) -> float:
@@ -896,12 +917,14 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     # MO-E2: on ease_out its first frame stepped MAD 27 as the narration handed over); the 9:16 card keeps ease_out.
     field = ease_io if landscape else ease
 
+    dim_in = DIM_IN   # freeze cycle 5 (PLATES): set below from the drop the final ground makes (16:9)
+
     def ground(t: float) -> Image.Image:
         z = landscape_zoom_at(t) if landscape else zoom_at(t, seconds)
         im = _pushed(base, z, width, height)
         sw = (field(t / SOFTEN_IN) * soften_w)[..., None]
         im = im * (1 - sw) + _pushed(soft_base, z, width, height) * sw
-        dark = (field(t / DIM_IN) * shape)[..., None]
+        dark = (field(t / dim_in) * shape)[..., None]
         return Image.fromarray((im * (1 - dark) + ink * dark).clip(0, 255).astype(np.uint8))
 
     # A last frame that holds its picture inside a frame of its own (freeze cycle 5, PHOTO-02: the Richat 16:9 end
@@ -919,6 +942,13 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
                           if found else None)
     if found is not None:
         shape = np.ones_like(shape)
+    # freeze cycle 5 (PLATES): the 16:9 dim's duration follows the drop it makes (dim_seconds); 9:16 keeps DIM_IN.
+    # Integration 5: measured on the ground's final shape (PHOTO's field-only ground drops the whole frame).
+    if landscape:
+        lum0 = np.asarray(base.convert("RGB"), np.float32) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+        ink_l = float(np.dot(ink, (0.2126, 0.7152, 0.0722)))
+        dim_drop = float((shape * np.maximum(lum0 - ink_l, 0.0)).mean())
+        dim_in = dim_seconds(dim_drop, field)
     # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
     rest = ground((total - 1) / FPS)
     # The masthead (cycle 0 round 7): planned by the system's planner for a ground it cannot scrim (masthead.plan_on:
@@ -1001,6 +1031,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         credits_plate = None
     done = share_done(len(word_plates))   # the last word has risen
     if stats is not None:
+        stats.update(dim_in=round(dim_in, 3))
         stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],

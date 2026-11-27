@@ -58,6 +58,14 @@ def test_no_exception_where_a_ruled_step_reaches_the_gate(ground):
     assert rec["halo"] <= brand_system.HALO_CAP + 1e-9 and rec["contrast"] >= GATE
 
 
+@pytest.fixture(autouse=True)
+def _ruled_order_at_the_surfaces_own_reach(monkeypatch):
+    """Freeze cycle 5 (PLATES-05): masthead.plan tries a longer reach where the ruled order ends short of the target.
+    These tests hold the ruled order and its exception at the reach they pass, so the margin's reaches are off here
+    (tests/test_freeze_c5_plates.py holds the margin step)."""
+    monkeypatch.setattr(masthead, "MARGIN_REACH", ())
+
+
 def test_the_exception_takes_the_least_halo_that_reaches_the_gate_and_records_it():
     ground, p, rec = masthead.plan(_mixed(230), X, BASE, SIZE, reach=BASE + 400)
     assert rec["shown"] and rec["halo_exception"] is True and rec["halo_exception_cap"] == 0.24

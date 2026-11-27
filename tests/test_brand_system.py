@@ -339,11 +339,33 @@ def _held_label():
     return p.variant, np.asarray(p.draw(im)).tobytes()
 
 
-def _band_edge_profile():
-    from src import multi_format
-    im = Image.new("RGB", (400, 1800), (217, 217, 217))
-    out = multi_format.scrim(im, 1000, 1800, feather=53, target=0.0, cap=1.0, floor=1.0)
-    return np.asarray(out)[:, 200].tobytes()
+def _band_edge_ground(blur: float = 0.0):
+    """A bright ground with its own detail (freeze cycle 5: the band-edge limit is measured on the ground, and a
+    flat one takes the field gate whatever the tokens say); `blur` softens the detail."""
+    from PIL import ImageFilter
+    rng = np.random.default_rng(11)
+    a = np.clip(rng.normal(205, 30, (1800, 400, 1)).repeat(3, axis=2), 0, 255).astype(np.uint8)
+    im = Image.fromarray(a, "RGB")
+    return im.filter(ImageFilter.GaussianBlur(blur)) if blur else im
+
+
+def _band_edge_profile(blur: float = 0.0, floating: bool = False):
+    from src import band_edge, multi_format
+    im = _band_edge_ground(blur)
+    y1 = 1300 if floating else 1800
+    out = multi_format.scrim(im, 1000, y1, feather=53, target=0.0, cap=1.0, floor=1.0)
+    return (band_edge.luma_rows(im) - band_edge.luma_rows(out)).mean(axis=1).round(1).tobytes()
+
+
+def _band_edge_need(blur: float = 0.0, floating: bool = False):
+    """The band-edge rule's own feather (uncapped: band_edge._feather) on the probe ground. Lander ruling 2026-11-26:
+    a drawn ramp is capped at its designed form's (band_edge.reach), so on the probe's short designed feather the
+    ground-measured limits (edge.slope_float, edge.texture_gain) decide what the rule ASKS (whether the edge goes crisp)
+    rather than the scrim's pixels."""
+    from src import band_edge
+    lum = band_edge.luma_rows(_band_edge_ground(blur))
+    return (band_edge._feather(lum, 1000, "down", brand.INK, 1.0, 53, None, floating=floating),
+            band_edge.reach(lum, 1000, "down", brand.INK, 1.0, 53, None, floating=floating, cap=10 ** 6))
 
 
 def _follow_label():
@@ -501,6 +523,8 @@ def _youtube_mark_room():
 
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "edge.slope_max": (0.6, _band_edge_profile),
+    "edge.slope_float": (0.6, lambda: _band_edge_need(floating=True)),
+    "edge.texture_gain": (0.5, lambda: _band_edge_need(blur=2.0)),
     "halo.label_max": (0.04, lambda: _follow_label()[0]),
     "halo.label_spread": (0.5, lambda: _follow_label()[1:]),
     "plate.gutter": (48, _comparison_ground),
@@ -588,7 +612,9 @@ def test_every_runtime_token_has_a_probe():
 def test_each_runtime_token_changes_what_its_renderer_draws(token):
     value, probe = TOKEN_PROBES[token]
     before = probe()
-    with brand.use(brand.DEFAULT_BRAND.derive(f"probe {token}", system={token: value})):
+    # validate=False: the probe asks whether the renderer reads the token, not whether the palette is fit (a CORAL
+    # light masthead is refused by the configure check, PLATES-06, once no longer-reach scrim rescues it: ruling N1)
+    with brand.use(brand.DEFAULT_BRAND.derive(f"probe {token}", system={token: value}), validate=False):
         during = probe()
     assert during != before, token
     assert probe() == before                                               # and back with the default brand

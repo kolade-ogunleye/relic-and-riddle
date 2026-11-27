@@ -1373,12 +1373,27 @@ def test_hook_scrim_sized_to_the_ground(tmp_path, photos):
             assert ratio.max() - ratio.min() <= 0.03, name            # one even plate under the whole block
             # freeze panel round 2 (H6 (4), deliberate change): the plate's edges feather over HOOK_PLATE_FEATHER (were
             # crisp), so the photograph is untouched from there
-            fe = dc.HOOK_PLATE_FEATHER
-            below = slice(y1 + fe + 3, min(1920, y1 + fe + 300))
+            # freeze cycle 5 + lander ruling 2026-11-26 (D1): an edge whose ground needs a ramp past the designed reach
+            # keeps the plate's crisp designed edge (this review's own crisp band), recorded; never a longer ramp. The
+            # photograph is untouched past twice the designed feather (a fixed reach, not the rule's), and right past
+            # a crisp edge
+            fu, fd = sc["feathers"]
+            crisp = sc.get("crisp_edges") or []
+            assert crisp == [n for n, v in (("top", fu), ("foot", fd)) if not v], (name, sc)
+            assert max(fu, fd) <= 2 * dc.HOOK_PLATE_FEATHER, (name, sc)
+            below = slice(y1 + 2 * dc.HOOK_PLATE_FEATHER + 3, min(1920, y1 + 2 * dc.HOOK_PLATE_FEATHER + 300))
             assert np.abs(g0[below] - bg[below]).max() <= 2, name    # the photograph below it untouched
             a = np.asarray(plan.meta["_r"]["under"].getchannel("A")).astype(int)[:, 540]
-            assert a[y0 - fe - 3] < 30 < a[y0 + 3] and a[y1 + fe + 3] < 30 < a[y1 - 3], name   # feathered edges
-            assert 30 < a[y0 - fe // 2] < a[y0 + 3] and 30 < a[y1 + fe // 2] < a[y1 - 3], name
+            for edge, f, out_, in_ in (("top", fu, -1, 1), ("foot", fd, 1, -1)):
+                y = y0 if edge == "top" else y1
+                if f == 0:
+                    assert a[y + 3 * out_] < 30 < a[y + 3 * in_], (name, edge)                  # crisp
+                    near = slice(min(y + 3 * out_, y + 60 * out_), max(y + 3 * out_, y + 60 * out_) + 1)
+                    assert np.abs(g0[near] - bg[near]).max() <= 2, (name, edge)   # the photograph itself right past it
+                else:
+                    assert f >= dc.HOOK_PLATE_FEATHER, (name, sc)
+                    assert a[y + (f + 3) * out_] < 30 < a[y + 3 * in_], (name, edge)            # feathered edges
+                    assert 30 < a[y + (f // 2) * out_] < a[y + 3 * in_], (name, edge)
     dark = dc.plan_hook_frame(hook(photos["dark"]), SHEET)
     assert dark.meta["scrim"]["mode"] == "wash" and dark.meta["scrim"]["strength"] == 0.0   # no scrim at all
 

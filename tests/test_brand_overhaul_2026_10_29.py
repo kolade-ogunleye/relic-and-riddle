@@ -97,7 +97,8 @@ def _story(tmp_path, i, count=3, poll=None, body="Stairways cut through the rock
     return gen._render_story_frame(_photo(tmp_path), slide, i, count, poll or {})
 
 
-def test_story_frame_layout_contrast_and_safe_box(tmp_path):
+def test_story_frame_layout_contrast_and_safe_box(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.multi_format.STORY_TAP_TARGET", True)   # the pointer as drawn with a tap target (ruling 2026-11-26)
     im, lay = _story(tmp_path, 0)
     rec = lay.to_dict()
     assert not still_layout.problems(rec)

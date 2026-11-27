@@ -89,6 +89,24 @@ def _scrim(im, box, strength=0.55, feather=120):
     from scipy.ndimage import gaussian_filter
     w, h = im.size
     sigma = max(1.0, feather / SCRIM_SIGMAS)
+    # freeze cycle 5 (stream PLATES): the one band-edge limit (band_edge.slope_limit, a floating shade: the photograph
+    # goes on round it). A Gaussian edge's steepest point is strength x step / (sigma x sqrt(2 pi)); the step is the
+    # bright end of the ground the falloff crosses, the limit that ground's own (flat or bright: a longer falloff)
+    from . import band_edge
+    lum = band_edge.luma_rows(im)
+    xa, xb = max(0, int(box[0])), min(w, int(box[2]))
+    ya, yb = max(0, int(box[1])), min(h, int(box[3]))
+    need = 0.0
+    for ground, a, b in ((lum[:, xa:xb], box[1] - feather, box[1]), (lum[:, xa:xb], box[3], box[3] + feather),
+                         (lum[ya:yb].T, box[0] - feather, box[0]), (lum[ya:yb].T, box[2], box[2] + feather)):
+        a, b = max(0.0, float(a)), min(float(ground.shape[0] - 1), float(b))   # each side's own falloff zone
+        if b - a > 2 and ground.shape[1] > 2:
+            limit = band_edge.slope_limit(ground, a, b, w, floating=True) * 1080 / max(1, w)
+            need = max(need, band_edge.step_across(ground, a, b, brand.INK, strength) / (limit * 2.5066))
+    # lander ruling 2026-11-26 (D1): the falloff never runs past its designed reach (the designed feather: no more of
+    # the photograph darkened round the type than the designed scrim did); where the limit wants more (`need`) the
+    # edge stays at the designed falloff, recorded by the corpus proof (plates_01: ramp at its designed reach)
+    sigma = max(sigma, min(need, feather / SCRIM_SIGMAS))
     k = SCRIM_DOWNSAMPLE
     x0, y0, x1, y1 = (v / k for v in box)
     pad = SCRIM_GROW * sigma / k
@@ -99,9 +117,11 @@ def _scrim(im, box, strength=0.55, feather=120):
     v = gaussian_filter(inside, sigma / k, mode="nearest", truncate=4.0)
     alpha = Image.fromarray(np.clip(v * strength * 255, 0, 255).astype("uint8")).resize(
         (w, h), Image.Resampling.BICUBIC)
-    layer = Image.new("RGBA", im.size, brand.INK + (255,))
-    layer.putalpha(alpha)
-    return Image.alpha_composite(im.convert("RGBA"), layer)
+    # PLATES-03: the scrim grades the photograph where it falls off (band_edge.graded: its hue and saturation kept, the
+    # INK alpha's luma); round the type (the grown box, SCRIM_GROW sigmas: >= ~0.93 of the peak) it is the plain INK
+    # alpha (rulings R2 / N2: the type's ground and its contrast unchanged)
+    a = np.asarray(alpha, np.float32) / 255.0
+    return band_edge.graded(im, a, brand.INK, full=0.9 * float(a.max())).convert("RGBA")
 
 
 SCRIM_SIGMAS = 3.5      # _scrim: the feather spans this many sigmas past the box (~2% of strength left there)

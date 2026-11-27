@@ -114,11 +114,8 @@ def signed_texts(payload: Mapping[str, Any]) -> list[str]:
     if isinstance(fact, Mapping) and fact.get("value"):
         hedge = "about " if fact.get("approximate", True) else ""
         out.append(f"{hedge}{float(fact['value']):g} {fact.get('unit') or 'ft'}")
-        # review 2 (N1): the landmark the scale drawing compares with is signed by the reference file's own statement
-        from .reference_facts import selected_reference
-        ref = selected_reference(fact)
-        if ref and ref.get("statement"):
-            out.append(str(ref["statement"]))
+        # review 3 (scope ruling): the reference statement is NOT signed copy for the run; it is evidence only for the
+        # scale graphic's own landmark figures (landmark_faults, derived_faults), never for a headline or a caption
     cs = payload.get("cross_section")
     if isinstance(cs, Mapping):
         if cs.get("total_depth_ft"):
@@ -592,24 +589,39 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
                 from .reference_facts import stated_figures
                 said = drawn_numbers(str(o.get("text") or ""))
                 stated = [c[0] for c in stated_figures(ref, unit)]
-                hedged_ok = bool(o.get("hedged")) and said and per_ft is not None and abs(
-                    said[0] * per_ft - float(ref["feet"])) <= CONVERT_TOL * float(ref["feet"])   # "about 93 M"
-                if said and not hedged_ok and not any(abs(said[0] - c) < 1e-6 for c in stated):
-                    out.append(f"its operand is drawn {o.get('text')!r}, which the reference's statement does not "
-                               f"state ({', '.join(c[1] for c in stated_figures(ref, unit)) or 'none in ' + unit})")
+                for fault in landmark_faults(("ABOUT " if o.get("hedged") else "") + str(o.get("text") or ""), ref):
+                    out.append(f"its operand: {fault}")
         else:
             out.append(f"its operand {o.get('name') or o.get('role')!r} is neither a signed field of the run nor a "
                        "sourced reference")
     # review 2 (N2): EVERY number the element draws is the record's derived figure (as recorded, a feet-and-inches gap
     # as one number) or an operand's own drawn figure; a bracket draws the derived figure; a word form ("nearly ...")
     # is drawn only for a record that states no number
+    # review 3 (B2): and each is drawn with its hedge and its unit as the record states them
     shown = str(derived.get("shown") or "")
     got = figures.shown_value(shown) if shown else None
-    allowed = [v for o in derived.get("operands") or [] for v in drawn_numbers(str(o.get("text") or ""))]
-    for v in drawn_numbers(text):
+    ops_ = list(derived.get("operands") or [])
+    d_unit = str((ops_[0] if ops_ else {}).get("unit") or "").upper()
+    for v, hedged, unit_, raw in drawn_quantities(text):
         if got is not None and abs(v - got[0]) < 1e-9:
+            if derived.get("hedged") and not hedged:
+                out.append(f"it draws its derived figure {raw!r} without the hedge its record carries")
+            if derived.get("rule") == "ratio":
+                if unit_:
+                    out.append(f"it draws the ratio {raw!r} with a unit")
+            elif not unit_:
+                out.append(f"it draws its derived figure {raw!r} without its unit ({d_unit})")
+            elif not _unit_ok(unit_, d_unit):
+                out.append(f"it draws its derived figure {raw!r} in {unit_.upper()}, not its record's {d_unit}")
             continue
-        if any(abs(v - a) < 1e-9 for a in allowed):
+        same = [o for o in ops_ if any(abs(v - a) < 1e-9 for a in drawn_numbers(str(o.get("text") or "")))]
+        # a figure two operands share (a 60 ft subject beside a 60 ft landmark) holds if it holds for one of them
+        op = next((o for o in same if hedged or not o.get("hedged")), same[0] if same else None)
+        if op is not None:
+            if op.get("hedged") and not hedged:
+                out.append(f"it draws the {op.get('role')}'s figure {raw!r} without the hedge its source carries")
+            if unit_ and not _unit_ok(unit_, str(op.get("unit") or "").upper()):
+                out.append(f"it draws the {op.get('role')}'s figure {raw!r} in {unit_.upper()}, not {op.get('unit')}")
             continue
         out.append(f"it draws {v:g}, which is neither its derivation's figure ({shown or 'none'}) nor an operand's")
     if name == "bracket" and shown and not any(got and abs(v - got[0]) < 1e-9 for v in drawn_numbers(text)):
@@ -619,6 +631,70 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
     return out
 
 
+HEDGE_RE = r"(?:about|nearly|approximately|roughly|around|almost|over|under|up to)"
+QUANTITY = re.compile(rf"(?:\b({HEDGE_RE})\s+)?(?<![\w.])(\d[\d,]*(?:\.\d+)?)(?:\s*(m|ft|in)\b(?:\s+(\d+)\s*in\b)?)?",
+                      re.IGNORECASE)
+
+
+def drawn_quantities(text: str) -> list[tuple[float, bool, str, str]]:
+    """(value, hedged, unit, as drawn) of every number `text` draws: a feet-and-inches figure is ONE value in feet
+    (unit "ft"), inches alone are feet too (unit "in"), a bare number has no unit (review 3, B2)."""
+    out = []
+    for m in QUANTITY.finditer(text):
+        v = float(m.group(2).replace(",", ""))
+        unit_ = (m.group(3) or "").lower()
+        if unit_ == "ft" and m.group(4):
+            v += int(m.group(4)) / 12
+        elif unit_ == "in":
+            v /= 12
+        out.append((v, bool(m.group(1)), unit_, m.group(0).strip()))
+    return out
+
+
+def _unit_ok(drawn: str, unit: str) -> bool:
+    return {"m": "M", "ft": "FT", "in": "FT"}.get(drawn.lower()) == unit.upper()
+
+
+LANDMARK_NAMES = re.compile(r"^ref_label")
+
+
+def landmark_faults(text: str, ref: Mapping[str, Any] | None) -> list[str]:
+    """Review 3 (B3): a scale graphic's landmark figure ('146.5 M', 'ABOUT 305 FT', a slide legend's): each drawn figure
+    is a figure the reference's statement states, at its precision, hedged where the statement hedges it; or the
+    file's own value correctly rounded at the drawn digit, hedged. Never the 2 % conversion tolerance ('about 482 ft'
+    for 480.64 ft, '94 M' for 92.96 m fail)."""
+    from .reference_facts import stated_figures
+    if not ref:
+        return [f"{text!r}: no reference landmark to judge it against"]
+    out = []
+    for v, hedged, unit_, raw in drawn_quantities(text):
+        unit = {"m": "M", "ft": "FT", "in": "FT"}.get(unit_)
+        if unit is None:
+            out.append(f"{raw!r}: a landmark figure without its unit")
+            continue
+        value_u = float(ref["feet"]) * (1 / 3.28084 if unit == "M" else 1.0)
+        stated = [c for c in stated_figures(ref, unit) if abs(c[0] - v) < 1e-6]
+        if any(not c[2] for c in stated) or (hedged and stated):
+            continue                     # the statement's own figure (hedged where it hedges it)
+        if stated and not hedged:
+            out.append(f"{raw!r} drops the hedge its statement carries ({stated[0][1]})")
+            continue
+        step = _last_place(raw)
+        if not hedged:
+            out.append(f"{raw!r} is not a figure the reference states (and is not hedged)")
+        elif abs(v - value_u) > 0.5 * step + 1e-9:
+            out.append(f"{raw!r} is not the reference's {value_u:g} {unit} rounded at its last digit")
+    return out
+
+
+def _last_place(raw: str) -> float:
+    """The last place of a drawn figure: a feet-and-inches one is an inch (1/12 ft); else its decimals."""
+    if re.search(r"\d\s*in\b", raw, re.IGNORECASE):
+        return 1 / 12
+    m = re.search(r"\d[\d,]*(?:\.(\d+))?", raw)
+    return 10 ** -len((m.group(1) or "") if m else "")
+
+
 def drawn_numbers(text: str) -> list[float]:
     """The numbers `text` draws, a feet-and-inches figure ("10 ft 8 in") as ONE number in feet; years in a label's
     parenthesis are numbers too (nothing is exempt)."""
@@ -626,6 +702,9 @@ def drawn_numbers(text: str) -> list[float]:
     rest = text
     for m in list(re.finditer(r"(\d[\d,]*)\s*ft\s+(\d+)\s*in\b", text, re.IGNORECASE))[::-1]:
         out.append(int(m.group(1).replace(",", "")) + int(m.group(2)) / 12)
+        rest = rest[:m.start()] + " " + rest[m.end():]
+    for m in list(re.finditer(r"(?<![\w.])(\d+)\s*in\b", rest, re.IGNORECASE))[::-1]:   # inches alone, in feet
+        out.append(int(m.group(1)) / 12)
         rest = rest[:m.start()] + " " + rest[m.end():]
     out += [float(m.group(0).replace(",", "")) for m in re.finditer(r"(?<![\w.])\d[\d,]*(?:\.\d+)?", rest)]
     return out
@@ -653,17 +732,25 @@ def check_run(run_dir: Path, payload: Mapping[str, Any]) -> dict[str, Any]:
         before, prev = (prev[1] if prev[0] == surface else ""), (surface, text)
         if e.get("_captions"):
             text = caption_text(text, spoken)
+        rec = e.get("derived")
+        if (isinstance(rec, Mapping) and rec.get("rule") in figures.DERIVED_OPS) or name == "bracket":
+            # review 3 (B1): BEFORE the digit filter, so a word form drawn over a numeric record is judged
+            derived += 1      # a derived comparison: re-computed from its recorded operands, never a claim
+            for fault in derived_faults(name, text, rec if isinstance(rec, Mapping) else None, payload):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
+            continue
         if not any(ch.isdigit() for ch in text) and not any(w in text.lower().split() for w in figures.NUMBER_WORDS):
+            continue
+        if LANDMARK_NAMES.match(name) and isinstance(payload.get("scale_fact"), Mapping):
+            # review 3 (B3 and the scope ruling): a scale graphic's landmark figure, judged against its reference only
+            from .reference_facts import selected_reference
+            derived += 1
+            for fault in landmark_faults(text, selected_reference(payload["scale_fact"])):
+                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
             continue
         if GAP.match(name):         # a derived gap label: its arithmetic between two signed years, never a claim
             derived += 1
             for fault in gap_faults(text, e.get("derived"), payload):
-                faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
-            continue
-        rec = e.get("derived")
-        if (isinstance(rec, Mapping) and rec.get("rule") in figures.DERIVED_OPS) or name == "bracket":
-            derived += 1      # a derived comparison: re-computed from its recorded operands, never a claim
-            for fault in derived_faults(name, text, rec if isinstance(rec, Mapping) else None, payload):
                 faults.append(f"{surface} ({name}): drew {text!r}: {fault}")
             continue
         if DERIVED.match(name):

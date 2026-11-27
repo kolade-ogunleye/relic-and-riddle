@@ -304,18 +304,17 @@ def test_frames_are_judged_by_shape_and_content():
 def test_every_move_keeps_most_of_what_was_asked_for():
     """Second review, B5: a frame-only window (typography.cover_crop's, under cards and graphics) moved off a frame
     with no keep check and lost the subject; every window keeps MOVE_KEEP of the asked view's salience or stays."""
-    a = ground(1600, 1200)
-    a[:, :80] = 0                                             # a scan's straight black band down the left
-    a = with_subject(with_subject(a, 0.09, 0.5, 0.09), 0.93, 0.5, 0.09, 2)   # a subject at each end of the picture
+    a = ground(3000, 1500)
+    a[:250] = 0                                               # a letterbox: straight black bands, head and foot
+    a[-250:] = 0
+    a = with_subject(with_subject(a, 1100 / 3000, 0.5, 0.03), 1900 / 3000, 0.5, 0.03, 2)   # at the asked edges
     an = pf.analyse(Image.fromarray(_drawn(a)))
-    assert an.matte_share > 0
-    window = pf.Window((1920, 1080), checks=("matte",), name="16:9 ground")
+    assert an.matte_share > 0.3
+    window = pf.Window((1080, 1920), checks=("matte",), name="9:16 ground")
     rec = pf.place(None, window, analysis=an)
-    if rec["moved"]:
-        assert rec["kept_asked"] >= pf.MOVE_KEEP
-    else:                                                     # no crop clears the band and keeps both: as asked
-        assert rec["problems"] == ["matte"]
-    from src.typography import cover_crop  # noqa: F401  (the ground's cropper asks the same place())
+    # the crop that clears the bands (within the enlargement limit, holding the asked centre) keeps 0.64 of the
+    # asked view: under MOVE_KEEP (0.70), so the asked window stays and is recorded with its frame
+    assert not rec["moved"] and rec["problems"] == ["matte"]
 
 
 def test_a_window_that_crops_hard_must_still_show_most_of_an_unreviewed_photograph():

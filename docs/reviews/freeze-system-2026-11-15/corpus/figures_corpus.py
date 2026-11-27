@@ -174,7 +174,7 @@ def _plate_row(name: str, plate: Any) -> dict[str, Any] | None:
              "fill": _hex(p.fill), "box": [int(v) for v in p.box]} for p in parts if not getattr(p, "empty", False)]
     row = {"name": name, "text": plate.text, "box": [int(v) for v in plate.box], "planned": plate.contrast,
            "halo": getattr(plate, "halo", None), "runs": runs}
-    for key in ("derived", "role"):
+    for key in ("derived", "role", "scale_role"):
         v = getattr(plate, key, None)
         if v is not None:
             row[key] = dict(v) if isinstance(v, dict) else v
@@ -279,7 +279,7 @@ def capture_one(job: dict[str, Any], fmt: tuple[int, int, str], work: Path) -> d
     sidecar = _json(side) if side.is_file() else None
     if isinstance(sidecar, dict):
         rec["layout"] = sidecar.get("layout")
-        rec["sidecar_elements"] = {e["name"]: {k: v for k, v in e.items() if k in ("derived", "role")}
+        rec["sidecar_elements"] = {e["name"]: {k: v for k, v in e.items() if k in ("derived", "role", "scale_role")}
                                    for e in sidecar.get("elements") or [] if "derived" in e or "role" in e}
     rec["seconds"] = round(time.time() - t0, 2)
     for p in work.glob(out.stem + "*"):

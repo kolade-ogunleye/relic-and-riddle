@@ -308,13 +308,22 @@ def row_form_fault(text: str, unit: str, subject: float, approximate: bool) -> s
     return ""
 
 
-def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value: float) -> str:
+def mask_text(text: str, names: list[str]) -> str:
+    """Review 3c: `text` with each name blanked (longest first, any case)."""
+    out = str(text or "")
+    for n in sorted({n.strip() for n in names if n and n.strip()}, key=len, reverse=True):
+        out = re.sub(re.escape(n), " ", out, flags=re.I)
+    return out
+
+
+def role_fault(text: str, ref_label: str, subject: str, s_value: float, r_value: float, recorded: str = "") -> str:
     """Review 3b (N5), on the measure's own reading: a row naming the landmark draws only the landmark's figure (within
     3 % of its file value), a row led by the subject's name only the subject's own figure."""
     low = " ".join(text.lower().split())
     ref = ref_label.split(" (")[0].lower()
     sub = re.sub(r"\s+(height|depth|tall|deep|length|long)$", "", subject.lower()).strip()
-    role = "landmark" if ref and ref in low else "subject" if sub and low.startswith(sub) else ""
+    role = ({"landmark": "landmark", "subject": "subject"}.get(recorded) if recorded else
+            "landmark" if ref and ref in low else "subject" if sub and low.startswith(sub) else "")
     for key, _h, u, v in _quantities(text):
         if not u:
             continue
@@ -383,7 +392,7 @@ RELATION_PHRASES = ((r"would stick out", "reference"), (r"would vanish", "subjec
                     (r"times as tall(?!\s+as)|times its length", "reference"),
                     (r"nearly the same height|nearly its length", "level"))
 COMPARATIVES = re.compile(r"\b(shorter|smaller|taller|larger|bigger|longer|deeper|shallower|higher|lower|less|more|"
-                          r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|nearly)\b",
+                          r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|nearly|not|never|no|neither|nor|isn|aren|wouldn|almost|roughly|around|approximately|over|under)\b",
                           re.I)
 
 
@@ -467,12 +476,23 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
         r_true = float(ref[1]) * per
         op_drawn = {n for t in (fig, metric, graphics._short(ref[1], unit), *(c[1] for c in stated))
                     for n in _numbers(t)}
+        names = [str(fact.get("subject") or ""), ref[0], ref[0].split(" (")[0]]
         for e in rec["elements"]:
             if RULER_ROLE.match(e["name"]):
                 continue
-            vals = [v for f in figures.parse(e["text"]) for v in f.values]
-            extra = [v for v in vals if not any(abs(v - s) < 1e-6 for s in signed)]
             d = e.get("derived")
+            srole = e.get("scale_role") if isinstance(e.get("scale_role"), dict) else None
+            row = (d.get("row") if isinstance(d, dict) and isinstance(d.get("row"), dict) else srole) or {}
+            # review 3c: names masked (their own words are never comparison words or figures); roles from the record
+            text = mask_text(e["text"], names + [str(row.get(k) or "") for k in
+                                                 ("subject", "subject_name", "landmark", "landmark_name")])
+            vals = [v for f in figures.parse(text) for v in f.values]
+            extra = [v for v in vals if not any(abs(v - s) < 1e-6 for s in signed)]
+            if srole is not None and srole.get("row") == "landmark" and not d and any(ch.isdigit() for ch in text):
+                lf = landmark_fault(text, reference_by_label(ref[0]), unit)
+                rows.append((rec["run"], surface(rec), f"{e['name']} {e['text']!r}",
+                             lf or "a withheld comparison's landmark row, as signed", "FAIL" if lf else "PASS"))
+                continue
             if e["name"].startswith("ref_label") and not d:      # review 3 (B3): the landmark's own label / legend
                 lf = landmark_fault(e["text"], reference_by_label(ref[0]), unit)
                 rows.append((rec["run"], surface(rec), f"{e['name']} {e['text']!r}", lf or "the landmark as signed",
@@ -485,14 +505,17 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                 rows.append((*where, f"draws {extra} with no derivation record", "FAIL"))
                 continue
             faults = figures.derivation_faults(d, labelled if rec.get("layout") else None)
-            rel_wrong, comparison = relation_fault(e["text"], str(d.get("shown") or ""), s_true, r_true)
-            slot = comparison or e["name"] == "bracket"
-            wrong = (rel_wrong or truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true,
+            role = "bracket" if e["name"] == "bracket" else str(row.get("row") or "")
+            rel_wrong, comparison = relation_fault(text, str(d.get("shown") or ""), s_true, r_true)
+            if comparison and role not in ("comparison", "bracket"):
+                rel_wrong = rel_wrong or f"its {role or 'unrecorded'} row draws a relation"
+            slot = role in ("comparison", "bracket") or (not role and comparison)
+            wrong = (rel_wrong or truth_fault(str(d.get("rule")), text, str(d.get("shown") or ""), op_drawn, s_true,
                                               r_true, unit, bool(d.get("hedged")), slot)
-                     or (landmark_fault(e["text"], reference_by_label(ref[0]), unit) if not slot else "")
-                     or (role_fault(e["text"], ref[0], str(fact.get("subject") or ""), s_true, r_true) if not slot
+                     or (landmark_fault(text, reference_by_label(ref[0]), unit) if not slot else "")
+                     or (role_fault(text, ref[0], str(fact.get("subject") or ""), s_true, r_true, role) if not slot
                          else "")
-                     or row_form_fault(e["text"], unit, s_true, bool(fact.get("approximate", True))))
+                     or row_form_fault(text, unit, s_true, bool(fact.get("approximate", True))))
             if wrong:
                 faults = [*faults, wrong]
             ops = " ; ".join(f"{o['text']} ({o['role']})" for o in d.get("operands") or [])

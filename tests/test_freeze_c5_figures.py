@@ -85,7 +85,8 @@ def test_derived_figures_carry_their_derivation_or_are_withheld(records):
         lay = r["layout"]
         if lay["derived"] is not None:
             assert not figures.derivation_faults(lay["derived"], lay["labelled"])
-            assert not figure_gate.derived_faults("meaning1", "", lay["derived"], {"scale_fact": r["input"]})
+            assert not figure_gate.derived_faults("bracket", lay["derived"].get("text") or "",
+                                                  lay["derived"], {"scale_fact": r["input"]}) or not lay["derived"]["shown"]
         else:
             assert lay["derived_withheld"] and any("derived figure" in str(o.get("omitted")) for o in r["omissions"])
 
@@ -347,17 +348,19 @@ def test_every_guard_catches_a_derived_figure_one_digit_off(v, unit, dim):
     line = st["lines"][st["derived_line"]]
     shown = d["shown"]
     texts = [("meaning1", line)] + ([("bracket", st["note"])] if st["note"] else [])
+    d_cmp = _row(st, st["derived_line"], fact, ref[0])            # review 3c: the comparison row's own record
     for name, t in texts:                                       # the control: nothing faults
-        assert not figure_gate.derived_faults(name, t, d, pay), (name, t)
+        assert not figure_gate.derived_faults(name, t, d_cmp, pay), (name, t)
         assert not fm.truth_fault(d["rule"], t, shown, op_drawn, s_true, r_true, u), (name, t)
     for name, t in texts:                                       # the drawing one digit off, its record unchanged
         bad = _bump(t, shown if " IN" not in shown.upper() else shown)
         assert bad != t
-        assert figure_gate.derived_faults(name, bad, d, pay), (name, bad)
+        assert figure_gate.derived_faults(name, bad, d_cmp, pay), (name, bad)
         assert fm.truth_fault(d["rule"], bad, shown, op_drawn, s_true, r_true, u), (name, bad)
     rec = copy.deepcopy(d)                                      # the record off with it
     rec["shown"] = _bump(shown, shown) if " IN" in shown.upper() else _bump(shown, shown)
-    assert figures.derivation_faults(rec) and figure_gate.derived_faults("meaning1", line, rec, pay)
+    assert figures.derivation_faults(rec) and figure_gate.derived_faults("meaning1", line, dict(rec, row=d_cmp["row"]),
+                                                                         pay)
 
 
 @pytest.mark.parametrize("v,unit,dim", MUTATION_CASES)
@@ -372,10 +375,11 @@ def test_a_word_form_is_a_derived_claim_with_its_threshold(v, unit, dim):
                 form_limit=figures.NEAR_RATIO if d["rule"] == "ratio" else graphics.LEVEL_GAP[u])
     said = "is nearly the same height." if d["rule"] == "ratio" else "would reach nearly to the surface."
     assert figures.derivation_faults(word)
-    assert figure_gate.derived_faults("meaning1", said, word, pay)
+    row = _row(st, st["derived_line"], fact, ref[0])["row"]
+    assert figure_gate.derived_faults("meaning1", said, dict(word, row=row), pay)
     assert fm.truth_fault(d["rule"], said, "", op_drawn, s_true, r_true, u)
     # and a word form drawn where the record states a number
-    assert figure_gate.derived_faults("meaning1", said, d, pay)
+    assert figure_gate.derived_faults("meaning1", said, dict(d, row=row), pay)
     # a word form with no threshold recorded is refused
     assert figures.derivation_faults({k: v_ for k, v_ in word.items() if k != "form_limit"})
 
@@ -389,8 +393,8 @@ def test_the_landmark_is_drawn_as_its_signed_figure_and_the_arithmetic_adds_up()
     ref = graphics.pick_reference(feet)
     st = graphics.scale_statement(fact, feet, ref[0], ref[1], True)
     assert "146.5 m" in st["lines"][0] and "0.5 m" in st["lines"][1]
-    assert figure_gate.derived_faults("meaning0", st["lines"][0].replace("146.5", "146"), st["derivation"],
-                                      {"scale_fact": fact})
+    assert figure_gate.derived_faults("meaning0", st["lines"][0].replace("146.5", "146"),
+                                      _row(st, 0, fact, ref[0]), {"scale_fact": fact})
     assert not figure_gate.DERIVED.match("meaning0") and not figure_gate.DERIVED.match("ref_label")
     # review 3 (scope ruling): judged against the reference only on the scale graphic's own landmark labels
     from src.reference_facts import reference_by_label
@@ -413,11 +417,16 @@ def _scale_run(tmp_path, fact, rows):
     return figure_gate.check_run(d, {"scale_fact": fact})["faults"]
 
 
+def _row(st, line, fact, ref_label):
+    """A row's record as the renderer writes it (review 3c: the derivation with the row's own role)."""
+    return dict(st["derivation"], row=graphics.meaning_row_record(st, line, fact, ref_label))
+
+
 def _statement_rows(fact):
     feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
     ref = graphics.pick_reference(feet)
     st = graphics.scale_statement(fact, feet, ref[0], ref[1], fact["dimension"] == "depth")
-    rows = [(f"meaning{k}", t, st["derivation"]) for k, t in enumerate(st["lines"])]
+    rows = [(f"meaning{k}", t, _row(st, k, fact, ref[0])) for k, t in enumerate(st["lines"])]
     if st["note"] and fact["dimension"] == "depth":
         rows.append(("bracket", st["note"], st["derivation"]))
     return st, rows
@@ -616,3 +625,51 @@ def test_a_legend_with_the_right_digits_in_the_wrong_unit_fails():
     ref = reference_by_label("Great Pyramid (original)")
     assert figure_gate.landmark_faults("146.5 FT", ref) and fm.landmark_fault("146.5 FT", ref, "M")
     assert not fm.landmark_fault("146.5 M", ref, "M")
+
+
+ADVERSARIAL_NAMES = ["Times Square Tower", "Lower Manhattan's Woolworth Building", "Upper and Lower Obelisk",
+                     "Taller of the two minarets", "Shorter Tower of Bologna", "Deeper Well of Saint Patrick",
+                     "Level 7 Bunker", "Tower 42", "Three Gorges Dam", "The 100 ft Buddha", "Out Skerries Lighthouse",
+                     "About Face Rock", "Half Dome", "Twin Peaks", "Below Zero Vault", "Above the Clouds Temple",
+                     "Higher Ground Fort", "Larger Sphinx", "Greater Zimbabwe Tower", "Smaller Pyramid of Menkaure",
+                     "Never Summer Peak", "No Man's Land Bunker", "Nearly Headless Spire", "Same Old Mill",
+                     "Stick Out Rock", "Vanishing Lake Cave", "Reach Point Light", "More Than Ever Mine",
+                     "Less Than Zero Shaft", "Times Higher Tower", "Under the Sea Tunnel", "Over the Top Arch",
+                     "Great Pyramid replica", "Statue of Liberty replica", "Mount Rushmore head model",
+                     "Elizabeth Tower copy", "Building 7", "Pier 39 Tower", "Route 66 Sign", "The 300 m Spire",
+                     "Deep Shaft No. 3", "Not a Pyramid", "Great Pyramid of Giza"]
+ADVERSARIAL_FACTS = [(241, "m", "height"), (57, "m", "height"), (42, "m", "length"), (70, "m", "height"),
+                     (98, "m", "height"), (150, "m", "depth"), (40, "m", "depth"), (455, "ft", "height"),
+                     (181, "m", "height"), (31, "m", "height"), (280, "ft", "depth")]
+
+
+@pytest.mark.parametrize("k,name", list(enumerate(ADVERSARIAL_NAMES)))
+def test_a_subject_named_with_relation_words_numbers_or_a_landmark_is_never_refused(tmp_path, k, name):
+    """Review 3c: roles come from the renderer's row record and the relation scan reads the row with the recorded
+    names masked, so a subject named 'Times Square Tower', 'Tower 42', 'The 100 ft Buddha' or 'Great Pyramid of Giza'
+    passes the production gate (as at base), withheld comparison included; and its rows flipped still fail."""
+    import copy
+    v, unit, dim = ADVERSARIAL_FACTS[k % len(ADVERSARIAL_FACTS)]
+    fact = {"value": float(v), "unit": unit, "dimension": dim, "subject": name, "approximate": k % 2 == 0}
+    st, rows = _statement_rows(fact)
+    assert _scale_run(tmp_path, fact, rows) == [], (name, [r[1] for r in rows])
+    feet = fact["value"] * (3.28084 if unit == "m" else 1.0)
+    ref = graphics.pick_reference(feet)
+    bare = graphics.scale_statement(fact, feet, ref[0], ref[1], dim == "depth", derive=False)
+    withheld = [(f"meaning{j}", t, None) for j, t in enumerate(bare["lines"])]
+    import json
+    d = tmp_path / f"w{k}"
+    (d / "graphics").mkdir(parents=True)
+    els = [{"name": n, "text": t, "planned": 7.0, "scale_role": graphics.meaning_row_record(bare, j, fact, ref[0])}
+           for j, (n, t, _r) in enumerate(withheld)]
+    (d / "graphics" / "graphic_scale.mp4.contrast.json").write_text(json.dumps({"elements": els}), encoding="utf-8")
+    assert figure_gate.check_run(d, {"scale_fact": fact})["faults"] == [], bare["lines"]
+    if st["derived_line"] is not None and st["derivation"]["shown"]:
+        bad = copy.deepcopy(rows)
+        i = st["derived_line"]
+        t = bad[i][1]
+        flip = (t.replace("would vanish", "would stick out").replace(" deep.", ".") if "vanish" in t else
+                t.replace("would stick out", "would vanish") if "stick out" in t else
+                t.replace("as tall as", "shorter than") if "as tall as" in t else t + " not")
+        bad[i] = (bad[i][0], flip, bad[i][2])
+        assert _scale_run(tmp_path, fact, bad), flip

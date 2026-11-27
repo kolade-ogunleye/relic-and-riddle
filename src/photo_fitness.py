@@ -731,9 +731,10 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         else:
             rec = {**c5, "basis": "subject floor (the cycle-5 crop with the box)"}
     same = all(abs(float(x) - float(y)) < 1.0 for x, y in zip(rec["box"], today["box"]))
-    if (same and today.get("fit") and "subject" in rec["problems"]
+    if (same and today.get("fit") and "subject" in rec["problems"] and window.hold_min <= 0
             and not set(rec["problems"]) - {"subject"} - set(today["problems"])):
-        # the crop drawn without the box: the box does not turn it unfit (recorded, not refused)
+        # the crop drawn without the box: the box does not turn it unfit (recorded, not refused). Not on a window
+        # with a designed alternative (the Reel cover, hold_min): there a cut subject sends the cover to it
         rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"], "subject_partial": True}
     rec["fit"] = not rec["problems"]
     return rec

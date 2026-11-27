@@ -1072,9 +1072,10 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     """Review of cycle 5, B3 / B4: a window moved by the photo-fitness rule may not cost the text its legibility.
     `draw()` draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again
     with every window as asked (_render_state.asked_only), and each text element is measured on both as delivered
-    (_platform_text_contrast). The moved drawing stands unless an element ends under brand.TEXT_CONTRAST or the
-    lowest ratio of the slide falls; then the asked drawing is taken (the order of the brief: legibility before
-    subject visibility) and its window records say why ("move_refused"). Both drawings' ratios are recorded."""
+    (_platform_text_contrast). The moved drawing stands unless an element ends under brand.TEXT_CONTRAST lower than
+    as asked, or the lowest ratio of the slide falls; then the asked drawing is taken (the order of the brief:
+    legibility before subject visibility) and its window records say why ("move_refused"). Both drawings' ratios are
+    recorded."""
     moved = _moved_windows(lay)
     if not moved or getattr(_render_state, "asked_only", False):
         return im, lay
@@ -1084,10 +1085,11 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     finally:
         _render_state.asked_only = False
     now, asked = _platform_text_contrast(im, lay), _platform_text_contrast(im0, lay0)
-    # Lander ruling (second review, B4): the move is refused only when (a) a text element ends under its floor after
-    # the re-encode, or (b) the slide's LOWEST text ratio falls; one element dropping while the lowest holds is the
-    # move's ordinary price (a masthead from 5.21 to 5.00 while the body and heading rose kept every move off).
-    under = sorted(n for n in now if now[n] < brand.TEXT_CONTRAST)
+    # Lander rulings (second and third reviews): the move is refused only when (a) a text element ends under its
+    # floor after the re-encode AND lower than as asked, or (b) the slide's LOWEST text ratio falls. One element
+    # dropping while the lowest holds is the move's ordinary price (a masthead from 5.21 to 5.00 while the body and
+    # heading rose kept every move off), and an element already under its floor as asked may rise and stay under.
+    under = sorted(n for n in now if now[n] < brand.TEXT_CONTRAST and now[n] < asked.get(n, 99.0) - 0.005)
     common = [n for n in now if n in asked]
     falls = bool(common) and min(now[n] for n in common) < min(asked[n] for n in common) - 0.005
     lower = under + ([f"lowest {min(now[n] for n in common):.2f} < {min(asked[n] for n in common):.2f}"] if falls

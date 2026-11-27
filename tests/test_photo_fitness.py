@@ -580,10 +580,52 @@ def test_a_moved_window_never_costs_the_text_its_contrast():
     assert asked_calls == [True] and not getattr(mf._render_state, "asked_only", False)
     assert np.asarray(got_im).mean() == pytest.approx(150, abs=1)
     rec = got_lay.meta["windows"][0]["fit"]
-    assert "lowered the text's contrast" in rec["move_refused"] and rec["text_contrast"]["asked"]["body"] > 5.5
+    assert "legibility" in rec["move_refused"] and rec["text_contrast"]["asked"]["body"] > 5.5
     im, lay = drawing(150, True)                              # moved: 6.0, asked: 4.0 -> the moved one stands
     got_im, got_lay = mf.keep_text_contrast(again(100), im, lay)
     assert got_lay is lay and "move_refused" not in lay.meta["windows"][0]["fit"]
     im, lay = drawing(150, False)                             # nothing moved: no second drawing
     asked_calls.clear()
     assert mf.keep_text_contrast(again(100), im, lay)[1] is lay and asked_calls == []
+
+
+def test_a_move_stands_unless_text_falls_under_its_floor_or_the_lowest_ratio_falls():
+    """Lander ruling on the second review (B4): one element losing a little while every element stays over the floor
+    and the slide's lowest ratio holds is the move's price, not a refusal (a masthead from 5.21 to 5.00 with the body
+    and heading rising)."""
+    from types import SimpleNamespace
+
+    from src import multi_format as mf
+
+    class Plate:
+        empty = False
+
+        def __init__(self, box):
+            self.box = box
+
+        def measure(self, im):   # this element's ratio: the mean of its own box of the delivered picture / 25
+            x0, y0, x1, y1 = self.box
+            return float(np.asarray(im.convert("L"))[y0:y1, x0:x1].mean()) / 25.0
+
+    def drawing(masthead, body, moved):
+        a = np.zeros((80, 64, 3), np.uint8)
+        a[:40] = masthead
+        a[40:] = body
+        lay = SimpleNamespace(meta={"windows": [{"fit": {"moved": moved, "fit": True, "problems": []}}]},
+                              plates={"masthead": [Plate((0, 4, 64, 36))], "body": [Plate((0, 44, 64, 76))]})
+        return Image.fromarray(a), lay
+
+    im, lay = drawing(130, 140, True)                        # masthead 5.2 -> 5.0 (moved), body 4.8 -> 5.6
+    got = mf.keep_text_contrast(lambda: drawing(135, 120, False), im, lay)
+    assert got[1] is lay and "move_refused" not in lay.meta["windows"][0]["fit"]
+    im, lay = drawing(135, 115, True)                        # the lowest falls (4.8 -> 4.6): refused
+    got = mf.keep_text_contrast(lambda: drawing(135, 120, False), im, lay)
+    assert got[1] is not lay and "lowest" in got[1].meta["windows"][0]["fit"]["move_refused"]
+
+
+def test_the_slide_and_story_renderers_are_held_to_the_text_guard():
+    """The guard is wired, not only written: both renderers are _holds_text_contrast wrappers of their drawing."""
+    from src import multi_format as mf
+    probe = mf._holds_text_contrast(lambda self: None)
+    for fn in (mf.MultiFormatGenerator._render_carousel_slide, mf.MultiFormatGenerator._render_story_frame):
+        assert fn.__code__ is probe.__code__ and fn.__wrapped__.__name__ == fn.__name__

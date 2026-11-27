@@ -1069,12 +1069,12 @@ def _moved_windows(lay) -> list[dict[str, Any]]:
 
 
 def keep_text_contrast(draw, im: Image.Image, lay):
-    """Review of cycle 5, B3: a window moved by the photo-fitness rule may not cost the text its legibility. `draw()`
-    draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again with
-    every window as asked (_render_state.asked_only), and each text element is measured on both as delivered
-    (_platform_text_contrast). The moved drawing stands only when no element is lower than on the asked drawing and
-    none falls under brand.TEXT_CONTRAST where the asked one did not; otherwise the asked drawing is taken (the
-    order of the brief: legibility before subject visibility) and its window records say why ("move_refused")."""
+    """Review of cycle 5, B3 / B4: a window moved by the photo-fitness rule may not cost the text its legibility.
+    `draw()` draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again
+    with every window as asked (_render_state.asked_only), and each text element is measured on both as delivered
+    (_platform_text_contrast). The moved drawing stands unless an element ends under brand.TEXT_CONTRAST or the
+    lowest ratio of the slide falls; then the asked drawing is taken (the order of the brief: legibility before
+    subject visibility) and its window records say why ("move_refused"). Both drawings' ratios are recorded."""
     moved = _moved_windows(lay)
     if not moved or getattr(_render_state, "asked_only", False):
         return im, lay
@@ -1084,15 +1084,22 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     finally:
         _render_state.asked_only = False
     now, asked = _platform_text_contrast(im, lay), _platform_text_contrast(im0, lay0)
-    lower = sorted(n for n in now if n in asked and (now[n] < asked[n] - 0.005
-                                                     or (now[n] < brand.TEXT_CONTRAST <= asked[n])))
+    # Lander ruling (second review, B4): the move is refused only when (a) a text element ends under its floor after
+    # the re-encode, or (b) the slide's LOWEST text ratio falls; one element dropping while the lowest holds is the
+    # move's ordinary price (a masthead from 5.21 to 5.00 while the body and heading rose kept every move off).
+    under = sorted(n for n in now if now[n] < brand.TEXT_CONTRAST)
+    common = [n for n in now if n in asked]
+    falls = bool(common) and min(now[n] for n in common) < min(asked[n] for n in common) - 0.005
+    lower = under + ([f"lowest {min(now[n] for n in common):.2f} < {min(asked[n] for n in common):.2f}"] if falls
+                     else [])
     check = {"moved": {n: now[n] for n in sorted(now)}, "asked": {n: asked[n] for n in sorted(asked)}}
     if not lower:
         for r in moved:
             r["text_contrast"] = check
         return im, lay
-    why = (f"the moved window lowered the text's contrast after the platform re-encode ({', '.join(lower)}): the "
-           f"window is drawn as asked (rule: a moved window keeps the text's contrast, src/multi_format.py)")
+    why = (f"the moved window costs the text its legibility after the platform re-encode ({', '.join(lower)}: under "
+           f"{brand.TEXT_CONTRAST}:1, or the lowest ratio falls): the window is drawn as asked (rule: a moved window "
+           f"keeps the text legible, src/multi_format.py)")
     meta0 = getattr(lay0, "meta", None) or {}
     recs0 = [w.get("fit") for w in (meta0.get("windows") or []) if isinstance(w.get("fit"), dict)]
     if isinstance(meta0.get("window"), dict) and isinstance(meta0["window"].get("fit"), dict):

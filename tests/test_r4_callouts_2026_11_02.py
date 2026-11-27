@@ -354,7 +354,7 @@ def test_16x9_then_glow_is_kept_to_the_old_photo():
 def test_916_now_glow_hangs_from_the_divider_and_never_reaches_the_old_photo():
     boxes = [(83, 816, 200, 850), (80, 888, 310, 998)]
     split = then_now._split_at(1080, 1920)
-    far = round(1920 * (1 - then_now.SWEEP_TO))
+    far = 384    # the cycle-5 far point (SWEEP_TO 0.8, retired in cycle 6, ruling 2026-11-27): kept as a stress position
     reach = _reach()
     assert 816 - reach < split                                               # at rest its upper fall meets the divider
     for pos in (far, 500, 700, split):

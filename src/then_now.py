@@ -1841,10 +1841,30 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         return (max(clip[0], min(b[0] for b in boxes) - pad), max(clip[1], min(b[1] for b in boxes) - pad),
                 min(clip[2], max(b[2] for b in boxes) + pad), min(clip[3], max(b[3] for b in boxes) + pad))
 
-    # T2a (freeze cycle 6): each marker in its own panel's calmest documented place (ground_detail, quieter_side)
-    half_w = max((b[2] - b[0]) / 2 for w in years for b in ink_boxes(w, marker_lines(w, years[w], width,
-                                                                                     height, words[w])))
-    cands = marker_candidates(width, height, half_w + KICKER_PLATE_ROOM)
+    # T2a (freeze cycle 6): each marker in its own panel's calmest documented place (ground_detail, quieter_side).
+    # Review round 1 (B3, ruling 2026-11-27): the choice is the same in every palette and brand. The places are
+    # measured on the photographs as placed (photos0) under the SYSTEM's reference geometry (the default brand's
+    # faces: a brand's wider face would otherwise move the candidate columns and boxes), and the place chosen is
+    # then set in the active brand's own column of the same rank (its faces kept inside the text column).
+    def places() -> tuple[tuple[str, ...], dict[str, dict[str, tuple]]]:
+        kf, yf, tr = kicker_font(key), year_font(key), kicker_track(key)
+
+        def boxes_of(which: str, ln: tuple) -> list:
+            kxy, fxy, anchor = ln
+            return [TextPlate(text, font, brand.BONE, xy, anchor, t_, 0, brand.INK, 0, False, size).box
+                    for text, font, xy, t_ in ((words[which], kf, kxy, tr), (str(years[which]), yf, fxy, 0))]
+        half = max((b[2] - b[0]) / 2 for w in years
+                   for b in boxes_of(w, marker_lines(w, years[w], width, height, words[w])))
+        cs = marker_candidates(width, height, half + KICKER_PLATE_ROOM)
+        return cs, {w: {c: padded(boxes_of(w, marker_lines(w, years[w], width, height, words[w], c)), PAPER_PAD,
+                                  panel_box(w, width, height)) for c in cs} for w in years}
+    cands = places()[0]
+    with brand.use(brand.DEFAULT_BRAND, validate=False):
+        ref_cands, ref_boxes = places()
+    if len(ref_cands) == len(cands):
+        to_active = dict(zip(ref_cands, cands))
+    else:   # a column list of another length (a face too wide for every centre): the nearest rank
+        to_active = {c: cands[round(i * (len(cands) - 1) / max(1, len(ref_cands) - 1))] for i, c in enumerate(ref_cands)}
     subj = None
     if any(m is not None for m in subjects):
         # SYS-A-3: the markers placed against the photo system's subject (its mask through the same trims, window
@@ -1855,12 +1875,12 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
                        divider=False)
     sides: dict[str, str] = {}
     ranked: dict[str, list] = {}
-    side_meta = {"rule": "calmest documented place per panel (ground_detail; SIDE_MARGIN)", "candidates": list(cands)}
+    side_meta = {"rule": "calmest documented place per panel (ground_detail on the photographs; SIDE_MARGIN; the "
+                         "system's reference geometry)", "candidates": list(ref_cands), "drawn_at": dict(to_active)}
     for w in ("then", "now"):
         details, shares = {}, {}
-        for s in cands:
-            box = padded(ink_boxes(w, marker_lines(w, years[w], width, height, words[w], s)), PAPER_PAD,
-                         panel_box(w, width, height))
+        for s in ref_cands:
+            box = ref_boxes[w][s]
             grounds = [photos0["rest"]] + ([photos0["open"]] if w == "then" else [])
             details[s] = round(sum(ground_detail(g, box) for g in grounds) / len(grounds), 4)
             if subj is not None:
@@ -1868,12 +1888,16 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         pool = details
         if shares:
             best = min(shares.values())
-            pool = {s: details[s] for s in cands if shares[s] <= best + SUBJECT_TIE}
-        default = cands[0] if cands[0] in pool else min(pool, key=lambda s: (pool[s], cands.index(s)))
-        sides[w] = quieter_side(pool, default)
-        # the places in the order the rule takes them: its choice, then the next calmest (B2's fallback)
-        ranked[w] = [sides[w]] + sorted((s for s in pool if s != sides[w]), key=lambda s: (pool[s], cands.index(s)))
-        side_meta[w] = {"side": sides[w], "detail": details, **({"subject_share": shares} if shares else {})}
+            pool = {s: details[s] for s in ref_cands if shares[s] <= best + SUBJECT_TIE}
+        first = ref_cands[0] if ref_cands[0] in pool else min(pool, key=lambda s: (pool[s], ref_cands.index(s)))
+        chosen = quieter_side(pool, first)
+        # the places in the order the rule takes them: its choice, then the next calmest (B2's fallback), each set
+        # in the active brand's column of the same rank
+        ranked[w] = [to_active[c] for c in [chosen] + sorted((s for s in pool if s != chosen),
+                                                             key=lambda s: (pool[s], ref_cands.index(s)))]
+        sides[w] = ranked[w][0]
+        side_meta[w] = {"side": chosen, "drawn_at": sides[w], "detail": details,
+                        **({"subject_share": shares} if shares else {})}
 
     # Cycle 0 round 8 (operator ruling 2; panel consensus 7): each marker (its kicker and its year) is ONE overlay
     # label, planned by typography.plan_label on the lightest and the darkest of the pictures it sits on (its split
@@ -1941,7 +1965,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         if not moved:
             break
     for w in years:
-        side_meta[w].update({"side": sides[w], "tier": tiers[w]})
+        ref = {v: k for k, v in to_active.items()}
+        side_meta[w].update({"side": ref.get(sides[w], sides[w]), "drawn_at": sides[w], "tier": tiers[w]})
         if tiers[w]["contrast"] is not None and tiers[w]["contrast"] + 1e-9 < high:
             log.warning("Then-and-now: the %s marker holds %.2f:1 at its last place, under contrast.high %.1f.",
                         w, tiers[w]["contrast"], high)

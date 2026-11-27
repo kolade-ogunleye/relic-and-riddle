@@ -291,9 +291,8 @@ def test_the_place_is_the_same_in_every_palette_and_every_plate_holds_contrast_h
 def test_a_held_plate_under_the_margin_goes_opaque(monkeypatch, tmp_path, default_brand_after):
     """B2's tier: on a bright ground the held plate (plate.held 0.875) lets light through; under contrast.high plus
     the re-encode margin it is drawn opaque INK, and its text then reads its fill against INK."""
-    _palette("second-colours")
-    bright = _photo(tmp_path / "bright.png", 1600, 1200, sky=(250, 248, 240), seed=31)
-    old, new = _registered(tmp_path, bright, bright)
+    _palette("second-colours")     # its gold on the held plate read 6.19-6.25 over these grounds at the first tip
+    old, new = _registered(tmp_path, *_memnon_like(tmp_path))
     meta = _plan_only(monkeypatch, tmp_path, old, new, TALL)
     tiers = {w: meta["side"][w]["tier"] for w in ("then", "now")}
     assert any(t["tier"] == "opaque" for t in tiers.values()), tiers

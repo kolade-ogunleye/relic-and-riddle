@@ -141,7 +141,15 @@ def main() -> int:
                 def d(bx, which=which):
                     vals = [tc.detail(rest, bx)] + ([tc.detail(opening, bx)] if which == "then" else [])
                     return sum(vals) / len(vals)
-                per = {c: round(d(at(c)), 3) for c in cands}
+                # the documented places in the system's reference geometry (the default brand's faces), as the
+                # cycle-6 tip measures them; a tree without that record is read in the active brand's
+                ref = bool(side.get("drawn_at"))
+                if ref:
+                    with then_now.brand.use(then_now.brand.DEFAULT_BRAND, validate=False):
+                        boxes = {c: at(c) for c in cands}
+                else:
+                    boxes = {c: at(c) for c in cands}
+                per = {c: round(d(boxes[c]), 3) for c in cands}
                 got = per[chosen] if chosen in per else round(d(at(chosen)), 3)
                 calm = min(per.values())
                 ok = got <= calm / (1 - tc.SIDE_MARGIN) + 1e-6

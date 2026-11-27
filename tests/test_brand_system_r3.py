@@ -260,6 +260,11 @@ MASTHEAD_TOKEN_CASES = [(s, t, v) for s in ("carousel", "facebook", "youtube")
                         if (s, t) != ("youtube", "plate.shade")]
 
 
+# the probes whose palette the configure-time masthead check refuses (freeze cycle 6, M3): a gold-light name on the
+# bright stress ground reaches under the 5.5:1 gate
+REFUSED_PROBES = {("masthead.colour_dark", "GOLD_LIGHT")}
+
+
 @pytest.mark.parametrize("surface,token,value", MASTHEAD_TOKEN_CASES)
 def test_masthead_tokens_change_the_complete_surfaces(tmp_path, surface, token, value):
     from src import youtube_thumbnail
@@ -274,7 +279,16 @@ def test_masthead_tokens_change_the_complete_surfaces(tmp_path, surface, token, 
         return _carousel_render(tmp_path, surface == "facebook",
                                 archetype="cover" if surface == "facebook" else "immersive")[0]
     before = render()
-    with brand.use(brand.DEFAULT_BRAND.derive(f"{token} probe", system={token: value})):
+    probe = brand.DEFAULT_BRAND.derive(f"{token} probe", system={token: value})
+    validate = True
+    if (token, value) in REFUSED_PROBES:
+        # freeze cycle 6 (MASTHEAD M3, 2026-11-27): this probe's masthead pair fails the configure-time palette check
+        # on the bright stress ground (masthead.BRIGHT_STRESS): the refusal is asserted for exactly this probe, and the
+        # renderer is then asked unvalidated whether it reads the token; every other probe draws validated
+        with pytest.raises(brand.BrandRefused, match="bright stress"):
+            brand.configure(probe)
+        validate = False
+    with brand.use(probe, validate=validate):
         during = render()
     assert during != before, (surface, token)
 

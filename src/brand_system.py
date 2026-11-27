@@ -660,6 +660,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "multi_format:MultiFormatGenerator._rows": "D",
     "multi_format:MultiFormatGenerator._set_heading": "D",
     "multi_format:MultiFormatGenerator._set_heading.measure": "D",
+    "multi_format:MultiFormatGenerator._hook_heading": "D",   # freeze c6 M1: the drawn heading size, measured for ink
     "multi_format:MultiFormatGenerator._slide_text.place": "D",
     "multi_format:story_body_lines": "D",
     "multi_format:story_credit_fit": "D",
@@ -680,6 +681,8 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_lockup": "B",              # lane B cycle 3: the refusal names its rule at the floor
     "youtube_thumbnail:_lockup.attempt": "B",
     "youtube_thumbnail:_lockup.width_at": "B",
+    "youtube_thumbnail:_lockup.first_ink": "B",    # freeze c6 M1: a form's first row measured at its own size
+    "youtube_thumbnail:mast_size_rule": "B",       # freeze c6 M4: the mark's one size, its feed capitals recorded
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
     "youtube_thumbnail:_figure_fonts": "B",        # cycle 0 round 8: the figure and unit held at their feed floors

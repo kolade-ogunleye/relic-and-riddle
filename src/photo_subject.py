@@ -93,6 +93,7 @@ THUMB = 1280          # px: the picture the models read (the longer side)
 # map's red zone, a tourist for the photograph's subject), so nothing derived is accepted: the boxes are RECORDED
 # (an instrument), not consumed.
 ACCEPT = 1.01
+METHOD = "salient-object segmentation, models' union; confidence = least pairwise IoU x crispness"
 _sessions: dict[str, Any] = {}
 
 
@@ -206,7 +207,7 @@ def record(path: Path, compute: bool = True) -> dict[str, Any] | None:
         log.exception("subject: %s could not be derived", path.name)
         return None
     rec = {"version": VERSION, "sha256": digest, "box": got["box"], "confidence": got["confidence"],
-           "method": "salient-object segmentation, models' union; confidence = least pairwise IoU x crispness",
+           "method": METHOD,
            "models": model_ids(), "measures": got["measures"], "reviewed": False}
     try:
         write(path, rec)
@@ -226,6 +227,24 @@ def use_oracle(boxes: dict[str, list[float]] | None) -> None:
     _oracle.update(boxes or {})
 
 
+def accepted(rec: dict[str, Any]) -> bool:
+    """Whether a derived record may stand for the subject: this method and VERSION, a box of four finite numbers
+    inside the picture, and a confidence that is a real number in [0, 1] at or over ACCEPT (round 3, D4: NaN,
+    Infinity, 5 or the string "2" in a hand-edited sidecar are refused)."""
+    import math
+    conf, box = rec.get("confidence"), rec.get("box")
+    if rec.get("version") != VERSION or rec.get("method") != METHOD:
+        return False
+    if isinstance(conf, bool) or not isinstance(conf, (int, float)) or not math.isfinite(conf):
+        return False
+    if not (0.0 <= conf <= 1.0 and conf >= ACCEPT):
+        return False
+    if not (isinstance(box, (list, tuple)) and len(box) == 4 and all(
+            isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in box)):
+        return False
+    return 0.0 <= box[0] < box[2] <= 1.0 and 0.0 <= box[1] < box[3] <= 1.0
+
+
 def subject_focus(path: Path, kept=None, compute: bool = False) -> dict[str, Any] | None:
     """The subject the photo system may use, in cover_design.reviewed_focus's shape ({"focus_box", "sha256",
     "reviewed", "source"}): the REVIEWED box when the photograph has one (always first), else the derived box when its
@@ -242,7 +261,7 @@ def subject_focus(path: Path, kept=None, compute: bool = False) -> dict[str, Any
         if digest in _oracle:
             return {"focus_box": list(_oracle[digest]), "sha256": digest, "reviewed": "", "source": "oracle"}
     rec = record(Path(path), compute=compute)
-    if rec is None or not rec.get("box") or float(rec.get("confidence") or 0.0) < ACCEPT:
+    if rec is None or not accepted(rec):
         return None
     return {"focus_box": list(rec["box"]), "sha256": rec["sha256"], "reviewed": "",
             "source": "derived", "confidence": rec["confidence"]}

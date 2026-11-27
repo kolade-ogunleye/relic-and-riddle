@@ -675,12 +675,12 @@ def cover_windows(top=COVER_TYPE_TOP):
     # central half in the crop (lander ruling on the second review); else it stands contained on INK
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
                                      hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
-                                     hold_min=pf.SUBJECT_CUT_MAX,
+                                     hold_min=pf.SUBJECT_WHOLE,
                                      shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, top - 40),
                                      centre_half=True, name="reel cover full_bleed")),
             ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
                                          hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
-                                         hold_min=pf.SUBJECT_CUT_MAX,
+                                         hold_min=pf.SUBJECT_WHOLE,
                                          shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, foot),
                                          centre_half=True, name="reel cover photo_over_ink")))
 

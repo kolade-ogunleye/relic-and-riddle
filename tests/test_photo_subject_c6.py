@@ -20,7 +20,7 @@ def _photo(tmp_path, colour=(120, 90, 60)):
 
 def _rec(p, box=(0.3, 0.3, 0.7, 0.75), confidence=0.9, version=ps.VERSION):
     return {"version": version, "sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "box": list(box),
-            "confidence": confidence, "method": "test", "models": [], "measures": {}, "reviewed": False}
+            "confidence": confidence, "method": ps.METHOD, "models": [], "measures": {}, "reviewed": False}
 
 
 def test_record_is_bound_to_the_bytes_and_the_version(tmp_path):
@@ -77,3 +77,20 @@ def test_write_is_whole_json(tmp_path):
     ps.write(p, _rec(p))
     assert json.loads(ps.sidecar(p).read_text(encoding="utf-8"))["reviewed"] is False
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_the_consume_gate_refuses_what_is_not_a_confidence(tmp_path, monkeypatch):
+    p = _photo(tmp_path)
+    monkeypatch.setattr(ps, "ACCEPT", 0.5)
+    for bad in (float("nan"), float("inf"), 5, "2", True, None, -0.1):
+        rec = _rec(p, confidence=0.9)
+        rec["confidence"] = bad
+        ps.sidecar(p).write_text(json.dumps(rec, allow_nan=True), encoding="utf-8")
+        assert ps.subject_focus(p) is None, bad
+    for bad_box in ([0.1, 0.1, 0.1, 0.5], [0.1, "0.1", 0.5, 0.5], [0.1, 0.1, 1.5, 0.5]):
+        ps.write(p, {**_rec(p, confidence=0.9), "box": bad_box})
+        assert ps.subject_focus(p) is None, bad_box
+    ps.write(p, {**_rec(p, confidence=0.9), "method": "another"})
+    assert ps.subject_focus(p) is None
+    ps.write(p, _rec(p, confidence=0.9))
+    assert ps.subject_focus(p) is not None

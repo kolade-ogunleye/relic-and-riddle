@@ -1624,12 +1624,12 @@
   ],
   "kind": "object",
   "box": [
-   0.61,
-   0.32,
-   0.88,
+   0.0,
+   0.12,
+   1.0,
    1.0
   ],
-  "reason": "tourist portrait: the woman in front of the granite outcrop is what the photo shows (off-topic for the deck)"
+  "reason": "granite outcrop at the quarry (the obelisk's bedrock) across the frame; the tourist in front is NOT subject (revised round 3, reviewer D6)"
  },
  {
   "id": "096",
@@ -1641,12 +1641,12 @@
   ],
   "kind": "object",
   "box": [
-   0.12,
-   0.25,
+   0.3,
+   0.3,
    1.0,
    0.88
   ],
-  "reason": "tourist with the obelisk lying beside him: man and obelisk together; town and car park are context"
+  "reason": "the obelisk lying beside the tourist, alone; the tourist is NOT subject (revised round 3, reviewer D6)"
  },
  {
   "id": "097",

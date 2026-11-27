@@ -70,6 +70,7 @@ CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 from . import brand
 from .brand_system import GATES, TYPE_FLOOR, ease_in_out, ease_out, ease_out_back, tok
+from .brand_system import SPEC as _SPEC
 
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground. Read as brand.<ROLE>
 # when drawn (QF-35a role tokens): the names this module bound at import before, for its readers, are served from the
@@ -6656,7 +6657,7 @@ CIRCA = "c."                      # round 4: circa drawn lowercase, smaller, in 
 SPAN_UNDER_LABEL = 2             # round 4 review 3: a 9:16 span is always at least this many px under the labels
 TALL_LABEL_ROWS = 3               # round 4 review 3: a 9:16 label's rows before it is cut (never cut where it fits)
 TALL_LABEL_ROWS_MAX = 6           # round 4 review 4: and more, up to this, while the column has room for them
-TALL_LEADING = 1.12               # round 6: the 9:16 labels' leading, absolute (30 px -> a 34 px pitch; 1.15 before)
+TALL_LEADING = _SPEC["lead.label"]               # round 6: the 9:16 labels' leading, absolute (30 px -> a 34 px pitch; 1.15 before)
 TALL_TIGHT_LEADING = 1.08         # and the tight one (37 px), taken before any year step (0.88 x 1.3 before)
 TALL_YEAR_LABEL_AIR = 14          # 2026-11-03: px from a year's baseline to its label's cap top (3-4 entries)
 TALL_NO_SPAN_AIR = 32             # round 6: px from a label's ink bottom to the next year's cap (42 before)
@@ -11236,6 +11237,44 @@ def tall_axis_x(width: int, height: int) -> int:
     return reel_caption_centre_x(width, height)
 
 
+STAT_LABEL_STEP = 2     # px: the label's steps down to its floor where a hard line fault needs a narrower setting
+
+
+def stat_label_hard(lines: list[str]) -> bool:
+    """Whether a number card's label rows break a HARD rule of the one policy (a row ending on a never-end word, a
+    break inside a keep-together group)."""
+    from . import line_policy
+    return len(lines) >= 2 and any(f["fault"] in (line_policy.NEVER_END, line_policy.UNIT_SPLIT)
+                                   for f in line_policy.violations(lines))
+
+
+def stat_label_policy(text: str, lines: list[str], font, width: float, track: float, floor: int, fonts=()):
+    """Freeze cycle 5 (TEXT stream, review D3; real runs: "COOLING OF / CARBONATITE ROCKS" on the 9:16 number card,
+    three Richat runs): a number card's label whose rows still break a HARD rule of the one policy
+    (line_policy: a row ending on a never-end word, a break inside a keep-together group) after the same-size
+    re-break (ruled_rows) takes the policy's next step, a smaller size inside the label's own range (down to `floor`,
+    STAT_LABEL_STEP at a time), at the first size where its rows set clean (line_policy.wrap on the same number of
+    rows, the engine's label rule held): (lines, font). Unchanged where the rows hold the rule already, and where no
+    size down to the floor clears it (logged; the rows as fitted). `fonts`: the label's face at the sizes to try,
+    largest first (the caller's own, so the card's layout stays the one site its sizes are made at:
+    brand_system.SIZE_SITES)."""
+    from . import line_policy
+    from .heading import label_ok
+    if not stat_label_hard(lines):
+        return lines, font
+    for f_try in fonts:
+        if not floor <= f_try.size < font.size:
+            continue
+        got = line_policy.wrap(text, lambda t: _tracked_w(t.replace(line_policy.NBSP, " "), f_try, track), width,
+                               max_lines=len(lines), min_lines=len(lines))
+        got = [ln.replace(line_policy.NBSP, " ") for ln in got] if got else None
+        if got and not line_policy.violations(got) and label_ok(got):
+            return got, f_try
+    log.warning("Number card label %r: no size down to %d px sets its %d rows without a hard line fault; set as "
+                "fitted.", text, floor, len(lines))
+    return lines, font
+
+
 def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, width: int, scale: float = 1.0,
                  label_min: int | None = None, num_min: int = 120, word_floor: int = 0) -> dict[str, Any]:
     """One card measured (offsets from its block's top, x from the left margin): the figure's font fitted so the
@@ -11308,6 +11347,12 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: dict[str, Any], num_px: int, widt
                                weight=800, quiet=True)                                   # 3 px tracking
     f_lab = get_font(brand.TEXT_FONT, f_lab.size, weight=800)
     lines = ruled_rows(lines, f_lab, width - 120, 3)     # freeze cycle 3 (A-S2-2): the heading engine's word rule
+    if stat_label_hard(lines):   # freeze cycle 5 (TEXT): the policy's next step, a smaller size above the floor
+        lab_floor = max(word_floor, label_min if label_min is not None else max(26, round(f_lab_px * 0.75)))
+        steps = []
+        for px_try in range(int(f_lab.size) - STAT_LABEL_STEP, lab_floor - 1, -STAT_LABEL_STEP):
+            steps.append(get_font(brand.TEXT_FONT, px_try, weight=800))
+        lines, f_lab = stat_label_policy(card["label"].upper(), lines, f_lab, width - 120, 3, lab_floor, steps)
     y += round(f_lab.size * 1.75)
     for j, line in enumerate(lines):
         rows.append({"name": "label", "kind": "text", "text": line, "font": f_lab, "y": y + j * round(f_lab.size * 1.26),
@@ -12682,7 +12727,7 @@ ROUTE_NAME_NB_AIR = 36      # round 16 (review): px (at 1080) a country's name k
 ROUTE_DEEP_TRIES = 24       # and a stop it left unnamed tries this many of its clear places first (place_names)
 # words that never stand alone on a name's line ("CUSTOMS / HOUSE OF / THE / GENOESE / TRADERS")
 ROUTE_FUNCTION_WORDS = frozenset({"A", "AN", "THE", "OF", "ON", "IN", "AT", "TO", "BY", "AND", "OR", "FOR", "HIS",
-                                  "HER", "ITS", "AS", "UP", "NEAR", "WITH", "FROM"})
+                                  "HER", "ITS", "AS", "UP", "NEAR", "WITH", "FROM"}) | TALL_STOP_WORDS
 
 
 NAME_ABBREVIATIONS = frozenset({"ST", "STE", "STS", "MT", "FT", "PT", "DR", "SS"})   # round 16: bound to the next word

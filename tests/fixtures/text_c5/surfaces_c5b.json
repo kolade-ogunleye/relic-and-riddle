@@ -1,0 +1,133 @@
+{
+ "note": "Real copy of the development runs (design freeze cycle 5, TEXT stream, review D3): the end card's share lines as script_engine.end_card_share gives them, and the number cards as the runs' verified scripts hold them. Texts only: no run name, no path.",
+ "share_lines": [
+  "Send this to a friend fascinated by ancient engineering.",
+  "Send this to a friend who loves ancient engineering.",
+  "Send this to a friend who loves geology.",
+  "Send this to a space enthusiast you know.",
+  "Send this to an acoustic architecture fan.",
+  "Send this to an ancient engineering fan.",
+  "Send this to someone fascinated by ancient medicine.",
+  "Share this with a friend who loves underground marvels.",
+  "Share this with a friend who loves wartime history.",
+  "Share this with someone who loves a good mystery."
+ ],
+ "stat_cards": [
+  {
+   "label": "1941 Siege of Odesa",
+   "value": "estimated 73 days"
+  },
+  {
+   "label": "Amber by one estimate",
+   "value": "Est. >13,000 lbs"
+  },
+  {
+   "label": "Amber contained in chamber",
+   "value": "est. >13,000 lbs"
+  },
+  {
+   "label": "Amber in completed room",
+   "value": "Est. over 13,000 lbs"
+  },
+  {
+   "label": "Calculated airburst energy",
+   "value": "10\u201315 megatons TNT"
+  },
+  {
+   "label": "Calculated finished weight",
+   "value": "Nearly 1,090\u20131,168 t"
+  },
+  {
+   "label": "Carbonatite cooling age",
+   "value": "94 to 104M years"
+  },
+  {
+   "label": "Carbonatite rock cooling age",
+   "value": "94\u2013104M years ago"
+  },
+  {
+   "label": "Characters in alphabet",
+   "value": "estimated 20 to 25"
+  },
+  {
+   "label": "Cooling of carbonatite rocks",
+   "value": "94-104M years"
+  },
+  {
+   "label": "Devastated taiga forest",
+   "value": "Est. >830 sq mi"
+  },
+  {
+   "label": "Disassembly of the chamber",
+   "value": "36 hours"
+  },
+  {
+   "label": "Disassembly time in 1941",
+   "value": "36 hours"
+  },
+  {
+   "label": "Earliest documented surgery",
+   "value": "7,000\u201310,000 yrs ago"
+  },
+  {
+   "label": "Estimated completed length",
+   "value": "Roughly 137\u2013138 ft"
+  },
+  {
+   "label": "Estimated human remains",
+   "value": "Approx. 7,000"
+  },
+  {
+   "label": "External dome diameter",
+   "value": "Est. 144 ft (44 m)"
+  },
+  {
+   "label": "Historical Rockwell hardness",
+   "value": "62 to 67 (estimated)"
+  },
+  {
+   "label": "Measured diameter range",
+   "value": "25 to nearly 30 mi"
+  },
+  {
+   "label": "Parchment date range",
+   "value": "1404\u20131438"
+  },
+  {
+   "label": "Peruvian cranial surgery survival rate",
+   "value": "Up to 80% (est.)"
+  },
+  {
+   "label": "Recorded diameter",
+   "value": "25 to almost 31 mi"
+  },
+  {
+   "label": "Surveyed length",
+   "value": "roughly 137\u2013138 ft"
+  },
+  {
+   "label": "Time to disassemble in 1941",
+   "value": "36 hours"
+  },
+  {
+   "label": "Time to disassemble the room",
+   "value": "36 hours"
+  },
+  {
+   "label": "Trench incision depth",
+   "value": "Est. 4\u20136 in (10\u201315 cm)"
+  },
+  {
+   "label": "Weight of amber",
+   "value": "Est. >13,000 lb"
+  },
+  {
+   "label": "standing since",
+   "value": "1350 BC"
+  },
+  {
+   "label": "weight of each colossus",
+   "value": "estimated 720 tons"
+  }
+ ]
+}

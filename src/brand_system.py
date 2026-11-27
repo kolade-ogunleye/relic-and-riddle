@@ -398,16 +398,9 @@ TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
 # runtime tokens: no renderer reads them yet and a brand cannot override them; each moves into SYSTEM_TOKENS (with its
 # measured-change test) in the commit that makes a renderer read it.
 SPEC: Mapping[str, Any] = MappingProxyType({
-    "plate.opaque": 1.0,              # a callout's plate
-    "plate.panel": 0.78,              # a map / chart panel over a drawn ground (200 / 255)
     # ---- credits and the AI-reconstruction badge (one style each; ported by their groups; credit.weight is a
     # runtime token since freeze cycle 4)
-    "credit.track": 0.04,             # em
-    "credit.colour": "STONE_LT",
     "badge.weight": 600,              # the badge role (the data face by default)
-    "badge.track": 0.05,              # em
-    "badge.colour": "BONE",
-    "badge.plate": "plate.held",      # INK at the held tier
     # ---- leading (line step, in cap heights for display, in em for text)
     "lead.display": 1.13,             # cap heights from baseline to baseline (heading)
     "lead.body": 1.36,                # em
@@ -433,8 +426,6 @@ SPEC: Mapping[str, Any] = MappingProxyType({
     # it is a figure-span raise (the `case` form where a face has one, else a designed rule: panel 2 AD MG-5),
     # pixels on every stated span in every face: a SPEC decision with its own evidence, not a batch-2 token.
     # ---- rules and dividers (px at 1080 wide; scaled by the canvas)
-    "rule.weight": 4,
-    "rule.hairline": 1,
     # (motion.pop_scale 1.4, "a pin's pop", retired in freeze cycle 4, SYS-E-c4-1: no reader; the pin settles on
     # motion.back and the dot pops on motion.back_mark, one curve)
 })
@@ -443,28 +434,15 @@ SPEC: Mapping[str, Any] = MappingProxyType({
 # renderer (heading.balance_min) or DECLARED here with why it is written but not drawn from, and who would port it, so
 # no written value reads as a rule the pixels follow when they do not. tests/test_freeze_sys_c4.py holds every SPEC
 # key to one of the two (a new SPEC value needs a reader or a line here).
+# Freeze cycle 5 (ledger BOARD-05, one source): no token is written that nothing reads. The nine "not read" values
+# (plate.opaque, plate.panel, credit.track, credit.colour, badge.track, badge.colour, badge.plate, rule.weight,
+# rule.hairline) are REMOVED: the board printed them as system values while the surfaces drew their own (credit.track
+# said 0.04 em, the end screen tracks 0.08). badge.weight, lead.display, lead.body and lead.label are now READ by the
+# renderers that drew the same literals (video_composer's badge, the carousel and Story heading steps, the Story
+# body step, the 9:16 label leading). tests/test_freeze_sys_c4.py refuses a new "not read" entry.
 SPEC_DECLARED: Mapping[str, str] = MappingProxyType({
-    # "not read": no src module names the key (the test checks it); what the surfaces draw instead is named where it
-    # was measured for this table, else left to the owner lane's port
-    "plate.opaque": "not read: the callout plate's alpha is callouts' own (lane F)",
-    "plate.panel": "not read: map and chart panels set their own alphas (lane A)",
-    "credit.track": "not read: the end screen tracks its credits line 0.08 em by its own constant (lane E)",
-    "credit.colour": "not read: the credits name brand.STONE_LT themselves (the same colour; lanes D, E, F)",
-    "badge.weight": "not read: 600 everywhere it is drawn, but the captions' badge is libass's, whose style sets bold "
-                    "on or off only (lane C), and the Pillow provenance badges draw a literal 600 (lanes B, F)",
-    "badge.track": "not read: libass spaces the captions' badge 1.5 px, the cover's provenance badge tracks 1 px "
-                   "(lanes B, C, F)",
-    "badge.colour": "not read, and open: the captions' libass badge draws BONE, the cover's and YouTube's provenance "
-                    "badges STONE_LT (lanes B, C, F; a SPEC decision, not a rule either follows)",
-    "badge.plate": "not read: the badge plates set their own INK alphas (lanes B, C, F)",
-    "lead.display": "not read: the display lines step by their surfaces' own constants (lanes B, D); the YouTube "
-                    "lockup's step is the lockup.line_gap token",
-    "lead.body": "not read: bodies set their own line steps (lanes D, E, F)",
-    "lead.label": "not read: labels set their own line steps (lane A)",
     "heading.cover_over_interior": "declared, SYS batch 2 item 7 (the comment in SPEC)",
     "figure.dash_centre_em": "declared, SYS batch 2 item 7 (the comment in SPEC)",
-    "rule.weight": "not read: rules are drawn at their surfaces' own widths (every lane)",
-    "rule.hairline": "not read: hairlines are drawn at their surfaces' own widths (lanes A, E)",
 })
 
 # One size per role per canvas, px on that canvas (the carousel's in canvas px: 1080 design px x 4/3): the system's
@@ -731,7 +709,6 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
 # Heading break vocabulary: one list for every surface (there were five).
 LINE_END_NEVER = frozenset(("a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "near", "with", "into", "onto",
                             "via", "per"))
-LINE_END_LAST_RESORT = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than"))
 
 
 def _never_end_words() -> frozenset:
@@ -748,6 +725,42 @@ def _never_end_words() -> frozenset:
 
 
 NEVER_END_WORDS = _never_end_words()
+
+# Freeze cycle 5 (TEXT stream; panel 6: "EVIDENCE AND /", "DISPROVED WHEN /", "when / Königsberg Castle"): ONE
+# function-word vocabulary for every drawn line end (src/line_policy.py reads it for headings, body copy, card lines,
+# graphic labels and caption lines and bursts). There were two: the headings' eight conjunctions and the captions'
+# closed class, so WHEN / THAT / WHILE / THAN / ITS could end a heading or body line that no caption line may end on.
+# - LINE_END_NEVER: the operator's ruled list (articles and the plain prepositions): hard, at any size.
+# - LINE_END_LAST_RESORT: every other closed-class word: the conjunctions, the subordinators and relative words that
+#   open a clause (LINE_END_CLAUSE_WORDS, with the derived class's own), the remaining derived prepositions,
+#   determiners and quantifiers (NEVER_END_WORDS). A line ends on one only where no other break fits, and that is
+#   RECORDED (line_policy.faults "conjunction_end_last_resort").
+# - LINE_END_WEAK: the copulas and auxiliaries (IS, HAS, DO): a line end the breakers avoid at equal cost; counted
+#   apart, never a violation (a subject and its verb read as a line: IT WAS / HIDDEN UNDERGROUND).
+LINE_END_CLAUSE_WORDS = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than", "when", "where", "why", "how",
+                                   "who", "whom", "whose", "about", "over", "beside"))
+LINE_END_LAST_RESORT = (LINE_END_CLAUSE_WORDS | NEVER_END_WORDS) - LINE_END_NEVER
+# The conjunctions proper (coordinating, subordinating, relative): the last-resort words a display card steps down
+# its ladder for before it takes one (design_cards.W1_STOPS; panel 6: "EVIDENCE AND /", "DISPROVED WHEN /").
+LINE_END_CONJUNCTIONS = frozenset(("and", "or", "but", "nor", "so", "yet", "as", "than", "when", "where", "while",
+                                   "that", "which", "who", "whom", "whose", "because", "if", "although", "though",
+                                   "unless", "until", "whether", "since", "why", "how")) & LINE_END_LAST_RESORT
+LINE_END_FUNCTION = LINE_END_NEVER | LINE_END_LAST_RESORT
+LINE_END_WEAK = frozenset(("is", "was", "are", "were", "be", "been", "being", "am", "has", "have", "had", "do",
+                           "does", "did", "will", "would", "can", "could", "may", "might", "must", "shall", "should",
+                           "not"))
+# The accent rule as the system board states it (ledger TEXT-12: accent by archetype is a DOCUMENTED variant, one
+# rule per deck, not an accident of fit): row 13 of the board prints this line.
+ACCENT_RULE = ("accent by archetype: gold marks the payoff run on a LOCKUP (carousel cover, Reel cover, YouTube "
+               "headline, Story title) and a stated quantity anywhere (stat, CTA figure); an INTERIOR heading is bone")
+
+# The accent rule's own words (brand_system "Accent": the function words that open an accent line stay bone): the
+# round-7 set, unchanged by cycle 5 (a wider set would turn NO / ALL / MORE bone on a cover: a colour change no
+# ruling asked for).
+ACCENT_OPENERS = LINE_END_NEVER | frozenset(("and", "but", "nor", "so", "yet", "as", "than"))
+# A row of these alone is a break's hinge, never a row of a heading (round 8: SACRED PATHS / OR / ASTRONOMY). The
+# round-8 set, unchanged: the wider class holds words that are a whole row of copy (WHY, HOW, NO MORE).
+HINGE_WORDS = ACCENT_OPENERS | frozenset(("or",))
 
 
 def tok(name: str) -> Any:

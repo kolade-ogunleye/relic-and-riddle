@@ -213,8 +213,11 @@ def test_even_rag_evens_a_short_first_line_and_keeps_the_line_count() -> None:
     assert max(ws) - min(ws) < max(d.textlength(x, font=f) for x in lines) - min(d.textlength(x, font=f) for x in lines)
     assert all(len(x) <= 34 for x in out)
     # already even: unchanged; a glued figure is never split
-    even = ["Visible from space, this", "concentric formation serves", "as a prominent desert landmark."]
+    even = ["Visible from space,", "this concentric formation", "serves as a desert landmark."]
     assert even_rag(d, even, f, 1200, 34) == even
+    # freeze cycle 5 (the one vocabulary): THIS is a last-resort line end, as THE below; an even rag does not keep it
+    this = ["Visible from space, this", "concentric formation serves", "as a prominent desert landmark."]
+    assert even_rag(d, this, f, 1200, 34)[0] == "Visible from space,"
     # round 4 review: a line that ends on "the" is no longer even enough to keep (see dangles)
     dangling = ["Visible from space, the", "concentric formation serves as", "a prominent desert landmark."]
     out = even_rag(d, dangling, f, 1200, 34)

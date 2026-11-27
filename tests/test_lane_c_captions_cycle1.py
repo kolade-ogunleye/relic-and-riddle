@@ -25,6 +25,7 @@ import pytest
 
 from src import video_composer as vc
 
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "docs" / "reviews" / "freeze-panel-2026-11-04" / "fixtures"))
 import fixtures as _fx
@@ -63,9 +64,16 @@ _CACHE: dict = {}
 
 
 def _phrases(name, words, emph, wide):
+    """The delivered phrasing, its clip's forms current (freeze cycle 5 round 4, T2: a 9:16 clip's burst forms are the
+    clip's own, video_composer.clip_forms, read by reel_caption_lines until the next clip is built)."""
     if name not in _CACHE:
-        _CACHE[name] = vc.caption_phrases(words, emph or None, wide)
-    return _CACHE[name]
+        phrases = vc.caption_phrases(words, emph or None, wide)
+        _CACHE[name] = (phrases, vc.clip_forms())
+    phrases, forms = _CACHE[name]
+    reg = vc._joined_raws()
+    reg.clear()
+    reg.update(forms)
+    return phrases
 
 
 def _cuts(phrases):
@@ -161,12 +169,21 @@ def _valid_window(phrases, i, words) -> list | None:
 
 @pytest.mark.parametrize("name,words,emph,wide", CASES, ids=[c[0] for c in CASES])
 def test_a_never_end_end_or_line_stays_only_where_no_valid_break_exists(name, words, emph, wide):
+    forced: list = []
+    if not wide:   # the delivered clip's record of bursts drawn on a forced break (no legal form, no legal split)
+        vc.caption_phrases([dict(w) for w in words], emph or None, wide, line_split=forced)
     phrases = _phrases(name, words, emph, wide)
+    recorded = {" ".join(e["text"].replace(" / ", " ").split()) for e in forced if e.get("into") is None}
     rec = _record(phrases, wide)
     assert rec["never_end"] == vc.never_end_bursts(phrases)
     for i, p in enumerate(phrases):
         burst_end = i + 1 < len(phrases) and not vc._ends_sentence(p) and vc.never_end_end(p[-1]["word"])
         line = not wide and vc.reel_line_defect(p)
+        if line and not burst_end and " ".join(w["word"] for w in p) in recorded:
+            # lander ruling 2026-11-26 (round 4, delivered phrasing): a line defect the clip draws on a forced break
+            # is recorded there; the relaxed window below predates the clause rule (D6: no burst straddles a
+            # clause) and the phrase units, which its windows break (BURST, THOUGH NO CELESTIAL | METEOR AIR)
+            continue
         if burst_end or line:
             assert _valid_window(phrases, i, words) is None, (name, [w["word"] for w in p], _valid_window(
                 phrases, i, words))
@@ -276,7 +293,14 @@ def test_every_burst_over_the_caps_is_a_bond_or_in_the_bond_extra_record(name, w
         bonded = all(pos[id(p[j])] in held for j in range(len(p) - 1))
         # lane C cycle 3 (lander ruling: a figure group is a bond): a whole figure group set on two lines
         bonded = bonded or vc._figure_group([w["word"] for w in p])
-        assert bonded or " ".join(w["word"] for w in p) in logged, (name, [w["word"] for w in p])
+        # lander ruling 2026-11-26 (round 4, delivered phrasing): or a joined two-line burst of the readable merge / capacity pass,
+        # each line within one burst's caps (the merge's records are held by tests/test_text_captions_c5b.py)
+        raw = [w["word"] for w in p]
+        lay = vc.reel_caption_lines(raw)
+        joined = bool(lay) and all(
+            len(x) <= vc.MAX_BURST_WORDS and len(" ".join(x)) <= vc.MAX_BURST_CHARS
+            for x in (vc._phrase_words(raw[:lay[0]]), vc._phrase_words(raw[lay[0]:])))
+        assert bonded or joined or " ".join(w["word"] for w in p) in logged, (name, raw)
     for e in log:
         assert e["removed"] in ("never_end_end", "line_defect", "lone_group_tail") and e["was"]
         assert any(" ".join(w["word"] for w in p) == e["text"] and vc.over_caps(p) for p in phrases), e

@@ -36,10 +36,11 @@ order: feed legibility > one system > hierarchy).
 from __future__ import annotations
 
 import itertools
+import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
-from . import brand_system
+from . import brand_system, line_policy
 
 PLAIN, LEAD, ACCENT, FIGURE = "plain", "lead", "accent", "figure"
 GOLD_ROLES = frozenset((ACCENT, FIGURE))
@@ -64,7 +65,7 @@ def end_ok(word: str, last_resort: bool = True) -> bool:
 def is_function(word: str) -> bool:
     """A function word: one of the never-end words or the conjunctions. "OR" opening an alternative may stay gold."""
     w = bare(word)
-    return w != "or" and (w in brand_system.LINE_END_NEVER or w in brand_system.LINE_END_LAST_RESORT)
+    return w in brand_system.ACCENT_OPENERS
 
 
 def _figure_words(words: Sequence[str]) -> set[int]:
@@ -90,7 +91,16 @@ def _bonded(words: Sequence[str]) -> set[int]:
         if any(c.isdigit() for c in words[k]) and bare(words[k - 1]) in ("about", "over", "nearly", "almost",
                                                                          "some", "roughly", "around", "~"):
             out.add(k)   # a hedge stays with its figure
-    return out
+    # freeze cycle 5 (TEXT stream): the ONE keep-together definition (line_policy.keep_together: a date, an era, a
+    # multi-word hedge, a spelled number with its unit hold in a heading as they do in body copy and captions); a
+    # range may still break before its joiner (its recorded last resort)
+    if getattr(_bonds, "legacy", False):
+        return out
+    from . import line_policy
+    return out | (line_policy.keep_together(words) - line_policy.range_seams(words))
+
+
+_bonds = threading.local()   # .legacy: set_heading's recorded last resort (the round-7 bonds only)
 
 
 def break_points(words: Sequence[str], last_resort: bool = True) -> list[int]:
@@ -188,8 +198,7 @@ def valid(lines: Sequence[str], lone_ok: bool = False, widths: Sequence[float] |
         return False
     # cycle 0 round 8 (panel: "SACRED PATHS / OR / ASTRONOMY", "CARVED / FROM"): a row of function words only is
     # never a row, at any word count and in any last resort (it is the break's hinge, not a line of the heading)
-    if len(lines) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
-                                  for w in ln.split()) for ln in lines):
+    if len(lines) > 1 and any(all(bare(w) in brand_system.HINGE_WORDS for w in ln.split()) for ln in lines):
         return False
     bonded = _bonded(words)
     if any(b in bonded for i, (_, b) in enumerate(spans[:-1]) if i not in free_ends):
@@ -223,8 +232,7 @@ def broken_rule(lines: Sequence[str], widths: Sequence[float] | None = None, sea
     if any(not end_ok(ln.split()[-1]) for ln in rows[:-1]):
         bad = next(ln.split()[-1] for ln in rows[:-1] if not end_ok(ln.split()[-1]))
         return f"the line-end rule (a line never ends on {bad})"
-    if len(rows) > 1 and any(all(bare(w) in brand_system.LINE_END_NEVER or bare(w) in brand_system.LINE_END_LAST_RESORT
-                                 for w in ln.split()) for ln in rows):
+    if len(rows) > 1 and any(all(bare(w) in brand_system.HINGE_WORDS for w in ln.split()) for ln in rows):
         return "the line-end rule (a row of function words only)"
     if len(rows) > 2 and any(len(ln.split()) < 2 for ln in rows[1:-1]):
         return "the no-lone-row rule (a one-word middle row)"
@@ -364,12 +372,27 @@ def _issue(form: Form) -> Form:
     return form
 
 
+def _lone_last_record(drawn: Sequence[str], widths: Sequence[float], lone_ok: bool, phrase: bool) -> dict:
+    """R3 (lander 2026-11-26): a drawn heading whose last row is one short word (line_policy lone_last_row) records it
+    with the reason no legal re-break replaced it: {} when the last row is no such row."""
+    got = [f for f in line_policy.faults(list(drawn), list(widths), heading=True) if f["fault"] == line_policy.LONE_LAST]
+    if not got:
+        return {}
+    why = ("locked size: no form of the heading without it sets at the cover's locked size (the break and the band "
+           "give way, never the size)" if lone_ok else
+           "phrase exception: no valid form of no more rows without it (every other break ends a row on a never "
+           "word, parts a bond or does not fit)" if phrase else
+           "no valid form of no more rows without it at this size")
+    return {"lone_last_row": {"word": got[0]["word"], "balance": got[0].get("balance"), "reason": why}}
+
+
 def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone_ok=False, phrase_seam=None,
             want_lone=False):
     """The best form of a stage: (score, cuts, conj, balance), or None. With `want_lone` (set_heading): (best, the best
     form with an unbalanced one-word first row), the first refused by valid() (SYS-B-6), so the caller can keep it
     where no form at the heading's balance minimum replaces it (never a trade for another form under the minimum)."""
     best = best_lone = None
+    clean: dict[int, tuple] = {}   # the best form without a lone last row, per row count
     for cuts in cut_sets:
         lines = lines_of(words, cuts)
         if not fits(lines):
@@ -385,12 +408,27 @@ def _choose(words, cut_sets, fits, balance_min, seam_pref, strict, measure, lone
         bal = min(lens) / max(lens) if len(lens) > 1 and max(lens) > 0 else 1.0
         if strict and cuts and (conj or bal < balance_min):
             continue
+        # R3 (lander 2026-11-26): a form whose last row is one short word (line_policy lone_last_row) gives way to
+        # a valid form of no more rows without one
+        lone_last = bool(cuts) and any(f["fault"] == line_policy.LONE_LAST
+                                       for f in line_policy.faults(lines, lens, heading=True))
         score = (0 if seam_pref is None or seam_pref in cuts else 1, len(cuts), conj, -bal)
+        if not lone_first:
+            rows_key = len(cuts)
+            if not lone_last and (rows_key not in clean or score < clean[rows_key][0]):
+                clean[rows_key] = (score, cuts, conj, bal)
         if lone_first:
             if best_lone is None or score < best_lone[0]:
                 best_lone = (score, cuts, conj, bal)
         elif best is None or score < best[0]:
             best = (score, cuts, conj, bal)
+    if best is not None and best[1]:
+        drawn = lines_of(words, best[1])
+        if any(f["fault"] == line_policy.LONE_LAST
+               for f in line_policy.faults(drawn, [measure(t) for t in drawn], heading=True)):
+            alt = [v for k, v in clean.items() if k <= len(best[1])]
+            if alt:
+                best = min(alt, key=lambda v: v[0])
     return (best, best_lone) if want_lone else best
 
 
@@ -399,6 +437,30 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                 balance_min: float | None = None, locked_lines: int = 0,
                 last_resort_floor: float | None = None, extra_lines: int = 0,
                 final_floor: float | None = None) -> Form | None:
+    """_set_heading_ruled under the ONE keep-together definition (line_policy.keep_together). Freeze cycle 5: where
+    no form sets with every policy bond held (a hedge word and its figure on a locked cover: ESTIMATED / 6 TONNES),
+    the heading sets as it did before the policy (the round-7 bonds: a number and its unit, the one-word hedges)
+    rather than being newly refused, RECORDED ("keep_together_last_resort"): a refusal is the last step of the
+    fallback order, never the first."""
+    args = (text, measure, width, sizes, max_lines, seam, lockup, balance_min, locked_lines, last_resort_floor,
+            extra_lines, final_floor)
+    form = _set_heading_ruled(*args)
+    if form is None and not getattr(_bonds, "legacy", False):
+        _bonds.legacy = True
+        try:
+            form = _set_heading_ruled(*args)
+        finally:
+            _bonds.legacy = False
+        if form is not None:
+            form.record["keep_together_last_resort"] = True
+    return form
+
+
+def _set_heading_ruled(text: str, measure: Callable[[str, float], float], width: float, sizes: Sequence[float],
+                       max_lines: int = 2, seam: int | None = None, lockup: bool = False,
+                       balance_min: float | None = None, locked_lines: int = 0,
+                       last_resort_floor: float | None = None, extra_lines: int = 0,
+                       final_floor: float | None = None) -> Form | None:
     """The heading `text` set on the ladder `sizes` (first size, then at most the recorded fallback): None when no
     valid form fits `width` at any of them. `measure(line, size)` is a line's drawn width at `size`. `seam`: an
     authored line1 / line2 seam (word index) the break prefers; `lockup`: the payoff run is gold (else the heading is
@@ -467,7 +529,8 @@ def set_heading(text: str, measure: Callable[[str, float], float], width: float,
                             **({"locked_last_resort": True} if lone_ok else {}),
                             **({"first_row_lone": drawn[0]} if not lone_ok and first_row_lone(
                                 drawn, [measure(t, size) for t in drawn]) else {}),
-                            **({"off_ladder": True} if tier is None else {})}))
+                            **({"off_ladder": True} if tier is None else {}),
+                            **_lone_last_record(drawn, [measure(t, size) for t in drawn], lone_ok, phrase)}))
     # SYS-B-6 (lander rulings): a form whose one-word first row is under the balance minimum gives way only to a form
     # AT the minimum, at the same size. Where the stage prefers it over its other forms (all under the minimum), it
     # stands; where the stage has no other form, it is held while every later stage at the same size is read for one

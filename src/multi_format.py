@@ -935,12 +935,23 @@ def even_rag(d, lines: list[str], font, width: float, measure: int) -> list[str]
             widths[(a, b)] = d.textlength(" ".join(words[a:b]), font=font)
         return widths[(a, b)]
 
+    from . import line_policy
+    bonds, seams, names = line_policy.keep_together(words), line_policy.range_seams(words), line_policy.name_bonds(words)
+
     def cost(cand):
         ws = [w(a, b) for a, b in cand]
         mean = sum(ws) / len(ws)
         # A last line longer than the one above it reads as an inverted rag: counted as much again.
         dangle = sum(dangles(" ".join(words[a:b])) for a, b in cand[:-1]) * (RAG_DANGLE * width) ** 2
-        return sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle
+        # freeze cycle 5 (TEXT stream): the one policy before the rag: an even rag never buys its evenness with a
+        # number parted from its unit or a line ending on a function word (it re-broke glued figures: the lines come
+        # back with ordinary spaces)
+        # Review D1: a range seam is a last resort like a function-word end, never the equal of a number parted from
+        # its unit (the rag chose "nearly 1,090 / tonnes" over "tonnes / to 1,168"); a proper name is not parted to
+        # avoid a function-word end (line_policy.line_cost: unit split > never end > name split > last resort).
+        hard = line_policy.line_cost(words, [b for _, b in cand[:-1]], bonds, seams, names)
+        return ((64 * hard[0] + 16 * hard[1] + 4 * hard[2] + hard[3]) * (4 * width) ** 2
+                + sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle)
     best, best_cost = None, None
     for cuts in combinations(range(1, len(words)), n - 1):
         bounds = list(zip((0,) + cuts, cuts + (len(words),)))
@@ -1373,7 +1384,7 @@ class MultiFormatGenerator:
         cap_k = cap_height(font_k)
         k_gap = kicker_gap(font_k.size)                           # F20: the one kicker gap
         hero = story_figure(l1, l2) if i == 1 and not asks_poll else None
-        b_step = round(STORY_BODY_PX * 1.36)
+        b_step = round(STORY_BODY_PX * brand_system.SPEC["lead.body"])
         b_gap = round(STORY_BODY_PX * tok("band.body_gap_tall"))  # title's last baseline to the body's first (F3)
         font_p = get_font(brand.TEXT_FONT, 32 if tight else 36, weight=800)
         sticker = STORY_STICKER_H if asks_poll else 0
@@ -1403,7 +1414,7 @@ class MultiFormatGenerator:
                     # TENSION' at 1.19, the Antikythera kicker over an accented title at 1.02): a line's accents
                     # keep the gap to the kicker or the line above, the pitch growing by their rise
                     y += accent_rise(d, " ".join(r for r, _ in line_runs), f)
-                    y += cap_height(f) if not out else round(cap_height(f) * 1.13)
+                    y += cap_height(f) if not out else round(cap_height(f) * brand_system.SPEC["lead.display"])
                     dx = 0
                     for run, role in line_runs:
                         out.append((name, y, run, f, brand.GOLD if role in GOLD_ROLES else brand.BONE, dx))
@@ -1531,7 +1542,7 @@ class MultiFormatGenerator:
             ct = cap_height(font_t)
             b1 = ct + accent_rise(d, l1, font_t)                       # lane D cycle 3: accents keep the gaps
             t_rows = [r for r in (("title_1", b1, l1, font_t, brand.BONE, 0),
-                                  ("title_2", b1 + round(ct * 1.13) + accent_rise(d, l2, font_t), l2, font_t,
+                                  ("title_2", b1 + round(ct * brand_system.SPEC["lead.display"]) + accent_rise(d, l2, font_t), l2, font_t,
                                    brand.GOLD, 0)) if r[2]]
             t_height = t_rows[-1][1] if t_rows else 0
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
@@ -1621,10 +1632,16 @@ class MultiFormatGenerator:
                 credit["contrast"] = round(min(measured), 2)
         base = im.convert("RGB")
         kickers = (getattr(lay, "meta", None) or {}).get("kickers") if isinstance(getattr(lay, "meta", None), dict) else None
+        from . import line_policy as _lp
+        _story_faults = _lp.drawn_record(body_lines, role="body")
+        if l1 and l2:   # the title's two authored fields: a seam that ends on a function word is on the record too
+            _story_faults = _lp.drawn_record([l1, l2], role="title") + _story_faults
         lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "photo_credit": credit,
                     **({"kickers": kickers} if kickers else {}),
                     "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
                     "body_px": font_b.size, "body_lines": len(body_lines),
+                    # freeze cycle 5 (review D2): the line-break violations left in the body lines this frame drew
+                    **({"line_faults": _story_faults} if _story_faults else {}),
                     "title_px": size, "story_title_px": story_px, "window": window, "title_measure": title_w[0], "story_size_off": size != t_size,
                     "text_box": [min(ux0, x), uy0, max(ux1, x + max_w), max(uy1, int(y_end))],
                     "safe_box": [sx0, sy0, sx1, sy1],
@@ -2030,7 +2047,7 @@ class MultiFormatGenerator:
             # The second heading line at the design size (round 3: at its floor the two-line "IMPACT THEORY /
             # DISPROVED" missed the frame by a few px and dropped to bottom-aligned); both copies since lane D cycle 2.
             second = top
-            hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * 1.13)
+            hb = h_last - round(cap_height(get_font(brand.DISPLAY_FONT, fx(second))) * brand_system.SPEC["lead.display"])
         k_size = fx(type_px("kicker", "carousel") * 3 / 4)
         return {"kicker": hb - cap_height(h) - kicker_gap(k_size), "heading": hb, "heading_last": h_last,
                 "first_body": first_body, "heading_lines": 2 if two else 1}
@@ -2124,10 +2141,19 @@ class MultiFormatGenerator:
         return 1
 
     def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float, trial: bool = False):
-        """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
-        narrower measure avoids it: (lines, font, shortened). Planned on the design canvas like every fit. `trial`:
-        a shortened result is returned as is (not refitted and logged), for a caller that tries again."""
-        first = fallback = None
+        """The body as the slide draws it: (lines, font, shortened). Planned on the design canvas like every fit.
+        `trial`: a shortened result is returned as is (not refitted and logged), for a caller that tries again.
+
+        First the measured setting: balanced lines of at most BODY_MEASURE characters, not ending on a one-word line
+        where a narrower measure avoids it. It stands wherever it holds the ONE line policy (src/line_policy.py): no
+        pixel moves there. Where it leaves a violation (a figure parted from its unit, a range cut, a line ending on
+        a function word, a proper name parted, a line over the measure), or takes a line more than a setting as
+        clean needs (review D8), the body is set again in one search over every break that fits the slide's width
+        and `max_lines` (line_policy.set_lines), so the policy holds in the path production draws (freeze cycle 5,
+        review D1: the measure was narrowed first and the policy saw only the narrow trial; "nearly 1,090 / tonnes"
+        stayed). A line may pass the character measure where that is the only way to hold the policy; _stack
+        records it with every violation that stays (lay.meta["line_faults"])."""
+        first = fallback = chosen = None
         w = width
         while w >= px(420):
             got = self._fit_text(d, body, brand.TEXT_FONT, int(size), w, max_lines, int(min(floor, size)), px=px,
@@ -2137,12 +2163,24 @@ class MultiFormatGenerator:
             measure_ok = all(len(ln) <= self.BODY_MEASURE for ln in lines)
             if not short and measure_ok:
                 if not (len(lines) > 1 and len(lines[-1].split()) == 1):
-                    return (even_rag(d, lines, got[1], width, self.BODY_MEASURE), got[1], got[2])
+                    chosen = (even_rag(d, lines, got[1], width, self.BODY_MEASURE), got[1], got[2])
+                    break
                 fallback = fallback or got
             w -= px(16)
-        chosen = fallback or first
+        chosen = chosen or fallback or first
         if chosen[2] and not trial:   # shortened even so: fitted once more at the full measure, logged
             return self._fit_text(d, body, brand.TEXT_FONT, int(size), width, max_lines, int(min(floor, size)), px=px)
+        lines, font, short = chosen
+        if short or len(lines) < 2:
+            return chosen
+        from . import line_policy
+        s = getattr(px, "s", 1.0)
+        design = get_font(brand.TEXT_FONT, int(size))                 # planned on the design canvas, like _fit_text
+        better = line_policy.set_lines(" ".join(body.split()), lambda t: d.textlength(t, font=design),
+                                       round(width / s), max_lines, self.BODY_MEASURE)
+        if (better and " ".join(better).split() == " ".join(lines).split()
+                and line_policy.form_key(better, self.BODY_MEASURE) < line_policy.form_key(lines, self.BODY_MEASURE)):
+            return better, font, short
         return chosen
 
     def _set_heading(self, d, px, heading: str, width: int, two_tone, scale: float, h_spec, content: bool):
@@ -2294,7 +2332,7 @@ class MultiFormatGenerator:
                 # touched line 1 at 1.58): a second line's accents keep the line gap to the line above, so the
                 # pitch grows by the accent's rise, never the accent into the first line's ink
                 y += accent_rise(d, line_text, font_h)
-            y += ch if j == 0 else round(ch * 1.13)
+            y += ch if j == 0 else round(ch * brand_system.SPEC["lead.display"])
             x = 0
             for text, role in line_runs:
                 rows.append({"name": "heading", "text": text, "font": font_h,
@@ -2441,6 +2479,27 @@ class MultiFormatGenerator:
             short = [*short, "kicker_category"]
         if lay is not None:
             lay.shortened += short
+            # Freeze cycle 5 (TEXT stream; panel 6: the IG cover body at 45.3 px instead of 48 was recorded nowhere):
+            # every size fallback of the stack is recorded per slide: the body's tier (TYPE / TYPE_FALLBACK carousel
+            # body, design px x 4/3) and why; and every line-break violation left in the body lines THIS stack draws
+            # (line_policy.drawn_record of the drawn rows: never a trial fit's, never another surface's; review D2),
+            # with every line over the character measure. still_layout.save writes both beside the still.
+            body_rows = [r for r in rows if r.get("name") == "body" and r.get("text")]
+            if body_rows:
+                drawn_px = float(body_rows[0]["font"].size)
+                design_px = float(px.exact(self.BODY_SPEC[0])) if hasattr(px, "exact") else float(self.BODY_SPEC[0])
+                if abs(drawn_px - design_px) > 0.01:
+                    lay.meta["type_fallbacks"] = [f for f in lay.meta.get("type_fallbacks", [])
+                                                  if f.get("role") != "body"]
+                    lay.meta["type_fallbacks"].append({
+                        "role": "body", "px": round(drawn_px, 2), "design_px": round(design_px, 2),
+                        "tier": "TYPE_FALLBACK carousel body",
+                        "reason": "the slide's stack did not clear the key area at scale 1.0: the body takes its one "
+                                  "fallback tier, never a continuous scale"})
+            from . import line_policy as _lp
+            faults = _lp.drawn_record([r["text"] for r in body_rows], self.BODY_MEASURE, role="body")
+            if faults:
+                lay.meta["line_faults"] = [f for f in lay.meta.get("line_faults", []) if f.get("role") != "body"] + faults
         drawn = [r for r in rows if r.get("text")]
         form = getattr(_render_state, "heading_form", None)
         stack_bottom = bottom

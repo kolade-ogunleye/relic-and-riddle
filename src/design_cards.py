@@ -38,6 +38,7 @@ from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
 from .brand import PLACE_TARGET, RGB, TEXT_CONTRAST
+from . import brand_system
 from .brand_system import LINE_END_NEVER
 from .brand_system import tok as _mtok
 from .config import CAPTION_READ_BASE, CAPTION_READ_PER_CHAR, VIDEO_FPS
@@ -429,10 +430,9 @@ def _tracked_width(text: str, font: Any, track: float) -> float:
     return tracked_width(text, font, track)
 
 
-WEAK_LINE_END = frozenset((
-    "a", "an", "the", "of", "in", "on", "at", "to", "by", "for", "from", "with", "into", "onto", "over", "under",
-    "and", "or", "but", "nor", "so", "yet", "as", "than", "that", "which", "who", "whom", "whose", "where", "when",
-    "is", "are", "was", "were", "be", "been", "its", "their", "his", "her", "this", "these", "those", "not", "no"))
+# Freeze cycle 5 (TEXT stream): the system's one vocabulary (brand_system.LINE_END_FUNCTION and LINE_END_WEAK); the
+# cards' own 46-word list lacked WHILE / BECAUSE / IF and the derived prepositions.
+WEAK_LINE_END = brand_system.LINE_END_FUNCTION | brand_system.LINE_END_WEAK
 DESIGN_WRAP_SLACK = 12     # design px a 9:16 line broken at design size may overrun its measure once scaled
 REWRAP_MAX_WORDS = 32      # the re-wrap search (every break set) runs on texts up to this many words
 
@@ -1567,6 +1567,10 @@ TITLE_ALPHA = 0.28                        # s: freeze panel C4: a title line's a
 # The system's never-list (src/brand_system.py LINE_END_NEVER: no line but the last ends on an article or a preposition)
 # plus "and" / "or", which the cards refuse at a size too: W2's search steps down the ladder before it takes one, which
 # is the system's "conjunction only as a last resort" (cycle 0; refused outright they read "DEBATES AND / ROCK").
+# Freeze cycle 5 (TEXT stream): the hard set stays the ruled never list plus AND / OR. Widening it to every
+# conjunction (WHEN, THAT ...) pushed the real long myth fact under its 76 px floor (72 px, CI): a size under a floor
+# is no cure for a line end. The other conjunctions are weighed (WEAK_LINE_END, the one vocabulary) and step the
+# ladder inside its floor (MYTH_WEAK_STEP); where none clears them the end stays, as before.
 W1_STOPS = LINE_END_NEVER | frozenset(("and", "or"))
 
 
@@ -4732,6 +4736,33 @@ def _refuse(kind: str, out: Path, e: CardRefused) -> None:
                                       ensure_ascii=False), encoding="utf-8", newline="\n")
 
 
+_FIELD_ROW = re.compile(r"([a-z]+)_(\d+)")
+
+
+def line_faults(plan: CardPlan) -> list[dict[str, Any]]:
+    """Freeze cycle 5 (TEXT stream, review D3): the line-break violations of the ONE policy (line_policy.violations: a
+    row ending on a never or last-resort word, a break inside a keep-together group) that stay in the card's drawn
+    fields, per field: [{"field", "lines", "faults", "reason"}]. The cards' break search holds the hard set (W1_STOPS)
+    and weighs every other closed-class end inside its size step, so what is listed here is what no break of that
+    search cleared above the field's floor ("IMPACT THEORY / DISPROVED WHEN / ..." at the myth fact's 76 px floor:
+    the 9:16 myth card had no record of it). Written to the card's design record for the plan actually drawn
+    (_design_record), never for a trial plan; [] for a clean card, which writes nothing."""
+    from . import line_policy
+    fields: dict[str, list[tuple[int, str]]] = {}
+    for key, text in plan.drawn_text.items():
+        m = _FIELD_ROW.fullmatch(str(key))
+        if m and str(text).strip():
+            fields.setdefault(m.group(1), []).append((int(m.group(2)), str(text)))
+    out: list[dict[str, Any]] = []
+    for field, rows in fields.items():
+        lines = [t for _k, t in sorted(rows)]
+        left = line_policy.violations(lines) if len(lines) > 1 else []
+        if left:
+            out.append({"field": field, "lines": lines, "faults": left,
+                        "reason": "no break of the card's search clears it above the field's floor"})
+    return out
+
+
 def _design_record(plan: CardPlan, poster: str) -> dict[str, Any]:
     rec: dict[str, Any] = {
         "kind": plan.kind, "version": VERSION, "width": plan.width, "height": plan.height, "seconds": plan.seconds,
@@ -4747,6 +4778,9 @@ def _design_record(plan: CardPlan, poster: str) -> dict[str, Any]:
             rec["withheld"] = m["withheld"]
     if m.get("provenance"):
         rec["provenance"] = m["provenance"]     # which lines are verbatim spans and which the fact gate passed
+    faults = line_faults(plan)
+    if faults:   # freeze cycle 5 (TEXT): a line end the search could not clear is on the card's own record
+        rec["line_faults"] = faults
     if plan.kind == "mythfact":
         rec.update(never_first=True, min_seconds=m["min_seconds"], source_omitted=m["source_omitted"],
                    quality_notes=list(m.get("quality_notes") or []), source_host_raw=m.get("source_host_raw"))

@@ -110,6 +110,23 @@ def problems(record: Dict[str, Any]) -> List[str]:
     return out
 
 
+TEXT_RECORDS = ("line_faults", "type_fallbacks", "heading", "lockup")
+
+
+def text_records(layout: Layout) -> Dict[str, Any]:
+    """The still's own text records, as its renderer left them in layout.meta, for the sidecar (freeze cycle 5, review
+    D2: they were written to meta only, which no run file keeps): "line_faults" (every line-break violation and every
+    line over its measure in the lines the still DREW: line_policy.drawn_record) and "type_fallbacks" (a size taken
+    from a fallback tier, with the reason); and the heading engine's form as drawn ("heading": a carousel slide's;
+    "lockup": a cover's), whose record carries its recorded last resorts (conjunction_end, locked_last_resort,
+    keep_together_last_resort ...): the corpus proof counts a heading's last resort as recorded only from there. A
+    key is present only when the still has such a record."""
+    meta = getattr(layout, "meta", None)
+    if not isinstance(meta, dict):
+        return {}
+    return {k: meta[k] for k in TEXT_RECORDS if meta.get(k)}
+
+
 def sidecar(still: Path) -> Path:
     return Path(still).parent / SIDECAR
 
@@ -117,7 +134,8 @@ def sidecar(still: Path) -> Path:
 def save(still: Path, layout: Layout, recipe: Dict[str, Any], attempts: int = 1) -> Dict[str, Any]:
     """Keeps a still's measured layout and how to draw it again, beside the still."""
     still = Path(still)
-    entry = {**layout.to_dict(), "problems": layout.problems(), "attempts": attempts, "recipe": recipe}
+    entry = {**layout.to_dict(), "problems": layout.problems(), "attempts": attempts, "recipe": recipe,
+             **text_records(layout)}
     with _lock:
         path = sidecar(still)
         try:

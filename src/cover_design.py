@@ -304,6 +304,7 @@ def _rows(im, copy, width, style, tight, figure=None, lay_record=None):
     shortened += lockup_rec.get("off_ladder", [])
     if lay_record is not None:
         lay_record["lockup"] = lockup_rec
+        lockup_line_faults(lay_record, measure, titles)
     if paper:
         for row in rows:
             row["fill"] = brand.INK if row["name"] not in ("tagline", "qualifier") else brand.INK2
@@ -471,6 +472,23 @@ def unbalanced_lone(rows, widths):
     bal = min(widths) / max(widths)
     from .brand_system import SPEC
     return bal if bal < SPEC["heading.balance_min"] else None
+
+
+def lockup_line_faults(record: dict, measure, out) -> None:
+    """Freeze cycle 5 (TEXT stream, review D3; real covers: DRAWN WITHOUT / EVER FLYING): the line-break violations
+    of the ONE policy that stay in the lockup's DRAWN rows (line_policy.drawn_record of _stack_rows), kept in the
+    cover's record as "line_faults" (role "title"), the key still_layout.json keeps beside the cover. The lockup's
+    own record (the engine's conjunction_end / locked_last_resort) lives in the layout's meta, which no run file
+    holds. Each call replaces the title's rows of an earlier fit of the same layout: only the lockup last set is on
+    the record; a clean lockup leaves none."""
+    from . import line_policy
+    rows, _widths = _stack_rows(measure, out)
+    kept = [f for f in record.get("line_faults") or [] if f.get("role") != "title"]
+    faults = line_policy.drawn_record(rows, role="title") if len(rows) > 1 else []
+    if kept or faults:
+        record["line_faults"] = kept + faults
+    else:
+        record.pop("line_faults", None)
 
 
 def _stack_rows(measure, out):
@@ -1442,6 +1460,7 @@ def _monument(im, copy, lay, tight, source, focus, figure=None):
         if lay is not None:
             lay.shortened = list(rec.get("off_ladder", []))
             lay.meta["lockup"] = rec
+            lockup_line_faults(lay.meta, measure, got)
     if tagline:
         lines, f_g, _ = _tagline_lines(measure, tagline, width, int(36 * factor))
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]

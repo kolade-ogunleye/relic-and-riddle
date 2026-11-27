@@ -180,6 +180,11 @@ def test_every_spec_value_is_read_by_a_renderer_or_declared():
         if key in brand_system.SPEC_DECLARED and brand_system.SPEC_DECLARED[key].startswith("not read"):
             assert not read, f"SPEC {key} is declared 'not read' but a renderer names it"
     assert set(brand_system.SPEC_DECLARED) <= set(brand_system.SPEC)
+    # freeze cycle 5 (ledger BOARD-05, one source): no value is written that nothing reads; a "declared" entry is a
+    # written invariant a test reads (tests/test_freeze_sys_2_spec.py), never a "not read" token
+    assert not [k for k, why in brand_system.SPEC_DECLARED.items() if why.startswith("not read")]
+    for key in ("badge.weight", "lead.display", "lead.body", "lead.label"):
+        assert re.search(r"[\"']" + re.escape(key) + r"[\"']", src), key
     assert not set(brand_system.SPEC) & set(brand_system.SYSTEM_TOKENS)
 
 

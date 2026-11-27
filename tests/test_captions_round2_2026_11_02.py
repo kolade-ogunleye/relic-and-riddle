@@ -45,6 +45,7 @@ from src.video_composer import (
 )
 from src.video_qa import caption_pills
 
+
 NARRATION = (
     "Can a massive temple rise without assembling a single stone? In the 8th century, under King Krishna I of the "
     "Rashtrakuta dynasty, workers began cutting downward into a basalt cliff at Ellora. They removed an estimated "
@@ -123,10 +124,10 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     def forced(p) -> bool:   # no full-size form without a line defect
         options = vc._two_line_options(tuple(w["word"] for w in p))
         return all(rank[0] or rank[1] for rank, _k, rung, _w in options if rung == FONT_SIZE)
-    bursts = vc.caption_phrases(words, ["Kailasa"])
-    unbonded = [" ".join(w["word"] for w in p) for p in bursts
-                if len(p) > 1 and _caption_fit_size(p) < FONT_SIZE and not caption_bonds(p) and not forced(p)]
-    assert len(unbonded) <= 0.1 * len(bursts), unbonded
+    # lander ruling 2026-11-26 (D4, one size per clip; round 4 delivered phrasing): every multi-word burst draws at the clip's one
+    # size, so the per-burst count above is superseded by: one size for every CapText event, a ladder rung
+    assert len(set(shrunk)) <= 1, sorted(set(shrunk))
+    assert all(round(s * 0.5625) in (FONT_SIZE, vc.CAPTION_BURST_MIN_SIZE, vc.CAPTION_BOND_MIN_SIZE) for s in shrunk)
     assert sizes
     # freeze pass C4 (2026-11-04): the ladder 80 -> 74 -> 66 px, 66 only for a bonded burst (a name with its lead-in,
     # a hedge with its figure); was every shrunk event at 74 or more
@@ -281,7 +282,10 @@ def test_a_burst_shorter_than_0_6_s_joins_a_neighbour(tmp_path):
     # a preposition, VISIBLE FROM SPACE. / OK leaves a one-word line), so the burst is split at the sentence end,
     # recorded (_line_split): two plates, one line each, OK. up its half second (was one two-line plate, 8 events)
     texts = _events(ass, "CapText")
-    assert len(_events(ass, "CapBox")) == 2 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 4
+    # freeze cycle 5 (lander ruling 2026-11-26, replacing the 2026-11-25 split): a line of one CONTENT word is legal
+    # (VISIBLE FROM SPACE. / OK.), so the burst is not split: one two-line plate again, one event per line in each
+    # of the four reveal intervals
+    assert len(_events(ass, "CapBox")) == 1 and len({(a, b) for a, b, _ in texts}) == 4 and len(texts) == 8
     paused = [dict(w) for w in words]
     paused[3]["start"] = 2.5                                             # after a long pause it stays alone
     assert len(merge_short_bursts(partition_words_grammatical(paused), _fits_caption_width, 5)) == 2

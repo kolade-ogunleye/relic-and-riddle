@@ -1,0 +1,485 @@
+{
+"about": "Caption words of one real development run (the review's cut-snap evidence: FROM SPACE up 0.74 s on a 3.1 s cut grid): word, start, dur only; no paths.",
+"emphasis_words": [
+"Ouadane",
+"Adrar Plateau",
+"1969"
+],
+"words": [
+{
+"word": "A",
+"start": 0.0893,
+"dur": 0.0638
+},
+{
+"word": "massive",
+"start": 0.1658,
+"dur": 0.4592
+},
+{
+"word": "circular",
+"start": 0.6378,
+"dur": 0.4975
+},
+{
+"word": "desert",
+"start": 1.148,
+"dur": 0.3699
+},
+{
+"word": "formation",
+"start": 1.5306,
+"dur": 0.5357
+},
+{
+"word": "served",
+"start": 2.0791,
+"dur": 0.5102
+},
+{
+"word": "as",
+"start": 2.602,
+"dur": 0.1786
+},
+{
+"word": "a",
+"start": 2.7934,
+"dur": 0.051
+},
+{
+"word": "visual",
+"start": 2.8571,
+"dur": 0.4209
+},
+{
+"word": "reference",
+"start": 3.2908,
+"dur": 0.523
+},
+{
+"word": "for",
+"start": 3.8265,
+"dur": 0.1786
+},
+{
+"word": "space",
+"start": 4.0179,
+"dur": 0.3316
+},
+{
+"word": "shuttle",
+"start": 4.3623,
+"dur": 0.3189
+},
+{
+"word": "crews.",
+"start": 4.6939,
+"dur": 0.4975
+},
+{
+"word": "Near",
+"start": 5.5995,
+"dur": 0.2934
+},
+{
+"word": "Ouadane",
+"start": 5.9056,
+"dur": 0.4975
+},
+{
+"word": "on",
+"start": 6.4158,
+"dur": 0.1275
+},
+{
+"word": "the",
+"start": 6.5561,
+"dur": 0.0765
+},
+{
+"word": "Adrar",
+"start": 6.6454,
+"dur": 0.3699
+},
+{
+"word": "Plateau",
+"start": 7.0281,
+"dur": 0.5102
+},
+{
+"word": "of",
+"start": 7.551,
+"dur": 0.102
+},
+{
+"word": "Mauritania,",
+"start": 7.6658,
+"dur": 0.727
+},
+{
+"word": "a",
+"start": 9.0561,
+"dur": 0.0893
+},
+{
+"word": "subsurface",
+"start": 9.1582,
+"dur": 0.6378
+},
+{
+"word": "igneous",
+"start": 9.8469,
+"dur": 0.4337
+},
+{
+"word": "intrusion",
+"start": 10.2934,
+"dur": 0.574
+},
+{
+"word": "deformed",
+"start": 10.8801,
+"dur": 0.4975
+},
+{
+"word": "overlying",
+"start": 11.4031,
+"dur": 0.5995
+},
+{
+"word": "sedimentary",
+"start": 12.0153,
+"dur": 0.625
+},
+{
+"word": "rock",
+"start": 12.6531,
+"dur": 0.2934
+},
+{
+"word": "layers",
+"start": 12.9592,
+"dur": 0.4082
+},
+{
+"word": "into",
+"start": 13.3929,
+"dur": 0.2424
+},
+{
+"word": "concentric",
+"start": 13.648,
+"dur": 0.5995
+},
+{
+"word": "rings",
+"start": 14.2602,
+"dur": 0.3826
+},
+{
+"word": "framed",
+"start": 14.6556,
+"dur": 0.4592
+},
+{
+"word": "by",
+"start": 15.1275,
+"dur": 0.1786
+},
+{
+"word": "gabbroic",
+"start": 15.3189,
+"dur": 0.5102
+},
+{
+"word": "dikes.",
+"start": 15.8418,
+"dur": 0.4847
+},
+{
+"word": "Geologists",
+"start": 16.7347,
+"dur": 0.676
+},
+{
+"word": "initially",
+"start": 17.4235,
+"dur": 0.4847
+},
+{
+"word": "considered",
+"start": 17.9209,
+"dur": 0.4847
+},
+{
+"word": "it",
+"start": 18.4184,
+"dur": 0.1913
+},
+{
+"word": "an",
+"start": 18.6352,
+"dur": 0.1403
+},
+{
+"word": "extraterrestrial",
+"start": 18.7883,
+"dur": 0.8418
+},
+{
+"word": "impact",
+"start": 19.6429,
+"dur": 0.4464
+},
+{
+"word": "crater,",
+"start": 20.102,
+"dur": 0.4719
+},
+{
+"word": "until",
+"start": 20.9311,
+"dur": 0.3826
+},
+{
+"word": "analysis",
+"start": 21.3265,
+"dur": 0.6505
+},
+{
+"word": "in",
+"start": 21.9898,
+"dur": 0.3656
+},
+{
+"word": "1969",
+"start": 22.3554,
+"dur": 0.7313
+},
+{
+"word": "proved",
+"start": 23.0995,
+"dur": 0.3699
+},
+{
+"word": "suspected",
+"start": 23.4821,
+"dur": 0.5102
+},
+{
+"word": "shock",
+"start": 24.0051,
+"dur": 0.2806
+},
+{
+"word": "coesite",
+"start": 24.2985,
+"dur": 0.5357
+},
+{
+"word": "was",
+"start": 24.8469,
+"dur": 0.1786
+},
+{
+"word": "mislabeled",
+"start": 25.0383,
+"dur": 0.5867
+},
+{
+"word": "barite.",
+"start": 25.6378,
+"dur": 0.5102
+},
+{
+"word": "Dating",
+"start": 26.5561,
+"dur": 0.3316
+},
+{
+"word": "shows",
+"start": 26.9005,
+"dur": 0.3826
+},
+{
+"word": "the",
+"start": 27.2959,
+"dur": 0.102
+},
+{
+"word": "carbonatite",
+"start": 27.4107,
+"dur": 0.727
+},
+{
+"word": "rocks",
+"start": 28.1505,
+"dur": 0.2934
+},
+{
+"word": "cooled",
+"start": 28.4566,
+"dur": 0.3699
+},
+{
+"word": "between",
+"start": 28.8393,
+"dur": 0.3316
+},
+{
+"word": "94",
+"start": 29.1837,
+"dur": 0.727
+},
+{
+"word": "and",
+"start": 29.9235,
+"dur": 0.1148
+},
+{
+"word": "104",
+"start": 30.051,
+"dur": 0.2475
+},
+{
+"word": "million",
+"start": 30.2985,
+"dur": 0.5774
+},
+{
+"word": "years",
+"start": 30.8759,
+"dur": 0.4124
+},
+{
+"word": "ago,",
+"start": 31.301,
+"dur": 0.3444
+},
+{
+"word": "long",
+"start": 32.2066,
+"dur": 0.3571
+},
+{
+"word": "before",
+"start": 32.5765,
+"dur": 0.3954
+},
+{
+"word": "prehistoric",
+"start": 32.9847,
+"dur": 0.6378
+},
+{
+"word": "humans",
+"start": 33.6352,
+"dur": 0.4592
+},
+{
+"word": "left",
+"start": 34.1071,
+"dur": 0.3061
+},
+{
+"word": "exceptional",
+"start": 34.426,
+"dur": 0.5612
+},
+{
+"word": "accumulations",
+"start": 35.0,
+"dur": 0.7653
+},
+{
+"word": "of",
+"start": 35.7781,
+"dur": 0.1275
+},
+{
+"word": "Acheulean",
+"start": 35.9184,
+"dur": 0.4592
+},
+{
+"word": "stone",
+"start": 36.3903,
+"dur": 0.3061
+},
+{
+"word": "tools.",
+"start": 36.7092,
+"dur": 0.4719
+},
+{
+"word": "Deep",
+"start": 37.5893,
+"dur": 0.2806
+},
+{
+"word": "erosion",
+"start": 37.8826,
+"dur": 0.5612
+},
+{
+"word": "sculpted",
+"start": 38.4566,
+"dur": 0.574
+},
+{
+"word": "this",
+"start": 39.0434,
+"dur": 0.1786
+},
+{
+"word": "natural",
+"start": 39.2347,
+"dur": 0.4464
+},
+{
+"word": "dome",
+"start": 39.6939,
+"dur": 0.4209
+},
+{
+"word": "into",
+"start": 40.1403,
+"dur": 0.3189
+},
+{
+"word": "an",
+"start": 40.4719,
+"dur": 0.1148
+},
+{
+"word": "unmistakable",
+"start": 40.5995,
+"dur": 0.8291
+},
+{
+"word": "desert",
+"start": 41.4413,
+"dur": 0.4082
+},
+{
+"word": "landmark",
+"start": 41.8623,
+"dur": 0.4847
+},
+{
+"word": "seen",
+"start": 42.3597,
+"dur": 0.3571
+},
+{
+"word": "from",
+"start": 42.7296,
+"dur": 0.1531
+},
+{
+"word": "space.",
+"start": 42.8954,
+"dur": 0.5612
+}
+]
+}

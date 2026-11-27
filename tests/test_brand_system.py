@@ -612,7 +612,9 @@ def test_every_runtime_token_has_a_probe():
 def test_each_runtime_token_changes_what_its_renderer_draws(token):
     value, probe = TOKEN_PROBES[token]
     before = probe()
-    with brand.use(brand.DEFAULT_BRAND.derive(f"probe {token}", system={token: value})):
+    # validate=False: the probe asks whether the renderer reads the token, not whether the palette is fit (a CORAL
+    # light masthead is refused by the configure check, PLATES-06, once no longer-reach scrim rescues it: ruling N1)
+    with brand.use(brand.DEFAULT_BRAND.derive(f"probe {token}", system={token: value}), validate=False):
         during = probe()
     assert during != before, token
     assert probe() == before                                               # and back with the default brand

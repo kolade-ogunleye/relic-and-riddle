@@ -593,6 +593,12 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     goal = tok("contrast.masthead_target") if target is None else target
     spec_font = font_for(size)
     asked = baseline + 6 * cap_height(spec_font) if reach is None else float(reach)
+    if form == "stacked" and stack_lines() is not None:
+        # freeze cycle 6 (M1): the stacked form's LAST baseline stands on the share of the top-edge ramp the one-line
+        # form's baseline stands on (the matched reach, as lane D cycle 3 matched the Facebook cover's): its second
+        # line, one stack pitch lower, gets the strength the one-line name gets (on the stored bright stress ground the
+        # default's stacked form reached 4.52:1 on the one-line reach, 5.55 on this one)
+        asked *= (baseline + stack_pitch(size)) / baseline
 
     def rank(rec):
         c = float(rec.get("contrast") or 0.0)

@@ -3185,6 +3185,15 @@ class MultiFormatGenerator:
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
                                                  max_width=cw - px(280) - x0, form=form)
             mrec["reach_matched"] = round(matched)
+        if not mrec["shown"] and form == "stacked" and not mrec.get("fb_interior"):
+            # freeze cycle 6 (M1): where the stacked form reaches no gate on this ground the one-line form is tried
+            # (the post's form gives way to a drawn mark, never to a missing one), recorded on the slide
+            why = mrec.get("reason")
+            im2, plate2, mrec2, box2 = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
+                                                     max_width=cw - px(280) - x0, form="line")
+            if mrec2["shown"]:
+                im, plate, mrec, box = im2, plate2, mrec2, box2
+                mrec["form_fallback"] = {"post_form": "stacked", "drawn": "line", "stacked": why}
         if archetype == "cover" and isinstance(getattr(lay, "meta", None), dict):
             # the hook ratio of the form drawn (masthead.hook_record), the one-line form's beside it
             lay.meta["hook_ratio"] = masthead.hook_record(

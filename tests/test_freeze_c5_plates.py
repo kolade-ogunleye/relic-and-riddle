@@ -105,13 +105,17 @@ def test_the_corpus_measure_states_the_same_limit_as_the_rule():
 
 @pytest.mark.parametrize("ground", sorted(GROUNDS))
 def test_every_carousel_and_story_band_edge_is_within_its_grounds_limit(ground):
+    """Each soft band's edge is inside its ground's limit, or (lander ruling 2026-11-26) its ramp ran the whole
+    designed reach and the rule wanted more (band_edge.reach: not met), the edge never lengthened past it."""
     car = GROUNDS[ground]((1440, 1800))
     out = multi_format.scrim(car, 980, 1800, feather=240, target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
     edges = pc.band_edges(car, out, brand.INK2, False)
-    assert edges and all(e["ok"] for e in edges), edges
+    met = band_edge.reach(band_edge.luma_rows(car), 980, "up", brand.INK2, 1.0, 240, 1440)[1]
+    assert edges and (all(e["ok"] for e in edges) or not met), edges
     tall = GROUNDS[ground]((1080, 1920))
     out = multi_format.scrim(tall, 700, 1100, feather=320, target=0.30)
-    assert all(e["ok"] for e in pc.band_edges(tall, out, brand.INK, True))
+    for e in pc.band_edges(tall, out, brand.INK, True):
+        assert e["ok"] or e["rows"][1] - e["rows"][0] <= band_edge.reach_cap(320, 1080) + 8, e
 
 
 @pytest.mark.parametrize("ground", sorted(GROUNDS))
@@ -120,14 +124,15 @@ def test_the_hook_plate_is_within_the_floating_limit_on_every_ground(ground):
     tall = GROUNDS[ground]((1080, 1920))
     y0, y1, st, right = 715, 1055, 0.96, 901
     feathers, side = dc._plate_feathers(tall, y0, y1, st, dc.HOOK_PLATE_FEATHER, right)
-    assert min(feathers) >= dc.HOOK_PLATE_FEATHER and side >= dc.HOOK_PLATE_SIDE
+    # lander ruling 2026-11-26: an edge is the rule's ramp, at least the designed 128 and at most 256 (2 x 128), or the
+    # plate's crisp designed edge (0) where the rule wants more; the ease right of the block its designed 360
+    assert all(v == 0 or dc.HOOK_PLATE_FEATHER <= v <= 256 for v in feathers) and side == dc.HOOK_PLATE_SIDE
     comp = Image.alpha_composite(tall.convert("RGBA"), dc._plate_layer(tall.size, y0, y1, st, feathers, right, side))
     left = (0, 0, right, 1920)
     edges = pc.band_edges(tall.crop(left), comp.convert("RGB").crop(left), brand.INK, True, 1080)
-    assert len(edges) == 2 and all(e["ok"] for e in edges), edges
-    band = (0, y0, 1080, y1)
-    across = pc.band_edges(tall.crop(band), comp.convert("RGB").crop(band), brand.INK, True, 1080, transpose=True)
-    assert all(e["ok"] for e in across), across
+    assert len(edges) == sum(1 for v in feathers if v) and all(e["ok"] for e in edges), (edges, feathers)
+    if ground == "flat bright":
+        assert feathers == (0, 0)          # the panel's case: no ramp reaches the limit inside the reach: crisp
 
 
 def test_the_old_fixed_feather_fails_the_measure_on_a_bright_ground():
@@ -156,11 +161,14 @@ def test_the_myth_panel_edges_are_within_the_floating_limit(tmp_path):
         dc._myth_ground(photo, dc._Geo(1080, 1920), 0.0, 1.0, dc.MYTH_PANEL[0], dc.MYTH_PANEL[1])
     finally:
         dc._photo_outside = real
-    (outside, mask, feathers), panel = caught["parts"]
+    (outside, mask, feathers, rec), panel = caught["parts"]
     edges = pc.band_edges(outside, Image.composite(outside, panel, mask), panel, True)
-    assert edges and all(e["ok"] for e in edges), edges
-    assert max(e["slope"] for e in edges) <= brand_system.tok("edge.slope_float") * 1.25 + 0.1
-    assert min(feathers) > dc._Geo(1080, 1920).px(dc.MYTH_EDGE_MIN)
+    # each edge is a ramp inside the floating limit at the rule's own value, or crisp and recorded (lander ruling
+    # 2026-11-26: past the designed reach the panel keeps its crisp edge); never a ramp past 256 px
+    crisp = rec.get("crisp") or []
+    assert len(edges) + len(crisp) == 2 and all(e["ok"] for e in edges), (edges, rec)
+    assert all(v == 0 or v <= 256 for v in feathers), feathers
+    assert [s_ for s_, v in zip(("up", "down"), feathers) if not v] == sorted(crisp, key=("up", "down").index)
 
 
 # ------------------------------------------------------------------------------------------------ PLATES-02

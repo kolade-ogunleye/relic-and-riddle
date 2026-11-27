@@ -487,8 +487,10 @@ def _end_regions(name: str, stats: dict[str, Any], size) -> dict[str, tuple]:
 
 
 def hook_sequence(clips: Path) -> dict[str, Any]:
-    """The hook card (the tests' card, render_surfaces.py's grounds) on the first ground it is not refused on, every
-    frame, encoded once. {seq, ground, refused: {ground: reason}}."""
+    """The hook card (the tests' card, render_surfaces.py's grounds) on every ground it is not refused on, every
+    frame, each encoded once. {seq, ground, claim: the first such ground's (as before cycle 5), all: {ground: {seq,
+    ground, claim, plan_frames}} (cycle 5, panel 6: the only hook clip was on pale sandstone; the saturated yellow
+    Amber ground was judged from stills), refused: {ground: reason}}."""
     if "hook" in _cache:
         return _cache["hook"]
     fx = _fx()
@@ -517,8 +519,10 @@ def hook_sequence(clips: Path) -> dict[str, Any]:
             continue
         seq = Seq("hook", clip, dc.frame_at(plan, 0).size, None, keep=lambda i: True)
         seq.seconds = round(time.perf_counter() - t0, 1)
-        res = {"seq": seq, "ground": g, "claim": " / ".join(fc.claim_lines(plan)), "plan_frames": plan.frames}
-        break
+        one = {"seq": seq, "ground": g, "claim": " / ".join(fc.claim_lines(plan)), "plan_frames": plan.frames}
+        if not res:
+            res = dict(one)
+        res.setdefault("all", {})[g] = one
     res["refused"] = refused
     _cache["hook"] = res
     return res

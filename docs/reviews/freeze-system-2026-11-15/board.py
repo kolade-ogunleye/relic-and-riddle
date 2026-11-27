@@ -143,61 +143,170 @@ def undrawn_tiles(r: int, prefixes: tuple[str, ...], pngs: set[str], surfaces: d
     return out
 
 
+def save_case(out: Path, manifest: dict, name: str, image) -> None:
+    """Cycle 5 (panel 6: 41 board stems had no full-size file, only their tile on the half-scale row): a case the
+    board draws itself (never render_surfaces.py: the bright and near-white covers, the Aswan deck, the hook's held
+    frames, the frames taken from the clips, the badges) is saved at full size as <out>/cases/<name>.png."""
+    if (out / "surfaces" / f"{name}.png").is_file():
+        return
+    (out / "cases").mkdir(parents=True, exist_ok=True)
+    image.convert("RGB").save(out / "cases" / f"{name}.png")
+    manifest.setdefault("case_files", {})[name] = f"cases/{name}.png"
+
+
+def case_files(out: Path, manifest: dict, names: list[str]) -> None:
+    """board.json "case_files": every case of a row -> its own full-size file (surfaces/<name>.png from
+    render_surfaces.py, else cases/<name>.png from the board's own draw), or None for a tile that is no picture (a
+    refused or raised surface: its reason is in the refusal table)."""
+    rec = manifest.setdefault("case_files", {})
+    for n in names:
+        if (out / "surfaces" / f"{n}.png").is_file():
+            rec[n] = f"surfaces/{n}.png"
+        else:
+            rec.setdefault(n, None)
+
+
+WIDE_CAPTIONS: tuple[str, ...] = ()   # the topics whose caption fixture is 16:9 (main sets it from the catalogue)
+
+
+def clip_tier_name(stem: str) -> str:
+    """A clip's name as the tier rule reads surfaces: <kind>_<916|169>__<case> -> <kind>__<case>__<916|169>."""
+    head, _, rest = stem.partition("__")
+    for tag in ("916", "169"):
+        if head.endswith(f"_{tag}"):
+            return f"{head[:-4]}__{rest}__{tag}"
+    return stem
+
+
 LABEL_PX, LABEL_MIN_W = 22, 320
+TIER_PX = 16            # the production-tier line of a label strip: smaller than the label, in the tier's colour
+TIER_KEY = "board_tier"  # a sheet PNG's text chunk: its tiles (or its strip) carry the tier, so it is stamped once
 
 
-def label(im, text: str):
-    """The tile under its own label strip (black, white type, wrapped to the tile's width): a label never covers the
-    image (F22: the @246 masthead tiles hid the mark under the bar). A tile narrower than LABEL_MIN_W sits on a
-    board-grey field that wide, so its label stays readable."""
-    from PIL import Image, ImageDraw, ImageFont
-    f = ImageFont.load_default(size=LABEL_PX)
-    if im.width < LABEL_MIN_W:
-        field = Image.new("RGB", (LABEL_MIN_W, im.height), (40, 40, 40))
-        field.paste(im, (0, 0))
-        im = field
+def _wrap(text: str, font, room: float) -> list[str]:
+    """`text` in lines no wider than `room` (a long name breaks inside itself)."""
+    from PIL import Image, ImageDraw
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    room = im.width - 12
     lines: list[str] = []
     cur = ""
     for word in str(text).split(" "):
-        while probe.textlength(word, font=f) > room:   # a long name breaks inside itself
-            k = max(1, int(len(word) * room / probe.textlength(word, font=f)) - 1)
+        while probe.textlength(word, font=font) > room:   # a long name breaks inside itself
+            k = max(1, int(len(word) * room / probe.textlength(word, font=font)) - 1)
             if cur:
                 lines.append(cur)
                 cur = ""
             lines.append(word[:k])
             word = word[k:]
         trial = f"{cur} {word}".strip()
-        if cur and probe.textlength(trial, font=f) > room:
+        if cur and probe.textlength(trial, font=font) > room:
             lines.append(cur)
             cur = word
         else:
             cur = trial
     lines.append(cur)
+    return lines
+
+
+def label(im, text: str, tier: tuple[str, str] | None = None):
+    """The tile under its own label strip (black, white type, wrapped to the tile's width): a label never covers the
+    image (F22: the @246 masthead tiles hid the mark under the bar). A tile narrower than LABEL_MIN_W sits on a
+    board-grey field that wide, so its label stays readable. `tier` (cycle 5, review item 6: the tier was only in
+    board.json): (tier, its words) drawn as the strip's first line, small, in the tier's colour; it is part of the
+    strip, never of the image under it."""
+    from PIL import Image, ImageDraw, ImageFont
+    f = ImageFont.load_default(size=LABEL_PX)
+    if im.width < LABEL_MIN_W:
+        field = Image.new("RGB", (LABEL_MIN_W, im.height), (40, 40, 40))
+        field.paste(im, (0, 0))
+        im = field
+    room = im.width - 12
+    lines = _wrap(text, f, room)
     step = LABEL_PX + 4
-    h = 8 + step * len(lines)
+    tier_lines: list[str] = []
+    tier_step = TIER_PX + 4
+    if tier:
+        ft = ImageFont.load_default(size=TIER_PX)
+        tier_lines = _wrap(tier[1], ft, room)
+    top = tier_step * len(tier_lines)
+    h = 8 + top + step * len(lines)
     out = Image.new("RGB", (im.width, h + im.height), (0, 0, 0))
     d = ImageDraw.Draw(out)
+    if tier:
+        import board_evidence as be
+        for i, ln in enumerate(tier_lines):
+            d.text((6, 4 + tier_step * i), ln, fill=be.TIER_COLOURS.get(tier[0], (255, 255, 255)), font=ft)
     for i, ln in enumerate(lines):
-        d.text((6, 4 + step * i), ln, fill=(255, 255, 255), font=f)
+        d.text((6, 4 + top + step * i), ln, fill=(255, 255, 255), font=f)
     out.paste(im, (0, h))
     return out
+
+
+def _tier_info(tiers: str):
+    from PIL.PngImagePlugin import PngInfo
+    info = PngInfo()
+    info.add_text(TIER_KEY, tiers)
+    return info
+
+
+def tier_strip(im, stem: str):
+    """A sheet saved whole (a table, a curve, a specimen: no tiles) under a one-line strip naming its tier
+    (board_evidence.tile_tier of the sheet's own name): (the image with the strip above it, the tier). The sheet's
+    own pixels are unchanged below the strip."""
+    import board_evidence as be
+    from PIL import Image
+    t, words = be.tile_tier(stem, stem, WIDE_CAPTIONS)
+    strip = label(Image.new("RGB", (max(im.width, LABEL_MIN_W), 1), (0, 0, 0)), stem, tier=(t, words))
+    strip = strip.crop((0, 0, strip.width, strip.height - 1))
+    out = Image.new("RGB", (max(im.width, strip.width), strip.height + im.height), (0, 0, 0))
+    out.paste(strip, (0, 0))
+    out.paste(im.convert("RGB"), (0, strip.height))
+    return out, t
+
+
+def tier_sheets(out: Path) -> dict[str, str]:
+    """Cycle 5 (review item 6): every sheet of the board says its tier. sheet() draws it on each tile; this stamps
+    the sheets saved whole (rows 1, 12 and 13's tables, curves and specimens, the burst and refusal tables) with
+    tier_strip, and makes their half-size copy again from the stamped sheet. A sheet already carrying the tier (its
+    PNG text chunk TIER_KEY) is left as it is, so a board re-run over the same folder stamps nothing twice. Only
+    <out>/*.png: the surfaces and cases (the judged pixels) are in their own folders and are never opened here.
+    Returns {sheet stem: tier} of the sheets stamped."""
+    from PIL import Image
+    done: dict[str, str] = {}
+    for p in sorted(Path(out).glob("*.png")):
+        with Image.open(p) as im:
+            if im.info.get(TIER_KEY):
+                continue
+            stamped, t = tier_strip(im.convert("RGB"), p.stem)
+        stamped.save(p, compress_level=1, pnginfo=_tier_info(t))
+        half = p.with_name(p.stem + "_half.jpg")
+        if half.is_file():
+            stamped.resize((max(1, stamped.width // 2), max(1, stamped.height // 2)), Image.LANCZOS).save(half, quality=90)
+        done[p.stem] = t
+    return done
 
 
 def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
     """Tiles (label, image) at a common height (`tile_h`), or at their own pixel size (`tile_h=None`: the feed
     renders, crops and tiles that must be seen as delivered), `cols` per row, each under its own label strip, saved
     full and half (Lanczos, q90)."""
+    import board_evidence as be
     from PIL import Image
     if not tiles:
         return
     scaled = []
+    tiers = []
     for name, im in tiles:
         im = im.convert("RGB")
         if tile_h is not None and im.height != tile_h:
             im = im.resize((max(1, round(im.width * tile_h / im.height)), tile_h), Image.LANCZOS)
-        scaled.append(label(im, name))
+        # cycle 5 (review item 6): each tile's production tier in its label strip (rows 1, 2, 12, 13 and the peer
+        # feeds too: every sheet of tiles comes through here); the image under the strip is untouched
+        tier = be.tile_tier(str(name), out.stem, WIDE_CAPTIONS)
+        tiers.append(tier[0])
+        tile = label(im, name, tier=tier)
+        if reused_tile(str(name)):   # round 3: a copied, unproven surface says so on its own tile
+            tile = not_evidence_strip(tile, "this tile's surface was copied from a previous board, not rendered")
+        scaled.append(tile)
     rows = [scaled[i:i + cols] for i in range(0, len(scaled), cols)]
     W = max(sum(t.width for t in r) + 12 * (len(r) - 1) for r in rows)
     H = sum(max(t.height for t in r) for r in rows) + 12 * (len(rows) - 1)
@@ -209,8 +318,83 @@ def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
             board.paste(t, (x, y))
             x += t.width + 12
         y += max(t.height for t in r) + 12
-    board.save(out.with_suffix(".png"), compress_level=1)   # lossless either way; level 1 saves the big rows faster
+    # lossless either way; level 1 saves the big rows faster. The text chunk says its tiles carry their tier
+    board.save(out.with_suffix(".png"), compress_level=1, pnginfo=_tier_info(",".join(sorted(set(tiers)))))
     board.resize((max(1, W // 2), max(1, H // 2)), Image.LANCZOS).save(out.with_name(out.stem + "_half.jpg"), quality=90)
+
+
+# Round 3 (lander ruling 2026-11-26, queue/REVIEW2-board-c5.md): reuse is an iteration aid, never evidence. A board
+# made with --reuse --unsafe-reuse-for-iteration names its copied surfaces here; their tiles, the surface files
+# themselves and every sheet carry board_reuse.NOT_EVIDENCE, and the board is stamped not for the panel.
+REUSED_STEMS: set[str] = set()
+NOT_EVIDENCE_RED = (230, 40, 40)
+
+
+def reused_tile(name: str) -> bool:
+    """Whether a tile's label names a surface this board copied from a previous one (any ` | ` part of it)."""
+    return bool(REUSED_STEMS) and any(part.strip() in REUSED_STEMS for part in name.split(" | "))
+
+
+def not_evidence_strip(im, why: str):
+    """`im` under a red strip that reads REUSED, NOT EVIDENCE and `why`; the image below the strip is unchanged."""
+    import board_reuse
+    from PIL import Image, ImageDraw, ImageFont
+    f = ImageFont.load_default(size=LABEL_PX)
+    w = max(im.width, LABEL_MIN_W)
+    lines = _wrap(f"{board_reuse.NOT_EVIDENCE}: {why}", f, w - 12)
+    h = 8 + (LABEL_PX + 4) * len(lines)
+    out = Image.new("RGB", (w, h + im.height), NOT_EVIDENCE_RED)
+    d = ImageDraw.Draw(out)
+    for i, ln in enumerate(lines):
+        d.text((6, 4 + (LABEL_PX + 4) * i), ln, fill=(255, 255, 255), font=f)
+    out.paste(im.convert("RGB"), (0, h))
+    return out
+
+
+def mark_not_evidence(out: Path) -> dict[str, list[str]]:
+    """Every sheet saved in <out> (and its half-size copy) and every copied surface file under a NOT_EVIDENCE strip,
+    once (the PNG text chunk board_reuse.NOT_EVIDENCE_KEY; the tier chunk is kept). Run after every row is drawn,
+    so the rows were drawn from the copied pixels as they were. Returns what was marked."""
+    import board_reuse
+    from PIL import Image
+    from PIL.PngImagePlugin import PngInfo
+    done: dict[str, list[str]] = {"sheets": [], "surfaces": []}
+    targets = [(q, "sheets", "an incremental board (--unsafe-reuse-for-iteration): not for a panel or a score")
+               for q in sorted(Path(out).glob("*.png"))]
+    targets += [(Path(out) / "surfaces" / f"{n}.png", "surfaces", "copied from a previous board, not rendered")
+                for n in sorted(REUSED_STEMS)]
+    for q, kind, why in targets:
+        if not q.is_file():
+            continue
+        with Image.open(q) as im:
+            if im.info.get(board_reuse.NOT_EVIDENCE_KEY):
+                continue
+            texts = {k: v for k, v in im.info.items() if isinstance(v, str)}
+            marked = not_evidence_strip(im.convert("RGB"), why)
+        info = PngInfo()
+        for k, v in texts.items():
+            info.add_text(k, v)
+        info.add_text(board_reuse.NOT_EVIDENCE_KEY, board_reuse.NOT_EVIDENCE)
+        marked.save(q, compress_level=1, pnginfo=info)
+        half = q.with_name(q.stem + "_half.jpg")
+        if half.is_file():
+            marked.resize((max(1, marked.width // 2), max(1, marked.height // 2)), Image.LANCZOS).save(half, quality=90)
+        done[kind].append(q.name)
+    return done
+
+
+def _offline(*_a, **_k):
+    raise RuntimeError("board.py is offline: no board path reaches the network (the paid matcher included)")
+
+
+def block_network() -> None:
+    """No socket connects from this process (the board process and every compose worker, where the Aswan deck and the
+    board's own social frames are drawn), as render_surfaces.py blocks its own: board_decks.no_vision is then not the
+    only thing between a board path and a paid or networked call."""
+    import socket
+    socket.create_connection = _offline
+    socket.socket.connect = _offline
+    socket.socket.connect_ex = _offline
 
 
 def sys_value(name: str):
@@ -382,6 +566,7 @@ def reveal_frame(hero_path: str, size: tuple[int, int], dev: str):
 # independent draws run in worker processes, started before row 1 and taken up where the one-process board draws them
 PREFETCH: dict = {}   # key -> Future of board_evidence.captured(...)
 END_TOPICS: list[str] = []   # cycle 3: the grounds whose end sequences rows 9 and 12 encode (main: --end-topics)
+TREE: list[Path] = []        # cycle 5: the tree under review (main sets it), for the draws a worker runs
 
 
 def prefetched(key):
@@ -393,6 +578,7 @@ def prefetched(key):
 def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     """A compose worker set up as main() sets up the board process (environment, paths, the exact memo, the brand)."""
     os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8", RR_FIXTURE_REPO=dev)
+    block_network()   # round 3: a compose worker is offline, as render_surfaces.py is
     os.chdir(tree)
     for p in (here, str(Path(tree) / FIX), tree):
         if p in sys.path:
@@ -401,7 +587,8 @@ def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     import board_speed
     board_speed.install()
     import board_inputs   # cycle 3: this worker's reads join the board's input record (board_evidence.captured)
-    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[tempfile.gettempdir() + os.sep + "board-"])
+    board_inputs.install([dev, board_inputs.FRAME_CACHE, *board_inputs.tree_roots(tree)],
+                         skip=[tempfile.gettempdir() + os.sep + "board-"])
     configure_palette(Path(tree), brand_name)
 
 
@@ -489,6 +676,11 @@ def prefetch_compose(pool, rows: set[int], dev: Path, work: Path, clips: Path) -
     if rows & {11, 12}:   # cycle 4: the callout's held frame and its clip are one draw
         PREFETCH["callout held"] = pool.submit(be.captured, bx.callout_held, work, clips)
         done.append("row 11 callout held frame and row 12 callout clip")
+    if 7 in rows:   # cycle 5: each caption fixture's whole run (row 7)
+        for topic, tag in bx.caption_run_cases():
+            PREFETCH[("caption run", topic, tag)] = pool.submit(be.captured, bx.caption_run, str(TREE[0]), work,
+                                                                clips, topic, tag)
+            done.append(f"caption run {topic} {tag}")
     if 12 in rows:   # cycle 4: the then-and-now clips (row 12)
         for topic, tag, _size, _case in bm.thennow_cases():
             bm.MOTION_PREFETCH[("thennow", topic, tag)] = pool.submit(be.captured, bm.draw_thennow, clips, work,
@@ -628,25 +820,26 @@ def row12_motion(out: Path, dev: Path, work: Path, manifest: dict) -> list[str]:
 
     for topic in END_TOPICS or [bm.END_TOPIC]:   # cycle 3: every board ground with a catalogue case
         made += end_motion(out, clips, topic, "" if topic == bm.END_TOPIC else f"__{topic}", clip_rec)
-    # the hook: hold and fade
+    # the hook: hold and fade, on every ground it draws on (cycle 5: the first keeps the unsuffixed names)
     hook = bm.hook_sequence(clips)
-    if hook.get("seq"):
-        hs = hook["seq"]
-        cls, why = be.pairing(f"card__hook__{hook['ground']}__916")
+    for n_hook, (ground, one) in enumerate((hook.get("all") or {}).items()):
+        hs = one["seq"]
+        sname = "row12_motion_hook" + ("" if n_hook == 0 else f"__{ground}")
+        cls, why = be.pairing(f"card__hook__{ground}__916")
         tag = f"{cls}: {why}" if cls != be.REAL else "own topic"
-        clip_rec(hs, "12", f"hook card on the {hook['ground']} ground, claim {hook['claim']} ({tag})")
+        clip_rec(hs, "12", f"hook card on the {ground} ground, claim {one['claim']} ({tag})")
         tiles = [(f"{n} | {tag}" if k == 0 else n, im)
-                 for k, (n, im) in enumerate(x for x in bm.strip(hs, scale_h=480, label="hook ")
+                 for k, (n, im) in enumerate(x for x in bm.strip(hs, scale_h=480, label=f"hook ({ground}) ")
                                              if frame_no(x[0]) % 2 == 0 or 30 <= frame_no(x[0]) <= 42)]
-        sheet(tiles, out / "row12_motion_hook", tile_h=576, cols=8)
+        sheet(tiles, out / sname, tile_h=576, cols=8)
         t = [i / bm.FPS for i in range(hs.n)]
         bm.plot({"type alpha (_hook_alpha)": (t, [dc._hook_alpha(x) for x in t]),
                  "plate + wash alpha": (t, [dc._hook_alpha(x, dc.HOOK_GROUND_HOLD, dc.HOOK_GROUND_FADE) for x in t]),
                  "frame mean luma / 255": (t, [v / 255 for v in hs.luma])},
-                f"hook card ({hook['ground']} ground, {tag}): the type's hold and fade, the ground's after it",
+                f"hook card ({ground} ground, {tag}): the type's hold and fade, the ground's after it",
                 "alpha (0-1)", (0, 1), marks={"HOOK_HOLD": dc.HOOK_HOLD, "HOOK_GROUND_HOLD": dc.HOOK_GROUND_HOLD,
-                                               "CAPTION_CLEAR": dc.CAPTION_CLEAR}).save(out / "row12_motion_hook_curves.png")
-        made += ["row12_motion_hook", "row12_motion_hook_curves"]
+                                               "CAPTION_CLEAR": dc.CAPTION_CLEAR}).save(out / f"{sname}_curves.png")
+        made += [sname, f"{sname}_curves"]
     for g, why in hook.get("refused", {}).items():
         manifest["labels"][f"card__hook__{g}__916 (row 12)"] = f"REFUSED: {why}"
     made += thennow_motion(out, clips, work, clip_rec)   # cycle 4 (panel 5 MO): then-and-now and callout clips
@@ -874,7 +1067,7 @@ def uses(module: str, engine: str) -> str:
             f"from . import {engine}" in text else f"own rule (does not import src/{engine}.py)")
 
 
-def row13_table(out: Path, work: Path) -> list[str]:
+def row13_table(out: Path, work: Path, board_mastheads: dict | None = None) -> list[str]:
     """The element-by-element tables across surfaces, generated (cycle 3: never written by hand, so never stale):
     what this board's renderers recorded as drawn (board_table.drawn), what each surface's code reaches
     (board_table.code_rows), the weights the system holds and who reads them (board_table.weight_rows), and the
@@ -886,12 +1079,15 @@ def row13_table(out: Path, work: Path) -> list[str]:
     ends = bm.all_end()
     sj = out / "surfaces.json"
     surfaces = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    if board_mastheads:   # cycle 5: the board-drawn social frames (the Aswan deck, the near-white slides) too
+        surfaces = dict(surfaces or {})
+        surfaces["masthead_records"] = {**(surfaces.get("masthead_records") or {}), **board_mastheads}
     parts = [
         ("Drawn on this board: each renderer's own masthead record per surface across its grounds (row 2 records, "
          "and the end sequences' stats of rows 9 / 12)", draw_table(bt.drawn(out, ends), (420, 190, 190, 230, 240, 230, 520))),
         ("Drawn on this board: the masthead of every social frame by kind, cover and interiors (each frame's own "
          "layout record from render_surfaces.py; row13_fb_masthead shows the regions)",
-         draw_table(bt.social_masthead_rows(surfaces), (380, 150, 170, 190, 150, 560, 170, 520))),
+         draw_table(bt.social_masthead_rows(surfaces), (380, 150, 170, 190, 150, 560, 170, 520, 150, 150, 150))),
         ("From the code: each surface's entry point and what it reaches (an AST call graph over src/*.py; colours and "
          "tokens named in the surface's own module)", draw_table(bt.code_rows(), (560, 380, 330, 420, 760))),
         ("Weights: every <role>.weight value, the src modules that read it, and what row 1's specimen draws",
@@ -1038,6 +1234,42 @@ def row7_cps(out: Path, work: Path) -> str:
     return "row07_captions_cps"
 
 
+def row7_runs(out: Path, tree: Path, work: Path, clips: Path, manifest: dict) -> dict[str, list[str]]:
+    """Row 7, cycle 5: per caption fixture, the whole run: its production clip, the caption band at the end of every
+    burst at 1:1 (row07_captions_run__<topic>__<tag>.png) and the burst table (…_bursts.png / .json). A worker draws
+    each under --workers (prefetch_compose)."""
+    import board_extras as bx
+    import board_motion as bm
+    made: dict[str, list[str]] = {}
+    for topic, tag in bx.caption_run_cases():
+        key = ("caption run", topic, tag)
+        try:
+            res = prefetched(key) if key in PREFETCH else bx.caption_run(tree, work, clips, topic, tag)
+        except Exception:  # noqa: BLE001  one fixture's failure is recorded, the others are drawn
+            manifest["errors"][f"caption run {topic} {tag}"] = traceback.format_exc()[-1500:]
+            continue
+        if not res.get("clip"):
+            continue
+        sname = f"row07_{res['name']}"
+        tiles = res["tiles"]
+        if tiles:
+            head = (f"{topic} {tag}: the caption band {res['box']} at 1:1 on the frame {bx.CAPTION_RUN_LEAD}s before "
+                    f"each burst leaves (its reveal complete), production encode, on {res['ground']}")
+            tiles = [(f"{tiles[0][0]} | {head}", tiles[0][1])] + tiles[1:]
+        sheet(tiles, out / sname, tile_h=None, cols=4)
+        draw_table(res["rows"], (90, 130, 140, 90, 190, 200, 1100)).save(out / f"{sname}_bursts.png")
+        (out / f"{sname}_bursts.json").write_text(json.dumps(
+            [dict(zip(res["rows"][0], r)) for r in res["rows"][1:]], indent=1, default=str), encoding="utf-8",
+            newline="\n")
+        manifest["clips"][res["clip"]["path"].name] = {
+            "row": "7", "what": f"captions, whole run: {topic} {tag}, {len(res['rows']) - 1} bursts, "
+                                f"{res['seconds']} s on {res['ground']}",
+            "frames": res["frames"], "seconds": round(res["frames"] / bm.FPS, 3), "sha256": res["clip"]["sha256"],
+            "encoder": res["clip"]["encoder"]}
+        made[sname] = [n.split(" | ")[0] for n, _ in tiles]
+    return made
+
+
 def draw_table(rows, widths):
     """A white table image: each cell wrapped to its column, each row as tall as its tallest cell."""
     from PIL import Image, ImageDraw, ImageFont
@@ -1130,6 +1362,41 @@ def element_rows():
     return out
 
 
+def fb_post_order(deck: str, names: list[str], sj_rec: dict, dev: Path) -> tuple[list[str], str, str | None]:
+    """The Facebook slides of `deck` the multi-photo post carries, in its order: (surface names, over what the pick
+    was made, the error when facebook_pick could not run). A deck drawn by production's entry carries the publisher's
+    own pick over the copy as drawn (photo_choice "facebook_post", board_decks.production_deck); a replayed deck is
+    picked over the run's recorded Facebook copy with today's archetypes."""
+    import board_evidence as be
+    choice = sj_rec.get("photo_choice") or {}
+    places = {n: (choice.get(n) or {}).get("facebook_post") for n in names if "facebook_post" in (choice.get(n) or {})}
+    if places and all(v != "unknown" for v in places.values()):
+        return sorted((n for n, v in places.items() if v), key=lambda n: places[n]), "the Facebook copy as drawn", None
+    current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in (sj_rec.get("rerouted") or {}).items()
+               if k.startswith(f"{deck}__fb_carousel_slide_")}
+    try:
+        picked = be.fb_post_slides(dev / "output" / f"run_{deck[len('social__'):]}", current)
+    except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
+        return [], "the run's recorded Facebook copy with today's archetypes", f"{type(e).__name__}: {e}"[:1500]
+    return ([f"{deck}__fb_carousel_slide_{Path(x).stem.rsplit('_', 1)[-1]}" for x in picked],
+            "the run's recorded Facebook copy with today's archetypes", None)
+
+
+def fb_unposted(names: list[str], sj_rec: dict, dev: Path) -> dict[str, list[str]]:
+    """Round 3 (lander ruling 2026-11-26, after REVIEW2-board-c5.md (d)): per deck, the Facebook slides the
+    multi-photo post never carries (fb_post_order), which the usage inventory counts as never seen by viewers: tier 4
+    (board_evidence.FB_UNPOSTED). A deck whose pick could not be made keeps its slides at tier 1, said in board.json."""
+    decks: dict[str, list[str]] = {}
+    for n in sorted(x for x in names if x.startswith("social__") and "__fb_carousel_slide_" in x):
+        decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
+    out: dict[str, list[str]] = {}
+    for deck, slides in decks.items():
+        order, _over, err = fb_post_order(deck, slides, sj_rec, dev)
+        if order and not err:
+            out[deck] = [n for n in slides if n not in order]
+    return out
+
+
 def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: dict) -> list[str]:
     """Round 8 (PL-E1): a feed sheet per feed surface at real pixel size (board_evidence.FEEDS), each of the heroes'
     tiles among 8 peer slots: the Reel cover and the carousel cover in the Instagram grid, the carousel cover in the
@@ -1170,20 +1437,15 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
     for n in sorted(x for x in surf if x.startswith("social__") and "__fb_carousel_slide_" in x):
         decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
     sj_ = out / "surfaces.json"
-    rerouted = (json.loads(sj_.read_text(encoding="utf-8")).get("rerouted") or {}) if sj_.is_file() else {}
+    sj_rec = json.loads(sj_.read_text(encoding="utf-8")) if sj_.is_file() else {}
     collages, posted = [], {}
     for deck, names in decks.items():
         tag = deck[len("social__"):]
-        current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
-                   if k.startswith(f"{deck}__fb_carousel_slide_")}
-        try:
-            picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
-        except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
-            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
-            picked = []
-        order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
+        order, over, err = fb_post_order(deck, names, sj_rec, dev)
+        if err:
+            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = err
         order = [n for n in order if n in surf]
-        how = (f"publisher's set: facebook_pick posts {len(order)} of {len(names)} Facebook slides "
+        how = (f"publisher's set: facebook_pick over {over} posts {len(order)} of {len(names)} Facebook slides "
                f"({', '.join(n.rsplit('_', 1)[-1] for n in order)})" if order else
                f"NOT publisher's set (facebook_pick unavailable): the first {min(len(names), 5)} of {len(names)}")
         order = order or names[:5]
@@ -1253,7 +1515,9 @@ SHARD_ONLY_KEYS = ("surfaces", "errors", "seconds", "story_title_px",   # merged
                    "retired", "rerouted", "bridge_ladder", "wide_grounds",   # cycle 3: retired frames not drawn, slides re-routed
                    # cycle 4: the omission ledger per job (SYS batch 3, lane A) and per surface (render_surfaces.py
                    # attributes each row to the surface it was drawn into), and each frame's masthead record
-                   "omissions", "surface_omissions", "masthead_records")
+                   "omissions", "surface_omissions", "masthead_records",
+                   # cycle 5: each slide's photo choice (SYS-photo-c5-1), each Story frame's pointer (SYS-plates-c5-1)
+                   "photo_choice", "pointer_records")
 SHARD_SAME_KEYS = ("src_sha256", "brand", "graphic_runs", "brand_validation")   # equal in every shard
 SHARD_UNION_KEYS = ("input_files",)   # cycle 3: {path: sha256} read by a shard (board_inputs.py), merged by union
 SHARD_SKIP_KEYS = ("count",)   # recomputed after the merge
@@ -1305,25 +1569,114 @@ def merge_shards(parts: list[dict]) -> dict:
     return merged
 
 
-def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, brand_name: str, workers: int,
-                 timings: Path | None, subset: Path | None) -> dict:
-    """render_surfaces.py through run_surfaces.py into <out>/surfaces and <out>/surfaces.json: one process, or
-    `workers` shards (--jobs) merged into the same surfaces.json. Returns what ran (for board.json)."""
+def surfaces_cmd(here: Path, tree: Path, dev: Path, per_kind: int, brand_name: str) -> tuple[list[str], list[str]]:
+    """(run_surfaces.py's command up to render_surfaces.py's own arguments, the arguments every call shares)."""
     script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
     base = [sys.executable, str(here / "run_surfaces.py"), str(script), str(tree), str(dev)]
-    common = ["--per-kind", str(per_kind)] + (["--brand", brand_name] if brand_name != "default" else [])
+    return base, ["--per-kind", str(per_kind)] + (["--brand", brand_name] if brand_name != "default" else [])
+
+
+def offered_jobs(here: Path, tree: Path, dev: Path, per_kind: int, brand_name: str, subset: Path | None) -> list[str]:
+    """The jobs render_surfaces.py would render now (its --list-jobs, after --per-kind and --surface-jobs), in order."""
+    base, common = surfaces_cmd(here, tree, dev, per_kind, brand_name)
+    tmp = Path(tempfile.mkdtemp(prefix="board-jobs-"))
+    try:
+        subprocess.run(base + [str(tmp / "listing.json")] + common + (["--jobs", str(subset)] if subset else [])
+                       + ["--list-jobs", str(tmp / "jobs.txt")], check=True, stdout=subprocess.DEVNULL)
+        return (tmp / "jobs.txt").read_text(encoding="utf-8").splitlines()
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run_jobs(base: list[str], common: list[str], keep: list[str], out: Path, env: dict, names: list[str],
+             prior: dict[str, float], workers: int, tree: Path, before: dict[str, str] | None, tmp: Path,
+             clean: bool = True) -> dict:
+    """One render process per job, `workers` at a time, longest first (cycle 5, fix 1): what a job reads, imports
+    or leaves in a module is then its own, so its record (board_deps.py) is whole and does not depend on which jobs
+    shared its process. Merged into <out>/surfaces.json and <out>/DEPS.json as the shards were."""
+    import threading
+
+    import board_deps
+    est = {k: float(prior.get(k) or JOB_SECONDS.get(k.split(" ")[0], 60)) for k in names}
+    queue = sorted(names, key=lambda k: (-est[k], names.index(k)))
+    lock = threading.Lock()
+    failed: dict[int, int] = {}
+    wall: dict[str, float] = {}
+    env = dict(env, BOARD_DEPS_SKIP=os.pathsep.join([str(out), str(tmp)]))
+
+    def worker() -> None:
+        while True:
+            with lock:
+                if not queue:
+                    return
+                name = queue.pop(0)
+            k = names.index(name)
+            (tmp / f"job{k}.jobs").write_text(f"{name}\n", encoding="utf-8", newline="\n")
+            t0 = time.perf_counter()
+            with open(tmp / f"job{k}.log", "w", encoding="utf-8") as log:
+                rc = subprocess.run(base + [str(tmp / f"job{k}.json")] + keep + common
+                                    + ["--jobs", str(tmp / f"job{k}.jobs")], stdout=log, stderr=subprocess.STDOUT,
+                                    env=env).returncode
+            wall[name] = round(time.perf_counter() - t0, 1)
+            if rc:
+                failed[k] = rc
+                print(f"board: surfaces job {name!r} failed ({rc}):\n"
+                      + (tmp / f"job{k}.log").read_text(encoding="utf-8", errors="replace")[-3000:], file=sys.stderr)
+    print(f"board: surfaces: {len(names)} jobs, one process each, {workers} at a time, logs in {tmp}",
+          file=sys.stderr, flush=True)
+    threads = [threading.Thread(target=worker, daemon=True) for _ in range(max(1, min(workers, len(names))))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    if failed:
+        raise RuntimeError(f"surfaces jobs {sorted(names[k] for k in failed)[:6]} failed (logs in {tmp})")
+    merged = merge_shards([json.loads((tmp / f"job{k}.json").read_text(encoding="utf-8")) for k in range(len(names))])
+    missing = [n for n in names if n not in merged.get("seconds", {})]
+    if missing:
+        raise RuntimeError(f"surfaces jobs not run {missing[:5]} (logs in {tmp})")
+    (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8", newline="\n")
+    parts = [json.loads(p.read_text(encoding="utf-8")) for p in (tmp / f"job{k}.deps.json" for k in range(len(names)))
+             if p.is_file()]
+    record = board_deps.merge(parts)
+    summary = board_deps.resolve(record, board_deps.Tree(tree, "HEAD"), before, remember=clean)
+    (out / "DEPS.json").write_text(json.dumps(record, indent=0, sort_keys=True), encoding="utf-8", newline="\n")
+    print(merged["count"], "surfaces,", len(merged.get("errors", {})), "errors,",
+          round(sum(merged["seconds"].values())), "s of jobs in", len(names), "processes")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return {"processes": len(names), "deps": True, "process_seconds": wall, "artefacts": summary,
+            "startup_seconds": round(sum(wall.values()) - sum(merged["seconds"].values()), 1)}
+
+
+def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, brand_name: str, workers: int,
+                 timings: Path | None, subset: Path | None, deps: bool = False,
+                 before: dict[str, str] | None = None, clean: bool = True) -> dict:
+    """render_surfaces.py through run_surfaces.py into <out>/surfaces and <out>/surfaces.json. With `deps` (the
+    default, cycle 5): one process per job (run_jobs), each recording everything its job can depend on
+    (board_deps.py) into <out>/DEPS.json; a record only, the surfaces are the same bytes. Without: one process, or
+    `workers` shards (--jobs) merged into the same surfaces.json, and no record (the board is no reuse base).
+    Returns what ran (for board.json). `before`: the tree's untracked files when the board started; `clean`: the
+    worktree is its HEAD (only then are observed builds remembered in the builders' store)."""
+    script = tree / "docs/reviews/quality-fixes-2026-11/QF-35a/render_surfaces.py"
+    base, common = surfaces_cmd(here, tree, dev, per_kind, brand_name)
     keep = ["--keep", str(out / "surfaces")]
-    if workers > 1 and "--list-jobs" not in script.read_text(encoding="utf-8"):
+    listable = "--list-jobs" in script.read_text(encoding="utf-8")
+    if deps and not listable:
+        print("board: this tree's render_surfaces.py has no --list-jobs: no per-job record", file=sys.stderr)
+        deps = False
+    env = dict(os.environ, BOARD_DEPS="1") if deps else dict(os.environ, BOARD_DEPS="0")
+    (out / "DEPS.json").unlink(missing_ok=True)   # never a stale record beside surfaces it does not describe
+    if workers > 1 and not listable:
         print("board: this tree's render_surfaces.py has no --list-jobs: surfaces in one process", file=sys.stderr)
         workers = 1
-    if workers <= 1:
+    if workers <= 1 and not deps:
         subprocess.run(base + [str(out / "surfaces.json")] + keep + common + (["--jobs", str(subset)] if subset else []),
-                       check=True)
-        return {"processes": 1}
+                       check=True, env=env)
+        return {"processes": 1, "deps": False}
     tmp = Path(tempfile.mkdtemp(prefix="board-shards-"))
     listing = tmp / "jobs.txt"
     subprocess.run(base + [str(tmp / "listing.json")] + common + (["--jobs", str(subset)] if subset else [])
-                   + ["--list-jobs", str(listing)], check=True, stdout=subprocess.DEVNULL)
+                   + ["--list-jobs", str(listing)], check=True, stdout=subprocess.DEVNULL, env=env)
     names = listing.read_text(encoding="utf-8").splitlines()
     src = timings or (out / "surfaces.json")
     prior = {}
@@ -1332,13 +1685,16 @@ def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, br
             prior = json.loads(src.read_text(encoding="utf-8")).get("seconds") or {}
         except ValueError:
             prior = {}
+    if deps:
+        return run_jobs(base, common, keep, out, env, names, prior, workers, tree, before, tmp, clean)
     shards = [s for s in shard_jobs(names, prior, workers) if s]
     procs = []
     for k, jobs in enumerate(shards):
         (tmp / f"shard{k}.jobs").write_text("".join(f"{j}\n" for j in jobs), encoding="utf-8", newline="\n")
         log = open(tmp / f"shard{k}.log", "w", encoding="utf-8")
         cmd = base + [str(tmp / f"shard{k}.json")] + keep + common + ["--jobs", str(tmp / f"shard{k}.jobs")]
-        procs.append((k, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT), log, time.perf_counter()))
+        procs.append((k, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, env=env), log,
+                      time.perf_counter()))
     print(f"board: surfaces in {len(shards)} shards ({len(names)} jobs, times from "
           f"{src if prior else 'the per-kind defaults'}), logs in {tmp}", file=sys.stderr, flush=True)
     failed, took_s = [], {}
@@ -1361,6 +1717,7 @@ def run_surfaces(here: Path, tree: Path, dev: Path, out: Path, per_kind: int, br
           round(sum(merged["seconds"].values())), "s of jobs in", len(shards), "shards")
     shutil.rmtree(tmp, ignore_errors=True)
     return {"processes": len(shards), "jobs": len(names), "balanced_by": str(src) if prior else "per-kind defaults",
+            "deps": deps,
             "shard_jobs_seconds": [round(sum(merged["seconds"].get(j) or 0 for j in s), 1) for s in shards],
             "shard_seconds": [took_s[k] for k in range(len(shards))]}
 
@@ -1385,6 +1742,21 @@ def main() -> None:
                     "ig_grid, ig_feed, yt_home, yt_suggested, fb_feed, fb_reels (none: the slots are the channel's other runs, "
                     "labelled STAND-IN; a feed folder that is missing or holds fewer than 8 posts is filled with "
                     "labelled STAND-INs)")
+    ap.add_argument("--reuse", type=Path, help="cycle 5, the incremental board: a previous board of this palette "
+                    "(its board.json, surfaces.json, DEPS.json, MANIFEST.json). Only the render_surfaces.py jobs whose "
+                    "inputs changed since it are rendered (board_reuse.py says what an input is); the rest are its "
+                    "files, byte for byte; REUSE.json records which. Anything that forbids it renders every job")
+    ap.add_argument("--unsafe-reuse-for-iteration", action="store_true", help="round 3 (queue/REVIEW2-board-c5.md): "
+                    "--reuse is refused without it. With it the board is an iteration aid, never evidence: stamped "
+                    "not for the panel (board.json not_for_panel, REUSE.json unsafe, NOT-EVIDENCE.txt), every copied "
+                    "tile and surface file and every sheet marked REUSED, NOT EVIDENCE")
+    ap.add_argument("--reuse-sample", type=int, default=2, help="with --reuse: this many of the reused jobs that "
+                    "loaded a changed module, picked at random, are rendered anyway and must equal the previous "
+                    "board's (a difference: exit 3); -1: all of them. The jobs the static net names are always "
+                    "rendered (board_reuse.static_net)")
+    ap.add_argument("--reuse-seed", type=int, help="with --reuse: the sample's seed (default: random, recorded)")
+    ap.add_argument("--no-deps", action="store_true", help="do not record the code each job runs (DEPS.json): the "
+                    "board cannot then be the --reuse base of a later one")
     ap.add_argument("--end-topics", default="", help="rows 9 / 12: only these board grounds' end sequences "
                     "(comma-separated; default every board ground with a catalogue end-card case)")
     ap.add_argument("--portability", type=Path, help="a lane's freeze candidate: a file of render_surfaces.py job "
@@ -1393,6 +1765,11 @@ def main() -> None:
                     "default palette on the non-history stress copy set (board_portability.py), side by side, into "
                     "<out>/portability; nothing else is drawn")
     a = ap.parse_args()
+    import board_reuse
+    if a.reuse and not a.unsafe_reuse_for_iteration:   # round 3: the fence (board_reuse.REFUSED)
+        print(f"board: {board_reuse.REFUSED}", file=sys.stderr, flush=True)
+        raise SystemExit(2)
+    block_network()   # round 3: the board process is offline too (the Aswan deck is drawn here at --workers 1)
     tree, dev, out = a.tree.resolve(), a.dev.resolve(), a.out.resolve()
     here = Path(__file__).resolve().parent
     out.mkdir(parents=True, exist_ok=True)
@@ -1409,8 +1786,12 @@ def main() -> None:
         board_portability.main(here, tree, dev, out, a.portability.resolve(), a.workers)
         return
     import board_inputs   # cycle 3: the code stamp and every data file the board reads (MANIFEST provenance)
-    board_inputs.install([dev, board_inputs.FRAME_CACHE], skip=[out])
+    board_inputs.install([dev, board_inputs.FRAME_CACHE, *board_inputs.tree_roots(tree)], skip=[out])
     stamp = board_inputs.tree_stamp(tree, here)
+    stamp["path"] = str(tree)   # cycle 5: where the tree was (its recorded data reads are under it)
+    if not a.no_deps:   # cycle 5, fix 1: the files no commit names that a render could read (an on-disk cache)
+        import board_deps
+        stamp["untracked"] = board_deps.untracked(tree)
     src_hash = hashlib.sha256()
     for f in sorted((tree / "src").glob("*.py")):
         src_hash.update(f.name.encode() + f.read_bytes().replace(bytes([13, 10]), bytes([10])))
@@ -1418,6 +1799,13 @@ def main() -> None:
                 "tree": stamp}
     t_all = time.perf_counter()
     import board_motion as bm
+    TREE[:] = [tree]
+    global WIDE_CAPTIONS
+    try:
+        import fixtures as _fx
+        WIDE_CAPTIONS = tuple(c["topic"] for c in _fx.load("captions") if c.get("format") == "16:9")
+    except Exception:  # noqa: BLE001  the tiers then read every caption as 9:16; said in board.json
+        manifest["tier_note"] = "caption formats unreadable: every caption case tiered as 9:16"
     END_TOPICS[:] = [t for t in bm.end_topics(HEROES)
                      if not a.end_topics or t in {x.strip() for x in a.end_topics.split(",")}]
     manifest["end_topics"] = list(END_TOPICS)
@@ -1425,11 +1813,69 @@ def main() -> None:
     def took(what: str, t0: float) -> None:
         manifest["seconds"][what] = round(time.perf_counter() - t0, 1)
         print(f"board: {what}: {manifest['seconds'][what]:.0f}s", file=sys.stderr, flush=True)
+    t0 = time.perf_counter()   # cycle 5: board_reuse, the not-code inputs outside git (toolchain, tools/ data)
+    reuse_env = manifest["reuse_env"] = board_reuse.environment(tree)
+    took("reuse environment (toolchain, tools/ data hashed)", t0)
     if rows & set(ROWS) and not a.no_surfaces:
         t0 = time.perf_counter()
-        manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
-                                                        a.timings.resolve() if a.timings else None,
-                                                        a.surface_jobs.resolve() if a.surface_jobs else None)}
+        subset = a.surface_jobs.resolve() if a.surface_jobs else None
+        timings = a.timings.resolve() if a.timings else None
+        plan = None
+        if a.reuse:   # cycle 5: the incremental board (board_reuse.py): only the jobs whose inputs changed
+            prev = a.reuse.resolve()
+            # round 3: with the flag (checked above) the board is never evidence, whatever is reused
+            manifest["not_for_panel"] = (f"{board_reuse.NOT_EVIDENCE}: made with --reuse {prev} "
+                                         f"{board_reuse.UNSAFE_FLAG} (queue/REVIEW2-board-c5.md R1-R5)")
+            board_reuse.stamp_not_evidence(out, [])
+            try:
+                offered = offered_jobs(here, tree, dev, a.per_kind, a.brand, subset)
+                t_plan = time.perf_counter()
+                took("reuse: the job list (render_surfaces.py --list-jobs)", t0)
+                plan = board_reuse.plan(tree, prev, a.brand, stamp, reuse_env, offered, a.reuse_sample, a.reuse_seed)
+                took("reuse: the plan (each job's key at both commits, its inputs on disk, the static net)", t_plan)
+            except board_reuse.NoReuse as e:
+                print(f"board: NO REUSE of {prev}: {e}: rendering every job", file=sys.stderr, flush=True)
+                manifest["reuse"] = {"prev": str(prev), "no_reuse": str(e)}
+                rec = board_reuse.none(out, str(e), a.brand, prev)
+                rec["unsafe"] = manifest["not_for_panel"]
+                (out / board_reuse.REUSE_NAME).write_text(json.dumps(rec, indent=1), encoding="utf-8", newline="\n")
+        if plan is None:
+            (out / board_reuse.REUSE_NAME).unlink(missing_ok=True) if not a.reuse else None
+            manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
+                                                            timings, subset, deps=not a.no_deps,
+                                                            before=stamp.get("untracked"),
+                                                            clean=stamp.get("dirty_vs_head") is False)}
+        else:
+            todo = board_reuse.to_render(plan)
+            print(f"board: reuse of {plan['prev']['dir']} ({plan['prev']['head'][:10]}): {len(todo)} of "
+                  f"{len(plan['jobs'])} jobs render ({len(plan['sample']['static_net'])} of them for the static "
+                  f"net, {len(plan['sample']['random'])} the random sample)", file=sys.stderr, flush=True)
+            for j in todo:
+                r = plan["jobs"][j]
+                print(f"board:   {r['status']:8} {j}: {r.get('why', 'sample')} "
+                      f"{'; '.join(c.rsplit('/', 1)[-1] for c in (r.get('changed') or [])[:4])}", file=sys.stderr)
+            fresh = fresh_deps = None
+            if todo:
+                jobs_file = Path(tempfile.mkdtemp(prefix="board-reuse-")) / "jobs.txt"
+                jobs_file.write_text("".join(f"{j}\n" for j in todo), encoding="utf-8", newline="\n")
+                manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand,
+                                                                min(a.workers, len(todo)), timings or
+                                                                (a.reuse.resolve() / "surfaces.json"), jobs_file,
+                                                                deps=True, before=stamp.get("untracked"),
+                                                            clean=stamp.get("dirty_vs_head") is False)}
+                fresh = json.loads((out / "surfaces.json").read_text(encoding="utf-8"))
+                fresh_deps = json.loads((out / "DEPS.json").read_text(encoding="utf-8"))
+                shutil.rmtree(jobs_file.parent, ignore_errors=True)
+            plan["unsafe"] = manifest["not_for_panel"]   # REUSE.json says it too (finish writes it)
+            merged = board_reuse.finish(plan, out, fresh, fresh_deps)   # exit 3 on a sample mismatch
+            REUSED_STEMS.update(Path(f).stem for f, r in plan["files"].items() if r["status"] == "reused")
+            board_reuse.stamp_not_evidence(out, sorted(REUSED_STEMS))
+            merged["src_sha256"] = manifest["src_sha256"]
+            (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8",
+                                               newline="\n")
+            manifest["reuse"] = {"prev": plan["prev"], "counts": plan["counts"], "sample": plan["sample"],
+                                 "record": board_reuse.REUSE_NAME}
+            print(f"board: reuse: {plan['counts']}", file=sys.stderr, flush=True)
         took("surfaces (render_surfaces.py)", t0)
     from src import brand
     manifest["palette"] = palette_record(a.brand, tree)   # cycle 4: what this palette moves (BC4)
@@ -1449,7 +1895,7 @@ def main() -> None:
     manifest["labels"], manifest["errors"], manifest["sheets"] = {}, {}, {}
     manifest.setdefault("clips", {})
     pool = None
-    if a.workers > 1 and rows & {2, 9, 11, 12}:
+    if a.workers > 1 and rows & {2, 7, 9, 11, 12}:
         import multiprocessing
         from concurrent.futures import ProcessPoolExecutor
         n = max(1, a.workers - 1)   # the board process composes beside them: `workers` processes in all
@@ -1478,6 +1924,11 @@ def main() -> None:
     from PIL import Image
     sj = out / "surfaces.json"
     surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    if surfaces_rec is not None:   # round 3: a Facebook slide the post never carries is tier 4 (never seen)
+        unposted = extra("facebook pick for the tiers", lambda: fb_unposted(
+            [q.stem for q in (out / "surfaces").glob("*__fb_carousel_slide_*.png")], surfaces_rec, dev), {})
+        be.FB_UNPOSTED.update(n for v in unposted.values() for n in v)
+        manifest["fb_unposted"] = unposted
     for rec in ((surfaces_rec or {}).get("wide_grounds") or {}).values():   # cycle 3: each 16:9 ground's pairing
         be.WIDE_GROUNDS[int(rec["index"])] = (rec["class"], rec["why"])
     for k in ("retired", "rerouted", "bridge_ladder", "wide_grounds"):   # cycle 3: production today, not as recorded
@@ -1505,8 +1956,13 @@ def main() -> None:
             seam = rec.get("seam") or {}
             return (f"shipped variant: {rec.get('variant')} (composer's ladder) | seam {seam.get('mad_last')} of under "
                     f"{seam.get('gate_max')} | seam motion: {rec.get('motion_source', '-')}")
+        def drawn_arch(stem: str):   # cycle 5: the archetype the tree drew (the run's, or today's where they differ)
+            return bx.recipe_archetype(dev, stem, surfaces_rec)
+
         def note(stem: str) -> str:   # cycle 4: the ladder's rung and any recorded omission, on the tile's label
-            return " | ".join(x for x in (shipped(stem), be.omission_note(stem, surfaces_rec)) if x)
+            diagram = "diagram slide" if r == 5 and drawn_arch(stem) == "diagram" else ""   # its tier is 2
+            return " | ".join(x for x in (diagram, shipped(stem), be.omission_note(stem, surfaces_rec),
+                                          be.record_note(stem, surfaces_rec)) if x)
         tiles = [(be.label(p.stem, note(p.stem)), Image.open(p).convert("RGB")) for p in heroes]
         sheets: dict[str, tuple[list, int | None, int]] = {}
 
@@ -1515,8 +1971,14 @@ def main() -> None:
                 if item.get("refused"):   # round 8: the renderer refused this surface; its row says so
                     tiles.append((be.label(item["name"], "REFUSED"), be.refusal_tile(item["name"], item["refused"])))
                 return
+            withheld = be.masthead_note(item.get("masthead"))   # cycle 5: a withheld masthead is said on the tile
+            if withheld:
+                item = dict(item, label=f"{item['label']} | {withheld}")
             tiles.append((be.label(item["name"], item["label"]), item["image"]))
             manifest["labels"][item["name"]] = be.label(item["name"], item["label"])
+            save_case(out, manifest, item["name"], item["image"])
+            if item.get("masthead") is not None:   # cycle 5: a board-drawn social frame's own masthead record
+                manifest.setdefault("masthead_records", {})[item["name"]] = dict(item["masthead"])
         if r in (3, 4):
             for c in extra("covers", lambda: bx.covers(dev, work, HEROES), []):
                 if r == 3:
@@ -1541,7 +2003,7 @@ def main() -> None:
         if r == 5:
             figure_slides = []
             for p in pick:   # the stat and diagram slides of every recipe run (the heroes' decks route none)
-                arch = bx.recipe_archetype(dev, p.stem)
+                arch = drawn_arch(p.stem)
                 if arch in ("colossal_stat", "diagram") and "__carousel_" in p.stem:
                     item = {"name": p.stem, "label": f"{arch} slide (recipe)", "image": Image.open(p).convert("RGB")}
                     figure_slides.append(item)
@@ -1601,6 +2063,9 @@ def main() -> None:
                 cps = extra("caption reading record", lambda: row7_cps(out, work))
                 if cps:
                     manifest["sheets"][cps] = ["row07_captions_cps.json"]
+                for sname, names in (extra("caption whole runs", lambda: row7_runs(out, tree, work, clips, manifest),
+                                           {}) or {}).items():
+                    manifest["sheets"][sname] = names
         if r == 8:
             for item in extra("hook frames", bx.hook_frames, []):
                 if "refused" in item:
@@ -1637,6 +2102,9 @@ def main() -> None:
         tiles += undrawn_tiles(r, prefixes, {p.stem for p in pngs}, surfaces_rec)
         sheet(tiles, out / f"row{r:02d}_{name}", tile_h=960)
         manifest["rows"][str(r)] = [n.split(" | ")[0] for n, _ in tiles]
+        case_files(out, manifest, manifest["rows"][str(r)])
+        for n, _im in tiles:   # cycle 5: each case's production tier (scores are reported by tier)
+            manifest.setdefault("case_tiers", {})[n.split(" | ")[0]] = be.tier(n.split(" | ")[0], n, WIDE_CAPTIONS)
         for sname, (stiles, th, cols) in sheets.items():
             sheet(stiles, out / sname, tile_h=th, cols=cols)
             manifest["sheets"][sname] = [n for n, _ in stiles]
@@ -1651,7 +2119,7 @@ def main() -> None:
         took("row 12", t0)
     if 13 in rows:
         t0 = time.perf_counter()
-        manifest["rows"]["13"] = row13_table(out, work)
+        manifest["rows"]["13"] = row13_table(out, work, manifest.get("masthead_records"))
         took("row 13", t0)
     # round 8: the refusal table of this palette (surface, what, reason)
     sj = out / "surfaces.json"
@@ -1666,6 +2134,20 @@ def main() -> None:
         PREFETCH.clear()
         bm.PREFETCH.clear()
     shutil.rmtree(work, ignore_errors=True)
+    for clip_name in manifest.get("clips") or {}:   # cycle 5: the clips' tiers too
+        stem = Path(clip_name).stem
+        manifest.setdefault("case_tiers", {})[f"clips/{stem}"] = be.tier(clip_tier_name(stem), "", WIDE_CAPTIONS)
+    # cycle 5 (review item 6): every case of every row has a tier (rows 1, 2, 12, 13 and the peer feeds are assigned
+    # outside the loop above), and every sheet saved whole says its tier on the sheet itself
+    be.case_tiers(manifest, WIDE_CAPTIONS)
+    manifest["tier_strips"] = extra("tier strips", lambda: tier_sheets(out), {})
+    if manifest.get("not_for_panel"):   # round 3: after every sheet is drawn and tier-stamped
+        manifest["not_evidence_marks"] = mark_not_evidence(out)
+    manifest["tiers"] = {"what": be.TIER_WHAT, "rule": "lander ruling 2026-11-26 (SURFACE-USAGE-2026-11-26): a "
+                         "lane's verdict is set by tiers 1-2", "drawn": "each tile's label strip (sheet()) and a "
+                         "strip above each sheet saved whole (tier_sheets)", "counts": {
+                             t: sum(1 for v in (manifest.get("case_tiers") or {}).values() if v == t)
+                             for t in be.TIER_WHAT}}
     took("board total (this process)", t_all)
     # cycle 3 (AD r1 AD-EV-manifest): the inputs' union (render_surfaces.py's shards, this process, the workers) and
     # INPUT_HASHES.json, which freeze_manifest.py reads into each image's input_hash
@@ -1679,9 +2161,27 @@ def main() -> None:
                           "note": "every data file read under the dev checkout (and fixtures.frame's cache) by "
                                   "render_surfaces.py, this process and its workers; code is the tree stamp's"}
     hashes = board_inputs.input_hashes(out, stamp, a.brand, inputs)
+    # cycle 5: a surface whose job has a code record (DEPS.json) takes the hash of what can change it: its job's
+    # code key, the palette, the not-code environment and the inputs' union (equal across two boards exactly when
+    # board_reuse.py may reuse it); every other file keeps the whole-tree hash
+    per_job = 0
+    if (out / "DEPS.json").is_file() and stamp.get("dirty_vs_head") is False:
+        import board_deps
+        deps_rec = json.loads((out / "DEPS.json").read_text(encoding="utf-8"))
+        at_head = board_deps.Tree(tree, stamp["head"])
+        job_keys = {j: board_deps.job_key(at_head, r)["sha256"] for j, r in deps_rec["jobs"].items()}
+        manifest["job_code_keys"] = job_keys
+        for rel in list(hashes):
+            job = board_reuse.job_of(Path(rel).stem) if rel.startswith("surfaces/") else None
+            if job in job_keys:
+                hashes[rel] = "sha256:" + hashlib.sha256(json.dumps(
+                    {"brand": a.brand, "env": reuse_env["sha256"], "inputs_sha256": manifest["inputs"]["sha256"],
+                     "job": job, "code_key": job_keys[job], "output": rel}, sort_keys=True,
+                    separators=(",", ":")).encode()).hexdigest()
+                per_job += 1
     (out / "INPUT_HASHES.json").write_text(json.dumps(hashes, indent=1, sort_keys=True), encoding="utf-8",
                                            newline="\n")
-    manifest["input_hashes"] = {"file": "INPUT_HASHES.json", "count": len(hashes)}
+    manifest["input_hashes"] = {"file": "INPUT_HASHES.json", "count": len(hashes), "per_job_code_key": per_job}
     (out / "board.json").write_text(json.dumps(manifest, indent=1, default=str), encoding="utf-8", newline="\n")
     print("board:", out, manifest["src_sha256"])
 

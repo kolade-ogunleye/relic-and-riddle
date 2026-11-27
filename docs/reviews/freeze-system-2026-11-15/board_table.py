@@ -210,7 +210,10 @@ SOCIAL_KINDS = {"carousel": "Instagram carousel", "fb": "Facebook multi-photo po
 def social_part(stem: str) -> tuple[str, str, int] | None:
     """(deck, kind, frame index) of a render_surfaces.py social surface (social__<run>__<kind>_<frame>), else None."""
     m = re.match(r"social__(.+?)__(carousel|fb|story)_(?:carousel_slide|story)_(\d+)", stem)
-    return (m.group(1), m.group(2), int(m.group(3))) if m else None
+    if m is None:   # cycle 5: a board-drawn stress slide (social__<ground>__carousel_slide_NN)
+        m2 = re.match(r"social__(.+?)__carousel_slide_(\d+)$", stem)
+        return (m2.group(1), "carousel", int(m2.group(2))) if m2 else None
+    return (m.group(1), m.group(2), int(m.group(3)))
 
 
 def masthead_class(stem: str) -> str | None:
@@ -228,11 +231,11 @@ def social_masthead_rows(surfaces: dict[str, Any] | None) -> list[tuple]:
     contrast drawn, the Facebook cover's matched reach where it took it, and every reason a frame draws none (a
     Facebook interior carries no masthead by rule: the collage's cover tile is branded once)."""
     rows = [("surface (records)", "masthead size px", "variant", "contrast (worst letter)", "shown / not drawn",
-             "not drawn because", "Facebook cover reach matched", "decks")]
+             "not drawn because", "Facebook cover reach matched", "decks", "reach", "margin step", "margin short")]
     recs = (surfaces or {}).get("masthead_records") or {}
     if not recs:
         rows.append(("no frame masthead records on this board (render_surfaces.py before cycle 4, or no social "
-                     "job)", "-", "-", "-", "-", "-", "-", "-"))
+                     "job)", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"))
         return rows
     by: dict[str, list] = {}
     for stem, r in sorted(recs.items()):
@@ -247,7 +250,11 @@ def social_masthead_rows(surfaces: dict[str, Any] | None) -> list[tuple]:
                      ", ".join(sorted({str(r.get("variant")) for r in shown if r.get("variant")})) or "-",
                      _span([r.get("contrast") for r in shown]), f"{len(shown)} / {len(rs) - len(shown)}",
                      "; ".join(reasons) or "-", _span([r.get("reach_matched") for r in rs]),
-                     ", ".join(sorted({social_part(s)[0] for s, _r in items}))))
+                     ", ".join(sorted({social_part(s)[0] for s, _r in items})),
+                     # cycle 5 (SYS-plates-c5-1, PLATES-05): the masthead's reach and its margin step, where the
+                     # tree records them ("-" on a tree that does not)
+                     _span([r.get("reach") for r in shown]), _span([r.get("margin_step") for r in shown]),
+                     _span([r.get("margin_short") for r in shown])))
     return rows
 
 

@@ -480,6 +480,165 @@ def omission_note(stem: str, surfaces: dict[str, Any] | None) -> str:
                                                for r in rows)
 
 
+def masthead_note(rec: dict[str, Any] | None) -> str:
+    """Cycle 5 (SYS-plates-c5-1): a frame whose masthead the gate withheld says so on its tile (a masthead a rule
+    leaves off, a Facebook interior's, is no omission)."""
+    if not rec or rec.get("shown", True) is not False or rec.get("fb_interior"):
+        return ""
+    return f"RECORDED OMISSION: drawn without the masthead ({str(rec.get('reason') or 'withheld')[:160]})"
+
+
+def record_note(stem: str, surfaces: dict[str, Any] | None) -> str:
+    """Cycle 5: what render_surfaces.py recorded about a social frame beyond its pixels: a withheld masthead, the
+    Story pointer's decision (withheld by rule is not a defect), a photograph the picker replaced."""
+    s = surfaces or {}
+    parts = [masthead_note((s.get("masthead_records") or {}).get(stem))]
+    p = (s.get("pointer_records") or {}).get(stem)
+    if p:
+        parts.append("Story pointer: " + ("drawn" if p.get("shown", True) is not False else
+                                          f"withheld ({str(p.get('reason') or 'by rule')[:140]})"))
+    c = (s.get("photo_choice") or {}).get(stem)
+    if c and c.get("replay"):   # cycle 5 (review item 5): a deck production's own entry could not be driven for
+        parts.append(f"REPLAY, not production's draw: the slide is redrawn from the run's saved recipe "
+                     f"({str(c['replay'])[:220]})")
+    if c and c.get("replaced") and not c.get("diagram"):   # a diagram slide shows its drawing, not the photograph
+        parts.append(f"photo picked by deck_photo_guard: {Path(str(c.get('photo'))).name} for "
+                     f"{Path(str(c['replaced'])).name} ({str(c.get('reason'))[:100]})")
+    return " | ".join(x for x in parts if x)
+
+
+TIER_WHAT = {"T1": "published / every run", "T2": "data-gated in a normal run",
+             "T3": "behind a flag that is off by default (documentary / 16:9, callouts): no real run produced it",
+             "T4": "internal, never seen, or nothing in the pipeline calls it"}
+# the surface kinds tier() has a rule for (a name's first part); every other name is an internal sheet (T4)
+TIER_HEADS = ("cover", "cover_badge", "thumbnail_badge", "captions", "captions_run", "social", "bridge",
+              "bridge_follow", "endscreen", "endcard", "timeline_dense", "map", "timeline", "numbers", "scale",
+              "thennow", "route", "cross_section", "callouts", "card", "hook", "act_dissolve")
+# round 3 (lander ruling 2026-11-26): the Facebook slides the multi-photo post never carries (board.fb_unposted): the
+# inventory's "never seen by viewers", tier 4
+FB_UNPOSTED: set[str] = set()
+TIER_COLOURS = {"T1": (120, 220, 130), "T2": (240, 215, 110), "T3": (240, 160, 90), "T4": (150, 190, 235)}
+# a row-12 evidence sheet's kind -> a surface name of the kind it measures (the sheet itself is internal, T4)
+SHEET_MEASURES = {"endscreen": "endscreen__x__169", "endcard916": "endcard__x", "rise": "endcard__x",
+                  "bridge": "bridge__x", "bridge_nofollow": "bridge__x", "hook": "hook__x__916",
+                  "dissolve": "act_dissolve__x__916"}
+SHEET_SUFFIXES = ("_curves", "_curve", "_timing", "_steps", "_alpha", "_bursts")
+# a surface case named inside a longer label (a peer feed's "ours: slot 5, cover__<topic>__reel")
+_CASE_IN_LABEL = re.compile(r"(?<![A-Za-z0-9_])((?:" + "|".join(sorted(TIER_HEADS, key=len, reverse=True))
+                            + r")__[A-Za-z0-9_]+)")
+
+
+def tier_known(name: str) -> bool:
+    """Whether `name` is a surface case tier() has a rule for (not an internal sheet, a strip frame or a peer)."""
+    return "__" in name and name.split("__")[0] in TIER_HEADS
+
+
+def sheet_measures(stem: str, wide_captions: tuple[str, ...] = ()) -> str | None:
+    """The tier of the production surface an evidence sheet measures (row12_motion_bridge_curves: the loop bridge,
+    T1), or None for a sheet of no one surface (a specimen, a table, a feed). The sheet's own tier stays T4: nobody
+    sees a strip or a curve; the note lets a score be read against the surface it is about."""
+    m = re.match(r"row\d+_(?:motion_)?(.+)$", stem)
+    if not m:
+        return None
+    rest = m.group(1)
+    for suffix in SHEET_SUFFIXES:
+        if rest.endswith(suffix):
+            rest = rest[:-len(suffix)]
+            break
+    if tier_known(rest):
+        return tier(rest, "", wide_captions)
+    kind = rest.split("__")[0]
+    return tier(SHEET_MEASURES[kind], "", wide_captions) if kind in SHEET_MEASURES else None
+
+
+def tile_tier(name: str, sheet: str = "", wide_captions: tuple[str, ...] = ()) -> tuple[str, str]:
+    """(tier, the text drawn in the tile's label strip) for one tile of the sheet `sheet`: the tier of the surface
+    case the tile's label names (any ` | ` part of it that is a case name), else the sheet's own (T4: an evidence
+    sheet, a feed among peers), with the tier of the surface it is about where it is about one (the surface a
+    motion sheet measures; our tile in a peer feed, named inside its label). Every tile of every sheet gets one."""
+    case = next((part for part in name.split(" | ") if tier_known(part.strip())), None)
+    if case is not None:
+        t = tier(case.strip(), name, wide_captions)
+        return t, f"TIER {t[1:]}: {TIER_WHAT[t]}"
+    t = tier(sheet or name, name, wide_captions)
+    inside = _CASE_IN_LABEL.search(name)
+    about = tier(inside.group(1), name, wide_captions) if inside else sheet_measures(sheet or name, wide_captions)
+    return t, f"TIER {t[1:]}: {TIER_WHAT[t]}" + (
+        f" | about a tier {about[1:]} surface ({TIER_WHAT[about]})" if about and about != t else "")
+
+
+def case_tiers(manifest: dict[str, Any], wide_captions: tuple[str, ...] = ()) -> dict[str, str]:
+    """board.json "case_tiers" completed: every case of every row (rows 1, 2, 12, 13 and the peer feeds too, which
+    are assigned outside the surface rows' loop) has a tier; a case the loop tiered with its label keeps it. Also
+    "sheet_measures": the tier of the surface each internal sheet measures. Returns the case tiers."""
+    rec = manifest.setdefault("case_tiers", {})
+    labels = manifest.get("labels") or {}
+    for cases in (manifest.get("rows") or {}).values():
+        for case in cases or []:
+            name = str(case).split(" | ")[0]
+            if name not in rec:
+                lab = labels.get(name)
+                rec[name] = tier(name, f"{case} | {lab}" if isinstance(lab, str) else str(case), wide_captions)
+            about = sheet_measures(name, wide_captions) if not tier_known(name) else None
+            if about:
+                manifest.setdefault("sheet_measures", {})[name] = about
+    return rec
+
+
+def tier(name: str, label: str = "", wide_captions: tuple[str, ...] = ()) -> str:
+    """A board case's production tier (lander ruling 2026-11-26: tiers follow queue SURFACE-USAGE-2026-11-26
+    exactly; results are reported by tier and a verdict is set by tiers 1-2). T1 published or made by every run:
+    Reel cover, 9:16 captions, Story, Instagram / Facebook carousel, 9:16 map, timeline, number card, loop bridge.
+    T2 data-gated in a normal run: scale, then-and-now, hook, myth, diagram slide, route, cross-section, the AI
+    badges on a 9:16 surface. T3 behind a flag that is off by default, so no real run produced it: the documentary /
+    16:9 flag (YouTube thumbnail and its badge, every 16:9 caption, graphic and card) and CALLOUTS_ENABLED (the photo
+    callout: code default false). T4 never seen, or nothing in the pipeline calls it: the grid tile, the dense
+    timeline, the 9:16 chapter card, the 9:16 end card, the 16:9 end screen (end_card.frames has no caller in src:
+    tests and the board only), anything else (internal sheets). `label` tells a diagram slide; `wide_captions` the
+    topics whose caption fixture is 16:9."""
+    n = name
+    head = n.split("__")[0]
+    wide = "__169" in n or n.endswith("_169")
+    if head in ("cover", "cover_badge", "thumbnail_badge"):
+        if n.endswith("__youtube") or head == "thumbnail_badge":
+            return "T3"
+        if n.endswith("__grid"):
+            return "T4"
+        return "T2" if head == "cover_badge" else "T1"
+    if head == "captions":
+        if any(f"captions__{t}__" in n + "__" for t in wide_captions):
+            return "T3"
+        return "T2" if "__badge" in n else "T1"
+    if head == "captions_run":
+        return "T3" if wide else "T1"
+    if head == "social":
+        if n in FB_UNPOSTED:   # a Facebook slide facebook_pick never posts: never seen by viewers
+            return "T4"
+        return "T2" if "diagram" in label.lower() else "T1"
+    if head in ("bridge", "bridge_follow"):
+        return "T1"
+    if head in ("endscreen", "endcard"):   # inventory: end_card.frames has no production caller at either size
+        return "T4"
+    if head == "timeline_dense":
+        return "T4"
+    if head in ("map", "timeline", "numbers"):
+        return "T3" if wide else "T1"
+    if head == "callouts":   # inventory: flag-gated (CALLOUTS_ENABLED, code default false); no run drew one
+        return "T3"
+    if head in ("scale", "thennow", "route", "cross_section"):
+        return "T3" if wide else "T2"
+    if head == "card":
+        kind = n.split("__")[1] if "__" in n else ""
+        if kind.startswith("chapter"):
+            return "T3" if wide else "T4"
+        return "T3" if wide else "T2"   # hook (9:16 only), myth
+    if head == "hook":
+        return "T2"
+    if head == "act_dissolve":
+        return "T1"   # the Reel's own transition between its acts
+    return "T4"
+
+
 def omission_table_rows(surfaces: dict[str, Any] | None) -> list[tuple[str, str, str]]:
     """The refusal table's rows for recorded omissions: one per row attributed to a surface, and one per job-level
     row no surface took (a tree whose render_surfaces.py records per job only, or a row recorded after the job's last

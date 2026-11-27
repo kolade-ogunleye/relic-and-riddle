@@ -785,6 +785,46 @@ IN_ONLY = re.compile(r"^\s*(\d+)\s*IN\s*$", re.IGNORECASE)
 LEVEL_LIMITS = {"M": 0.05, "FT": 1 / 24}
 
 
+# Review 3b (N4): the relation a comparison draws is machine-read and judged against the record. Every comparison
+# phrase the scale renderer draws (graphics.scale_statement) is one of these forms; each names the relation it states,
+# "<rule>:<which is larger>" (the reference larger, the subject larger, level / nearly the same). A recorded element
+# that draws a comparison word outside these forms fails closed (UNREAD_COMPARISON).
+RELATION_FORMS: tuple[tuple[Any, str], ...] = (
+    (re.compile(r"\bwould stick out\b", re.I), "difference:reference"),
+    (re.compile(r"\bwould vanish\b", re.I), "difference:subject"),
+    (re.compile(r"\bwould reach nearly to the surface\b", re.I), "difference:level"),
+    (re.compile(r"\bnearly level\b", re.I), "difference:level"),
+    (re.compile(r"\btimes as tall as\b|\btimes the height of\b", re.I), "ratio:subject"),
+    (re.compile(r"\btimes as tall\b(?!\s+as\b)|\btimes its length\b", re.I), "ratio:reference"),
+    (re.compile(r"\bnearly the same height\b|\bnearly its length\b", re.I), "ratio:level"),
+)
+UNREAD_COMPARISON = re.compile(r"\b(shorter|smaller|taller|larger|bigger|longer|deeper|shallower|higher|lower|less|more|"
+                               r"greater|fewer|above|below|beneath|exceeds?|than|stick|vanish|reach|times|same|"
+                               r"nearly)\b", re.I)
+
+
+def relations_drawn(text: str) -> tuple[list[str], list[str]]:
+    """(the relations `text` draws by RELATION_FORMS, the comparison words left over that no form reads)."""
+    rels, rest = [], str(text or "")
+    for pat, rel in RELATION_FORMS:
+        for m in list(pat.finditer(rest)):
+            rels.append(rel)
+        rest = pat.sub(" ", rest)
+    return rels, [m.group(0) for m in UNREAD_COMPARISON.finditer(rest)]
+
+
+def relation_of(rule: str, operands: Sequence[Mapping[str, Any]], shown: str) -> str:
+    """The relation a derivation states: which operand is larger by the signed values (level / nearly the same when
+    the record draws no number)."""
+    if not shown:
+        return f"{rule}:level"
+    by_role = {str(o.get("role")): float(o.get("value", 0.0)) for o in operands}
+    sub, ref = by_role.get("subject"), by_role.get("reference")
+    if sub is None or ref is None:
+        return f"{rule}:unknown"
+    return f"{rule}:{'reference' if ref > sub else 'subject'}"
+
+
 def shown_value(shown: str) -> tuple[float, float] | None:
     """(value, its last place) of a drawn derived number: "181" -> (181, 1); "1.7" -> (1.7, 0.1); a feet-and-inches
     figure "10 FT 8 IN" -> (10.667, 1/12) in feet; None for no number ("" or a word form)."""
@@ -847,7 +887,7 @@ def derivation(rule: str, operands: Sequence[Mapping[str, Any]], shown: str, tex
     got = shown_value(shown)
     exact = (not any(o.get("approximate") for o in operands) and got is not None and abs(got[0] - result) < 1e-9)
     rec = {"rule": rule, "operands": [dict(o) for o in operands], "result": round(result, 6), "shown": shown,
-           "hedged": not exact, "text": text}
+           "hedged": not exact, "text": text, "relation": relation_of(rule, operands, shown)}
     if not shown:
         rec["form_limit"] = float(threshold if threshold is not None else NEAR_RATIO if rule == "ratio" else 0.0)
     return rec
@@ -923,6 +963,9 @@ def derivation_faults(rec: Mapping[str, Any] | None, labelled: Iterable[str] | N
             out.append(f"it says {rec.get('text')!r} for a ratio of {want:.3f} (the form holds under {limit:g})")
         elif rule != "ratio" and not want <= float(limit) + 1e-9:
             out.append(f"it says {rec.get('text')!r} for a {rule} of {want:g} (the form holds to {limit:g})")
+    if rec.get("relation") != relation_of(str(rule), ops, shown):     # review 3b (N4): which operand is larger
+        out.append(f"its relation {rec.get('relation')!r} is not its operands' "
+                   f"({relation_of(str(rule), ops, shown)!r})")
     exact = (not any(o.get("approximate") for o in ops) and got is not None and abs(got[0] - want) < 1e-9)
     text = str(rec.get("text") or "").upper()
     if not exact and not any(re.search(rf"\b{re.escape(h)}\b", text) for h in HEDGE_WORDS):

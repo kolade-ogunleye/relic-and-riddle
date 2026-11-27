@@ -602,8 +602,33 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
     got = figures.shown_value(shown) if shown else None
     ops_ = list(derived.get("operands") or [])
     d_unit = str((ops_[0] if ops_ else {}).get("unit") or "").upper()
+    # review 3b (N4): the comparison the element draws is read by figures.RELATION_FORMS and must be the record's
+    # relation, which is its operands' (which is larger); a comparison word no form reads fails closed
+    rels, unread = figures.relations_drawn(text)
+    want_rel = figures.relation_of(str(derived.get("rule")), ops_, shown)
+    if unread:
+        out.append(f"it draws a comparison no relation form reads ({', '.join(unread)})")
+    for rel in rels:
+        if rel != want_rel or rel != derived.get("relation"):
+            out.append(f"it draws the relation {rel!r}; its operands' is {want_rel!r}")
+    # review 3b (N5): each number in its ROLE: the comparison row (the one that draws a relation) and the bracket draw
+    # the derived figure and nothing else; any other row draws operands' figures, never the derived one
+    derived_slot = bool(rels) or name == "bracket"
+    row_role = None if derived_slot else _row_role(text, ops_)    # a row naming the landmark / led by the subject
     for v, hedged, unit_, raw in drawn_quantities(text):
-        if got is not None and abs(v - got[0]) < 1e-9:
+        if row_role is not None and not any(abs(v - a) < 1e-9 for o in ops_ if o.get("role") == row_role
+                                            for a in drawn_numbers(str(o.get("text") or ""))):
+            out.append(f"it draws {raw!r} in the {row_role}'s slot, which draws only the {row_role}'s figure")
+            continue
+        if derived_slot and not (got is not None and abs(v - got[0]) < 1e-9):
+            out.append(f"it draws {raw!r} in the derived slot, which draws only its derivation's figure "
+                       f"({shown or 'none'})")
+            continue
+        if got is not None and abs(v - got[0]) < 1e-9 and not derived_slot and not any(
+                abs(v - a) < 1e-9 for o in ops_ for a in drawn_numbers(str(o.get("text") or ""))):
+            out.append(f"it draws its derived figure {raw!r} outside the comparison that states it")
+            continue
+        if got is not None and abs(v - got[0]) < 1e-9 and derived_slot:
             if derived.get("hedged") and not hedged:
                 out.append(f"it draws its derived figure {raw!r} without the hedge its record carries")
             if derived.get("rule") == "ratio":
@@ -629,6 +654,20 @@ def derived_faults(name: str, text: str, derived: Mapping[str, Any] | None, payl
     if got is not None and re.search(r"\bnearly\b", text, re.IGNORECASE):
         out.append(f"it says {text!r}, a word form, for a derivation that draws {shown}")
     return out
+
+
+def _row_role(text: str, operands: Sequence[Mapping[str, Any]]) -> str | None:
+    """Review 3b (N5): the operand a row of the line of meaning is about: the reference when it names the landmark,
+    the subject when it opens with the subject's name; None when it names neither."""
+    low = " ".join(str(text or "").lower().split())
+    names = {str(o.get("role")): str(o.get("name") or "").split(" (")[0].lower() for o in operands}
+    ref = names.get("reference", "")
+    if ref and ref in low:
+        return "reference"
+    sub = re.sub(r"\s+(height|depth|tall|deep|length|long)$", "", names.get("subject", "")).strip()
+    if sub and low.startswith(sub):
+        return "subject"
+    return None
 
 
 HEDGE_RE = r"(?:about|nearly|approximately|roughly|around|almost|over|under|up to)"

@@ -15,8 +15,11 @@ Forms (the queue document gives the analysis, the limits and the measures):
            group joined into one stepped plate that follows the rag, corners rounded by plate.radius; INK at the held
            tier (plate.held), the opaque tier only where held misses the target. The caption pill and the overlay
            label's held plate (typography.plan_label) are this form already.
-- "block": the hug plate's rule with one rectangle per line group (the group's ink bounds, padded and rounded): a
-           text-fitted block that ends at the text's own measure, never the frame's width (no stepped rag).
+- "block": THE ADOPTED FAMILY (lander decision, cycle 6): one rounded INK plate per text block (kicker + heading +
+           body one block; a CTA / share line and a credit their own), sized to its lines' ink plus block.* pads, on
+           the text column's left edge, widths snapped, one gap token between blocks, inside the safe box; the held
+           or opaque tier chosen for the target with a re-encode margin (block_rects, block_mask). Call sites lay it
+           only where it darkens no more of the frame than the shipped ground would (else that ground, recorded).
 - "field": a local contrast field: INK alpha computed per pixel from the photograph's own luminance under and round
            the type, only as deep as that pixel needs for the target, inside an envelope that falls off as a Gaussian
            (field.grow / field.sigma em); no straight edge exists to read.
@@ -53,6 +56,17 @@ TOKENS: dict[str, Any] = {
     "hug.tiers": ("plate.held", 1.0),  # the system's held tier, then opaque
     "hug.encode_margin": 1.2,    # a plate's tier is chosen for target x this (a platform re-encode takes ~10-18 %
     #                              off a small gold label: contrast.kicker 5.5 -> 4.5); measured, cycle 6 first round
+    # ---- the adopted family (lander decision, cycle 6): ONE plate per text block (kicker + heading + body; a CTA /
+    # share line or a credit its own block), every block of a frame on the text column's left edge
+    "block.pad_x": 0.30,         # em of the block's median line ink height: margin left and right of the ink
+    "block.pad_y": 0.22,         # em: above the first and below the last line's ink
+    "block.pad_min": 18,         # px at 1080: never inside the ring a line's contrast is measured on (10-14 px)
+    "block.gap": 24,             # px at 1080: the one vertical gap between two blocks of a frame (closer: one block)
+    "block.gap_reach": 1.0,      # x the block's pad_y: how far a facing edge may grow to make the gap the token
+    "block.width_snap": 0.08,    # of the frame width: blocks whose widths differ by less share the wider width
+    "block.radius": "plate.radius",      # the system's plate radius (14 px at 1080)
+    "block.tiers": ("plate.held", 1.0),  # the held tier, then opaque
+    "block.encode_margin": 1.2,  # the tier is chosen for target x this (a platform re-encode takes 10-18 % off)
     "field.grow": 0.35,          # em: the envelope's full-strength core past the ink
     "field.sigma": 0.45,         # em: its Gaussian fall-off
     "field.cap": 0.92,           # the deepest INK alpha the field lays
@@ -114,8 +128,8 @@ def _fills(boxes) -> list[tuple[tuple[float, float, float, float], tuple]]:
     default = min((brand.GOLD, brand.BONE), key=lambda c: float(rel_lum(np.asarray(c, np.float32))))
     out = []
     for b in boxes:
-        if len(b) == 2 and hasattr(b[0], "__len__"):
-            box, fill = b
+        if len(b) in (2, 3) and hasattr(b[0], "__len__"):
+            box, fill = b[0], b[1]
         else:
             box, fill = b, default
         x0, y0, x1, y1 = (float(v) for v in box)
@@ -305,7 +319,126 @@ def _split(G: np.ndarray, fb, size, scale, rec) -> np.ndarray:
     return alpha
 
 
-def layer(im: Image.Image, boxes: Iterable, form: str | None = None) -> tuple[Image.Image, dict[str, Any]]:
+def _items(boxes) -> list[tuple[tuple[float, float, float, float], tuple, str]]:
+    """[(box, fill, block tag)]: a box without a tag belongs to the frame's "main" block."""
+    out = []
+    for b in boxes:
+        tag = b[2] if len(b) == 3 and hasattr(b[0], "__len__") else "main"
+        got = _fills([b])
+        if got:
+            out.append((got[0][0], got[0][1], tag))
+    return out
+
+
+def block_rects(items, size, safe=None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """The frame's blocks: one per tag (first appearance order), each its lines' ink bounds padded by block.pad_x /
+    block.pad_y em of the block's median line ink height (never under block.pad_min px); every block's left edge on
+    the text column's (the leftmost); blocks whose widths differ by less than block.width_snap of the frame width
+    take the wider width; two blocks nearer than block.gap are one block, farther ones have their facing edges grown
+    (at most block.gap_reach x pad_y each) toward a gap of exactly block.gap; every edge kept inside `safe` (the
+    deliverable's safe box, else the frame). Returns ([{box, tag, lines, pad, clamped}], record)."""
+    W, H = size
+    k = W / 1080.0
+    sx0, sy0, sx1, sy1 = safe if safe is not None else (0, 0, W, H)
+    order: list[str] = []
+    by: dict[str, list] = {}
+    for bx, _f, t in items:
+        if t not in by:
+            order.append(t)
+            by[t] = []
+        by[t].append(bx)
+    blocks = []
+    for t in order:
+        bs = by[t]
+        lh = float(np.median([b[3] - b[1] for b in bs]))
+        px_ = max(tk("block.pad_min") * k, tk("block.pad_x") * lh)
+        py_ = max(tk("block.pad_min") * k, tk("block.pad_y") * lh)
+        blocks.append({"tag": t, "lines": len(bs), "pad": [round(px_, 1), round(py_, 1)],
+                       "box": [min(b[0] for b in bs) - px_, min(b[1] for b in bs) - py_,
+                               max(b[2] for b in bs) + px_, max(b[3] for b in bs) + py_]})
+    rec: dict[str, Any] = {"merged": [], "gap_short": []}
+    gap = tk("block.gap") * k
+    changed = True
+    while changed:           # nearer than the gap token: one block
+        changed = False
+        blocks.sort(key=lambda b: b["box"][1])
+        for a, b in zip(blocks, blocks[1:]):
+            if b["box"][1] - a["box"][3] < gap:
+                a["box"] = [min(a["box"][0], b["box"][0]), a["box"][1], max(a["box"][2], b["box"][2]),
+                            max(a["box"][3], b["box"][3])]
+                a["lines"] += b["lines"]
+                rec["merged"].append([a["tag"], b["tag"]])
+                if a["tag"] != b["tag"]:
+                    a["tag"] = a["tag"] + "+" + b["tag"]
+                blocks.remove(b)
+                changed = True
+                break
+    left = min(b["box"][0] for b in blocks)
+    for b in blocks:
+        b["box"][0] = left
+    snap = tk("block.width_snap") * W
+    for a in blocks:            # widths within the snap share the wider
+        for b in blocks:
+            wa, wb = a["box"][2] - a["box"][0], b["box"][2] - b["box"][0]
+            if a is not b and abs(wa - wb) < snap:
+                a["box"][2] = b["box"][2] = max(a["box"][2], b["box"][2])
+    for a, b in zip(blocks, blocks[1:]):   # the facing edges grow toward the gap token
+        g = b["box"][1] - a["box"][3]
+        if g > gap:
+            grow = min((g - gap) / 2, tk("block.gap_reach") * a["pad"][1], tk("block.gap_reach") * b["pad"][1])
+            a["box"][3] += grow
+            b["box"][1] -= grow
+            if b["box"][1] - a["box"][3] > gap + 0.5:
+                rec["gap_short"].append({"tags": [a["tag"], b["tag"]], "gap": round(b["box"][1] - a["box"][3])})
+    for b in blocks:
+        x0, y0, x1, y1 = b["box"]
+        b["clamped"] = bool(x0 < sx0 or y0 < sy0 or x1 > sx1 or y1 > sy1)
+        b["box"] = [round(max(x0, sx0)), round(max(y0, sy0)), round(min(x1, sx1)), round(min(y1, sy1))]
+    rec["blocks"] = [{"tag": b["tag"], "box": b["box"], "lines": b["lines"], "clamped": b["clamped"]} for b in blocks]
+    return blocks, rec
+
+
+def block_mask(size, blocks) -> np.ndarray:
+    """The blocks' rounded rectangles (block.radius), drawn at 4x and reduced (antialiased), 0..1."""
+    W, H = size
+    s = 4
+    m = Image.new("L", (W * s, H * s), 0)
+    d = ImageDraw.Draw(m)
+    r = float(tk("block.radius")) * W / 1080.0 * s
+    for b in blocks:
+        x0, y0, x1, y1 = b["box"]
+        d.rounded_rectangle([x0 * s, y0 * s, x1 * s - 1, y1 * s - 1], radius=r, fill=255)
+    return np.asarray(m.resize((W, H), Image.Resampling.BOX), np.float32) / 255.0
+
+
+def _block_alpha(G: np.ndarray, items, size, safe, rec) -> np.ndarray:
+    from . import brand
+    blocks, brec = block_rects(items, size, safe)
+    rec.update(brec)
+    mask = block_mask(size, blocks)
+    sel = mask > 0.5
+    tiers = tk("block.tiers")
+    tier = tiers[-1]
+    if sel.any():
+        lum = rel_lum(G[sel])
+        g = G[sel][int(np.argsort(lum)[int(0.95 * (len(lum) - 1))])]
+        worst = min(_max_ground(f, tk("target") * tk("block.encode_margin")) for _b, f, _t in items)
+        ink = np.asarray(brand.INK, np.float32)
+        tier = next((t for t in tiers if float(rel_lum(((1 - t) * g + t * ink).astype(np.float32))) <= worst + 1e-6),
+                    tiers[-1])
+    rec["tier"] = tier
+    return mask * tier
+
+
+def dark_share(before: Image.Image, after: Image.Image, step: float = 20.0) -> float:
+    """The share of the frame `after` darkens by more than `step` luma (8-bit BT.709) against `before`."""
+    L = np.array([0.2126, 0.7152, 0.0722], np.float32)
+    a = np.asarray(before.convert("RGB"), np.float32) @ L
+    b = np.asarray(after.convert("RGB"), np.float32) @ L
+    return float(((a - b) > step).mean())
+
+
+def layer(im: Image.Image, boxes: Iterable, form: str | None = None, safe=None) -> tuple[Image.Image, dict[str, Any]]:
     """(the RGBA layer laid over `im` before the type, the record) for the text `boxes` ((x0, y0, x1, y1) ink boxes,
     or (box, fill) pairs) under `form` (active() by default)."""
     from . import brand
@@ -321,8 +454,10 @@ def layer(im: Image.Image, boxes: Iterable, form: str | None = None) -> tuple[Im
     G = np.asarray(im.convert("RGB"), np.float32)
     rec["lines"] = len(fb)
     rec["groups"] = len(groups(fb))
-    if form in ("hug", "block"):
-        return _ink_rgba(size, _hug(G, fb, size, scale, rec, form == "block")), rec
+    if form == "block":
+        return _ink_rgba(size, _block_alpha(G, _items(boxes), size, safe, rec)), rec
+    if form == "hug":
+        return _ink_rgba(size, _hug(G, fb, size, scale, rec)), rec
     if form == "type":
         halo = tk("type.halo")
         short = []
@@ -357,8 +492,8 @@ def layer(im: Image.Image, boxes: Iterable, form: str | None = None) -> tuple[Im
     raise ValueError(form)
 
 
-def lay(im: Image.Image, boxes: Iterable, form: str | None = None) -> tuple[Image.Image, dict[str, Any]]:
+def lay(im: Image.Image, boxes: Iterable, form: str | None = None, safe=None) -> tuple[Image.Image, dict[str, Any]]:
     """`im` with the form's layer composited (same mode back), and the record."""
-    lyr, rec = layer(im, boxes, form)
+    lyr, rec = layer(im, boxes, form, safe)
     out = Image.alpha_composite(im.convert("RGBA"), lyr)
     return (out if im.mode == "RGBA" else out.convert(im.mode)), rec

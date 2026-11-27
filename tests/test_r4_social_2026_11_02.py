@@ -286,12 +286,14 @@ def test_instagrams_swipe_strip_runs_across_the_seam_and_facebook_draws_none(tmp
     ig = M().generate_carousel_sequence(photos * 2, payload, tmp_path / "run")
     r1, r2 = (still_layout.load(p)["recipe"]["strip"] for p in ig[:2])
     assert r1["side"] == "right" and r2["side"] == "left"
-    assert r1["box"][1:4:2] == r2["box"][1:4:2]                  # one height across the seam
-    assert r1["box"][2] == CW and r2["box"][0] == 0
-    assert 60 <= r1["box"][2] - r1["box"][0] <= 120
+    # Changed pin, freeze cycle 6 M2 (lander brief 2026-11-27; panel 7 PL1, the seam stub the 3:4 profile-grid crop cut
+    # at x 1395): slide 1 draws no part outside the grid crop, so the 4:5 cover draws none, recorded; slide 2 keeps its
+    # part from the seam (was: slide 1's last 96 px to its right edge at slide 2's height)
+    assert "box" not in r1 and "grid crop" in r1["skipped"] and r1["grid_crop"] == [45, 0, CW - 45, CH]
+    assert r2["box"][0] == 0
+    y = (r2["box"][1] + r2["box"][3]) // 2
     a1 = np.asarray(Image.open(ig[0]).convert("RGB"), dtype=np.int16)
-    y = (r1["box"][1] + r1["box"][3]) // 2
-    assert np.abs(a1[y, CW - 20] - np.array(brand.GOLD)).max() < 40
+    assert np.abs(a1[y, CW - 20] - np.array(brand.GOLD)).max() >= 40
     a2 = np.asarray(Image.open(ig[1]).convert("RGB"), dtype=np.int16)
     assert np.abs(a2[y, 10] - np.array(brand.GOLD)).max() < 40
     assert still_layout.load(ig[2])["recipe"].get("strip") is None
@@ -300,11 +302,16 @@ def test_instagrams_swipe_strip_runs_across_the_seam_and_facebook_draws_none(tmp
 
 
 def test_slide_ones_strip_is_skipped_where_its_text_reaches_the_edge(tmp_path) -> None:
-    lay = still_layout.Layout("carousel", (CW, CH), (0, 0, CW, CH))
+    # freeze c6 M2: on a 3:4 slide (the profile grid's crop is the whole slide) the text clearance is what decides
+    tall = CW * 4 // 3
+    lay = still_layout.Layout("carousel", (CW, tall), (0, 0, CW, tall))
     lay.add("heading", (100, 900, CW - 10, 1000))
-    im = Image.new("RGB", (CW, CH), (30, 30, 30))
+    im = Image.new("RGB", (CW, tall), (30, 30, 30))
     out = swipe_strip(im, lay, {"side": "right", "y0": 950, "y1": 955})
-    assert "skipped" in lay.meta["swipe_strip"] and np.asarray(out).max() == 30
+    assert "touch" in lay.meta["swipe_strip"]["skipped"] and np.asarray(out).max() == 30
+    lay2 = still_layout.Layout("carousel", (CW, tall), (0, 0, CW, tall))
+    assert np.asarray(swipe_strip(Image.new("RGB", (CW, tall), (30, 30, 30)), lay2,
+                                  {"side": "right", "y0": 950, "y1": 955})).max() > 30   # clear text: drawn
 
 
 # ---------------------------------------------------------------- Stories
@@ -529,13 +536,13 @@ def test_redrawing_slide_two_moves_slide_ones_strip_with_it(tmp_path, monkeypatc
     monkeypatch.setattr(multi_format, "swipe_strip", real)
     new2 = still_layout.load(ig[1])["recipe"]["strip"]["box"]
     assert new2[1] >= old[1] + 30                                   # slide 2's record keeps the strip it drew now
-    new1 = still_layout.load(ig[0])["recipe"]["strip"]["box"]
-    assert new1[1:4:2] == new2[1:4:2]                               # slide 1's part meets it across the seam
+    # Changed pin, freeze cycle 6 M2 (lander brief 2026-11-27): slide 1 draws no part outside the profile grid's crop,
+    # before or after slide 2's redraw (was: slide 1's part redrawn to meet slide 2's new height)
+    assert "box" not in (still_layout.load(ig[0])["recipe"].get("strip") or {})
     a1 = np.asarray(Image.open(ig[0]).convert("RGB"), dtype=np.int16)
-    assert np.abs(a1[(new1[1] + new1[3]) // 2, CW - 20] - np.array(brand.GOLD)).max() < 40
-    # slide 1 drawn again on its own takes slide 2's current height too
+    assert np.abs(a1[(new2[1] + new2[3]) // 2, CW - 20] - np.array(brand.GOLD)).max() >= 40
     multi_format.redraw_carousel_slide(ig[0], still_layout.load(ig[0])["recipe"], tight=False)
-    assert still_layout.load(ig[0])["recipe"]["strip"]["box"][1:4:2] == new2[1:4:2]
+    assert "box" not in (still_layout.load(ig[0])["recipe"].get("strip") or {})
 
 
 def test_the_share_line_does_not_end_a_line_on_an_article(tmp_path) -> None:

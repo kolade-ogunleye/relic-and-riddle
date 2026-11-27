@@ -5072,6 +5072,12 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
         if pure is not None and pure[0] == "two":
             forms[raw] = pure
             px = pure[2]
+            faults = _break_faults(_phrase_words(list(raw)), pure[1])
+            if lone_closed_line(raw, pure[1]) and "one_word_line" not in faults:
+                faults = faults + ["one_word_line"]
+            if faults:   # round 2: a burst drawn at its own size with a line fault is a recorded forced break too
+                forced.append({"text": " ".join(raw[:pure[1]]) + " / " + " ".join(raw[pure[1]:]), "faults": faults,
+                               "px": px})
         else:
             px = min(size - 1, _caption_fit_size(list(raw)))
             forms[raw] = ("one", 0, px)

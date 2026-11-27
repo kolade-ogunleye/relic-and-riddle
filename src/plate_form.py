@@ -86,7 +86,8 @@ ENV = "RR_PLATE_FORM"
 
 def active() -> str:
     """The form in force: "base" (the shipped design) unless RR_PLATE_FORM names a candidate."""
-    v = (os.environ.get(ENV) or "base").strip().lower()
+    from .config import plate_form_setting
+    v = plate_form_setting()
     if v not in FORMS:
         raise ValueError(f"{ENV}={v!r} is not a plate form ({', '.join(FORMS)})")
     return v

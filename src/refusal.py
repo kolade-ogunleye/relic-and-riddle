@@ -137,8 +137,8 @@ def _measuring_reference() -> bool:
     """Design freeze cycle 6 (PLATEFORM design stream): RR_PLATE_FORM=none draws a surface with no ground at all as a
     measuring reference (the photograph as the type finds it); it is drawn past its own gate so the measures have it,
     and it is never a shipped path (the switch is unset in production)."""
-    import os
-    return (os.environ.get("RR_PLATE_FORM") or "").strip().lower() == "none"
+    from .config import plate_form_setting
+    return plate_form_setting() == "none"
 
 
 def require_gate(surface: str, rows: Iterable[Mapping[str, Any]], gate: float, rule: str) -> None:

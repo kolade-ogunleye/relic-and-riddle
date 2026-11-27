@@ -104,6 +104,12 @@ CLAUDE_MODEL = (os.getenv("CLAUDE_MODEL") or "claude-opus-5-5").strip()
 CLAUDE_FALLBACK_MODELS = [m.strip() for m in (os.getenv("CLAUDE_FALLBACK_MODELS") or "claude-sonnet-5-5").split(",") if m.strip()]
 # Optional monthly spend cap in USD (0 = no cap). When reached: use CLAUDE_BUDGET_MODEL, or stop if empty.
 CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD") or 0)
+
+
+def plate_form_setting() -> str:
+    """RR_PLATE_FORM (design freeze cycle 6, src/plate_form.py): the ground form text over a photograph takes, read at
+    call time (a design switch: "base" unless set; the lander flips the default after review)."""
+    return (os.getenv("RR_PLATE_FORM") or "base").strip().lower()
 # On the free engine, Claude stands in when both free and billed Gemini fail (off by default; needs
 # ANTHROPIC_API_KEY and CLAUDE_MONTHLY_BUDGET_USD above zero, which caps it).
 CLAUDE_FALLBACK = os.getenv("CLAUDE_FALLBACK", "false").strip().lower() in ("true", "1", "yes")

@@ -289,7 +289,8 @@ def cover_tip(a: pf.Analysis) -> dict:
     if a.focus is None and a.size[1] > a.size[0]:   # cover_design._filled: an unreviewed portrait stays whole
         return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": ["portrait"],
                 "shown": 1.0, "fit": False}
-    for mode, window in cd.cover_windows():
+    order = cd.cover_order(None, a) if hasattr(cd, "cover_order") else cd.cover_windows()
+    for mode, window in order:
         rec = pf.place(None, window, analysis=a)
         tried.append(rec["problems"])
         if rec["fit"]:

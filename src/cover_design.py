@@ -685,6 +685,22 @@ def cover_windows(top=COVER_TYPE_TOP):
                                          centre_half=True, name="reel cover photo_over_ink")))
 
 
+def cover_order(src, analysis, top=COVER_TYPE_TOP):
+    """cover_windows in the order the cover tries them. With a subject box (cycle 6, SUBJECT stream) the window the
+    photograph takes WITHOUT one comes first when it is fit with it too: the subject changes the cover's layout only
+    where it must (a full-width crop that would cut it, or a contained photograph it shows whole), never trading the
+    type's INK ground for a shaded photograph (contrast per element not lower than without the box)."""
+    import dataclasses
+
+    from . import photo_fitness as pf
+    order = list(cover_windows(top))
+    if analysis.focus is None:
+        return order
+    blind = dataclasses.replace(analysis, focus=None, _sat=analysis._sat)
+    first = next((m for m, w in order if pf.place(None, w, image=src, analysis=blind)["fit"]), None)
+    return sorted(order, key=lambda mw: mw[0] != first) if first else order
+
+
 def _filled(source, focus, top, lay):
     """The Reel cover's photograph at full width, by the photo-fitness ladder (src/photo_fitness.py; freeze cycle 5,
     PHOTO-01: the Richat cover's photograph stopped short of the frame's top and the rest was its own edge, extended
@@ -724,7 +740,7 @@ def _filled(source, focus, top, lay):
     analysis = pf.analyse(src, fbox)
     foot = min(1920, int(top) - COVER_INK_CLEAR)
     tried = []
-    for mode, window in cover_windows(top):
+    for mode, window in cover_order(src, analysis, top):
         size = window.size
         rec = pf.place(None, window, image=src, analysis=analysis)
         tried.append({"mode": mode, **{k: v for k, v in rec.items() if k != "window"}})

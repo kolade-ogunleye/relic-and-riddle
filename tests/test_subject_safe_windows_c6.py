@@ -93,3 +93,16 @@ def test_cover_takes_the_full_width_photograph_when_the_subject_is_as_whole_as_t
 
 def test_the_cover_hold_asks_for_subject_cut_max():
     assert all(w.hold_min == pf.SUBJECT_CUT_MAX for _m, w in cd.cover_windows())
+
+
+def test_the_cover_keeps_its_layout_without_the_subject_when_that_is_still_fit():
+    img = _picture(1200, 1800, seed=7)
+    d = ImageDraw.Draw(img)
+    d.rectangle((420, 300, 780, 950), fill=(200, 60, 40))
+    a = _with_focus(img, (420.0, 300.0, 780.0, 950.0))
+    blind = dataclasses.replace(a, focus=None, _sat={})
+    first = next((m for m, w in cd.cover_windows() if pf.place(None, w, analysis=blind)["fit"]), None)
+    order = [m for m, _w in cd.cover_order(None, a)]
+    if first is not None:
+        assert order[0] == first
+    assert sorted(order) == sorted(m for m, _w in cd.cover_windows())

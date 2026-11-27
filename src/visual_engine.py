@@ -682,7 +682,7 @@ class VisualEngine:
                                          "headline_fill_from", "tagline_dropped", "year_event", "ink_edge",
                                          "headline_from", "headline_dropped", "headline_lines_dropped",
                                          "headline_fragment", "headline_pair_kept", "headline_source",
-                                         "headline_withheld", "figure_hedged",
+                                         "headline_withheld", "figure_hedged", "hook_ratio",
                                          "headline_chain")},
              # cycle 0 round 8: the drawn text of every line, for the release gate's figure check (figure_gate)
              "encoding": encoding,

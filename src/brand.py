@@ -178,11 +178,13 @@ class BrandConfig:
                                  f"({self.system[other]}): the two interact (src/brand_system.py TOKEN_JOINT)")
         # freeze cycle 6 (THENNOW D6): a brand that moves the then-and-now's timing tokens must leave its split
         # long enough to read both markers (the default's is held by tests/test_freeze_thennow_c6.py)
-        if any(self.system[k] != SYSTEM_TOKENS[k] for k in ("motion.reveal", "motion.wipe_step")):
+        from .brand_system import TOKEN_TIMING_JOINT
+        if any(self.system[k] != SYSTEM_TOKENS[k] for k in TOKEN_TIMING_JOINT):
             from .then_now import timing_problems
             timing = timing_problems(self.system)
             if timing:
-                raise ValueError(f"brand {self.name!r}: " + "; ".join(timing))
+                raise ValueError(f"brand {self.name!r}: {' and '.join(TOKEN_TIMING_JOINT)} interact "
+                                 "(src/brand_system.py TOKEN_TIMING_JOINT): " + "; ".join(timing))
         for role, v in self.palette.items():   # round 7 (sweep): types checked here, never a crash at draw time
             if isinstance(v, str):
                 if v not in self.palette:

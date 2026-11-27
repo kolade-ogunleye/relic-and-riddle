@@ -500,10 +500,10 @@ def test_a_label_the_divider_crosses_is_not_drawn(tmp_path, monkeypatch, size, w
 
 def test_then_fades_in_between_0_1_and_0_4_s(tmp_path, monkeypatch):
     # Changed pin, freeze cycle 6 (THENNOW T1, ruling 2026-11-27: motion values from the tokens): the THEN marker
-    # enters over tok("motion.reveal") (0.40 s) on ease_out from frame 0 (it was a local 0.1 s lead and 0.3 s fade).
+    # enters over tok("thennow.marker_in") (0.40 s; round 3 R5) on ease_out from frame 0 (it was a local 0.1 s lead and 0.3 s fade).
     from src.brand_system import tok
     old, new = _dark_pair(tmp_path, PORTRAIT)
-    early, late = 0, round(tok("motion.reveal") * FPS)             # t 0 and the reveal's end
+    early, late = 0, round(tok("thennow.marker_in") * FPS)             # t 0 and the reveal's end
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, PORTRAIT, keep=(early, late), stop=late)
     a, b = _sources(old, new, PORTRAIT)
     for i, want_on in ((early, False), (late, True)):

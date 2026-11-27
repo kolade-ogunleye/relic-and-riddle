@@ -572,8 +572,7 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "place.site_step": (1.2, lambda: _graphics().site_steps(1080, 1920)),
     "motion.act_dissolve": (0.8, lambda: __import__("src.video_composer", fromlist=["x"]).act_dissolve_s()),
     # SYS batch 2 (SYS-E-1 / SYS-F-1): the reveal, the bridge, the push and the hook, live
-    # freeze cycle 6 (THENNOW D6): over ~0.48 s the then-and-now split no longer reads both markers (refused)
-    "motion.reveal": (0.45, lambda: _end_card_frame(6)),                # the masthead's fade at 0.2 s
+    "motion.reveal": (0.7, lambda: _end_card_frame(6)),                 # the masthead's fade at 0.2 s
     "motion.word_stagger": (0.1, lambda: __import__("src.end_card", fromlist=["x"]).word_at(3)),
     "motion.word_in": (0.5, lambda: __import__("src.end_card", fromlist=["x"]).share_done(4)),
     "motion.line_in": (0.5, lambda: _end_card_frame(51)),               # the follow line rising into the bell
@@ -587,6 +586,7 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "motion.hook_hold": (0.9, lambda: __import__("src.design_cards", fromlist=["x"])._hook_ground_alpha(1.0)),
     "motion.hook_fade": (0.25, lambda: __import__("src.design_cards", fromlist=["x"])._hook_alpha(1.15)),
     # freeze cycle 6 (THENNOW T1): the then-and-now divider's one wipe takes its length from its peak step
+    "thennow.marker_in": (0.3, lambda: __import__("src.then_now", fromlist=["x"]).divider_at(1.45, 1080, 1920)),
     "motion.wipe_step": (45.0, lambda: __import__("src.then_now", fromlist=["x"]).divider_at(2.0, 1080, 1920)),
     "masthead.hook_ratio_max": (0.62, _youtube_mark_room),
     "map.home_line_w": (3.0, _map_base_sum),

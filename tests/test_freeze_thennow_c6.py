@@ -71,7 +71,7 @@ def test_the_divider_travels_once_straight_to_the_split(size):
 def test_the_wipe_reads_the_motion_tokens():
     """BC: no local constant restates a motion value; a brand that moves the tokens moves the wipe."""
     base = then_now.wipe_seconds(*TALL), then_now.then_dwell("THEN 1876")
-    with brand.use(brand.DEFAULT_BRAND.derive("probe wipe", system={"motion.wipe_step": 40.0, "motion.reveal": 0.45})):
+    with brand.use(brand.DEFAULT_BRAND.derive("probe wipe", system={"motion.wipe_step": 40.0, "thennow.marker_in": 0.45})):
         moved = then_now.wipe_seconds(*TALL), then_now.then_dwell("THEN 1876")
     assert moved[0] < base[0] and moved[1] == pytest.approx(base[1] + 0.05, abs=1 / FPS)
     assert then_now.wipe_progress(0.0, *TALL) == 0 and then_now.wipe_progress(then_now.CLIP_SECONDS, *TALL) == 1
@@ -80,12 +80,12 @@ def test_the_wipe_reads_the_motion_tokens():
 @pytest.mark.parametrize("size", [TALL, WIDE])
 @pytest.mark.parametrize("years", [(1876, 2011), (1934, 2018), (1890, 1990)])
 def test_each_view_is_long_enough_to_read(size, years):
-    """The dwell rule: the old photo alone for its marker's entry (motion.reveal) and its text read twice at
+    """The dwell rule: the old photo alone for its marker's entry (thennow.marker_in) and its text read twice at
     motion.caption_cps (never under the composer's reading need); the split, after the NOW marker's entry, for both
     markers' text read twice."""
     then_text = then_now.then_text(years[0])
     both = f"{then_text} {then_now.kicker_word('now', years[1])} {years[1]}"
-    reveal = brand_system.tok("motion.reveal")
+    reveal = brand_system.tok("thennow.marker_in")
     assert then_now.read_seconds(then_text) >= 2 * len(then_text) / brand_system.tok("motion.caption_cps") - 1e-9
     assert then_now.read_seconds(then_text) >= len(then_text) * config.CAPTION_READ_PER_CHAR + config.CAPTION_READ_BASE
     assert then_now.then_dwell(then_text) >= reveal + then_now.read_seconds(then_text) - 1e-9
@@ -304,7 +304,7 @@ def test_a_held_plate_under_the_margin_goes_opaque(monkeypatch, tmp_path, defaul
 
 @pytest.mark.parametrize("size", [TALL, WIDE])
 def test_the_now_marker_enters_on_the_tokens_after_the_landing(monkeypatch, tmp_path, size):
-    """D5: the NOW marker enters over motion.reveal on ease_out, never before the divider has landed, on every
+    """D5: the NOW marker enters over thennow.marker_in on ease_out, never before the divider has landed, on every
     placement (16:9 "outer" showed at 2.3 s while the divider landed at 3.07 s)."""
     if size == WIDE:   # NOW busy against the divider, calm at its outer edge: it takes "outer"
         old = _photo(tmp_path / "t.png", 1920, 1080, [(0.05, 0.1, 0.3, 0.6)], seed=41)
@@ -316,7 +316,7 @@ def test_the_now_marker_enters_on_the_tokens_after_the_landing(monkeypatch, tmp_
     if size == WIDE:
         assert meta["side"]["now"]["side"] == "outer"
     t1 = then_now.wipe_window(*size, then_now.then_text(1876))[1]
-    reveal = brand_system.tok("motion.reveal")
+    reveal = brand_system.tok("thennow.marker_in")
     from src.brand_system import ease_out
     for i, a in enumerate(meta["schedule"]["now"]):
         t = i / FPS
@@ -332,7 +332,23 @@ def test_the_split_reads_both_markers_at_both_ends_of_the_wipe_range():
         cfg = brand.DEFAULT_BRAND.derive(f"wipe {step}", system={"motion.wipe_step": step})
         assert then_now.timing_problems(cfg.system) == []
         for size in (TALL, WIDE):
-            t = then_now.timing(brand_system.tok("motion.reveal"), step, brand_system.tok("motion.caption_cps"), *size)
+            t = then_now.timing(brand_system.tok("thennow.marker_in"), step, brand_system.tok("motion.caption_cps"), *size)
             assert t["hold"] >= t["need"]
-    with pytest.raises(ValueError, match="then-and-now"):
-        brand.DEFAULT_BRAND.derive("slow reveal", system={"motion.reveal": 0.8})
+    # round 3 (R5): the joint is thennow.marker_in with motion.wipe_step only, declared with their ranges; refused at
+    # configuration with both named. motion.reveal (the end card's) keeps its whole declared range again.
+    assert brand_system.TOKEN_TIMING_JOINT == ("thennow.marker_in", "motion.wipe_step")
+    mlo, mhi = brand_system.TOKEN_RANGES["thennow.marker_in"]
+    brand.DEFAULT_BRAND.derive("fast wipe, slow marker", system={"thennow.marker_in": mhi, "motion.wipe_step": hi})
+    with pytest.raises(ValueError, match="thennow.marker_in and motion.wipe_step interact"):
+        brand.DEFAULT_BRAND.derive("slow wipe, slow marker", system={"thennow.marker_in": mhi, "motion.wipe_step": lo})
+    for reveal in brand_system.TOKEN_RANGES["motion.reveal"]:
+        brand.DEFAULT_BRAND.derive(f"reveal {reveal}", system={"motion.reveal": reveal})   # never the clip's concern
+
+
+def test_the_markers_enter_on_their_own_token():
+    """R5: the clip's markers enter on thennow.marker_in, not motion.reveal (a token mutation still changes the clip)."""
+    base = then_now.then_dwell("THEN 1876"), then_now.divider_at(1.45, *TALL)
+    with brand.use(brand.DEFAULT_BRAND.derive("reveal", system={"motion.reveal": 0.7})):
+        assert (then_now.then_dwell("THEN 1876"), then_now.divider_at(1.45, *TALL)) == base
+    with brand.use(brand.DEFAULT_BRAND.derive("marker", system={"thennow.marker_in": 0.3})):
+        assert then_now.then_dwell("THEN 1876") < base[0] and then_now.divider_at(1.45, *TALL) < base[1]

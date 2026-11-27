@@ -465,7 +465,8 @@ DIVIDER_W = 5
 # WIPE {then 1.2, to_far 1.0, hold_far 0.25, settle 0.85} and SWEEP_TO 0.8, which ran the divider past the split to a
 # far point, held, and brought it back (the THEN marker faded out for 1.4-2 s while the divider stood over it).
 # Every value is read from the system's tokens and reading-time rules, never a local copy:
-#   - the THEN marker enters over tok("motion.reveal") on ease_out (an element arriving);
+#   - the THEN marker enters over tok("thennow.marker_in") on ease_out (an element arriving; round 3, R5: its own
+#     token, so the end card's motion.reveal keeps its whole declared range);
 #   - the old photo then holds alone until its marker has been read twice: the dwell is reveal + read_seconds(the
 #     marker's text) (MO1: "long enough to read twice at <= 17 cps shown", with the composer's own reading need,
 #     config.CAPTION_READ_PER_CHAR / CAPTION_READ_BASE, as the floor);
@@ -513,10 +514,10 @@ def timing_problems(system: Any) -> list[str]:
     cps = float(GATES["motion.caption_cps"])
     out = []
     for w, h in ((1080, 1920), (1920, 1080)):
-        t = timing(float(system["motion.reveal"]), float(system["motion.wipe_step"]), cps, w, h)
+        t = timing(float(system["thennow.marker_in"]), float(system["motion.wipe_step"]), cps, w, h)
         if t["hold"] + 1e-9 < t["need"]:
             out.append(f"then-and-now {w}x{h}: the split holds {t['hold']:.2f} s after the NOW marker's entry, under "
-                       f"the {t['need']:.2f} s both markers need (motion.reveal {system['motion.reveal']}, "
+                       f"the {t['need']:.2f} s both markers need (thennow.marker_in {system['thennow.marker_in']}, "
                        f"motion.wipe_step {system['motion.wipe_step']})")
     return out
 
@@ -528,12 +529,12 @@ def then_text(year: int) -> str:
 
 def _timing_now(width: int, height: int, then: str = WORST_THEN, both: str = WORST_BOTH) -> dict[str, float]:
     from .brand_system import tok
-    return timing(float(tok("motion.reveal")), float(tok("motion.wipe_step")), float(tok("motion.caption_cps")),
+    return timing(float(tok("thennow.marker_in")), float(tok("motion.wipe_step")), float(tok("motion.caption_cps")),
                   width, height, then, both)
 
 
 def then_dwell(text: str = "THEN 0000") -> float:
-    """Seconds the old photo holds alone: its marker's entry (motion.reveal) and then its reading time, rounded up
+    """Seconds the old photo holds alone: its marker's entry (thennow.marker_in) and then its reading time, rounded up
     to the frame. The default is a four-figure year's marker."""
     return _timing_now(VIDEO_WIDTH, VIDEO_HEIGHT, then=text)["dwell"]
 
@@ -551,9 +552,9 @@ def wipe_window(width: int, height: int, text: str = "THEN 0000") -> tuple[float
 
 
 def hold_seconds(width: int, height: int, text: str = "THEN 0000") -> float:
-    """Seconds the split holds whole after the NOW marker's entry (motion.reveal, from the divider's landing)."""
+    """Seconds the split holds whole after the NOW marker's entry (thennow.marker_in, from the divider's landing)."""
     from .brand_system import tok
-    return CLIP_SECONDS - wipe_window(width, height, text)[1] - float(tok("motion.reveal"))
+    return CLIP_SECONDS - wipe_window(width, height, text)[1] - float(tok("thennow.marker_in"))
 
 
 def _utc_year() -> int:
@@ -2005,10 +2006,10 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     positions = [divider_at(i / VIDEO_FPS, width, height, text0) for i in range(n)]
     sched = {w: group_alpha([group_clear(groups[w], w, positions[i], width, height) for i in range(n)]) for w in years}
     from .brand_system import ease_out
-    reveal = float(tok("motion.reveal"))
+    reveal = float(tok("thennow.marker_in"))
     for i in range(n):
         t = i / VIDEO_FPS
-        sched["then"][i] *= ease_out(t / reveal)                 # the THEN marker arrives (motion.reveal, ease_out)
+        sched["then"][i] *= ease_out(t / reveal)                 # the THEN marker arrives (thennow.marker_in)
         # review round 1 (D5): the NOW marker arrives the same way, once the divider has landed, on every placement
         sched["now"][i] = (ease_out((t - t1) / reveal) if t >= t1 - 1e-9 else 0.0) * (
             1.0 if group_clear(groups["now"], "now", positions[i], width, height) else 0.0)

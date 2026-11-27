@@ -323,6 +323,10 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # Review round 1 (D6): 36, so that with the NOW marker's entry on motion.reveal the split still holds the longest
     # pair of markers for its reading time (then_now.timing_problems, gated at configure); at 30 it held 2.20 s of 2.35.
     "motion.wipe_step": 36.0,
+    # freeze cycle 6 (THENNOW round 3, R5): the then-and-now year markers' entry (s, ease_out): THEN's at the clip's
+    # start, NOW's from the divider's landing. Its own token (it borrowed motion.reveal, whose end-card range it then
+    # narrowed through the timing gate); joint with motion.wipe_step (TOKEN_TIMING_JOINT).
+    "thennow.marker_in": 0.40,
     # ---- credits (freeze cycle 4, SYS item 4, panel 5 BC-06: a written SPEC value no renderer read): the credit
     # role's weight in the data face, read by the end screen's credits line, the Story's photo credit and the cards'
     # citation (each drew a literal 500 until now; the value is unchanged)
@@ -392,8 +396,9 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.push_cap": (1.05, 1.5),
     "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
     "motion.hook_fade": (0.1, 0.3),       # s
-    "motion.wipe_step": (33.0, 48.0),     # px a frame (1080 short side): 1.2-1.77 s for the 9:16 wipe; under 33 the
-                                          # split no longer reads the longest pair of markers (then_now.timing_problems)
+    "motion.wipe_step": (33.0, 48.0),     # px a frame (1080 short side): 1.2-1.77 s for the 9:16 wipe
+    "thennow.marker_in": (0.2, 0.68),     # s: the reading rule's ceiling at the fastest wipe (48); with a slower wipe
+                                          # TOKEN_TIMING_JOINT refuses it (0.4 at the floor, 33)
     "credit.weight": (500, 600),          # the data face's bundled weights (IBM Plex Mono Medium / SemiBold)
 })
 # Tokens whose default is derived at read time rather than written (the value a brand may also give): BrandConfig
@@ -406,6 +411,13 @@ TOKEN_JOINT: tuple[tuple[str, float, str], ...] = (
     ("masthead.mark_edge", 0.35, "masthead.mark_r"),   # the INK edge leaves at least 65 % of the radius as gold fill
     ("motion.loop_crossfade", 1.0, "motion.loop_crossfade_visual"),   # the line's bridge never fades longer
 )
+
+# Freeze cycle 6 (THENNOW round 3, R5): the then-and-now clip's timing joint. The old photo's dwell (its marker's entry,
+# thennow.marker_in, and its reading time), the wipe (motion.wipe_step) and the NOW marker's entry must leave the split
+# long enough to read both markers (the longest pair, two four-figure years with LATER) on both formats
+# (then_now.timing_problems). The ranges above are each token's own reach; the pair is refused at configuration where
+# it breaks the joint (marker_in 0.68 needs wipe_step 48; at 33 marker_in holds to 0.40), the message naming both.
+TOKEN_TIMING_JOINT: tuple[str, str] = ("thennow.marker_in", "motion.wipe_step")
 
 # The written system's remaining values: what each group ports its surfaces onto (CYCLE0 build note, section 5). NOT
 # runtime tokens: no renderer reads them yet and a brand cannot override them; each moves into SYSTEM_TOKENS (with its

@@ -235,6 +235,7 @@ if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "--collect":
 
 sys.path.insert(0, str(ROOT))
 from src import line_policy as lp  # noqa: E402
+from src import video_composer as vc  # noqa: E402  (the judge's one vocabulary: wide_cut_fault)
 
 MIN_S = 0.8
 STOP = ".?!…"
@@ -322,7 +323,7 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
                 tot[f"{fmt} mid-sentence cuts"] += 1
                 seq = raw + nxt
                 k = len(raw) - 1
-                unit = _np_cut(seq, k)
+                unit = _np_cut(seq, k) or (vc.wide_cut_fault(seq, k) == "phrase_unit" and "article_modifier")
                 cls = lp.end_class(raw[-1])
                 if unit:
                     tot[f"{fmt} C2 cut inside a phrase unit"] += 1

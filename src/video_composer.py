@@ -3578,8 +3578,11 @@ def caption_phrases(words: list[dict[str, Any]], emphasis: list[str] | None = No
                                               held_soft=_base_figure_links(words, base) & loose)
         phrases = merge_short_bursts(phrases, fits, CAPTION_WIDE_MAX_WORDS, max_chars=CAPTION_WIDE_MAX_CHARS)
         phrases = _rejoin_base(phrases, words, base, lambda ph: len(ph) <= CAPTION_WIDE_MAX_WORDS and fits(ph))
-        return _never_end_repair(phrases, words, lambda ph: (
+        phrases = _never_end_repair(phrases, words, lambda ph: (
             2 <= len(ph) <= CAPTION_WIDE_MAX_WORDS and not _function_only(ph) and fits(ph)))
+        if CAPTION_WIDE_PHRASE_PASS:
+            phrases = _wide_phrase_pass(phrases, words, emphasis, fits, recut)
+        return phrases
     _joined_raws().clear()   # freeze cycle 5: the last clip's forms never reach this clip's phrase builder
     _joined.clip = None
     base = round4_burst_cuts(words, emphasis)
@@ -4456,6 +4459,172 @@ def _capacity_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str, An
                 at += len(q)
     if [w for q in result for w in q] != [w for q in phrases for w in q]:
         raise RuntimeError("caption capacity pass lost or reordered a word")
+    return result
+
+
+CAPTION_WIDE_PHRASE_PASS = True   # freeze cycle 6 (panel 7 MO-C2): the 16:9 bursts are re-cut by phrase as 9:16's are
+CAPTION_WIDE_RUN_MAX_WORDS = 60   # a 16:9 sentence longer than this keeps the builder's cuts (search bound)
+WIDE_RULE = ("16:9 caption phrase rule (freeze cycle 6, panel 7 MO-C2): a 16:9 burst never ends mid-sentence on a "
+             "preposition, article, conjunction, auxiliary or copula, nor parts a modifier from its noun, where a "
+             "re-cut of its sentence holds every burst on one line, 0.8 s or more on screen, two words or more, at "
+             "most as fast as the sentence's bursts were")
+
+
+def wide_cut_fault(words: list[Any], k: int) -> str | None:
+    """Why a 16:9 burst cut after word k (mid-sentence) reads badly, else None: "function_end" (the burst ends on a
+    preposition, article or conjunction: line_policy.end_class never / last resort), "auxiliary_end" (a copula or
+    auxiliary: weak), "phrase_unit" (noun_phrase_cut: a modifier parted from its noun, A SUBSURFACE IGNEOUS |
+    INTRUSION, an -ly adverb from its verb). The same vocabulary the 9:16 bursts are judged by."""
+    raw = [w if isinstance(w, str) else str(w.get("word", "")) for w in words]
+    if not 0 <= k < len(raw) - 1 or TERMINAL_PUNCT.search(raw[k]):
+        return None
+    cls = _line_policy.end_class(raw[k])
+    if cls in ("never", "last_resort"):
+        return "function_end"
+    if cls == "weak":
+        return "auxiliary_end"
+    if noun_phrase_cut(words, k) is not None:
+        return "phrase_unit"
+    # an article's one modifier and the word it modifies (THE OVERLYING | SEDIMENTARY ROCK): line_policy.phrase_unit
+    # leaves an -ING modifier out (a gerund may head the phrase), so a 16:9 cut weighs it here, as a cost only
+    if (k >= 1 and _bare(raw[k - 1]) in _ARTICLES and raw[k].strip("\"'(")[:1].islower()
+            and raw[k + 1].strip("\"'(")[:1].islower() and not _line_policy.closes(raw[k])
+            and not _line_policy.is_function(raw[k + 1]) and _bare(raw[k + 1]) not in _line_policy.brand_system.LINE_END_WEAK
+            and not _bare(raw[k + 1]).endswith(("ing", "ed")) and not _line_policy.is_number(raw[k + 1])):
+        return "phrase_unit"
+    return None
+
+
+def _wide_phrase_pass(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]],
+                      emphasis: list[str] | None, fits: Callable[[list[dict[str, Any]]], bool],
+                      record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+    """Freeze cycle 6 (panel 7 MO-C2, lander ruling): the 16:9 path's last pass, the phrase-aware re-cut the 9:16 bursts
+    have (_readable_merge, _capacity_pass), for one-line bursts. Each SENTENCE of bursts (a stretch whose cuts are
+    neither sentence ends nor pause breaks) is re-cut, every word in order and on its own time, by a dynamic search
+    over its cuts. A burst of the re-cut is legal when it fits one line (`fits`: the 16:9 plate and its characters),
+    is two words or more and not function words only, and is up CAPTION_SPLIT_MIN_S or more on the narration's own
+    times; a new cut parts no bond, name, unit, figure group, key term or atomic pair; a pause break stays a cut; a
+    burst that stood is always allowed as it was. Best, in order: the fewest faulted cuts (wide_cut_fault: a function,
+    auxiliary or phrase-unit end), the fewest bursts under CAPTION_SPLIT_MIN_S, the fewest one-word bursts, the fewest
+    bursts holding clause punctuation inside, no burst faster than the sentence's fastest (characters a second), the
+    fewest words shown more than CAPTION_EARLY_RECORD_S before they are heard (a 16:9 burst is shown whole), the fewest
+    cuts moved, the evenest bursts. A re-cut is taken only when it has fewer faulted cuts or fewer short or one-word
+    bursts, and is recorded (`record`: "wide_recut", "was", "why")."""
+    out = [list(p) for p in phrases if p]
+    if len(out) < 2:
+        return out
+    pos = {id(w): k for k, w in enumerate(words)}
+    raw_all = [str(w.get("word", "")) for w in words]
+    protected = (name_bonds(raw_all) | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words)
+                 | emphasis_bonds(words, emphasis))
+    timing = burst_timings(out)
+    lead = CAPTION_LEAD_FRAMES / VIDEO_FPS
+    groups, a = [], 0
+    for i in range(len(out)):
+        k = pos[id(out[i][-1])]
+        if (i == len(out) - 1 or TERMINAL_PUNCT.search(raw_all[k]) or _pause_break(words, k)
+                or timing[i][1] < timing[i + 1][0] - 1e-3):
+            groups.append((a, i + 1))
+            a = i + 1
+    result: list[list[dict[str, Any]]] = []
+    for ga, gb in groups:
+        bursts = out[ga:gb]
+        flat = [w for q in bursts for w in q]
+        n = len(flat)
+        base = pos[id(flat[0])]
+        if len(bursts) < 2 or n > CAPTION_WIDE_RUN_MAX_WORDS:
+            result += bursts
+            continue
+        old_cuts, stood, at = set(), set(), 0
+        for q in bursts:
+            stood.add((at, at + len(q)))
+            at += len(q)
+            old_cuts.add(at)
+        old_cuts.discard(n)
+        starts = [float(w.get("start", 0.0)) for w in flat]
+        hide_end = timing[gb - 1][1]
+
+        def cut_ok(c: int) -> bool:
+            if c in old_cuts:
+                return True
+            k = base + c - 1
+            return k not in protected and not _is_atomic_boundary(raw_all[k], raw_all[k + 1])
+
+        def dur(x: int, y: int) -> float:
+            return ((starts[y] - lead) if y < n else hide_end) - max(0.0, starts[x] - lead)
+
+        def chars(x: int, y: int) -> int:
+            return len(" ".join(_phrase_words(raw_all[base + x:base + y])))
+
+        def straddle(x: int, y: int) -> int:
+            inner = raw_all[base + x + 1:base + y - 1]
+            return int(any(CLAUSE_PUNCT.search(w) or TERMINAL_PUNCT.search(w) for w in inner))
+
+        def early(x: int, y: int) -> int:
+            show = max(0.0, starts[x] - lead)
+            return sum(starts[j] - show > CAPTION_EARLY_RECORD_S + 1e-9 for j in range(x, y))
+
+        cps_cap = max(CAPTION_MAX_CPS, max(chars(x, y) / max(1e-3, dur(x, y)) for x, y in stood))
+
+        @lru_cache(maxsize=None)
+        def legal(x: int, y: int) -> bool:
+            if (x, y) in stood:
+                return True
+            ph = flat[x:y]
+            if y - x < 2 or y - x > CAPTION_WIDE_MAX_WORDS or _function_only(ph) or not fits(ph):
+                return False
+            d = dur(x, y)
+            return d >= CAPTION_SPLIT_MIN_S - 1e-6 and chars(x, y) / max(1e-3, d) <= cps_cap + 1e-6
+
+        def fault(c: int) -> int:
+            return int(wide_cut_fault(words, base + c - 1) is not None)
+
+        best: dict[int, tuple] = {0: ((0, 0, 0, 0, 0, 0, 0), None)}
+        for y in range(1, n + 1):
+            if y < n and not cut_ok(y):
+                continue
+            for x in range(max(0, y - CAPTION_WIDE_MAX_WORDS), y):
+                if x not in best or not legal(x, y):
+                    continue
+                if any(x < c < y and _pause_break(words, base + c - 1) for c in old_cuts):
+                    continue
+                c0 = best[x][0]
+                d = dur(x, y)
+                seg = chars(x, y)
+                cost = (c0[0] + (fault(y) if y < n else 0), c0[1] + int(d < CAPTION_SPLIT_MIN_S - 1e-6),
+                        c0[2] + int(y - x == 1), c0[3] + straddle(x, y), c0[4] + early(x, y),
+                        c0[5] + int(bool(x) and x not in old_cuts), c0[6] + (seg - 30) ** 2)
+                if y not in best or cost < best[y][0]:
+                    best[y] = (cost, x)
+        if n not in best:
+            result += bursts
+            continue
+        cuts, y = [], n
+        while y:
+            x = best[y][1]
+            cuts.append(x)
+            y = x
+        bounds = sorted(set(cuts) | {n})
+        parts, a2 = [], 0
+        for b in bounds:
+            if b:
+                parts.append(flat[a2:b])
+                a2 = b
+        new = best[n][0]
+        old = (sum(fault(c) for c in old_cuts), sum(dur(x, y) < CAPTION_SPLIT_MIN_S - 1e-6 for x, y in stood),
+               sum(y - x == 1 for x, y in stood))
+        if [len(q) for q in parts] == [len(q) for q in bursts] or new[:3] >= old:
+            result += bursts
+            continue
+        if record is not None:
+            record.append({"at": round(float(flat[0].get("start", 0.0)), 2),
+                           "wide_recut": " | ".join(" ".join(raw_all[pos[id(q[0])]:pos[id(q[-1])] + 1])
+                                                    for q in parts),
+                           "was": " | ".join(" ".join(raw_all[pos[id(q[0])]:pos[id(q[-1])] + 1]) for q in bursts),
+                           "faulted_cuts": [old[0], new[0]], "rule": WIDE_RULE})
+        result += parts
+    if [id(w) for q in result for w in q] != [id(w) for q in out for w in q]:
+        raise RuntimeError("16:9 caption phrase pass lost or reordered a word")
     return result
 
 

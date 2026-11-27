@@ -514,6 +514,9 @@ TIER_WHAT = {"T1": "published / every run", "T2": "data-gated in a normal run",
 TIER_HEADS = ("cover", "cover_badge", "thumbnail_badge", "captions", "captions_run", "social", "bridge",
               "bridge_follow", "endscreen", "endcard", "timeline_dense", "map", "timeline", "numbers", "scale",
               "thennow", "route", "cross_section", "callouts", "card", "hook", "act_dissolve")
+# round 3 (lander ruling 2026-11-26): the Facebook slides the multi-photo post never carries (board.fb_unposted): the
+# inventory's "never seen by viewers", tier 4
+FB_UNPOSTED: set[str] = set()
 TIER_COLOURS = {"T1": (120, 220, 130), "T2": (240, 215, 110), "T3": (240, 160, 90), "T4": (150, 190, 235)}
 # a row-12 evidence sheet's kind -> a surface name of the kind it measures (the sheet itself is internal, T4)
 SHEET_MEASURES = {"endscreen": "endscreen__x__169", "endcard916": "endcard__x", "rise": "endcard__x",
@@ -609,6 +612,8 @@ def tier(name: str, label: str = "", wide_captions: tuple[str, ...] = ()) -> str
     if head == "captions_run":
         return "T3" if wide else "T1"
     if head == "social":
+        if n in FB_UNPOSTED:   # a Facebook slide facebook_pick never posts: never seen by viewers
+            return "T4"
         return "T2" if "diagram" in label.lower() else "T1"
     if head in ("bridge", "bridge_follow"):
         return "T1"

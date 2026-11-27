@@ -1,7 +1,14 @@
 """The incremental board (cycle 5, lane BOARD): render only the render_surfaces.py jobs whose inputs changed since a
 previous board of the same palette, and reuse the rest byte for byte.
 
-    board.py <tree> <dev> <out> --reuse <previous board dir> [--reuse-sample 2] [--reuse-seed N] ...
+    board.py <tree> <dev> <out> --reuse <previous board dir> --unsafe-reuse-for-iteration [--reuse-sample 2] ...
+
+FENCED (round 3, lander ruling 2026-11-26, after queue/REVIEW2-board-c5.md R1-R5): reuse is an iteration aid, never
+evidence. --reuse is refused unless --unsafe-reuse-for-iteration is given (run_palette.sh: BOARD_PREV plus
+BOARD_UNSAFE_REUSE_FOR_ITERATION=1). With it, the board is stamped not for the panel (board.json "not_for_panel",
+REUSE.json "unsafe", NOT-EVIDENCE.txt), every reused tile, surface file and sheet says REUSED, NOT EVIDENCE,
+verify() refuses it, plan() refuses it as a base, and refuse_not_evidence() is what a board's consumer calls. The
+rules below are the record of what the key covers, NOT a proof: README "open specification" lists what it misses.
 
 The rule: a job is reused only when EVERYTHING its render can depend on is proven the same; anything that cannot be
 proven renders. board_deps.py says how a job's inputs are recorded (one process per job) and keyed. Per job:
@@ -70,6 +77,50 @@ BY_SURFACE = ("surfaces", "story_title_px", "retired", "rerouted", "bridge_ladde
 BY_EITHER = ("errors",)
 # surfaces.json keys that say how the board was made, not what was drawn (composed_inputs leaves them out)
 NOT_DRAWN = ("seconds", "reused_seconds", "input_files", "src_sha256", "count")
+
+
+# the fence (round 3): reuse is an iteration aid, never evidence
+UNSAFE_FLAG = "--unsafe-reuse-for-iteration"
+UNSAFE_ENV = "BOARD_UNSAFE_REUSE_FOR_ITERATION"   # run_palette.sh: "1" passes UNSAFE_FLAG with --reuse
+NOT_EVIDENCE = "REUSED, NOT EVIDENCE"
+NOT_EVIDENCE_FILE = "NOT-EVIDENCE.txt"
+NOT_EVIDENCE_KEY = "board_not_evidence"   # a marked PNG's text chunk (a sheet or a reused surface)
+REFUSED = (f"--reuse refused: full render only; see queue/REVIEW2-board-c5.md (the incremental board reused stale "
+           f"images five new ways, R1-R5). Reuse is an iteration aid, never evidence: pass {UNSAFE_FLAG} to iterate "
+           f"on a board that is stamped not for the panel.")
+
+
+def not_evidence(board: Path) -> str | None:
+    """Why the board in `board` is not evidence (an incremental board made with UNSAFE_FLAG), or None. Reads every
+    place the stamp is written, so removing one does not clear it."""
+    board = Path(board)
+    if (board / NOT_EVIDENCE_FILE).is_file():
+        return f"{NOT_EVIDENCE}: {board / NOT_EVIDENCE_FILE}"
+    for name, key in (("board.json", "not_for_panel"), (REUSE_NAME, "unsafe")):
+        try:
+            rec = json.loads((board / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(rec, dict) and rec.get(key):
+            return f"{NOT_EVIDENCE}: {name} {key!r} ({rec[key] if isinstance(rec[key], str) else 'set'})"
+    return None
+
+
+def refuse_not_evidence(board: Path, who: str = "this tool") -> None:
+    """Raise SystemExit(4) when `board` is not evidence: what a consumer that judges or scores a board calls."""
+    why = not_evidence(board)
+    if why:
+        raise SystemExit(f"{who} refuses {board}: {why}. An incremental board is an iteration aid; render the "
+                         f"board in full (no --reuse) for a panel or a score.")
+
+
+def stamp_not_evidence(out: Path, reused: list[str]) -> None:
+    """Write the stamp file of an UNSAFE_FLAG board (board.json and REUSE.json carry their own keys)."""
+    Path(out, NOT_EVIDENCE_FILE).write_text(
+        f"{NOT_EVIDENCE}\nThis board was made with --reuse {UNSAFE_FLAG}: {len(reused)} surface file(s) were copied "
+        f"from a previous board without proof that they are current (queue/REVIEW2-board-c5.md R1-R5). Not for a "
+        f"panel, a score or a gate. Render in full for evidence.\n" + "".join(f"reused: {r}\n" for r in reused),
+        encoding="utf-8", newline="\n")
 
 
 class NoReuse(Exception):
@@ -418,6 +469,8 @@ def plan(tree: Path, prev_dir: Path, palette: str, stamp: dict[str, Any], env: d
     """Which of `offered` (the jobs render_surfaces.py would run now) to reuse from `prev_dir`. Raises NoReuse with
     the reason when nothing can be."""
     prev_dir = Path(prev_dir)
+    if not_evidence(prev_dir):   # its marked pixels and its unproven copies must not travel on
+        raise NoReuse(f"the previous board is not evidence ({not_evidence(prev_dir)}): it is no reuse base")
     pb, ps, deps = _load_prev(prev_dir)
     if pb.get("brand") != palette or ps.get("brand") != palette:
         raise NoReuse(f"previous board is palette {pb.get('brand')!r}, this one {palette!r}")
@@ -671,6 +724,8 @@ def verify(render_dir: Path, repo: Path, commit: str) -> tuple[set[str], list[st
         rec = json.loads((render_dir / REUSE_NAME).read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
         return set(), [f"{REUSE_NAME} unreadable: {e}"]
+    if not_evidence(render_dir):   # round 3: the fence; nothing of an unsafe board is proven
+        return set(), [f"refused: {not_evidence(render_dir)} (made with {UNSAFE_FLAG})"]
     reused_files = {f: r for f, r in (rec.get("files") or {}).items() if r.get("status") == "reused"}
     if not reused_files:
         return set(), []

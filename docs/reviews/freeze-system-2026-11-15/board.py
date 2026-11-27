@@ -303,7 +303,10 @@ def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
         # feeds too: every sheet of tiles comes through here); the image under the strip is untouched
         tier = be.tile_tier(str(name), out.stem, WIDE_CAPTIONS)
         tiers.append(tier[0])
-        scaled.append(label(im, name, tier=tier))
+        tile = label(im, name, tier=tier)
+        if reused_tile(str(name)):   # round 3: a copied, unproven surface says so on its own tile
+            tile = not_evidence_strip(tile, "this tile's surface was copied from a previous board, not rendered")
+        scaled.append(tile)
     rows = [scaled[i:i + cols] for i in range(0, len(scaled), cols)]
     W = max(sum(t.width for t in r) + 12 * (len(r) - 1) for r in rows)
     H = sum(max(t.height for t in r) for r in rows) + 12 * (len(rows) - 1)
@@ -318,6 +321,80 @@ def sheet(tiles, out: Path, tile_h: int | None = 900, cols: int = 4) -> None:
     # lossless either way; level 1 saves the big rows faster. The text chunk says its tiles carry their tier
     board.save(out.with_suffix(".png"), compress_level=1, pnginfo=_tier_info(",".join(sorted(set(tiers)))))
     board.resize((max(1, W // 2), max(1, H // 2)), Image.LANCZOS).save(out.with_name(out.stem + "_half.jpg"), quality=90)
+
+
+# Round 3 (lander ruling 2026-11-26, queue/REVIEW2-board-c5.md): reuse is an iteration aid, never evidence. A board
+# made with --reuse --unsafe-reuse-for-iteration names its copied surfaces here; their tiles, the surface files
+# themselves and every sheet carry board_reuse.NOT_EVIDENCE, and the board is stamped not for the panel.
+REUSED_STEMS: set[str] = set()
+NOT_EVIDENCE_RED = (230, 40, 40)
+
+
+def reused_tile(name: str) -> bool:
+    """Whether a tile's label names a surface this board copied from a previous one (any ` | ` part of it)."""
+    return bool(REUSED_STEMS) and any(part.strip() in REUSED_STEMS for part in name.split(" | "))
+
+
+def not_evidence_strip(im, why: str):
+    """`im` under a red strip that reads REUSED, NOT EVIDENCE and `why`; the image below the strip is unchanged."""
+    import board_reuse
+    from PIL import Image, ImageDraw, ImageFont
+    f = ImageFont.load_default(size=LABEL_PX)
+    w = max(im.width, LABEL_MIN_W)
+    lines = _wrap(f"{board_reuse.NOT_EVIDENCE}: {why}", f, w - 12)
+    h = 8 + (LABEL_PX + 4) * len(lines)
+    out = Image.new("RGB", (w, h + im.height), NOT_EVIDENCE_RED)
+    d = ImageDraw.Draw(out)
+    for i, ln in enumerate(lines):
+        d.text((6, 4 + (LABEL_PX + 4) * i), ln, fill=(255, 255, 255), font=f)
+    out.paste(im.convert("RGB"), (0, h))
+    return out
+
+
+def mark_not_evidence(out: Path) -> dict[str, list[str]]:
+    """Every sheet saved in <out> (and its half-size copy) and every copied surface file under a NOT_EVIDENCE strip,
+    once (the PNG text chunk board_reuse.NOT_EVIDENCE_KEY; the tier chunk is kept). Run after every row is drawn,
+    so the rows were drawn from the copied pixels as they were. Returns what was marked."""
+    import board_reuse
+    from PIL import Image
+    from PIL.PngImagePlugin import PngInfo
+    done: dict[str, list[str]] = {"sheets": [], "surfaces": []}
+    targets = [(q, "sheets", "an incremental board (--unsafe-reuse-for-iteration): not for a panel or a score")
+               for q in sorted(Path(out).glob("*.png"))]
+    targets += [(Path(out) / "surfaces" / f"{n}.png", "surfaces", "copied from a previous board, not rendered")
+                for n in sorted(REUSED_STEMS)]
+    for q, kind, why in targets:
+        if not q.is_file():
+            continue
+        with Image.open(q) as im:
+            if im.info.get(board_reuse.NOT_EVIDENCE_KEY):
+                continue
+            texts = {k: v for k, v in im.info.items() if isinstance(v, str)}
+            marked = not_evidence_strip(im.convert("RGB"), why)
+        info = PngInfo()
+        for k, v in texts.items():
+            info.add_text(k, v)
+        info.add_text(board_reuse.NOT_EVIDENCE_KEY, board_reuse.NOT_EVIDENCE)
+        marked.save(q, compress_level=1, pnginfo=info)
+        half = q.with_name(q.stem + "_half.jpg")
+        if half.is_file():
+            marked.resize((max(1, marked.width // 2), max(1, marked.height // 2)), Image.LANCZOS).save(half, quality=90)
+        done[kind].append(q.name)
+    return done
+
+
+def _offline(*_a, **_k):
+    raise RuntimeError("board.py is offline: no board path reaches the network (the paid matcher included)")
+
+
+def block_network() -> None:
+    """No socket connects from this process (the board process and every compose worker, where the Aswan deck and the
+    board's own social frames are drawn), as render_surfaces.py blocks its own: board_decks.no_vision is then not the
+    only thing between a board path and a paid or networked call."""
+    import socket
+    socket.create_connection = _offline
+    socket.socket.connect = _offline
+    socket.socket.connect_ex = _offline
 
 
 def sys_value(name: str):
@@ -501,6 +578,7 @@ def prefetched(key):
 def _worker_init(tree: str, dev: str, here: str, brand_name: str) -> None:
     """A compose worker set up as main() sets up the board process (environment, paths, the exact memo, the brand)."""
     os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8", RR_FIXTURE_REPO=dev)
+    block_network()   # round 3: a compose worker is offline, as render_surfaces.py is
     os.chdir(tree)
     for p in (here, str(Path(tree) / FIX), tree):
         if p in sys.path:
@@ -1284,6 +1362,41 @@ def element_rows():
     return out
 
 
+def fb_post_order(deck: str, names: list[str], sj_rec: dict, dev: Path) -> tuple[list[str], str, str | None]:
+    """The Facebook slides of `deck` the multi-photo post carries, in its order: (surface names, over what the pick
+    was made, the error when facebook_pick could not run). A deck drawn by production's entry carries the publisher's
+    own pick over the copy as drawn (photo_choice "facebook_post", board_decks.production_deck); a replayed deck is
+    picked over the run's recorded Facebook copy with today's archetypes."""
+    import board_evidence as be
+    choice = sj_rec.get("photo_choice") or {}
+    places = {n: (choice.get(n) or {}).get("facebook_post") for n in names if "facebook_post" in (choice.get(n) or {})}
+    if places and all(v != "unknown" for v in places.values()):
+        return sorted((n for n, v in places.items() if v), key=lambda n: places[n]), "the Facebook copy as drawn", None
+    current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in (sj_rec.get("rerouted") or {}).items()
+               if k.startswith(f"{deck}__fb_carousel_slide_")}
+    try:
+        picked = be.fb_post_slides(dev / "output" / f"run_{deck[len('social__'):]}", current)
+    except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
+        return [], "the run's recorded Facebook copy with today's archetypes", f"{type(e).__name__}: {e}"[:1500]
+    return ([f"{deck}__fb_carousel_slide_{Path(x).stem.rsplit('_', 1)[-1]}" for x in picked],
+            "the run's recorded Facebook copy with today's archetypes", None)
+
+
+def fb_unposted(names: list[str], sj_rec: dict, dev: Path) -> dict[str, list[str]]:
+    """Round 3 (lander ruling 2026-11-26, after REVIEW2-board-c5.md (d)): per deck, the Facebook slides the
+    multi-photo post never carries (fb_post_order), which the usage inventory counts as never seen by viewers: tier 4
+    (board_evidence.FB_UNPOSTED). A deck whose pick could not be made keeps its slides at tier 1, said in board.json."""
+    decks: dict[str, list[str]] = {}
+    for n in sorted(x for x in names if x.startswith("social__") and "__fb_carousel_slide_" in x):
+        decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
+    out: dict[str, list[str]] = {}
+    for deck, slides in decks.items():
+        order, _over, err = fb_post_order(deck, slides, sj_rec, dev)
+        if order and not err:
+            out[deck] = [n for n in slides if n not in order]
+    return out
+
+
 def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: dict) -> list[str]:
     """Round 8 (PL-E1): a feed sheet per feed surface at real pixel size (board_evidence.FEEDS), each of the heroes'
     tiles among 8 peer slots: the Reel cover and the carousel cover in the Instagram grid, the carousel cover in the
@@ -1325,27 +1438,12 @@ def peer_feeds(out: Path, dev: Path, work: Path, peers: Path | None, manifest: d
         decks.setdefault(n.split("__fb_carousel_slide_")[0], []).append(n)
     sj_ = out / "surfaces.json"
     sj_rec = json.loads(sj_.read_text(encoding="utf-8")) if sj_.is_file() else {}
-    rerouted = sj_rec.get("rerouted") or {}
-    choice = sj_rec.get("photo_choice") or {}
     collages, posted = [], {}
     for deck, names in decks.items():
         tag = deck[len("social__"):]
-        # cycle 5: a deck drawn by production's entry carries the publisher's own pick over the copy as drawn
-        # (photo_choice "facebook_post", board_decks.production_deck); a replayed deck is picked as before
-        places = {n: (choice.get(n) or {}).get("facebook_post") for n in names if "facebook_post" in (choice.get(n) or {})}
-        if places and all(v != "unknown" for v in places.values()):
-            order = sorted((n for n, v in places.items() if v), key=lambda n: places[n])
-            over = "the Facebook copy as drawn"
-        else:
-            current = {f"carousel_slide_{k.rsplit('_', 1)[-1]}.jpg": v["current"] for k, v in rerouted.items()
-                       if k.startswith(f"{deck}__fb_carousel_slide_")}
-            try:
-                picked = be.fb_post_slides(dev / "output" / f"run_{tag}", current)
-            except Exception as e:  # noqa: BLE001  recorded; the deck's own order stands in, labelled
-                manifest["errors"][f"peer feeds: facebook_pick {tag}"] = f"{type(e).__name__}: {e}"[:1500]
-                picked = []
-            order = [f"{deck}__fb_carousel_slide_{Path(p).stem.rsplit('_', 1)[-1]}" for p in picked]
-            over = "the run's recorded Facebook copy with today's archetypes"
+        order, over, err = fb_post_order(deck, names, sj_rec, dev)
+        if err:
+            manifest["errors"][f"peer feeds: facebook_pick {tag}"] = err
         order = [n for n in order if n in surf]
         how = (f"publisher's set: facebook_pick over {over} posts {len(order)} of {len(names)} Facebook slides "
                f"({', '.join(n.rsplit('_', 1)[-1] for n in order)})" if order else
@@ -1648,6 +1746,10 @@ def main() -> None:
                     "(its board.json, surfaces.json, DEPS.json, MANIFEST.json). Only the render_surfaces.py jobs whose "
                     "inputs changed since it are rendered (board_reuse.py says what an input is); the rest are its "
                     "files, byte for byte; REUSE.json records which. Anything that forbids it renders every job")
+    ap.add_argument("--unsafe-reuse-for-iteration", action="store_true", help="round 3 (queue/REVIEW2-board-c5.md): "
+                    "--reuse is refused without it. With it the board is an iteration aid, never evidence: stamped "
+                    "not for the panel (board.json not_for_panel, REUSE.json unsafe, NOT-EVIDENCE.txt), every copied "
+                    "tile and surface file and every sheet marked REUSED, NOT EVIDENCE")
     ap.add_argument("--reuse-sample", type=int, default=2, help="with --reuse: this many of the reused jobs that "
                     "loaded a changed module, picked at random, are rendered anyway and must equal the previous "
                     "board's (a difference: exit 3); -1: all of them. The jobs the static net names are always "
@@ -1663,6 +1765,11 @@ def main() -> None:
                     "default palette on the non-history stress copy set (board_portability.py), side by side, into "
                     "<out>/portability; nothing else is drawn")
     a = ap.parse_args()
+    import board_reuse
+    if a.reuse and not a.unsafe_reuse_for_iteration:   # round 3: the fence (board_reuse.REFUSED)
+        print(f"board: {board_reuse.REFUSED}", file=sys.stderr, flush=True)
+        raise SystemExit(2)
+    block_network()   # round 3: the board process is offline too (the Aswan deck is drawn here at --workers 1)
     tree, dev, out = a.tree.resolve(), a.dev.resolve(), a.out.resolve()
     here = Path(__file__).resolve().parent
     out.mkdir(parents=True, exist_ok=True)
@@ -1706,8 +1813,7 @@ def main() -> None:
     def took(what: str, t0: float) -> None:
         manifest["seconds"][what] = round(time.perf_counter() - t0, 1)
         print(f"board: {what}: {manifest['seconds'][what]:.0f}s", file=sys.stderr, flush=True)
-    import board_reuse   # cycle 5: the not-code inputs outside git and the inputs record (toolchain, tools/ data)
-    t0 = time.perf_counter()
+    t0 = time.perf_counter()   # cycle 5: board_reuse, the not-code inputs outside git (toolchain, tools/ data)
     reuse_env = manifest["reuse_env"] = board_reuse.environment(tree)
     took("reuse environment (toolchain, tools/ data hashed)", t0)
     if rows & set(ROWS) and not a.no_surfaces:
@@ -1717,6 +1823,10 @@ def main() -> None:
         plan = None
         if a.reuse:   # cycle 5: the incremental board (board_reuse.py): only the jobs whose inputs changed
             prev = a.reuse.resolve()
+            # round 3: with the flag (checked above) the board is never evidence, whatever is reused
+            manifest["not_for_panel"] = (f"{board_reuse.NOT_EVIDENCE}: made with --reuse {prev} "
+                                         f"{board_reuse.UNSAFE_FLAG} (queue/REVIEW2-board-c5.md R1-R5)")
+            board_reuse.stamp_not_evidence(out, [])
             try:
                 offered = offered_jobs(here, tree, dev, a.per_kind, a.brand, subset)
                 t_plan = time.perf_counter()
@@ -1726,7 +1836,9 @@ def main() -> None:
             except board_reuse.NoReuse as e:
                 print(f"board: NO REUSE of {prev}: {e}: rendering every job", file=sys.stderr, flush=True)
                 manifest["reuse"] = {"prev": str(prev), "no_reuse": str(e)}
-                board_reuse.none(out, str(e), a.brand, prev)
+                rec = board_reuse.none(out, str(e), a.brand, prev)
+                rec["unsafe"] = manifest["not_for_panel"]
+                (out / board_reuse.REUSE_NAME).write_text(json.dumps(rec, indent=1), encoding="utf-8", newline="\n")
         if plan is None:
             (out / board_reuse.REUSE_NAME).unlink(missing_ok=True) if not a.reuse else None
             manifest["workers"] = {"surfaces": run_surfaces(here, tree, dev, out, a.per_kind, a.brand, a.workers,
@@ -1754,7 +1866,10 @@ def main() -> None:
                 fresh = json.loads((out / "surfaces.json").read_text(encoding="utf-8"))
                 fresh_deps = json.loads((out / "DEPS.json").read_text(encoding="utf-8"))
                 shutil.rmtree(jobs_file.parent, ignore_errors=True)
+            plan["unsafe"] = manifest["not_for_panel"]   # REUSE.json says it too (finish writes it)
             merged = board_reuse.finish(plan, out, fresh, fresh_deps)   # exit 3 on a sample mismatch
+            REUSED_STEMS.update(Path(f).stem for f, r in plan["files"].items() if r["status"] == "reused")
+            board_reuse.stamp_not_evidence(out, sorted(REUSED_STEMS))
             merged["src_sha256"] = manifest["src_sha256"]
             (out / "surfaces.json").write_text(json.dumps(merged, indent=1, sort_keys=True), encoding="utf-8",
                                                newline="\n")
@@ -1809,6 +1924,11 @@ def main() -> None:
     from PIL import Image
     sj = out / "surfaces.json"
     surfaces_rec = json.loads(sj.read_text(encoding="utf-8")) if sj.is_file() else None
+    if surfaces_rec is not None:   # round 3: a Facebook slide the post never carries is tier 4 (never seen)
+        unposted = extra("facebook pick for the tiers", lambda: fb_unposted(
+            [q.stem for q in (out / "surfaces").glob("*__fb_carousel_slide_*.png")], surfaces_rec, dev), {})
+        be.FB_UNPOSTED.update(n for v in unposted.values() for n in v)
+        manifest["fb_unposted"] = unposted
     for rec in ((surfaces_rec or {}).get("wide_grounds") or {}).values():   # cycle 3: each 16:9 ground's pairing
         be.WIDE_GROUNDS[int(rec["index"])] = (rec["class"], rec["why"])
     for k in ("retired", "rerouted", "bridge_ladder", "wide_grounds"):   # cycle 3: production today, not as recorded
@@ -2021,6 +2141,8 @@ def main() -> None:
     # outside the loop above), and every sheet saved whole says its tier on the sheet itself
     be.case_tiers(manifest, WIDE_CAPTIONS)
     manifest["tier_strips"] = extra("tier strips", lambda: tier_sheets(out), {})
+    if manifest.get("not_for_panel"):   # round 3: after every sheet is drawn and tier-stamped
+        manifest["not_evidence_marks"] = mark_not_evidence(out)
     manifest["tiers"] = {"what": be.TIER_WHAT, "rule": "lander ruling 2026-11-26 (SURFACE-USAGE-2026-11-26): a "
                          "lane's verdict is set by tiers 1-2", "drawn": "each tile's label strip (sheet()) and a "
                          "strip above each sheet saved whole (tier_sheets)", "counts": {

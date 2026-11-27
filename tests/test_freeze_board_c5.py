@@ -1137,7 +1137,10 @@ def test_the_other_streams_records_reach_the_tile_and_the_table(mods):
     assert "dataclasses.replace(spec, set_titles=tuple(fc.RICHAT_ACTS))" in rs
     assert '"chapter_act1": lambda ph, size: chapter(size, 1, ph)' in rs
     sh = (BOARD / "run_palette.sh").read_text(encoding="utf-8")
-    assert 'prev=(--timings "$BOARD_PREV/$palette/surfaces.json")' in sh and 'prev+=(--reuse "$BOARD_PREV/$palette")' in sh
+    assert 'prev=(--timings "$BOARD_PREV/$palette/surfaces.json")' in sh
+    # round 3: the reuse base only with the unsafe variable, and then always with the flag (test_freeze_board_c5_fence)
+    assert 'prev+=(--reuse "$BOARD_PREV/$palette" --unsafe-reuse-for-iteration)' in sh
+    assert '"${BOARD_UNSAFE_REUSE_FOR_ITERATION:-}" = 1' in sh
 
 
 TIERS = {

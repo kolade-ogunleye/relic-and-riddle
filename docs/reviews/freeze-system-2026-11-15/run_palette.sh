@@ -6,9 +6,13 @@
 #
 # BOARD_PREV=<previous out root> (cycle 5, optional): the out root of the previous integration's boards. Its
 # <palette>/surfaces.json balances the shards by each job's real seconds (--timings: 19 % off the surfaces phase at
-# 4 workers against the per-kind defaults, computed from integration 4's job times), and when that board holds the
-# code record (DEPS.json) and a MANIFEST.json it is the --reuse base: only the jobs whose inputs changed are
-# rendered (board_reuse.py).
+# 4 workers against the per-kind defaults, computed from integration 4's job times). No image is reused: the board
+# renders in full.
+#
+# BOARD_UNSAFE_REUSE_FOR_ITERATION=1 (round 3, iteration only, NEVER evidence; queue/REVIEW2-board-c5.md R1-R5):
+# with BOARD_PREV holding DEPS.json and MANIFEST.json, it is also the --reuse base (board.py
+# --unsafe-reuse-for-iteration): the board is stamped not for the panel and every copied tile, surface file and
+# sheet says REUSED, NOT EVIDENCE.
 #
 # BOARD_TMP=<folder> (cycle 5 fix 1, optional): the temp folder of this board's processes (frames cut from the
 # runs, the builders' store). An empty one, with a tree that has no cache/, makes the board observe every on-disk
@@ -36,8 +40,9 @@ brand=()
 prev=()
 if [ -n "${BOARD_PREV:-}" ] && [ -f "$BOARD_PREV/$palette/surfaces.json" ]; then
   prev=(--timings "$BOARD_PREV/$palette/surfaces.json")
-  if [ -f "$BOARD_PREV/$palette/DEPS.json" ] && [ -f "$BOARD_PREV/$palette/MANIFEST.json" ]; then
-    prev+=(--reuse "$BOARD_PREV/$palette")
+  if [ "${BOARD_UNSAFE_REUSE_FOR_ITERATION:-}" = 1 ] && [ -f "$BOARD_PREV/$palette/DEPS.json" ] \
+     && [ -f "$BOARD_PREV/$palette/MANIFEST.json" ]; then
+    prev+=(--reuse "$BOARD_PREV/$palette" --unsafe-reuse-for-iteration)   # iteration only: stamped not evidence
   fi
 fi
 here="$tree/docs/reviews/freeze-system-2026-11-15"

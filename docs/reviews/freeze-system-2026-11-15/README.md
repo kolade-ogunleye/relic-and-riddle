@@ -207,7 +207,48 @@ contrast; the system kicker on the end screen).
 A cycle should measure designs, not wait for a board or guess what changed. Four tools, each proven on a subset
 (the lander renders the full board; numbers and the proofs' data are in the hand-back, queue/HANDBACK-board-c5.md).
 
-### The incremental board: `board.py ... --reuse <previous board of the same palette>`
+### The incremental board: an iteration aid, NEVER evidence (fenced off, round 3)
+
+**Reuse is an iteration aid, never evidence.** The second independent review (queue/REVIEW2-board-c5.md) made the
+incremental board reuse stale images five new ways (R1-R5 below), each passing the gate, because the gate re-derives
+from the same DEPS.json as the plan: whatever the record misses, the gate misses too. Lander ruling 2026-11-26: stop
+trying to prove reuse safe in this cycle; make it impossible to use by accident.
+
+- `board.py --reuse <dir>` exits 2 with "--reuse refused: full render only; see queue/REVIEW2-board-c5.md" unless
+  `--unsafe-reuse-for-iteration` is given too. `run_palette.sh`: `BOARD_PREV` gives the shard timings only
+  (`--timings`, no image reuse); the reuse base needs `BOARD_UNSAFE_REUSE_FOR_ITERATION=1` as well.
+- With the flag, the board is stamped not for the panel in three places (board.json `not_for_panel`, REUSE.json
+  `unsafe`, `NOT-EVIDENCE.txt` listing the copied files), whatever was reused (a NoReuse fallback too). Every tile
+  of a copied surface carries a red `REUSED, NOT EVIDENCE` strip above its label, every copied `surfaces/*.png` and
+  every sheet (and its half-size copy) carries one above its pixels (PNG text chunk `board_not_evidence`), and the
+  changed-surfaces report's `index.md` / `index.json` say which side is an incremental board.
+- Refused downstream: `board_reuse.verify` (the gate) proves nothing of a stamped board; `board_reuse.plan` refuses
+  it as a reuse base (its marks would travel on); `board_reuse.refuse_not_evidence(board, who)` is the one call for
+  any consumer that judges or scores a board. The panel tools live outside the repo (C:\tmp\qf-handoff\tools):
+  `panel_score.py` (`--boards`) and `panel7_coverage.py` need the same check; the patch is in the BOARD hand-back.
+- A full render is unchanged: no strip, no stamp, the same bytes.
+
+#### Open specification for a future proof (what an independent gate would need)
+
+None of these is closed; a future reuse must close every one, with a gate that does not read the record it checks.
+
+| # | from | what a reuse missed | what a proof needs |
+|---|---|---|---|
+| R1 | review 2 | another dev checkout with the same run ids: `RR_FIXTURE_REPO` is set by render_surfaces.py itself, reads are recorded as absolute paths under the old checkout | the dev checkout (resolved) and the checkout's identity in the key; every read keyed relative to it and re-hashed under the new one |
+| R2 | review 2 | the recorder's own function bodies (`board_deps` wraps os.stat, os.path.exists, os.environ, the audit hook) run in every job, keyed by skeleton only | the deps module itself, whole, in every job's key |
+| R3 | review 2 | code run by a child process not named python* (`cmd /c python`, bash, uv, a console-script .exe): imports never recorded | child-process code: any child that can run tree code is "never", or its own record joins the job's |
+| R4 | review 2 | an environment variable read in bulk (`os.environ.items()`) that was unset in the previous board | the environment in the key (every variable, or a fixed allow-list the render is run under) |
+| R5 | review 2 | a native read (FreeType, libass, fontconfig, libsndfile, files named inside an ffmpeg concat list) of a tracked file outside the global folders | content-hash against truth renders: the copied file compared with a fresh render at this commit, not with the record |
+| R6 | review 2 | the clock: `then_now.kicker_word` reads the current year (NOW / LATER flips in 2037 for the fixtures' years) | the date in the key, or a fixed clock in the render |
+| R7 | review 2 | installed packages keyed by name==version: a package file edited in place or a reinstall with other native DLLs | the installed files' hashes (site-packages, the native libraries) in the environment record |
+| 1 | review 1 | tracked data under data/ | (keyed today as tracked-data; keep) |
+| 2 | review 1 | a tests module's value (a SECTION constant) | (module skeleton keyed today; keep) |
+| 3 | review 1 | a module-level import, dunder or method | (module skeleton keyed today; keep) |
+| 4 | review 1 | the builder of an on-disk cache (code that ran where the profiler cannot see it) | builders keyed today for the derived-face cache; the class stays open with R2 / R3 |
+
+The gate condition common to all: the content hash of a reused file against a truth render of the same state, with
+the environment and the checkout identity in the key, child-process code covered and the deps module itself keyed.
+What follows is the record of what the key covers today: a description, NOT a proof.
 
 Renders only the render_surfaces.py jobs whose inputs changed and takes the rest from the previous board byte for
 byte (`board_reuse.py`). The rule since the review of 2026-11-26 (FIX FIRST: the first version reused stale images):
@@ -316,6 +357,9 @@ both clips with the per-frame difference. Row sheets are listed and paired only 
   against today's routing of the card; a drawing may then take the slide) and, on a Facebook slide,
   `.facebook_post` its place in the multi-photo post (`facebook_pick` over the copy as drawn; the feed collage uses
   it). A drawing's omission rows go to the deck's diagram slide in both copies; the rest stay with the job.
+- The photo pool. None of the board's recipe runs has a `carousel_plan.json`, so production's `_checked_stills`
+  would hold them today; the board takes the deck's photo pool from the run's `carousel_photos.json` `key.stills`
+  (as it takes the match from that file), not from a carousel plan.
 - A run whose saved data cannot drive that entry (no `carousel_photos.json`, a photograph gone from disk, another
   slide count, an AI-made picture in the match) is redrawn from its saved recipe as before, and every such tile says
   `REPLAY, not production's draw` with the missing input. A copy production would hold (a refusal) is a REFUSED tile.
@@ -329,9 +373,17 @@ both clips with the per-frame difference. Row sheets are listed and paired only 
   Every case of every row has a `case_tiers` entry (`board_evidence.case_tiers`).
 - Tiers follow the usage inventory (queue SURFACE-USAGE-2026-11-26): the 16:9 end screen is T4 (`end_card.frames`
   has no caller in `src/`), the photo callout is T3 (`CALLOUTS_ENABLED`, code default false; no run drew one).
+- Round 3 (lander ruling 2026-11-26): the Facebook slides of a deck that the multi-photo post never carries
+  (`facebook_pick`, `photo_choice.facebook_post` None; a replayed deck through the same pick) are never seen by
+  viewers: T4 (`board.fb_unposted`, `board_evidence.FB_UNPOSTED`, board.json `fb_unposted`). A deck whose pick
+  could not be made keeps its slides at T1. Map, timeline and numbers stay T1 (published).
+- Offline: the board process and every compose worker (`board.block_network`, where the Aswan deck and the board's
+  own social frames are drawn) refuse socket connects, as render_surfaces.py does, so `board_decks.no_vision` is
+  not the only thing between a board path and the paid matcher or the network.
 
 ### Wall-clock
 
 `run_palette.sh` takes `BOARD_PREV=<the previous integration's out root>`: its job times balance the shards
-(`--timings`) and, when that board has the code record and a manifest, it is the `--reuse` base. The measurements
+(`--timings`); the board still renders in full. Only with `BOARD_UNSAFE_REUSE_FOR_ITERATION=1` (iteration, never
+evidence) is it also the `--reuse` base. The measurements
 (what limits a board, how many workers, whether palettes may overlap) are in the hand-back.

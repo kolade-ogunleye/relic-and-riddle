@@ -309,7 +309,11 @@ def report(before: Path, after: Path, out: Path, labels: tuple[str, str], max_wi
         entry["pair"] = dst.relative_to(out).as_posix()
         entry["pair_size"] = list(sheet.size)
         row["changed"].append(entry)
+    import board_reuse   # round 3: a board made with --unsafe-reuse-for-iteration is marked in the index
+    not_evidence = {side: why for side, why in (("before", board_reuse.not_evidence(before)),
+                                                ("after", board_reuse.not_evidence(after))) if why}
     result = {"before": str(before), "after": str(after), "labels": list(labels), "max_width": max_width,
+              "not_evidence": not_evidence,
               "rows": dict(sorted(rows.items())),
               "counts": {k: sum(len(r[k]) if isinstance(r[k], list) else r[k] for r in rows.values())
                          for k in ("changed", "added", "removed", "unchanged", "reused")}}
@@ -317,6 +321,9 @@ def report(before: Path, after: Path, out: Path, labels: tuple[str, str], max_wi
     lines = [f"# Changed surfaces: {labels[0]} -> {labels[1]}", "",
              f"before: `{before}`  ", f"after: `{after}`  ",
              "counts: " + ", ".join(f"{k} {v}" for k, v in result["counts"].items()), ""]
+    for side, why in not_evidence.items():
+        lines[1:1] = [f"**{board_reuse.NOT_EVIDENCE}: the {side} board is an incremental board** ({why}); this "
+                      f"report is an iteration aid, not evidence.", ""]
     for name, r in result["rows"].items():
         if not (r["changed"] or r["added"] or r["removed"]):
             continue

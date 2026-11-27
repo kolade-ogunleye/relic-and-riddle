@@ -73,6 +73,14 @@ def carousel_rows(j: dict) -> list[dict]:
     width = px(1080 - 2 * gen.MARGIN)
     slides = [s for s in (j.get("carousel_slides") or []) if isinstance(s, dict)]
     rows: list[dict] = []
+    # second review M2: the body is set as its slide's ARCHETYPE sets it (the deck's routing: cover, stat and closing
+    # slides at 3 lines, content slides at 4), at the deck size and, on a slide whose stack may take a smaller scale
+    # (cover, stat, closing), also at its one fallback tier (TYPE_FALLBACK carousel body)
+    try:
+        kinds = gen.sequence_archetypes(slides)
+    except Exception:   # noqa: BLE001 - a tree without the routing: by position, as before
+        kinds = ["cover" if k == 0 else ("debate" if k == len(slides) - 1 else "immersive") for k in range(len(slides))]
+    three = ("cover", "colossal_stat", "debate")
     for i, s in enumerate(slides, 1):
         head = _clean(s.get("heading")).upper()
         if head:
@@ -95,26 +103,28 @@ def carousel_rows(j: dict) -> list[dict]:
         body = _clean(s.get("body"))
         if len(body.split()) < 2:
             continue
-        name = f"carousel_s{i:02d}_body"
-        edge = i in (1, len(slides))
-        try:
-            n = 3 if edge else 4
-            if lp is not None and hasattr(lp, "take_notes"):
-                lp.take_notes()
-            lines, font, short = g._body(d, px, body, width, n, gen.BODY_SPEC[0], gen.BODY_SPEC[0], trial=True)
-            if short:
-                n += 1
-                lines, font, short = g._body(d, px, body, width, n, gen.BODY_SPEC[0], gen.BODY_SPEC[0], trial=True)
-            lines = [str(ln) for ln in lines]
-            rec = None
-            if lp is not None and hasattr(lp, "drawn_record"):
-                rec = lp.drawn_record(lines, gen.BODY_MEASURE)
-            rows.append({"surface": name, "text": body, "lines": lines, "size": font.size, "width": width,
-                         "max_lines": n, "canvas": canvas, "chars": gen.BODY_MEASURE, "short": bool(short),
-                         "body": True, "record": rec})
-        except Exception as ex:   # noqa: BLE001
-            rows.append({"surface": name, "text": body, "refused": True, "reason": str(ex)[:200]}
-                        if _refusal(ex) else _err(name, ex))
+        kind = kinds[i - 1] if i - 1 < len(kinds) else "immersive"
+        sizes = [gen.BODY_SPEC[0]] + ([gen.BODY_SPEC[1]] if kind in three else [])
+        for b_size in sizes:
+            name = f"carousel_s{i:02d}_body" + ("" if b_size == gen.BODY_SPEC[0] else "_fallback")
+            try:
+                n = 3 if kind in three else 4
+                if lp is not None and hasattr(lp, "take_notes"):
+                    lp.take_notes()
+                lines, font, short = g._body(d, px, body, width, n, b_size, b_size, trial=True)
+                if short:
+                    n += 1
+                    lines, font, short = g._body(d, px, body, width, n, b_size, b_size, trial=True)
+                lines = [str(ln) for ln in lines]
+                rec = None
+                if lp is not None and hasattr(lp, "drawn_record"):
+                    rec = lp.drawn_record(lines, gen.BODY_MEASURE)
+                rows.append({"surface": name, "text": body, "lines": lines, "size": font.size, "width": width,
+                             "max_lines": n, "canvas": canvas, "chars": gen.BODY_MEASURE, "short": bool(short),
+                             "body": True, "record": rec, "archetype": kind})
+            except Exception as ex:   # noqa: BLE001
+                rows.append({"surface": name, "text": body, "refused": True, "reason": str(ex)[:200]}
+                            if _refusal(ex) else _err(name, ex))
     return rows
 
 

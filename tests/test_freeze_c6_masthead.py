@@ -228,6 +228,7 @@ def test_the_second_colour_set_is_refused_on_the_bright_stress_ground_and_the_de
     cfg = render_surfaces.second_brand(brand, None)
     fails = masthead.palette_problems(cfg)
     assert fails and all("bright stress" in f for f in fails) and all(":1" in f for f in fails)
+    assert any("(stacked form)" in f for f in fails)                     # asked in both lockup forms (round 2)
     with pytest.raises(brand.BrandRefused):   # (its map fills are refused first; palette_problems runs after them)
         brand.configure(cfg)
     w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME

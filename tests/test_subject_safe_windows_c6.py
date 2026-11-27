@@ -66,8 +66,8 @@ def test_a_subject_the_window_can_show_whole_is_shown_whole_on_the_zoom_ladder()
     # a closer crop (the zoom ladder) puts it whole in the view - the cycle-5 rules find it, so must these
     img = _picture(2400, 1200, seed=13)
     d = ImageDraw.Draw(img)
-    d.rectangle((1100, 660, 1300, 816), fill=(220, 40, 40))
-    a = _with_focus(img, (1100.0, 660.0, 1300.0, 816.0))
+    d.rectangle((1100, 560, 1300, 760), fill=(220, 40, 40))
+    a = _with_focus(img, (1100.0, 560.0, 1300.0, 760.0))
     window = pf.Window((1080, 1350), view=(0, 0, 1080, 675), name="debate")
     got = pf.place(None, window, analysis=a)
     assert got["focus"] >= pf.FOCUS_KEEP and got["fit"], got
@@ -101,7 +101,7 @@ def test_a_cover_never_draws_a_subject_cut_in_its_hold():
     a = _with_focus(img, (420.0, 300.0, 780.0, 1100.0))
     for _m, w in cd.cover_windows():
         rec = pf.place(None, w, analysis=a)
-        assert not rec["fit"] or rec["held"] >= pf.SUBJECT_WHOLE, rec
+        assert not rec["fit"] or rec["held"] >= 0.98, rec    # the lander's ruling, round 3 (not 0.85)
 
 
 def test_the_cover_asks_the_subject_whole_and_the_tile_its_share_never_lowered():
@@ -110,7 +110,7 @@ def test_the_cover_asks_the_subject_whole_and_the_tile_its_share_never_lowered()
     d.rectangle((420, 300, 780, 950), fill=(200, 60, 40))
     a = _with_focus(img, (420.0, 300.0, 780.0, 950.0))
     for _m, w in cd.cover_windows():
-        assert w.hold_min == pf.SUBJECT_WHOLE
+        assert w.hold_min == pf.SUBJECT_WHOLE == 0.98
         needs = pf._subject_needs(a, w, pf.fit_box(a.size, w.size))
         assert needs["focus_need"] == cd.COVER_GRID_FOCUS and needs["held_need"] == pf.SUBJECT_WHOLE
 
@@ -130,16 +130,15 @@ def test_the_cover_tries_first_the_layout_it_takes_without_the_box(monkeypatch):
 
 def test_a_crop_drawn_as_without_the_box_keeps_its_fitness():
     # a fixed ground (the hook card's) cannot move to the subject: the box records it, it does not turn it unfit
-    img = _picture(2400, 1200, seed=17)
-    d = ImageDraw.Draw(img)
-    d.rectangle((60, 300, 500, 900), fill=(200, 200, 40))
-    a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))
+    rng = np.random.default_rng(17)                         # a blocky texture: the centred crop is fit without a box
+    img = Image.fromarray(rng.integers(40, 220, (40, 80, 3)).astype(np.uint8)).resize((2400, 1200), Image.NEAREST)
+    a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))       # a subject at the left edge, outside the fixed crop
     window = pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground")
     blind = pf.place(None, window, analysis=dataclasses.replace(a, focus=None, _sat={}), fixed=True)
     got = pf.place(None, window, analysis=a, fixed=True)
+    assert blind["fit"], blind
     assert got["box"] == blind["box"] and got["focus"] < 0.5
-    if blind["fit"]:
-        assert got["fit"] and got.get("subject_partial")
+    assert got["fit"] and got.get("subject_partial")
 
 
 def _nobox_cases():
@@ -205,3 +204,20 @@ def test_a_window_moved_for_a_subject_costs_no_text_element_its_contrast():
     im, lay = drawing(130, 140, True, focus=True)            # the same move made for a subject: refused
     got = mf.keep_text_contrast(lambda: drawing(135, 120, False, True), im, lay)
     assert got[1] is not lay and "move_refused" in got[1].meta["windows"][0]["fit"]
+
+
+def test_the_subject_safe_crop_is_drawn_only_when_it_shows_no_less_than_the_cycle5_crop(monkeypatch):
+    img = _picture(1800, 1200, seed=19)
+    a = _with_focus(img, (700.0, 300.0, 1100.0, 900.0))
+    window = pf.Window((1080, 1350), name="ig carousel immersive")
+    real = pf._place
+    legacy = real(None, window, analysis=a, legacy=True)
+
+    def worse(photo, w, *args, legacy=False, floor=None, analysis=None, **kw):
+        rec = real(photo, w, *args, legacy=legacy, floor=floor, analysis=analysis, **kw)
+        if analysis is not None and analysis.focus is not None and not legacy:   # the new rules lose the subject
+            rec = {**rec, "box": [0.0, 0.0, 960.0, 1200.0], "problems": []}
+        return rec
+    monkeypatch.setattr(pf, "_place", worse)
+    got = pf.place(None, window, analysis=a)
+    assert got["box"] == legacy["box"] and "cycle-5" in got.get("basis", "")

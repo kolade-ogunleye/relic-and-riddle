@@ -180,6 +180,8 @@ def _parse(text: str, words: list[dict], gold_col: str) -> dict:
         while j < len(words) and len(got) < len(want):
             got += _key(words[j]["word"])
             j += 1
+        while got == want and j < len(words) and not _key(words[j]["word"]):
+            j += 1   # a word that draws nothing (an ellipsis "...") ends the burst it follows, as the composer cuts it
         ok = got == want
         raw = [str(x["word"]) for x in words[wi:j]] if ok else None
         starts = [float(x["start"]) for x in words[wi:j]] if ok else None

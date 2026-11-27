@@ -2350,6 +2350,35 @@ class MultiFormatGenerator:
             return better, font, short
         return chosen
 
+    def _hook_heading(self, form, px, measure, design_w: float):
+        """Freeze cycle 6 (MASTHEAD M1, the hook ratio's title side, masthead.HOOK_SURFACES): the cover's heading as
+        the engine set it, unless its first row is so short that the masthead even at its ladder's floor is over
+        masthead.hook_ratio_max of it; then the best legal re-break with a longer first row at the same locked size
+        (heading.longer_first_row under the one line policy). The cover's size is locked (display_xl, F2), so no
+        smaller title size is tried. _render_state.hook_remedy records what was done (the slide's hook_ratio record)."""
+        from . import masthead
+        from .heading import longer_first_row
+        s = getattr(px, "s", 1.0)
+        cw = self.CAROUSEL_DESIGN_W * s
+        size = type_px("masthead", "carousel") * cw / 1440
+        x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() else px(80)
+        font = get_font(brand.DISPLAY_FONT, getattr(px, "exact", px)(form.size))
+
+        def ink(line: str) -> float:
+            return masthead.text_ink(line, font)
+        need = masthead.hook_min_row(size, x0)
+        row = ink(form.lines[0])
+        if row >= need:
+            return form
+        better = longer_first_row(form, lambda t: measure(t, form.size), design_w, ink, need)
+        _render_state.hook_remedy = (
+            {"kind": "re-break", "from": list(form.lines), "to": list(better.lines),
+             "first_row_px": [round(row, 1), round(ink(better.lines[0]), 1)]} if better is not None else
+            {"kind": "none", "lines": list(form.lines), "first_row_px": round(row, 1), "need_px": round(need, 1),
+             "reason": "no legal re-break of the heading with a longer first row fits at the cover's locked size "
+                       "(display_xl, F2: no smaller title size)"})
+        return better or form
+
     def _set_heading(self, d, px, heading: str, width: int, two_tone, scale: float, h_spec, content: bool):
         """The slide's heading as the engine sets it (src/heading.py), planned in design px on the type ladder and drawn
         at the canvas's scale: (form, the canvas font). The cover (two_tone True at the display_xl spec) is LOCKED at
@@ -2377,6 +2406,8 @@ class MultiFormatGenerator:
                 # forms only, recorded off_ladder: a deck is never refused for a heading the old path set
                 form = set_heading(heading, measure, design_w, (design["display_xl"],), lockup=True, max_lines=4,
                                    last_resort_floor=fallback["display_xl"], final_floor=h_spec[1])
+            if form is not None:
+                form = self._hook_heading(form, px, measure, design_w)
         elif content:
             spec = self.CONTENT_HEADING   # both copies (lane D cycle 2, SYS-D-4)
             tier = self._deck_tier()   # SYS-D-5: the deck's one tier (the fallback only deck-wide)
@@ -3084,6 +3115,7 @@ class MultiFormatGenerator:
         _render_state.masthead_box = self._masthead_box(cw, bool(facebook), archetype,
                                                         inset=self._fb_cover_inset() and archetype == "cover")
         _render_state.window_rec = []
+        _render_state.hook_remedy = None   # freeze cycle 6 (M1): this slide's hook-ratio title side, if any
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
         lay.plates = {}
@@ -3119,8 +3151,19 @@ class MultiFormatGenerator:
         # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
         # diamond fell outside the tile's crop at x 107).
         x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else px(80)
-        base = px(self._header_y(facebook, archetype)) + cap_height(brand_font)
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
+        room = cw - px(280) - x0
+        hook_row = None
+        if archetype == "cover":
+            # freeze cycle 6 (MASTHEAD M1, panel 7 PL3): the cover is a hook surface: its mark holds
+            # masthead.hook_ratio_max of the first title row AS DRAWN (its plates), at the canvas size where it can,
+            # else at its ladder's floor (masthead.hook_size); the cap line stays on the header line
+            hook_row = masthead.ink_row((getattr(lay, "plates", None) or {}).get("heading") or [])
+            step = masthead.hook_size(size, hook_row, x0)
+            if step < size:
+                room = min(room, masthead.group_width(step, x0) + 0.5)
+                brand_font = masthead.font_for(step)
+        base = px(self._header_y(facebook, archetype)) + cap_height(brand_font)
         if facebook and archetype != "cover":
             # lane D cycle 3 (lander ruling 1 of the second review): the Facebook collage is branded once, on its
             # cover tile; an interior Facebook slide draws no masthead (recorded, not a gate failure)
@@ -3129,7 +3172,7 @@ class MultiFormatGenerator:
                                               "tile only (lane D cycle 3)", "fb_interior": True}
         else:
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
-                                                 max_width=cw - px(280) - x0)
+                                                 max_width=room)
         if not mrec["shown"] and facebook and archetype == "cover":
             # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y it
             # is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only then,
@@ -3138,8 +3181,14 @@ class MultiFormatGenerator:
             ig_base = px(self.HEADER_Y) + cap_height(brand_font)
             matched = (ig_base + px(300)) * base / ig_base
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
-                                                 max_width=cw - px(280) - x0)
+                                                 max_width=room)
             mrec["reach_matched"] = round(matched)
+        if archetype == "cover" and isinstance(getattr(lay, "meta", None), dict):
+            lay.meta["hook_ratio"] = masthead.hook_record(
+                "Facebook carousel cover" if facebook else "carousel cover",
+                mrec.get("group_width") if mrec.get("shown") else None, hook_row,
+                mrec.get("size_px") if mrec.get("shown") else None, size,
+                remedy=getattr(_render_state, "hook_remedy", None))
         if mrec["shown"]:   # one header element, as before: its box takes in the mark
             lay.add("header_brand", box)
             lay.elements[-1].update(plate.record())

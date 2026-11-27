@@ -115,6 +115,99 @@ def group_width(size: float, x0: float = 0.0) -> float:
     return right - left
 
 
+# ------------------------------------------------------------------------------------------------ the hook ratio
+# Freeze cycle 6 (stream MASTHEAD, panel 7 PL3 M1; lander ruling: the ratio binds on HOOK surfaces only): the mark never
+# competes with the hook. ONE rule for every hook surface that carries a masthead (the Instagram and Facebook carousel
+# covers, the YouTube thumbnail; the Reel cover and its grid tile carry none, operator ruling 2), measured on the
+# surface's OWN drawn first title line, with ONE token (masthead.hook_ratio_max): the masthead's drawn group width
+# (group_width: the diamond's left point to the name's last ink) over the ink width of the first title row as drawn
+# (its plates' raster boxes). Remedies, in order: the masthead's declared smaller size (its fit ladder's floor, never
+# under it: the legibility floor and the 5.5:1 gate hold); then the title side, on the surface (a legal re-break that
+# makes the first line longer under the one line policy, src/line_policy.py via the heading engine, or the title's
+# declared smaller size where the surface's ladder has one); else drawn as it is and recorded at its ceiling with the
+# measured ratio. Interiors and Story frames are not hook surfaces: their masthead is not bound by it.
+# Two sizes, never a size per hook (lane B cycle 3 ruling B-S2-1, "one mark size": a masthead fitted to each hook
+# varied 64 / 60 / 54 / 48 px across one channel): a hook surface's masthead is its canvas size where the ratio holds
+# there, else its ladder's floor, the one declared smaller size (the YouTube thumbnail's one size is already its floor).
+HOOK_SURFACES = ("carousel cover", "Facebook carousel cover", "YouTube thumbnail")
+
+
+def ink_row(plates) -> float | None:
+    """The ink width of the FIRST drawn row of `plates` (TextPlates of one text element, e.g. a heading's runs): the
+    plates on the highest baseline, from the leftmost to the rightmost raster ink (plate.box). None when nothing of
+    them is drawn."""
+    drawn = [p for p in plates if not getattr(p, "empty", False)]
+    if not drawn:
+        return None
+    top = min(p.xy[1] for p in drawn)
+    row = [p for p in drawn if abs(p.xy[1] - top) < 1]
+    return float(max(p.box[2] for p in row) - min(p.box[0] for p in row))
+
+
+def text_ink(text: str, font, track: float = 0.0) -> float:
+    """The raster ink width of one line set in `font` (as a TextPlate draws it, untracked unless `track`): what
+    ink_row measures on the drawn plates, for a form that is not drawn yet (the title side's search)."""
+    import math
+
+    from .font_engine import draw_run
+    size = float(getattr(font, "size", 100))
+    margin = math.ceil(2 * size) + 8
+    adv = tracked_width(text, font, track)
+    m = Image.new("L", (math.ceil(max(0.0, adv) + 2 * margin), math.ceil(4 * size) + 16), 0)
+    draw_run(ImageDraw.Draw(m), (margin, 2 * size + 8), text, font, 255, "ls", track)
+    bb = m.getbbox()
+    return 0.0 if bb is None else float(bb[2] - bb[0])
+
+
+def hook_ratio(group: float | None, row: float | None) -> float | None:
+    """The mark's drawn group width over the first title row's ink width (None when either is missing)."""
+    if not group or not row:
+        return None
+    return float(group) / float(row)
+
+
+def hook_holds(group: float | None, row: float | None) -> bool:
+    """The ratio is at most the token (a surface with no masthead or no title row holds by having nothing to compete)."""
+    r = hook_ratio(group, row)
+    return r is None or r <= tok("masthead.hook_ratio_max") + 1e-9
+
+
+def hook_min_row(size: float, x0: float = 0.0) -> float:
+    """The least first-row ink width at which the masthead at its ladder's floor holds the ratio: under it no masthead
+    size can, and the title side is asked."""
+    return group_width(fit_ladder(size)[-1], x0) / tok("masthead.hook_ratio_max")
+
+
+def hook_size(size: float, row: float | None, x0: float = 0.0) -> float:
+    """The masthead's size on a hook surface whose first title row is `row` px of ink: `size` (the canvas's) where its
+    group holds the ratio there, else its fit ladder's floor (the one declared smaller size; never under it)."""
+    if row is None or hook_holds(group_width(size, x0), row):
+        return float(size)
+    return float(fit_ladder(size)[-1])
+
+
+def hook_record(surface: str, group: float | None, row: float | None, size_px: float | None, canvas_px: float,
+                remedy: dict | None = None) -> dict[str, Any]:
+    """The hook ratio as the surface drew it: its measures, the token, the size the mark took and why, the title
+    side's remedy (or none), and `at_ceiling` when the mark at its floor and the title side leave it over the token."""
+    r = hook_ratio(group, row)
+    floor = fit_ladder(canvas_px)[-1]
+    rec: dict[str, Any] = {"surface": surface, "token": "masthead.hook_ratio_max",
+                           "max": tok("masthead.hook_ratio_max"),
+                           "masthead_px": None if group is None else round(float(group), 1),
+                           "first_row_px": None if row is None else round(float(row), 1),
+                           "ratio": None if r is None else round(r, 3), "holds": hook_holds(group, row),
+                           "size_px": None if size_px is None else round(float(size_px), 2),
+                           "canvas_px": round(float(canvas_px), 2), "floor_px": round(float(floor), 2)}
+    if remedy:
+        rec["title_remedy"] = remedy
+    if not rec["holds"]:
+        rec["at_ceiling"] = True
+        rec["reason"] = (f"the mark at its ladder's floor ({floor:.1f} px) is {r:.2f} of the first title row; no legal "
+                         "re-break or declared title size gives a longer first row: drawn, recorded at its ceiling")
+    return rec
+
+
 def top_scrim(im: Image.Image, peak: float, reach: float, colour=None) -> Image.Image:
     """An INK gradient from the top edge (alpha `peak` there) easing out by smoothstep to nothing at y `reach`;
     `colour` another fill (the light-ground variant's lift: masthead.colour_dark, bone)."""

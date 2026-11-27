@@ -556,6 +556,50 @@ def _set_heading_ruled(text: str, measure: Callable[[str, float], float], width:
     return None
 
 
+def longer_first_row(form: Form, measure: Callable[[str], float], width: float, ink: Callable[[str], float],
+                     need: float) -> Form | None:
+    """Freeze cycle 6 (MASTHEAD M1, the hook ratio's title side): the best legal re-break of `form`'s words at its own
+    size whose FIRST row is at least `need` px of ink (`ink(line)`), where the drawn form's first row is shorter, so
+    the mark over it does not compete with the hook. Legal: no more rows than the drawn form, every row within `width`
+    by `measure` (the engine's width), the engine's hard rules (valid: never-end words, bonds, lone rows) and no
+    violation of the one line policy (line_policy.violations, the TEXT stream's judge: never a fork of it). The payoff
+    run keeps its seam, so the same words are gold. The fewest rows first, then the evenest; None where no form does
+    (the caller records the ratio at its ceiling)."""
+    words = form.words
+    if not form.cuts and len(words) < 2:
+        return None
+    if ink(form.lines[0]) >= need:
+        return None
+    rows_max = len(form.cuts) + 1
+    best = None
+    points = break_points(words)
+    for n in range(0, rows_max):
+        for cuts in itertools.combinations(points, n):
+            lines = lines_of(words, cuts)
+            widths = [measure(t) for t in lines]
+            if max(widths) > width + 1e-6 or ink(lines[0]) < need:
+                continue
+            if not valid(lines, widths=widths, seam=form.seam if form.lockup else None):
+                continue
+            if line_policy.violations(list(lines), widths, heading=True):
+                continue
+            key = (len(cuts), (max(widths) - min(widths)) if cuts else 0.0)
+            if best is None or key < best[0]:
+                best = (key, cuts)
+    if best is None:
+        return None
+    cuts = tuple(best[1])
+    lines = lines_of(words, cuts)
+    widths = [measure(t) for t in lines]
+    bal = min(widths) / max(widths) if len(widths) > 1 and max(widths) > 0 else 1.0
+    record = {k: v for k, v in form.record.items() if k not in ("balance", "first_row_lone", "lone_last_row",
+                                                                "phrase_exception", "locked_last_resort")}
+    record.update(balance=round(bal, 3), hook_rebreak={"from": list(form.lines), "to": list(lines),
+                                                       "reason": "masthead.hook_ratio_max: the first row was shorter "
+                                                                 "than the mark at its floor allows"})
+    return _issue(Form(words, cuts, form.size, form.tier, form.seam, form.lockup, record))
+
+
 def lockup_fields(line1: str, line2: str) -> tuple[str, str, int]:
     """A two-field lockup (line1 bone / line2 payoff) with the authored seam repaired: line1's closing function words
     open line 2 instead. Returns (line1, line2, lead) where `lead` counts line 2's opening function words (bone)."""

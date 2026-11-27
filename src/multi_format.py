@@ -512,11 +512,12 @@ def story_inset() -> int:
     return round(TEXT_INSET * VIDEO_WIDTH / 1080)
 
 
-# The Story's text column starts here (PLATES-14): the safe box's 65 and the margin token (safe_zones.TEXT_INSET): 89.
+# The Story's text column starts here (PLATES-14): the safe box's 65 and the margin token (safe_zones.TEXT_INSET): 90.
 # It was 84 (2026-10-29 to the freeze cycle 5), 19 px inside the box. A kicker on its held label plate stands with
 # the PLATE on the column and its words the plate's pad inside it (draw_kicker plate_on_column), so the plate keeps
 # the token too (it stood 5 px inside the box).
-STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET
+STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET + 1   # + 1: a round capital's ink overshoots its origin by 1 px (dev
+# corpus: 6 Story bodies' ink at 23 px from the safe box with the column at 89)
 
 
 def story_body_width() -> int:

@@ -513,7 +513,8 @@ def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_
             band = (lay.ground or {}).get("text_band") or {}
             assert e["contrast"] >= 7.0 or band.get("short"), (e["name"], e["contrast"], band)
     # the column itself: the safe box and the token (a plated kicker stands its plate on it)
-    assert multi_format.STORY_MARGIN == sx0 + inset and multi_format.story_body_width() == sx1 - inset - sx0 - inset
+    assert multi_format.STORY_MARGIN == sx0 + inset + 1
+    assert multi_format.story_body_width() == (sx1 - inset) - (sx0 + inset + 1)
 
 
 def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():
@@ -528,7 +529,7 @@ def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():
     p = np.asarray(plain, np.float32)[500:560, 100:300]
     hb, sb = pc._hue_sat(a)
     hg, sg = pc._hue_sat(g)
-    hp, sp = pc._hue_sat(p)
+    _, sp = pc._hue_sat(p)
     assert np.abs(hg - hb).max() <= 2.0 and (sg / sb).min() >= 0.95
     assert (sp / sb).mean() < (sg / sb).mean()                       # the plain alpha loses saturation
     assert np.abs(pc.luma(Image.fromarray(g.astype(np.uint8))) - pc.luma(Image.fromarray(p.astype(np.uint8)))).max() <= 2

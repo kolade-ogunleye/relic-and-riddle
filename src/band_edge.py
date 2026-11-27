@@ -243,8 +243,9 @@ TEXT_PCT = 97.0     # per glyph-wide slice: the line is judged glyph by glyph on
 TEXT_RING = 4       # px round the line's ink box: a glyph's immediate surround (typography.GLYPH_SURROUND)
 TEXT_SLICE = 0.7    # a slice's width, in the line's height: about one glyph
 # the band is planned this much above the target (as placement plans 4.8 for the 4.5 gate): the band's 8-bit alpha,
-# the glyph's antialiased ink and the composed measure read a planned 7.0 at 6.87-6.97 on the dev Story frames
-TEXT_PLAN_MARGIN = 1.04
+# the glyph's antialiased ink and the composed measure read a planned 7.0 at 6.87-6.97 on the dev Story frames, and
+# 1.04 still left 11 of 1,103 dev corpus lines at 6.63-6.98 (a heading's own ring, a stat over the split's fade)
+TEXT_PLAN_MARGIN = 1.10
 
 
 def _lin(v: np.ndarray) -> np.ndarray:
@@ -289,7 +290,7 @@ def text_strength(im: Image.Image, rows, colour, target: float | None = None, pc
         lc = float(c @ LUMA)
         ks = [np.minimum(1.0, lc / np.maximum(g @ LUMA, 1e-4))[:, None] for g in slices]
 
-        def at(s: float) -> float:
+        def at(s: float, slices=slices, ks=ks) -> float:
             if grade:
                 return max(float(np.percentile(_lin(g * ((1.0 - s) + s * k)) @ LUMA, pct)) for g, k in zip(slices, ks))
             return max(float(np.percentile(_lin(g * (1.0 - s) + c * s) @ LUMA, pct)) for g in slices)

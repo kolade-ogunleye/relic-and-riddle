@@ -1,0 +1,10 @@
+threshold  boxed  cuts  (objects cut)  cut ids
+     0.30     35     9      3   019 gobekli_te/06 (0.31), 062 richat_str/06 (0.49), 072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96), 124 tunguska_e/10 (0.64), 125 tunguska_e/13 (0.47)
+     0.40     33     8      3   062 richat_str/06 (0.49), 072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96), 124 tunguska_e/10 (0.64), 125 tunguska_e/13 (0.47)
+     0.50     28     6      2   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96), 124 tunguska_e/10 (0.64)
+     0.60     26     6      2   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96), 124 tunguska_e/10 (0.64)
+     0.70     23     5      2   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96)
+     0.80     20     5      2   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.96)
+     0.85     18     4      1   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 123 tunguska_e/09 (0.96)
+     0.90     16     4      1   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 076 roman_self/13 (0.95), 123 tunguska_e/09 (0.96)
+     0.95      8     3      1   072 roman_self/05 (0.96), 074 roman_self/09 (0.97), 123 tunguska_e/09 (0.96)

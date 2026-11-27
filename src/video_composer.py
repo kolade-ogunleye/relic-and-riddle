@@ -5977,31 +5977,88 @@ def graphic_caption_intrusion(clip: Path, rect: tuple[int, int, int, int], width
 RECON_BADGE_CLEAR = 12   # px at 1080 wide: the badge plate keeps this clear of a graphic's drawn elements
 
 
-def recon_badge_geometry(width: int, height: int) -> dict[str, Any]:
+RECON_BADGE_CORNERS = ("top_left", "top_right")   # freeze cycle 6 (panel 7 C4): the badge's corner, then its alternative
+BADGE_PAD = (14, 10)   # px at 1080 (wide: scaled by the frame's height): the badge plate's padding on every surface
+BADGE_RADIUS = 8       # px at 1080: the badge plate's corner radius on every surface
+BADGE_LEAD = 1.75      # cap heights between the two lines' baselines of a badge set on two lines
+
+
+BADGE_TRACK = 1.5      # px of tracking per character at the badge's size (the caption style's Spacing)
+BADGE_PLATE_OPACITY = round(1 - RECON_PLATE_ALPHA / 255, 3)   # the INK plate's opacity on every surface (0.851)
+
+
+def badge_plate(im: Image.Image, box: tuple[int, int, int, int], scale: float = 1.0) -> Image.Image:
+    """Freeze cycle 6 (panel 7 BC: three badge treatments, one per surface): the badge plate a STILL draws (the
+    Reel cover, the YouTube thumbnail), the caption badge's tokens: INK at BADGE_PLATE_OPACITY, BADGE_RADIUS corners
+    (`scale`: the canvas against 1080 wide). Returns the RGBA image with the plate composited."""
+    from PIL import ImageDraw as _Draw
+    base = im.convert("RGBA")
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    _Draw.Draw(layer).rounded_rectangle(box, radius=max(1, round(BADGE_RADIUS * scale)),
+                                        fill=tuple(_brand.INK) + (round(255 * BADGE_PLATE_OPACITY),))
+    return Image.alpha_composite(base, layer)
+
+
+def badge_lines(label: str = RECON_BADGE_LABEL) -> list[str]:
+    """The label on two lines, broken at its separator, which the break replaces (TY, panel 7: "AI ILLUSTRATION · /
+    NOT A PHOTO" left the separator dangling at a line end): ["AI ILLUSTRATION", "NOT A PHOTO"]. One line where the
+    label has no separator."""
+    head, sep, tail = label.partition(" · ")
+    return [head, tail] if sep else [label]
+
+
+def recon_badge_geometry(width: int, height: int, corner: str = "top_left") -> dict[str, Any]:
     """Where the AI-reconstruction badge stands on a `width` x `height` frame: its type size (px and libass size),
-    the plate's box (x0, y0, x1, y1) and the text's position. Bone on an INK plate, top-left: title-safe's corner on
-    16:9 (lane F cycle 3, panel 4 PL r1: the 5 % corner sat under the YouTube player's title band); on 9:16 inside
-    the Reel box below the Reel's top bar, 19 px in from its left edge and 12 px under its top (caption review
-    2026-11-02). One place per format (the disclosure is a small corner label): build_subtitles draws it here and
-    clear_badge_intervals measures this box."""
+    the plate's box (x0, y0, x1, y1), the text's position, and each drawn line with its position (`lines`). Bone on
+    an INK plate (the badge tokens: BADGE_PAD, BADGE_RADIUS; brand BONE on INK at RECON_PLATE_ALPHA, as the covers
+    and the thumbnail draw it). `corner` "top_left" (the badge's place): title-safe's corner on 16:9 (lane F cycle
+    3, panel 4 PL r1); on 9:16 inside the Reel box below the Reel's top bar, 19 px in from its left edge and 12 px
+    under its top (caption review 2026-11-02). "top_right" (freeze cycle 6, panel 7 C4: the documented alternative
+    where a graphic's drawn ink stands in the first corner): the same inset from the right edge; on 9:16 on two
+    lines (badge_lines: the separator replaced by the break), so the corner it takes is narrow. build_subtitles draws
+    here and clear_badge_intervals / badge_corner_for measure this box."""
     from .typography import get_font
     wide = width > height
     badge_px = round(RECON_SIZE_WIDE * height / 1080) if wide else RECON_SIZE_PORTRAIT
     badge_fs = ass_font_size(_brand.BADGE_FONT, badge_px, BADGE_WEIGHT)
     scale = height / 1080 if wide else 1
-    pad_x, pad_y = round(14 * scale), round(8 * scale)
+    pad_x, pad_y = round(BADGE_PAD[0] * scale), round(BADGE_PAD[1] * scale)
     b_top, b_bottom = _ink_band(_brand.BADGE_FONT, badge_px, badge_fs, BADGE_WEIGHT)
-    label = RECON_BADGE_LABEL
-    tw = unkerned_length(get_font(_brand.BADGE_FONT, badge_px, weight=BADGE_WEIGHT), label) + 1.5 * len(label)
+    font = get_font(_brand.BADGE_FONT, badge_px, weight=BADGE_WEIGHT)
+    lines = badge_lines() if (corner == "top_right" and not wide) else [RECON_BADGE_LABEL]
+    widths = [unkerned_length(font, ln) + 1.5 * len(ln) for ln in lines]
+    hb = font.getbbox("H")
+    step = round(BADGE_LEAD * (hb[3] - hb[1]))   # baseline to baseline, as the covers set their two-line label
     if wide:
         from .graphics import WIDE_TITLE_SAFE
-        x0, y0 = round(WIDE_TITLE_SAFE[0] * width / 1920), round(WIDE_TITLE_SAFE[1] * height / 1080)
+        left, y0 = round(WIDE_TITLE_SAFE[0] * width / 1920), round(WIDE_TITLE_SAFE[1] * height / 1080)
+        right = round(WIDE_TITLE_SAFE[2] * width / 1920)
     else:
-        reel_x0, reel_y0, _, _ = _REEL_UI.box(width, height)
-        x0, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
-    plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)
-    return {"px": badge_px, "fs": badge_fs, "box": (x0, y0, x0 + plate_w, y0 + plate_h),
-            "plate": (plate_w, plate_h), "text_pos": (x0 + pad_x, round(y0 + pad_y - b_top))}
+        reel_x0, reel_y0, reel_x1, _ = _REEL_UI.box(width, height)
+        left, y0 = reel_x0 + round(19 * width / VIDEO_WIDTH), reel_y0 + round(12 * height / VIDEO_HEIGHT)
+        right = reel_x1 - round(19 * width / VIDEO_WIDTH)
+    plate_w = round(max(widths) + 2 * pad_x)
+    plate_h = round(b_bottom - b_top + 2 * pad_y + (len(lines) - 1) * step)
+    x0 = left if corner == "top_left" else right - plate_w
+    text_y = round(y0 + pad_y - b_top)
+    return {"px": badge_px, "fs": badge_fs, "box": (x0, y0, x0 + plate_w, y0 + plate_h), "corner": corner,
+            "plate": (plate_w, plate_h), "text_pos": (x0 + pad_x, text_y),
+            "lines": [(ln, (x0 + pad_x, text_y + k * step)) for k, ln in enumerate(lines)]}
+
+
+def badge_corner_for(clip: Path, width: int, height: int) -> tuple[str | None, list[str]]:
+    """The first of RECON_BADGE_CORNERS whose plate (grown by RECON_BADGE_CLEAR) a graphic clip leaves free of its
+    drawn elements (badge_corner_occupied), with why each earlier corner was refused; (None, reasons) when none is."""
+    why: list[str] = []
+    for corner in RECON_BADGE_CORNERS:
+        geo = recon_badge_geometry(width, height, corner)
+        clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
+        x0, y0, x1, y1 = geo["box"]
+        got = badge_corner_occupied(clip, (x0 - clear, y0 - clear, x1 + clear, y1 + clear), width, height)
+        if got is None:
+            return corner, why
+        why.append(f"{corner}: {got}")
+    return None, why
 
 
 def badge_corner_occupied(clip: Path, rect: tuple[int, int, int, int], width: int, height: int) -> str | None:
@@ -6050,20 +6107,20 @@ def clear_badge_intervals(intervals: list[tuple[float, float]], scene_images: li
     side (reconstruction_badge_intervals), so it reaches a neighbouring graphic for TRANS_DUR / 2: there it stays
     only where its plate (recon_badge_geometry, grown by RECON_BADGE_CLEAR) is shown free of the graphic's drawn
     elements (badge_corner_occupied); else the badge yields at the cut (the drawn content keeps its corner; the
-    illustration's own beat is disclosed whole). One corner per format, never a second position."""
+    illustration's own beat is disclosed whole). Freeze cycle 6 (panel 7 C4): the badge yields only where NEITHER of
+    its corners is free (badge_corner_for: its place, then its documented alternative); build_subtitles takes the
+    free one, recorded."""
     if not intervals:
         return list(intervals or []), []
     geo = recon_badge_geometry(width, height)
-    clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
-    x0, y0, x1, y1 = geo["box"]
-    rect = (x0 - clear, y0 - clear, x1 + clear, y1 + clear)
     kept, yielded = [tuple(i) for i in intervals], []
     for start, end, clip in caption_graphic_clips(scene_images, durations):
         if not any(a < end and b > start for a, b in kept):
             continue
-        why = badge_corner_occupied(clip, rect, width, height)
-        if why is None:
-            continue
+        corner, whys = badge_corner_for(clip, width, height)
+        if corner is not None:
+            continue   # a corner is free (build_subtitles draws the badge there, recorded)
+        why = "; ".join(whys)
         cut = [(max(a, start), min(b, end)) for a, b in kept if a < end and b > start]
         kept = [piece for a, b in kept for piece in ((a, min(b, start)), (max(a, end), b))
                 if piece[1] - piece[0] > 1e-6]
@@ -7038,14 +7095,46 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             # organic box; x 84 on the ads box until QF-24). The 9:16 badge was 22px, centred and unplated until the
             # caption review of 2026-11-02 (operator approved moving it).
             # freeze cycle 5 (PLATES): the one geometry, recon_badge_geometry (clear_badge_intervals measures it too)
-            badge_geo = recon_badge_geometry(width, height)
-            (x0, y0), text_pos = badge_geo["box"][:2], badge_geo["text_pos"]
-            badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
-            plate_w, plate_h = badge_geo["plate"]
-            plate_text = f"{{\\pos({x0},{y0})\\p1}}{rounded_rect_path(plate_w, plate_h, 8)}{{\\p0}}"
+            # freeze cycle 6 (panel 7 C4): the badge's box keeps clear of a graphic's drawn ink for its whole interval:
+            # over a graphic clip (graphic_clips) it stands in the first corner the graphic leaves free
+            # (badge_corner_for: its place, then its documented alternative), and where neither is free it yields
+            # there; each stretch is recorded (self.last_badge, rates["badge"]). Never an overprint.
+            pieces: list[tuple[float, float, str | None, str | None, list[str]]] = []
             for start_t, end_t in reconstruction_intervals:
-                raw_events.append((2, start_t, end_t, "ReconPlate", plate_text))
-                raw_events.append((3, start_t, end_t, "ReconBadge", badge_text))
+                cuts = sorted({start_t, end_t} | {t for a, b, _ in (graphic_clips or []) for t in (a, b)
+                                                  if start_t < t < end_t})
+                for a, b in itertools.pairwise(cuts):
+                    over = [c for ga, gb, c in (graphic_clips or []) if ga < b - 1e-6 and gb > a + 1e-6]
+                    free = list(RECON_BADGE_CORNERS)
+                    whys, name = [], None
+                    for c in over:
+                        name = Path(c).name
+                        clear = round(RECON_BADGE_CLEAR * width / (1920 if width > height else 1080))
+                        for cn in list(free):
+                            x0, y0, x1, y1 = recon_badge_geometry(width, height, cn)["box"]
+                            why = badge_corner_occupied(Path(c), (x0 - clear, y0 - clear, x1 + clear, y1 + clear),
+                                                        width, height)
+                            if why is not None:
+                                free.remove(cn)
+                                whys.append(f"{cn}: {why}")
+                    pieces.append((a, b, free[0] if free else None, name, whys))
+            badge_rows = []
+            for a, b, corner, name, whys in pieces:
+                badge_rows.append({"start": round(a, 3), "end": round(b, 3), "corner": corner, "graphic": name,
+                                   "why": whys or None})
+                if corner is None:
+                    log.warning("the AI badge yields over %s (%.2f-%.2f s): %s", name, a, b, "; ".join(whys))
+                    continue
+                badge_geo = recon_badge_geometry(width, height, corner)
+                x0, y0 = badge_geo["box"][:2]
+                plate_w, plate_h = badge_geo["plate"]
+                radius = round(BADGE_RADIUS * (height / 1080 if width > height else 1))
+                raw_events.append((2, a, b, "ReconPlate",
+                                   f"{{\\pos({x0},{y0})\\p1}}{rounded_rect_path(plate_w, plate_h, radius)}{{\\p0}}"))
+                for text, (tx, ty) in badge_geo["lines"]:
+                    raw_events.append((3, a, b, "ReconBadge", f"{{\\an7\\pos({tx},{ty})}}{text}"))
+            self.last_badge = badge_rows
+            rates["badge"] = badge_rows
 
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))

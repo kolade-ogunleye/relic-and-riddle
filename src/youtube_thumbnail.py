@@ -1259,13 +1259,16 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
 
 def _provenance(im: Image.Image):
     """The existing on-screen disclosure (video_composer.RECON_BADGE_LABEL) bottom-left, clear of the timestamp
-    corner: IBM Plex Mono in STONE_LT on an INK plate."""
-    from .video_composer import RECON_BADGE_LABEL
-    f = get_font(brand.DATA_FONT, 30, weight=600)
-    w = ImageDraw.Draw(im).textlength(RECON_BADGE_LABEL, font=f)
+    corner, in the badge's one treatment (freeze cycle 6, panel 7 BC: the caption badge's tokens: the badge face and
+    weight, BONE, BADGE_TRACK, on an INK plate at BADGE_PLATE_OPACITY with BADGE_RADIUS corners, BADGE_PAD)."""
+    from .video_composer import BADGE_PAD, BADGE_TRACK, BADGE_WEIGHT, RECON_BADGE_LABEL, badge_plate
+    f = get_font(brand.BADGE_FONT, 30, weight=BADGE_WEIGHT)
+    w = tracked_width(RECON_BADGE_LABEL, f, BADGE_TRACK)
     y1 = H - 64
-    ImageDraw.Draw(im).rectangle((LEFT, y1 - cap_height(f) - 20, LEFT + w + 28, y1), fill=brand.INK + (255,))
-    p = plan_text(im, (LEFT + 14, y1 - 10), RECON_BADGE_LABEL, f, brand.STONE_LT, "ls", target=5.1, halo_px=0)
+    im = badge_plate(im, (LEFT, y1 - cap_height(f) - 2 * BADGE_PAD[1], round(LEFT + w + 2 * BADGE_PAD[0]), y1),
+                     scale=W / 1080).convert(im.mode)
+    p = plan_text(im, (LEFT + BADGE_PAD[0], y1 - BADGE_PAD[1]), RECON_BADGE_LABEL, f, brand.BONE, "ls",
+                  track=BADGE_TRACK, target=5.1, halo_px=0)
     return p.draw(im), p
 
 

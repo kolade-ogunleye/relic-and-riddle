@@ -153,6 +153,30 @@ def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_ne
     assert wide["hook_ratio"]["form"] == "line" and wide["hook_ratio"]["holds"]
 
 
+def test_the_stacked_form_stands_on_the_one_line_forms_share_of_the_ramp_and_holds_the_stress_ground():
+    """On the stored bright stress ground the default's stacked form reached 4.52:1 on the one-line reach (its second
+    line lower on the ramp): its last baseline takes the one-line baseline's share of the ramp (matched reach)."""
+    w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME
+    ground = masthead.stress_ground(*masthead.BRIGHT_STRESS[1:])
+    _, _, rec = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form="stacked")
+    assert rec["form"] == "stacked" and rec["reach"] == round(reach * (base + masthead.stack_pitch(size)) / base)
+    assert rec["shown"] and rec["contrast"] >= brand_system.tok("contrast.masthead_gate")
+
+
+def test_a_slide_whose_stacked_mark_reaches_no_gate_draws_the_one_line_form_recorded(tmp_path, monkeypatch):
+    real = masthead.draw
+
+    def stacked_refused(*a, **k):
+        if k.get("form") == "stacked":
+            im, _, rec, _ = real(*a, **k)
+            return im, None, dict(rec, shown=False, reason="probe: no gate"), None
+        return real(*a, **k)
+    monkeypatch.setattr(masthead, "draw", stacked_refused)
+    _, lay = _cover(tmp_path, "THE EYE OF THE SAHARA", form="stacked")
+    m = lay.meta["masthead"]
+    assert m["shown"] and m["form"] == "line" and m["form_fallback"]["stacked"] == "probe: no gate"
+
+
 def test_the_corpus_measure_on_committed_records():
     """The corpus proof's judge (masthead_01_hook_ratio.judge) on the tip's recorded covers and thumbnails
     (fixtures/masthead_c6_hook_records.json, from the dev corpus): every row holds or is recorded at its ceiling."""

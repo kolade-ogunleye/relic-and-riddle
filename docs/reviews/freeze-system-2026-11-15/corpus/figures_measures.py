@@ -251,7 +251,93 @@ def _numbers(text: str) -> list[str]:
         v = float(ftin.group(1).replace(",", "")) + int(ftin.group(2)) / 12
         rest = text[:ftin.start()] + text[ftin.end():]
         return [f"{v:.4f}#"] + _numbers(rest)
+    inch = re.search(r"(?<![\w.])(\d+)\s*IN\b", text, re.I)     # review 3: inches alone ("about 5 in"), in feet
+    if inch:
+        return [f"{int(inch.group(1)) / 12:.4f}#"] + _numbers(text[:inch.start()] + text[inch.end():])
     return [m.group(0).rstrip(",") for m in NUMBER.finditer(text)]
+
+
+QUANT = re.compile(r"(?:\b(about|nearly|approximately|roughly|around|almost|over|under)\s+)?(?<![\w.])"
+                   r"(\d[\d,]*(?:\.\d+)?)(?:\s*(m|ft|in)\b(?:\s+(\d+)\s*in\b)?)?", re.I)
+
+
+def _quantities(text: str) -> list[tuple[str, bool, str, float]]:
+    """(the number as _numbers keys it, hedged, unit, value in the drawing's feet / metres) of each drawn number."""
+    out = []
+    for m in QUANT.finditer(text):
+        num, unit = m.group(2), (m.group(3) or "").lower()
+        v = float(num.replace(",", ""))
+        if unit == "ft" and m.group(4):
+            v += int(m.group(4)) / 12
+            key = f"{v:.4f}#"
+        elif unit == "in":
+            v /= 12
+            key = f"{v:.4f}#"
+        else:
+            key = num.rstrip(",")
+        out.append((key, bool(m.group(1)), unit, v))
+    return out
+
+
+def form_fault(text: str, derived_keys: list[str], hedged: bool, unit: str, rule: str) -> str:
+    """Review 3 (B2): each derived number is DRAWN with its hedge (when its record is hedged) and its unit (none for a
+    ratio; the drawing's unit for a difference: m, or ft / in)."""
+    for key, h, u, _v in _quantities(text):
+        if key not in derived_keys:
+            continue
+        if hedged and not h:
+            return f"draws its derived figure {key.rstrip('#')} without its hedge"
+        if rule == "ratio":
+            if u:
+                return f"draws the ratio {key} with a unit ({u})"
+        elif not u:
+            return f"draws its derived figure {key.rstrip('#')} without its unit"
+        elif {"m": "M", "ft": "FT", "in": "FT"}[u] != unit:
+            return f"draws its derived figure {key.rstrip('#')} in {u}, not {unit.lower()}"
+    return ""
+
+
+def row_form_fault(text: str, unit: str, subject: float, approximate: bool) -> str:
+    """Review 3 (B2, N10): every figure a scale's line of meaning draws is in the drawing's unit (m; or ft / in), and
+    the subject's own figure carries its hedge when the fact is approximate."""
+    for key, h, u, v in _quantities(text):
+        if u and {"m": "M", "ft": "FT", "in": "FT"}[u.lower()] != unit:
+            return f"draws {key.rstrip('#')} {u} in a drawing measured in {unit.lower()}"
+        if u and approximate and abs(v - subject) < 1e-6 and not h:
+            return f"draws the subject's {key.rstrip('#')} {u} without its hedge"
+    return ""
+
+
+def landmark_fault(text: str, ref: dict[str, Any] | None, unit: str) -> str:
+    """Review 3 (B3), on its own arithmetic: every landmark figure `text` draws (a number within 3 % of the landmark's
+    file value) is a figure its statement states (hedged where the statement hedges it), or the file value correctly
+    rounded at its last digit and hedged."""
+    if not ref:
+        return ""
+    value = float(ref["feet"]) * (0.3048 if unit == "M" else 1.0)
+    statement = str(ref.get("statement") or "")
+    pat = (r"((?:approximately|about)\W+(?:\w+\W+){0,3})?(\d[\d,]*(?:\.\d+)?)\s*(?:metres|meters|m)\b" if unit == "M"
+           else r"((?:approximately|about)\W+(?:\w+\W+){0,3})?(\d[\d,]*)\s*(?:feet|foot|ft)\b"
+                r"(?:\s*(\d+)\s*(?:inches|inch|in)\b)?")
+    stated = []
+    for m in re.finditer(pat, statement, re.I):
+        v = float(m.group(2).replace(",", "")) + (int(m.group(3)) / 12 if unit == "FT" and m.group(3) else 0.0)
+        stated.append((v, bool(m.group(1))))
+    for key, h, u, v in _quantities(text):
+        if not u or abs(v - value) > 0.03 * value:
+            continue
+        match = [c for c in stated if abs(c[0] - v) < 1e-6]
+        if any(not c[1] for c in match) or (match and h):
+            continue
+        num = key.rstrip("#")
+        if match:
+            return f"draws the landmark {num} {u} without the hedge its statement carries"
+        if not h:
+            return f"draws the landmark {num} {u}, which its statement does not state, unhedged"
+        place = 1 / 12 if "#" in key else 10 ** -len(num.replace(",", "").partition(".")[2])
+        if abs(v - value) > 0.5 * place + 1e-6:
+            return f"draws the landmark about {num} {u} for its file value {value:.3f}"
+    return ""
 
 
 def _rounded_once(shown: str, true: float) -> bool:
@@ -271,7 +357,7 @@ LEVEL_MAX = {"M": 0.05, "FT": 1 / 24}   # "nearly level" may be said of a gap no
 
 
 def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subject: float, reference: float,
-                unit: str = "M") -> str:
+                unit: str = "M", hedged: bool = False) -> str:
     """'' when every derived number `text` draws is the rule's result on the SIGNED SOURCE values (`subject`, the
     fact's own value; `reference`, the reference file's figure in the drawing's unit, unrounded) rounded once; else
     what is wrong. Numbers that restate an operand's own drawn figure are not derived numbers."""
@@ -283,7 +369,9 @@ def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subj
         if not shown:
             return "" if true < 1.1 and not drawn else f"states no ratio for a true ratio of {true:.3f}"
         bad = [n for n in drawn if n != _ratio_text(true)]
-        return f"draws {bad[0]} for a true ratio of {true:.3f} ({_ratio_text(true)} by the rule)" if bad else ""
+        if bad:
+            return f"draws {bad[0]} for a true ratio of {true:.3f} ({_ratio_text(true)} by the rule)"
+        return form_fault(text, drawn, hedged, unit, rule)
     true = abs(subject - reference) if rule == "difference" else subject + reference
     if rule == "difference" and not shown:     # review 2 (N2): the word form is a derived claim, checked too
         if drawn:
@@ -293,7 +381,9 @@ def truth_fault(rule: str, text: str, shown: str, operands_drawn: set[str], subj
     if not drawn and shown and shown in _numbers(text):
         drawn = [shown]
     bad = [n for n in drawn if not _rounded_once(n, true)]
-    return f"draws {bad[0]} for a true {rule} of {true:.3f} between the signed values" if bad else ""
+    if bad:
+        return f"draws {bad[0]} for a true {rule} of {true:.3f} between the signed values"
+    return form_fault(text, drawn, hedged, unit, rule)
 
 
 def derived_rows(rec: dict[str, Any]) -> list[tuple]:
@@ -335,6 +425,11 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
             vals = [v for f in figures.parse(e["text"]) for v in f.values]
             extra = [v for v in vals if not any(abs(v - s) < 1e-6 for s in signed)]
             d = e.get("derived")
+            if e["name"].startswith("ref_label") and not d:      # review 3 (B3): the landmark's own label / legend
+                lf = landmark_fault(e["text"], reference_by_label(ref[0]), unit)
+                rows.append((rec["run"], surface(rec), f"{e['name']} {e['text']!r}", lf or "the landmark as signed",
+                             "FAIL" if lf else "PASS"))
+                continue
             if not extra and not d:
                 continue
             where = (rec["run"], surface(rec), f"{e['name']} {e['text']!r}")
@@ -342,8 +437,9 @@ def derived_rows(rec: dict[str, Any]) -> list[tuple]:
                 rows.append((*where, f"draws {extra} with no derivation record", "FAIL"))
                 continue
             faults = figures.derivation_faults(d, labelled if rec.get("layout") else None)
-            wrong = truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true,
-                                unit)
+            wrong = (truth_fault(str(d.get("rule")), e["text"], str(d.get("shown") or ""), op_drawn, s_true, r_true,
+                                 unit, bool(d.get("hedged"))) or landmark_fault(e["text"], reference_by_label(ref[0]), unit)
+                     or row_form_fault(e["text"], unit, s_true, bool(fact.get("approximate", True))))
             if wrong:
                 faults = [*faults, wrong]
             ops = " ; ".join(f"{o['text']} ({o['role']})" for o in d.get("operands") or [])

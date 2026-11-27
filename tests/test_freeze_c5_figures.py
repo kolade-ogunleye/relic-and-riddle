@@ -230,7 +230,8 @@ def _stated(note: str):
     import re
     m = re.search(r"([\d,]+(?:\.(\d+))?)\s*(FT|M)\b(?:\s+(\d+)\s*IN)?", note or "", re.I)
     if not m:
-        return None
+        inch = re.search(r"(\d+)\s*IN\b", note or "", re.I)      # review 3: a sub-foot gap in inches alone
+        return (int(inch.group(1)) / 12, 1 / 12) if inch else None
     v, step = float(m.group(1).replace(",", "")), 10 ** -len(m.group(2) or "")
     if m.group(4) is not None:
         v, step = v + float(m.group(4)) / 12, 1 / 12
@@ -391,10 +392,132 @@ def test_the_landmark_is_drawn_as_its_signed_figure_and_the_arithmetic_adds_up()
     assert figure_gate.derived_faults("meaning0", st["lines"][0].replace("146.5", "146"), st["derivation"],
                                       {"scale_fact": fact})
     assert not figure_gate.DERIVED.match("meaning0") and not figure_gate.DERIVED.match("ref_label")
-    signed = figures.signed_figures(figure_gate.signed_texts({"scale_fact": fact}))
-    assert figure_gate.figure_faults("146 M", signed) and not figure_gate.figure_faults("146.5 M", signed)
+    # review 3 (scope ruling): judged against the reference only on the scale graphic's own landmark labels
+    from src.reference_facts import reference_by_label
+    assert figure_gate.landmark_faults("146 M", reference_by_label(ref[0]))
+    assert not figure_gate.landmark_faults("146.5 M", reference_by_label(ref[0]))
     exact = {"value": 200.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": False}
     r = graphics.pick_reference(200.0)
     assert graphics.scale_statement(exact, 200.0, r[0], r[1], True)["derivation"]["hedged"]   # Liberty: rounded
     from src.reference_facts import measurement_text
     assert measurement_text(11.97).startswith("12 FT 0 IN") and " 12 IN" not in measurement_text(48.04 - 36)
+
+
+def _scale_run(tmp_path, fact, rows):
+    """A run dir whose scale graphic's sidecar draws `rows` [(name, text, record)] (the production gate reads it)."""
+    import json
+    d = tmp_path / f"run_{abs(hash(str(rows))) % 10 ** 8}"
+    (d / "graphics").mkdir(parents=True)
+    els = [{"name": n, "text": t, "planned": 7.0, **({"derived": r} if r else {})} for n, t, r in rows]
+    (d / "graphics" / "graphic_scale.mp4.contrast.json").write_text(json.dumps({"elements": els}), encoding="utf-8")
+    return figure_gate.check_run(d, {"scale_fact": fact})["faults"]
+
+
+def _statement_rows(fact):
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    ref = graphics.pick_reference(feet)
+    st = graphics.scale_statement(fact, feet, ref[0], ref[1], fact["dimension"] == "depth")
+    rows = [(f"meaning{k}", t, st["derivation"]) for k, t in enumerate(st["lines"])]
+    if st["note"] and fact["dimension"] == "depth":
+        rows.append(("bracket", st["note"], st["derivation"]))
+    return st, rows
+
+
+W327 = {"value": 327.0, "unit": "m", "dimension": "depth", "subject": "Wieliczka Salt Mine", "approximate": True}
+A138 = {"value": 138.0, "unit": "ft", "dimension": "length", "subject": "Unfinished obelisk", "approximate": True}
+
+
+def test_the_production_gate_judges_every_drawn_form_of_a_derived_figure(tmp_path):
+    """Review 3 (B1, B2, N10), at figure_gate.check_run: a word form over a numeric record (no digit on the row), a
+    hedge dropped on the drawing (line, bracket, ratio, the subject's figure), a unit swapped on the derived figure each
+    fail in production; the drawing as made passes."""
+    st, rows = _statement_rows(W327)
+    assert _scale_run(tmp_path, W327, rows) == []
+    rec = st["derivation"]
+    bad = {
+        "word form over a numeric record": [("meaning1", "would reach nearly to the surface.", rec)],
+        "line hedge dropped": [("meaning1", "would vanish 181 m deep.", rec)],
+        "bracket hedge dropped": [("bracket", "181 M", rec)],
+        "unit swapped": [("meaning1", "would vanish about 181 ft deep.", rec)],
+        "landmark figure off": [("meaning0", "The Great Pyramid, 146.6 m,", rec)],
+    }
+    for why, mutated in bad.items():
+        assert _scale_run(tmp_path, W327, mutated), why
+    st_a, rows_a = _statement_rows(A138)
+    assert _scale_run(tmp_path, A138, rows_a) == []
+    ra = st_a["derivation"]
+    for why, mutated in {"ratio hedge dropped": [("meaning2", "stands 2 times its length.", ra)],
+                         "subject hedge dropped": [("meaning0", "Unfinished obelisk: 138 ft long.", ra)],
+                         "landmark hedge dropped": [("meaning1", "The Statue of Liberty, 305 ft,", ra)],
+                         "word form over a numeric ratio": [("meaning2", "stands nearly its length.", ra)]}.items():
+        assert _scale_run(tmp_path, A138, mutated), why
+
+
+@pytest.mark.parametrize("fact,good,bad", [
+    ({"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": True}, "ABOUT 481 FT",
+     ["ABOUT 482 FT", "481 FT"]),
+    ({"value": 280.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": True}, "ABOUT 305 FT",
+     ["ABOUT 306 FT", "305 FT"]),
+    ({"value": 85.0, "unit": "m", "dimension": "depth", "subject": "S", "approximate": True}, "ABOUT 93 M", ["94 M"]),
+    ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "S", "approximate": True}, "18.3 M", ["18.4 M"]),
+    (W327, "146.5 M", ["146.6 M", "146 M"]),
+])
+def test_a_landmark_or_legend_figure_is_its_stated_figure_or_its_correct_hedged_rounding(tmp_path, fact, good, bad):
+    """Review 3 (B3), at check_run: a scale graphic's landmark label or slide legend is a figure its reference states
+    (hedged where it hedges it) or the file's value correctly rounded and hedged; never the 2 % conversion tolerance."""
+    assert _scale_run(tmp_path, fact, [("ref_label", good, None)]) == []
+    for b in bad:
+        assert _scale_run(tmp_path, fact, [("ref_label", b, None)]), b
+    from src.reference_facts import reference_by_label
+    feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
+    ref = reference_by_label(graphics.pick_reference(feet)[0])
+    unit = graphics.lead_unit(fact)
+    assert not fm.landmark_fault(good, ref, unit) and all(fm.landmark_fault(b, ref, unit) for b in bad)
+
+
+def test_a_word_forms_limit_is_the_rules_constant_never_the_records(tmp_path):
+    """Review 3 (B4): a record carrying a bogus limit cannot pass "NEARLY LEVEL" on a 181 m gap or "nearly the same"
+    on a ratio of 1.53."""
+    import copy
+    st, _rows = _statement_rows(W327)
+    level = copy.deepcopy(st["derivation"])
+    level.update(shown="", text="NEARLY LEVEL", form_limit=1e9)
+    assert figures.derivation_faults(level)
+    assert _scale_run(tmp_path, W327, [("meaning1", "would reach nearly to the surface.", level)])
+    tower = {"value": 28.0, "unit": "m", "dimension": "height", "subject": "Tower", "approximate": False}
+    st_t, _ = _statement_rows(tower)
+    same = copy.deepcopy(st_t["derivation"])
+    same.update(shown="", text="nearly the same", form_limit=2.0)
+    assert figures.derivation_faults(same)
+    assert _scale_run(tmp_path, tower, [("meaning2", "is nearly the same height.", same)])
+    assert graphics.LEVEL_GAP is figures.LEVEL_LIMITS
+
+
+def test_the_reference_statement_is_evidence_only_for_the_scale_graphic():
+    """Review 3 (scope ruling): the scale's reference statement does not widen what a headline, thumbnail or caption
+    may say: '146.5 M' or '481 FT' on a Wieliczka headline fails as at base."""
+    signed = figures.signed_figures(figure_gate.signed_texts({"scale_fact": W327}))
+    assert figure_gate.figure_faults("146.5 M", signed) and figure_gate.figure_faults("481 FT", signed)
+
+
+def test_feet_and_inches_gaps_drop_a_zero_part():
+    """Review 3 (readability, truth unchanged): '15 FT 0 IN' -> '15 FT', '0 FT 5 IN' -> '5 IN'."""
+    assert graphics.gap_words("15 FT 0 IN") == "15 FT" and graphics.gap_words("0 FT 5 IN") == "5 IN"
+    assert graphics.gap_words("10 FT 8 IN") == "10 FT 8 IN"
+    fact = {"value": 480.6, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": True}
+    st = graphics.scale_statement(fact, 480.6, *graphics.pick_reference(480.6)[:2], True)
+    assert st["note"] == "ABOUT 1 IN" and not figures.derivation_faults(st["derivation"])
+
+
+def test_an_operands_drawn_figure_is_its_value_rounded_at_its_own_digit():
+    """Review 3 (B3) in figures.derivation_faults: '146.6 M' for the 146.5 m source fails (it passed within the 2 %
+    conversion tolerance); '18.3 M' for 18.288 m and 'ABOUT 481 FT' for 480.64 ft hold."""
+    import copy
+    st, _rows = _statement_rows(W327)
+    rec = copy.deepcopy(st["derivation"])
+    assert not figures.derivation_faults(rec)
+    rec["operands"][1]["text"] = "146.6 M"
+    assert figures.derivation_faults(rec)
+    for fact in ({"value": 20.0, "unit": "m", "dimension": "depth", "subject": "S", "approximate": True},
+                 {"value": 1073.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": True}):
+        assert not figures.derivation_faults(_statement_rows(fact)[0]["derivation"])

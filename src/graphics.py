@@ -10070,13 +10070,27 @@ def scale_operands(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: 
     ref = reference_by_label(ref_label) or {}
     return [operand("subject", str(fact.get("subject") or ""), s_txt, s_val, u,
                     bool(fact.get("approximate", True)) or s_drawn is None
-                    or abs(s_drawn - s_val) > 1e-6 * max(s_val, 1.0), "scale_fact"),
+                    or abs(s_drawn - s_val) > 1e-6 * max(s_val, 1.0), "scale_fact",
+                    hedged=bool(fact.get("approximate", True))),   # review 3 (B2): drawn with "about" when hedged
             operand("reference", ref_label, r_txt, r_val, u, rfig["approximate"],
                     str(ref.get("source_url") or ""), reference_id=str(ref.get("id") or ""), hedged=rfig["hedged"],
                     reference_feet=float(ref_feet))]
 
 
-LEVEL_GAP = {"M": 0.05, "FT": 1 / 24}   # review 2 (N2): "nearly level" holds to half the last digit a gap is drawn to
+from .figures import LEVEL_LIMITS as LEVEL_GAP   # noqa: E402  review 2/3: "nearly level" to half the last digit drawn
+
+
+def gap_words(text: str) -> str:
+    """Review 3 (readability, truth unchanged): a feet-and-inches gap drops a zero part: "15 FT 0 IN" -> "15 FT",
+    "0 FT 5 IN" -> "5 IN"."""
+    m = re.fullmatch(r"\s*(\d[\d,]*) FT (\d+) IN\s*", text)
+    if not m:
+        return text
+    if m.group(2) == "0":
+        return f"{m.group(1)} FT"
+    if m.group(1) == "0":
+        return f"{m.group(2)} IN"
+    return text
 
 
 def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool,
@@ -10108,9 +10122,12 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
         if not any(_lead_values(gap_txt)) and gap_v >= LEVEL_GAP[u] - (1e-4 if u == "M" else 1e-9):
             # review 2: a gap on the level form's own boundary (0.05 m, half an inch) rounds to 0 in float but is not
             # level: it is drawn one place finer, true at that place
-            gap_txt = f"{gap_v:.2f} M" if u == "M" else "0 FT 1 IN"
-        # the drawn number: a single figure, or a feet-and-inches gap as ONE figure (review 2, N2: it is recorded)
-        shown = gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 else gap_txt
+            gap_txt = f"{gap_v:.2f} M" if u == "M" else "1 IN"
+        gap_txt = gap_words(gap_txt)
+        # the drawn number: a single figure, or a feet-and-inches / inches gap as ONE figure with its unit (review 2,
+        # N2: it is recorded)
+        shown = (gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 and not gap_txt.endswith(" IN")
+                 else gap_txt)
         # review 2 (N7): the landmark and its figure as one phrase on its own row ("The Great Pyramid, 146.5 m,"),
         # never an appositive split across rows; each line short enough to set whole at the meaning's size
         named = f"{_cap_first(ref)}, {say(ref_feet)},"

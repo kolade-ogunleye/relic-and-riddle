@@ -210,6 +210,13 @@ C1_HEDGE_WORDS = frozenset(("more", "than", "fewer", "less", "as", "many", "much
                             "least", "circa", "c", "ca", "between"))
 
 
+C1_NOT_PREP = frozenset(("a", "an", "the", "this", "that", "these", "those", "its", "his", "her", "their", "our", "my",
+                         "your", "all", "any", "another", "both", "each", "every", "some", "such", "no", "neither",
+                         "more", "most", "less", "least", "quite", "whatever", "as", "than", "en", "due", "and", "or",
+                         "but", "nor", "so", "yet", "when", "where", "while", "which", "who", "whom", "whose",
+                         "because", "if", "although", "though", "unless", "until", "whether", "since", "why", "how"))
+
+
 def c1_faults(lp, never_end, raw: list[str], k: int) -> list[str]:
     """The C1 faults of a two-line burst broken before word k (this collector's own reading, the judge's too): a line
     of one function word (the one closed-class vocabulary: NEVER_END, LINE_END_FUNCTION); a hedge on line 1 parted
@@ -224,8 +231,12 @@ def c1_faults(lp, never_end, raw: list[str], k: int) -> list[str]:
         out.append("lone_function_word_line")
     tail = [lp.bare(w) for w in l1[-2:]]
     figure2 = bool(l2) and (lp.is_number(l2[0]) or lp.bare(l2[0]) in lp.SPELLED_NUMBERS)
-    hedge_line = (len(l1) >= 2 and all(lp.bare(w) in C1_HEDGE_WORDS and not lp.closes(w) for w in l1) and figure2
-                  and any(lp.bare(w) in lp.UNITS for w in l2[1:]))
+    # follow-up ruling 2026-11-27: the line may open with the article or preposition leading into the hedge
+    lead = 1 if (len(l1) >= 2 and (lp.bare(l1[0]) in ("a", "an", "the") or (lp.bare(l1[0]) in never_end
+                                                                          and lp.bare(l1[0]) not in C1_NOT_PREP))
+                 and lp.bare(l1[1]) in C1_HEDGE_WORDS) else 0
+    hedge_line = (len(l1) >= 2 and all(lp.bare(w) in C1_HEDGE_WORDS and not lp.closes(w) for w in l1[lead:])
+                  and not lp.closes(l1[0]) and figure2 and any(lp.bare(w) in lp.UNITS for w in l2[1:]))
     if figure2 and not lp.closes(l1[-1]) and not hedge_line and (
             (tail and tail[-1] in C1_HEDGES) or tuple(tail[-2:]) in C1_HEDGE_PAIRS):
         out.append("hedge_parted_from_figure")

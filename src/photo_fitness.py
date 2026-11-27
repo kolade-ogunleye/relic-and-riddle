@@ -716,8 +716,10 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     def settled(r: dict[str, Any]) -> list[str]:
         """r's problems, less "subject" where the subject is as whole as the window's acceptable crops show it and
         no less than without a subject (its size alone is no fault)."""
-        if ("subject" in r["problems"] and not r.get("hold_short") and r.get("focus", 0.0) >= floor_focus - 1e-6
-                and r.get("held", 1.0) >= floor_held - 1e-6):
+        larger = (r.get("focus_need", window.focus_min) < window.focus_min - 1e-3
+                  or r.get("held_need", FOCUS_KEEP) < FOCUS_KEEP - 1e-3)   # no crop of the window holds it all
+        if ("subject" in r["problems"] and larger and not r.get("hold_short")
+                and r.get("focus", 0.0) >= floor_focus - 1e-6 and r.get("held", 1.0) >= floor_held - 1e-6):
             return [p for p in r["problems"] if p != "subject"]
         return list(r["problems"])
 
@@ -1018,7 +1020,9 @@ def drawn_record(photo: Path, window: Window, rec: dict[str, Any], drew: dict[st
     if a.focus is not None:   # the drawn crop is the one without a subject: as whole as it shows it (cycle 6)
         got.update(_subject_needs(a, window, fit_box(a.size, window.size)))
     got["problems"] = problems(got, window)
-    if "subject" in got["problems"] and a.focus is not None and not got.get("hold_short"):
+    if ("subject" in got["problems"] and a.focus is not None and not got.get("hold_short")
+            and (got.get("focus_need", window.focus_min) < window.focus_min - 1e-3
+                 or got.get("held_need", FOCUS_KEEP) < FOCUS_KEEP - 1e-3)):
         got["problems"] = [p for p in got["problems"] if p != "subject"]
         got["subject_partial"] = True
     return {**got, "fit": not got["problems"], "moved": bool(drew.get("moved")), "window": window.name,

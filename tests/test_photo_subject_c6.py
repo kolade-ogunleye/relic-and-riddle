@@ -69,7 +69,7 @@ def test_a_reviewed_box_takes_precedence(tmp_path, monkeypatch):
     reviewed = {"sha256": hashlib.sha256(p.read_bytes()).hexdigest(), "focus_box": [0.1, 0.1, 0.5, 0.5],
                 "reviewed": "test review"}
     got = ps.subject_focus(p, kept=reviewed)
-    assert got["source"] == "reviewed" and got["focus_box"] == [0.1, 0.1, 0.5, 0.5]
+    assert got["reviewed"] == "test review" and got["focus_box"] == [0.1, 0.1, 0.5, 0.5] and "source" not in got
 
 
 def test_write_is_whole_json(tmp_path):

@@ -234,7 +234,7 @@ def subject_focus(path: Path, kept=None, compute: bool = False) -> dict[str, Any
     from .cover_design import reviewed_focus
     found = reviewed_focus(Path(path), kept)
     if found is not None:
-        return {**found, "source": "reviewed"}
+        return found                                      # the reviewed record as it is (its own provenance)
     if _oracle:
         try:
             digest = _sha256(Path(path))

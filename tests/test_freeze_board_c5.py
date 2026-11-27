@@ -1189,7 +1189,7 @@ def test_each_caption_fixture_has_its_whole_run_in_the_expected_cases(mods):
         assert ("row07_captions_run", c["topic"], tag) in keys
         assert ("row07_captions_run", f"{c['topic']}__{tag}_bursts", "default") in keys
     assert ("clips", "hook__amber", "916") in keys
-    assert ("row12_motion_hook", "row12_motion_hook__amber_curves", "default") in keys
+    assert ("row12_motion_hook", "amber_curves", "default") in keys
     assert all("refused_as" not in r for r in out)
     # the names the board writes
     bx_src = (BOARD / "board_extras.py").read_text(encoding="utf-8")

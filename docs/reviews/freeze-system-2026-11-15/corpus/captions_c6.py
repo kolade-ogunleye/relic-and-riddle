@@ -402,7 +402,16 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
             if fmt == "916":
                 for p in cap.get("forced_proof") or []:
                     if not p["faults"]:
-                        continue   # a recorded forced break with no C1 fault (a name parted): not this class
+                        # a recorded forced break with no C1 fault (a name parted, a line ending on a function word):
+                        # its record must be true too (the ruling: a forced break only where no remedy exists)
+                        tot["916 forced (other faults) recorded"] += 1
+                        if p["remedies"]:
+                            tot["916 forced (other faults) but a remedy exists UNRECORDED"] += 1
+                            table.append((run, fmt, f"forced, {p['remedies'][0]['kind']} exists: {p['text']} -> "
+                                          f"{p['remedies'][0]['form']}", "FAIL"))
+                        else:
+                            table.append((run, fmt, f"forced, proved: {p['text']}", "pass (recorded, proved)"))
+                        continue
                     tot["916 C1 bursts"] += 1
                     for f in p["faults"]:
                         tot[f"916 C1 {f}"] += 1

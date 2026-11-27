@@ -303,3 +303,98 @@ def test_the_answer_is_one_step_above_the_drawings_other_figures_and_no_bracket_
             elif lay["derived"] is None:     # the slide room (open, hand-back): withheld only on the record, and then
                 assert any("derived figure" in str(o.get("omitted")) for o in r["omissions"])   # no orphan figure
                 assert "bracket" not in names
+
+
+MUTATION_CASES = [   # (value, unit, dimension): a depth in metres, a small metre gap, feet, a ratio, a feet-and-inches gap
+    (327.0, "m", "depth"), (20.0, "m", "depth"), (1073.0, "ft", "depth"), (28.0, "m", "height"), (470.0, "ft", "depth"),
+]
+
+
+def _case(v, unit, dim):
+    fact = {"value": v, "unit": unit, "dimension": dim, "subject": "Subject", "approximate": True}
+    feet = v * (3.28084 if unit == "m" else 1.0)
+    ref = graphics.pick_reference(feet)
+    st = graphics.scale_statement(fact, feet, ref[0], ref[1], dim == "depth")
+    u = graphics.lead_unit(fact)
+    per = graphics.per_ft(u)
+    from src.reference_facts import reference_by_label, stated_figures
+    stated = stated_figures(reference_by_label(ref[0]), u)
+    fig, metric = graphics.scale_figure(fact, feet, dim == "depth")
+    op_drawn = {n for t in (fig, metric, *(c[1] for c in stated)) for n in fm._numbers(t)}
+    return fact, feet, ref, st, u, v if (unit == "m") == (u == "M") else feet * per, ref[1] * per, op_drawn
+
+
+def _bump(text, shown):
+    """`text` with its derived figure one last digit off (a feet-and-inches figure: one inch)."""
+    import re
+    if " IN" in shown.upper():
+        m = re.search(r"(\d+) (IN|in)\b", text)
+        return text[:m.start(1)] + str(int(m.group(1)) + 1) + text[m.end(1):]
+    dp = len(shown.partition(".")[2])
+    return text.replace(shown.lower() if shown.lower() in text else shown,
+                        f"{float(shown.replace(',', '')) + 10 ** -dp:,.{dp}f}", 1)
+
+
+@pytest.mark.parametrize("v,unit,dim", MUTATION_CASES)
+def test_every_guard_catches_a_derived_figure_one_digit_off(v, unit, dim):
+    """Review 2 (N2): a drawn figure changed by one last digit (the bracket, the line of meaning, a feet-and-inches gap,
+    a ratio) is caught by the drawn-figure gate and the corpus measure; the record changed with it by
+    figures.derivation_faults too. The unmutated drawing passes all three."""
+    import copy
+    fact, feet, ref, st, u, s_true, r_true, op_drawn = _case(v, unit, dim)
+    d, pay = st["derivation"], {"scale_fact": fact}
+    line = st["lines"][st["derived_line"]]
+    shown = d["shown"]
+    texts = [("meaning1", line)] + ([("bracket", st["note"])] if st["note"] else [])
+    for name, t in texts:                                       # the control: nothing faults
+        assert not figure_gate.derived_faults(name, t, d, pay), (name, t)
+        assert not fm.truth_fault(d["rule"], t, shown, op_drawn, s_true, r_true, u), (name, t)
+    for name, t in texts:                                       # the drawing one digit off, its record unchanged
+        bad = _bump(t, shown if " IN" not in shown.upper() else shown)
+        assert bad != t
+        assert figure_gate.derived_faults(name, bad, d, pay), (name, bad)
+        assert fm.truth_fault(d["rule"], bad, shown, op_drawn, s_true, r_true, u), (name, bad)
+    rec = copy.deepcopy(d)                                      # the record off with it
+    rec["shown"] = _bump(shown, shown) if " IN" in shown.upper() else _bump(shown, shown)
+    assert figures.derivation_faults(rec) and figure_gate.derived_faults("meaning1", line, rec, pay)
+
+
+@pytest.mark.parametrize("v,unit,dim", MUTATION_CASES)
+def test_a_word_form_is_a_derived_claim_with_its_threshold(v, unit, dim):
+    """Review 2 (N2): "nearly level" / "nearly the same" state no number but are derived claims: each record carries
+    its threshold and all three guards refuse the form where the signed values do not meet it."""
+    import copy
+    fact, feet, ref, st, u, s_true, r_true, op_drawn = _case(v, unit, dim)
+    d, pay = st["derivation"], {"scale_fact": fact}
+    word = copy.deepcopy(d)
+    word.update(shown="", text="nearly the same" if d["rule"] == "ratio" else "NEARLY LEVEL",
+                threshold=figures.NEAR_RATIO if d["rule"] == "ratio" else graphics.LEVEL_GAP[u])
+    said = "is nearly the same height." if d["rule"] == "ratio" else "would reach nearly to the surface."
+    assert figures.derivation_faults(word)
+    assert figure_gate.derived_faults("meaning1", said, word, pay)
+    assert fm.truth_fault(d["rule"], said, "", op_drawn, s_true, r_true, u)
+    # and a word form drawn where the record states a number
+    assert figure_gate.derived_faults("meaning1", said, d, pay)
+    # a word form with no threshold recorded is refused
+    assert figures.derivation_faults({k: v_ for k, v_ in word.items() if k != "threshold"})
+
+
+def test_the_landmark_is_drawn_as_its_signed_figure_and_the_arithmetic_adds_up():
+    """Review 2 (N1, ruling R1): the landmark is drawn as the reference statement's own figure at its precision
+    ('146.5 m', never the rounding '146 m'), judged like any drawn number (no meaning / ref_label exemption); a gap
+    from a reference its own file calls rounded is hedged (N4); 11.5 in and over carry into the foot (N6)."""
+    fact = {"value": 147.0, "unit": "m", "dimension": "depth", "subject": "S", "approximate": True}
+    feet = 147 * 3.28084
+    ref = graphics.pick_reference(feet)
+    st = graphics.scale_statement(fact, feet, ref[0], ref[1], True)
+    assert "146.5 m" in st["lines"][0] and "0.5 m" in st["lines"][1]
+    assert figure_gate.derived_faults("meaning0", st["lines"][0].replace("146.5", "146"), st["derivation"],
+                                      {"scale_fact": fact})
+    assert not figure_gate.DERIVED.match("meaning0") and not figure_gate.DERIVED.match("ref_label")
+    signed = figures.signed_figures(figure_gate.signed_texts({"scale_fact": fact}))
+    assert figure_gate.figure_faults("146 M", signed) and not figure_gate.figure_faults("146.5 M", signed)
+    exact = {"value": 200.0, "unit": "ft", "dimension": "depth", "subject": "S", "approximate": False}
+    r = graphics.pick_reference(200.0)
+    assert graphics.scale_statement(exact, 200.0, r[0], r[1], True)["derivation"]["hedged"]   # Liberty: rounded
+    from src.reference_facts import measurement_text
+    assert measurement_text(11.97).startswith("12 FT 0 IN") and " 12 IN" not in measurement_text(48.04 - 36)

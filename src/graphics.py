@@ -9295,8 +9295,10 @@ def per_ft(unit: str) -> float:
 
 def signed_number(value: float) -> str:
     """A signed value written at its own precision, with thousands commas ("6.5", "1,073", "11.25"; never rounded)."""
-    text = f"{float(value):.6f}".rstrip("0").rstrip(".")
-    dp = len(text.partition(".")[2])
+    text = repr(float(value))     # review 2: its own shortest decimals, never cut at six (480.6430446 drew 480.643045)
+    if "e" in text:
+        text = f"{float(value):.10f}".rstrip("0").rstrip(".")
+    dp = len(text.partition(".")[2]) if not text.endswith(".0") else 0
     return f"{float(value):,.{dp}f}"
 
 
@@ -10008,6 +10010,47 @@ def _drawn_value(text: str) -> float | None:
     return vals[0] + (vals[1] / 12 if len(vals) > 1 and " IN" in text.upper() else 0.0)
 
 
+def reference_figure(ref_label: str, ref_feet: float, unit: str) -> dict[str, Any]:
+    """The landmark's figure as drawn, a SIGNED figure at its signed precision (review 2, N1 / ruling R1): the figure
+    the reference file's own statement states in `unit` ("146.5 M" for the Great Pyramid, never the rounding "146 M";
+    "18.3 M" for Mount Rushmore's head; "ABOUT 481 FT" where the statement hedges it), the display rounding only where
+    the statement states it too. {"text" (no hedge), "value" (in `unit`), "hedged" (drawn with "about"),
+    "approximate" (the reference is rounded by its own file, or the figure is not the file's value: a gap or a ratio
+    derived from it is then hedged, N4); "value" is the file's own value in `unit`, "stated" the drawn figure's}."""
+    from .reference_facts import reference_by_label, reference_is_rounded, stated_figures
+    ref = reference_by_label(ref_label) or {}
+    k = per_ft(unit)
+    value_u = ref_feet * k
+    default = _short(ref_feet, unit)
+    dv = _drawn_value(default)
+    from .figures import shown_value
+
+    def half_step(text: str) -> float:
+        got = shown_value(text.replace(" M", "").replace(" FT", "")) if " IN" not in text else (0.0, 1 / 12)
+        return 0.5 * (got[1] if got else 1.0)
+    # a stated figure is drawn only where it renders the file's value at its own precision (146.5 m for 146.5; 18.3 m
+    # for the head's 18.288; never 92.99 m for a 305 ft file value, which is 305 ft 1 in's metres); unhedged first,
+    # then the finest; else the display rounding, hedged (a conversion, never stated more precisely than it is)
+    cands = [c for c in stated_figures(ref, unit) if abs(c[0] - value_u) <= half_step(c[1]) + 1e-9]
+    if cands:
+        v, text, hedged = sorted(cands, key=lambda c: (c[2], half_step(c[1])))[0]
+    else:
+        v, text, hedged = (dv if dv is not None else value_u), default, True
+    # the arithmetic stays on the file's own value (the most precise signed source: 146.5 m, or 60 ft for the head whose
+    # 18.3 m is the statement's rounding); the drawn text is the statement's figure at its precision, hedged as stated
+    return {"text": text, "value": float(value_u), "stated": float(v), "hedged": bool(hedged),
+            "approximate": bool(hedged) or reference_is_rounded(ref) or abs(float(v) - value_u) > 1e-6 * max(value_u, 1)}
+
+
+CONVERT_TOL_REF = 0.02    # a stated figure of the landmark within 2 % of the file's value is the same figure
+
+
+def landmark_text(ref_label: str, ref_feet: float, unit: str) -> str:
+    """The landmark's figure as a drawn label ("146.5 M", "ABOUT 481 FT"): reference_figure with its hedge."""
+    r = reference_figure(ref_label, ref_feet, unit)
+    return ("ABOUT " if r["hedged"] else "") + r["text"]
+
+
 def scale_operands(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float) -> list[dict[str, Any]]:
     """The two operands of a scale drawing's comparison in the fact's own unit (figures.operand): the subject's
     signed size (source "scale_fact") and the landmark's sourced figure (its reference-file url). Each carries its
@@ -10019,18 +10062,21 @@ def scale_operands(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: 
     from .reference_facts import reference_by_label
     u = lead_unit(fact)
     k = per_ft(u)
-    s_txt, r_txt = _short(feet, u, fact), _short(ref_feet, u)
-    s_drawn, r_drawn = _drawn_value(s_txt), _drawn_value(r_txt)
+    rfig = reference_figure(ref_label, ref_feet, u)
+    s_txt, r_txt = _short(feet, u, fact), rfig["text"]
+    s_drawn = _drawn_value(s_txt)
     own = signed_lead(fact, feet, u)
-    s_val, r_val = (float(own) if own is not None else feet * k), ref_feet * k
+    s_val, r_val = (float(own) if own is not None else feet * k), rfig["value"]
     ref = reference_by_label(ref_label) or {}
     return [operand("subject", str(fact.get("subject") or ""), s_txt, s_val, u,
                     bool(fact.get("approximate", True)) or s_drawn is None
                     or abs(s_drawn - s_val) > 1e-6 * max(s_val, 1.0), "scale_fact"),
-            operand("reference", ref_label, r_txt, r_val, u,
-                    r_drawn is None or abs(r_drawn - r_val) > 1e-6 * max(r_val, 1.0),
-                    str(ref.get("source_url") or ""), reference_id=str(ref.get("id") or ""),
+            operand("reference", ref_label, r_txt, r_val, u, rfig["approximate"],
+                    str(ref.get("source_url") or ""), reference_id=str(ref.get("id") or ""), hedged=rfig["hedged"],
                     reference_feet=float(ref_feet))]
+
+
+LEVEL_GAP = {"M": 0.05, "FT": 1 / 24}   # review 2 (N2): "nearly level" holds to half the last digit a gap is drawn to
 
 
 def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool,
@@ -10042,25 +10088,37 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
     180 M"; None for a ratio)}. The arithmetic is on the operands' signed source values and the result is rounded
     once for display (the drawing's own figure rule, measure_text) and hedged unless every operand is exact. `derive` False (an operand is not labelled on the drawing, so the figure is
     withheld): the same sentences without the derived figure."""
-    from .figures import derivation
+    from .figures import NEAR_RATIO, derivation
     hedge = "about " if fact.get("approximate", True) else ""
     ref = _landmark_name(ref_label)
     u = lead_unit(fact)                      # cycle 0 round 7 (F12): every figure in the fact's own unit
     ops = scale_operands(fact, feet, ref_label, ref_feet)
 
-    def say(v: float, own: bool = False) -> str:   # `own`: the subject's signed size, at its signed precision
-        return _ft(v, u, fact if own else None)
-
     def lower(text: str) -> str:
         return re.sub(r"(?<=\d) (FT|IN|M)\b", lambda m: " " + m.group(1).lower(), text)
+
+    def say(v: float, own: bool = False) -> str:   # `own`: the subject's signed size, at its signed precision
+        if not own and abs(v - ref_feet) < 1e-9:   # review 2 (N1): the landmark at its signed precision, hedged as signed
+            return lower(landmark_text(ref_label, ref_feet, u)).replace("ABOUT ", "about ")
+        return _ft(v, u, fact if own else None)
     out: dict[str, Any] = {"lines": [], "derived_line": None, "derivation": None, "note": None}
     if depth:
-        gap_txt = _short(abs(ops[0]["value"] - ops[1]["value"]) / per_ft(u), u)
-        shown = gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 else ""
+        gap_v = abs(ops[0]["value"] - ops[1]["value"])
+        gap_txt = _short(gap_v / per_ft(u), u)
+        if not any(_lead_values(gap_txt)) and gap_v >= LEVEL_GAP[u] - (1e-4 if u == "M" else 1e-9):
+            # review 2: a gap on the level form's own boundary (0.05 m, half an inch) rounds to 0 in float but is not
+            # level: it is drawn one place finer, true at that place
+            gap_txt = f"{gap_v:.2f} M" if u == "M" else "0 FT 1 IN"
+        # the drawn number: a single figure, or a feet-and-inches gap as ONE figure (review 2, N2: it is recorded)
+        shown = gap_txt.split()[0] if len(_lead_values(gap_txt)) == 1 else gap_txt
+        # review 2 (N7): the landmark and its figure as one phrase on one row ("The Great Pyramid (146.5 m)"), never an
+        # appositive split across rows; each sentence short enough to set whole at the meaning's size
+        named = f"{_cap_first(ref)} ({say(ref_feet)})"
         if not any(_lead_values(gap_txt)):
-            # freeze cycle 5 (review D1): a gap under half its last stated digit is never "about 0": it is level
-            rec = derivation("difference", ops, "", "NEARLY LEVEL")
-            out["lines"] = [f"{_cap_first(ref)}, {say(ref_feet)},", "would stand nearly level with the surface."]
+            # freeze cycle 5 (review D1): a gap under half its last stated digit is never "about 0": it is level, a
+            # derived claim with its threshold (half the last digit the drawing states a gap to; review 2, N2)
+            rec = derivation("difference", ops, "", "NEARLY LEVEL", threshold=LEVEL_GAP[u])
+            out["lines"] = [named, "would reach nearly to the surface."]
             if derive:
                 out.update(derived_line=1, derivation=rec, note=rec["text"])
             return out
@@ -10068,21 +10126,21 @@ def scale_statement(fact: dict[str, Any], feet: float, ref_label: str, ref_feet:
         rec["text"] = ("ABOUT " if rec["hedged"] else "") + gap_txt
         h = "about " if rec["hedged"] else ""
         if ref_feet > feet:
-            out["lines"] = ([f"{_cap_first(ref)}, {say(ref_feet)},", f"would show only its top {h}{lower(gap_txt)}."]
-                            if derive else [f"{_cap_first(ref)}, {say(ref_feet)},", "would show only its top."])
+            out["lines"] = ([named, f"would stick out {h}{lower(gap_txt)}."]
+                            if derive else [named, "would stick out of the ground."])
         else:
-            out["lines"] = ([f"{_cap_first(ref)}, {say(ref_feet)}, would vanish:",
-                             f"its top {h}{lower(gap_txt)} below the surface."]
-                            if derive else [f"{_cap_first(ref)}, {say(ref_feet)},", "would vanish below the surface."])
+            out["lines"] = ([named, f"would vanish {h}{lower(gap_txt)} deep."]
+                            if derive else [named, "would vanish below the ground."])
         if derive:
             out.update(derived_line=1, derivation=rec, note=rec["text"])
         return out
     subject = _scale_case_name(fact)
     big, small = max(ops[0]["value"], ops[1]["value"]), min(ops[0]["value"], ops[1]["value"])
-    near = big / small < 1.1
+    near = big / small < NEAR_RATIO
     ratio = comparison_ratio(big, small)
     long_ = dimension_word(fact) == "LONG"   # round 8: a length set against a landmark's height says so, never "as tall"
-    rec = derivation("ratio", ops, "" if near else ratio, "nearly the same" if near else f"about {ratio} times")
+    rec = derivation("ratio", ops, "" if near else ratio, "nearly the same" if near else f"about {ratio} times",
+                     threshold=NEAR_RATIO)
     if not derive:
         tall = " tall" if long_ else ""
         first = (f"{subject}: {hedge}{say(feet, own=True)}{' long' if long_ else ''}." if subject else "")
@@ -10553,8 +10611,42 @@ def diagram_label_floor(slide_width: int) -> float:
     return TYPE_FLOOR["carousel"]["label"] * slide_width / CANVASES["carousel"][0]
 
 
+def slide_legend(ground: Image.Image, name: str, figure: str, px: int, x: float, line_y: float, floor_y: float,
+                 x_max: float, taken: Sequence[Box], lm: Any) -> list[tuple[str, Any]] | None:
+    """Review 2 (N3, ruling R2): the slide drawing's legend for its landmark: its name (the text face, stone, capitals)
+    over its signed figure (a stated quantity, the figure face), at `px`, on the ground right of the shaft from `x`,
+    under the ground line; None where the block does not fit before `x_max` and above the floor, or would touch a
+    word, a mark in `taken` or the landmark. The legend names the landmark, so its figure never reads as a depth."""
+    f_name = get_font(brand.TEXT_FONT, px, weight=700)
+    f_fig = figure_font(px)
+    room = x_max - x
+    rows: list[str] = []
+    for word in name.upper().split():            # the name in whole words, at most three rows
+        if rows and tracked_width(rows[-1] + " " + word, f_name, 2) <= room:
+            rows[-1] += " " + word
+        else:
+            rows.append(word)
+    if (not rows or len(rows) > 3 or any(tracked_width(r, f_name, 2) > room for r in rows)
+            or tracked_width(figure, f_fig, 2) > room):
+        return None
+    step = round(cap_height(f_name) * 1.6)
+    y0 = line_y + 18 + cap_height(f_name)
+    y_fig = y0 + step * (len(rows) - 1) + 14 + cap_height(f_fig)
+    if y_fig + 8 > floor_y:
+        return None
+    out = [(f"ref_name{k}", plan_text(ground, (x, y0 + step * k), r, f_name, brand.STONE_LT, "ls", track=2))
+           for k, r in enumerate(rows)]
+    out.append(("ref_label", quantity_plate(ground, (x, y_fig), figure, f_fig, "ls", track=2)))
+    for _n, pl in out:
+        if getattr(pl, "empty", False) or any(LayoutConstraintSolver.boxes_intersect(pl.box, q, 6) for q in taken):
+            return None
+        if lm is not None and not off_mask(lm, pl.box):
+            return None
+    return out
+
+
 def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height, drawing_floor=None,
-                           derive=True):
+                           derive=True, landmark=True):
     """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above (the metric figure
     on its own line under it in the data face, as on 16:9: set beside "DEEP" it read as a tag, "DEEP 85 M"), the
     drawing, then the meaning. Words and drawing start on the shared inset
@@ -10632,7 +10724,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         plates.append(("figure_metric", quantity_plate(ground, (xt, y_met), metric, f_met, "ls")))
     plates += [(f"meaning{k}", derived_plate(
         plan_text(ground, (xt, y_mean0 + k * mean_step), t, f_mean, brand.BONE, "ls"),
-        statement["derivation"] if mean_src[k] == statement["derived_line"] else None))
+        statement["derivation"]))   # review 2 (N1/N2): every row of the meaning is judged against the record
                for k, t in enumerate(mean_lines)]
     if drawing:            # the slide's own copy says these (render_scale drawing_floor)
         plates = []
@@ -10693,6 +10785,12 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # the room (never past its right edge); the walls come in only for the least size, as before
         subj_px = max(SCALE_SUBJECT_FIGURE_PX, f_note.size)
         need_s = shaft[0] - 26 - tracked_width(floor_txt, figure_font(subj_px), 2)
+        # review 2 (N5): and for its widest axis figure, so no tick yields to the frame's margin where the drawing has
+        # room to move (the yield then never turns on one face's advance widths: the 147 m '100' under one palette)
+        tick_w = max((ruler_label_runs(0.0, 0.0, t, data_font(rule_px))[1][2]
+                      - ruler_label_runs(0.0, 0.0, t, data_font(rule_px))[1][0]
+                      for _ft, t, fl in _depth_ruler(feet, hedge, unit, fact) if not fl), default=0.0)
+        need_s = min(need_s, shaft[0] - 26 - tick_w)
         if need_s < x0 or need < x0:
             move = min(x0 - min(need_s, need), max(0.0, x1 - shaft[1]))
             cx += move
@@ -10799,17 +10897,27 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         # Pyramid, 146 m,": scale_statement), which labels the operand on the drawing, so no figure is set there.
         # A slide's drawing has no line of meaning: there the figure is set with what it measures (reference_note:
         # "BASE TO APEX"), so it reads as the landmark's height, never a depth.
-        ref_note = reference_note(ref_label) if drawing else ""
-        if drawing:
-            fig_pl, rows_n, tick_d, rec_n = referent_block(ground, _short(ref_feet, unit), f_note, 2, ref_note,
-                                                           max(SCALE_REFERENT_NOTE_PX, floor), ref_cx + reach_d,
-                                                           ref_cx - reach_d, top_y, 1.0, clear_d)
+        ref_note = ""
+        if drawing and landmark:
+            # review 2 (N3, ruling R2): on the slide's drawing the landmark is named in a LEGEND row on the ground right
+            # of the shaft (its name, then its signed figure), never at its apex beside the depth ruler
+            fig_pl, rows_n, tick_d = None, [], None
+            leg = slide_legend(ground, _landmark_name(ref_label), landmark_text(ref_label, ref_feet, unit),
+                               max(28, floor), shaft[1] + 24, line_y, floor_y, label_x1,
+                               [*taken, *hard], lm)
+            rec_n = {"form": "legend"} if leg else {"reason": "no clear place for the landmark's legend row right of "
+                                                              "the shaft"}
+            if leg:
+                plates += leg
+                labelled.add("reference")
+        elif drawing:
+            fig_pl, rows_n, tick_d, rec_n = None, [], None, {"reason": "the slide draws the depth alone"}
         else:
             fig_pl, rows_n, tick_d, rec_n = None, [], None, {"form": "meaning",
                                                               "reason": "stated by the line of meaning"}
             labelled.add("reference")
         LAST_REFERENT_NOTE.update(rec_n)
-        if fig_pl is None and not drawing:
+        if fig_pl is None and (not drawing or "reference" in labelled or not landmark):
             pass
         elif fig_pl is not None:
             plates.append(("ref_label", fig_pl))
@@ -10818,7 +10926,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             plates += [(f"ref_note{k}", plan_text(ground, xy, ln, f, brand.STONE_LT, "ls", track=1))
                        for k, (ln, xy, f) in enumerate(rows_n)]
         else:
-            record_drop(surface_of("scale", out), f"the landmark's figure {_short(ref_feet, unit)}", SCALE_DROP_RULE,
+            record_drop(surface_of("scale", out), f"the landmark's figure {landmark_text(ref_label, ref_feet, unit)}", SCALE_DROP_RULE,
                         str(rec_n.get("reason") or "no form holds it"))
         if ref_note and fig_pl is not None and not rows_n:
             log.warning("Scale: the referent note %r is refused: %s.", ref_note, rec_n.get("reason"))
@@ -10838,7 +10946,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         f_blk = figure_font(max(28, floor))                 # stated quantities on the drawing: the figure face (r8)
         blk_text = hedge + _short(feet, unit, fact)         # hedged like the figure, at its signed precision
         f_subj = subject_figure_font(f_blk, blk_text, label_x1 - x0, 2)   # FIG-09: the subject's step
-        ref_txt_w = tracked_width(_short(ref_feet, unit), f_blk, 2)
+        ref_txt_w = tracked_width(landmark_text(ref_label, ref_feet, unit), f_blk, 2)
         c_rule = heading_clear(heads, x0, rule_x, top) + cap_height(f_rule_h) / 2 + 2
 
         def fit(pf: float) -> float:
@@ -10913,7 +11021,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in [*taken, subj])
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, SCALE_HEAD_AIR) for q in heads)
                     and off_mask(lm, b))
-        fig_pl, rows_n, tick, rec_n = referent_block(ground, _short(ref_feet, unit), f_blk, 2, note,
+        fig_pl, rows_n, tick, rec_n = referent_block(ground, landmark_text(ref_label, ref_feet, unit), f_blk, 2, note,
                                                      max(SCALE_REFERENT_NOTE_PX, floor), tick_r, tick_l, ref_top, 1.0,
                                                      clear_n)
         LAST_REFERENT_NOTE.update(rec_n)
@@ -10930,6 +11038,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     # Freeze cycle 5 (FIGURES, lander ruling 2026-11-26): the derived comparison is drawn only when the ruling holds
     # on THIS drawing (figures.derivation_faults: its operands labelled here, hedged unless exact); else the drawing
     # is laid out again without it and the omission recorded.
+    if depth and not landmark:
+        bracket = None
     if derive and statement["derivation"] is not None and not drawing:
         from .figures import derivation_faults
         d_faults = derivation_faults(statement["derivation"], labelled)
@@ -10938,11 +11048,15 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height, drawing_floor,
                                           derive=False)
     elif derive and statement["derivation"] is not None and depth and "reference" not in labelled:
-        # a slide's drawing alone: its difference needs the landmark's figure on the drawing itself
+        # a slide's drawing alone: its difference needs the landmark's figure on the drawing itself. Review 2 (ruling
+        # R2): where its legend has no place, the slide draws the depth alone, without the landmark (recorded), never
+        # a landmark standing in the shaft with no figure
         withhold_derived(surface_of("scale", out), statement["derivation"],
                          ["its operand the landmark's figure is not labelled on the drawing"])
+        record_drop(surface_of("scale", out), f"the landmark {_landmark_name(ref_label)}", SCALE_DROP_RULE,
+                    "its figure has no clear legend place on the slide's drawing (ruling R2: the depth alone)")
         return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height, drawing_floor,
-                                      derive=False)
+                                      derive=False, landmark=False)
     line_spans = datum_spans(x0, x1, zero_boxes, 8)          # the ground line yields round its zero label (F11)
     ruler_rows = [ruler_record(f"ruler{j}", pl, round(ft * per_ft(unit), 6), at, line_spans if ft == 0 else ())
                   for j, (ft, at, pl) in enumerate(ruler_marks)]
@@ -10968,7 +11082,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                 if yy <= y_end + 1:
                     d.line([(shaft[0] - 18, yy), (shaft[0] - 3, yy)], fill=(*brand.STONE_LT, 255), width=2)
             d.rectangle([shaft[0], line_y, shaft[1], y_end], fill=(*brand.SEA, 255), outline=(*brand.GOLD, 255), width=3)
-            drop = _ease((t - 1.6) / 1.0)
+            drop = _ease((t - 1.6) / 1.0) if landmark else 0.0
             if drop > 0:
                 hh = ref_feet * px_ft
                 u = (t - t_drop_end) / 0.15                    # a 2.5 % squash and settle as it lands
@@ -11343,8 +11457,8 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                if name.startswith("figure") else
                plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
               for name, text, font, colour, track, yb in rows]
-    for name, plate in plates:        # the line of meaning's derived figure carries its derivation (cycle 5)
-        if name.startswith("meaning") and mean_src[int(name[7:])] == statement["derived_line"]:
+    for name, plate in plates:        # every row of the line of meaning carries the derivation (review 2, N1/N2)
+        if name.startswith("meaning"):
             derived_plate(plate, statement["derivation"])
     labelled = {"subject"}            # the operands this drawing labels: the heading's figure is the subject's
     ruler_rows: list[dict[str, Any]] = []
@@ -11410,7 +11524,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                     and not any(LayoutConstraintSolver.boxes_intersect(b, q, 6) for q in [*taken, *hard])
                     and off_mask(lm, b))
         reach = S(max(crown_reach(ref_label) * ref_feet * px_ft, 6))
-        fig_pl, rows_n, tick, rec_n = referent_block(final, _short(ref_feet, unit), f_blk, S(1), note or "", own,
+        fig_pl, rows_n, tick, rec_n = referent_block(final, landmark_text(ref_label, ref_feet, unit), f_blk, S(1), note or "", own,
                                                      X(ref_cx) + reach, X(ref_cx) - reach, Y(ref_top), g.k,
                                                      clear_w, S(1))
         LAST_REFERENT_NOTE.update(rec_n)
@@ -11422,7 +11536,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                        for k, (ln, xy, f) in enumerate(rows_n)]
             shown.update(f"ref_note{k}" for k in range(len(rows_n)))
         elif depth:
-            record_drop(surface_of("scale", out), f"the landmark's figure {_short(ref_feet, unit)}", SCALE_DROP_RULE,
+            record_drop(surface_of("scale", out), f"the landmark's figure {landmark_text(ref_label, ref_feet, unit)}", SCALE_DROP_RULE,
                         str(rec_n.get("reason") or "no form holds it"))
         if note and not rows_n and (fig_pl is not None or not depth):
             log.warning("Scale: the referent note %r is refused: %s.", note, rec_n.get("reason"))

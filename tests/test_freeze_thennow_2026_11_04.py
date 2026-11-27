@@ -465,10 +465,12 @@ def _dark_pair(tmp_path, size):
     return _flat(tmp_path / "a.png", (52, 48, 44), s), _flat(tmp_path / "b.png", (40, 44, 50), s)
 
 
-@pytest.mark.parametrize("size,which", [(PORTRAIT, "now"), (LANDSCAPE, "then")], ids=["9x16", "16x9"])
+@pytest.mark.parametrize("size,which", [(PORTRAIT, "now"), (LANDSCAPE, "now")], ids=["9x16", "16x9"])
 def test_a_label_the_divider_crosses_is_not_drawn(tmp_path, monkeypatch, size, which):
     """Round 2 (T5, replacing S7's exact-pixel reveal): on every frame where the divider crosses a marker, the whole
-    group (kicker and year) is off; the frame there is the photo alone."""
+    group (kicker and year) is off; the frame there is the photo alone. Changed pin, freeze cycle 6 (THENNOW T1,
+    ruling 2026-11-27): on 16:9 the divider no longer crosses the THEN marker (it ran past the split to 384 px and
+    back over it, the defect itself); the NOW marker it crosses on its way in is the case on both formats."""
     old, new = _dark_pair(tmp_path, size)
     texts = ("NOW", "2019") if which == "now" else ("THEN", "1925")
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, size, keep=tuple(range(36, 100)), stop=99)
@@ -497,8 +499,11 @@ def test_a_label_the_divider_crosses_is_not_drawn(tmp_path, monkeypatch, size, w
 
 
 def test_then_fades_in_between_0_1_and_0_4_s(tmp_path, monkeypatch):
+    # Changed pin, freeze cycle 6 (THENNOW T1, ruling 2026-11-27: motion values from the tokens): the THEN marker
+    # enters over tok("motion.reveal") (0.40 s) on ease_out from frame 0 (it was a local 0.1 s lead and 0.3 s fade).
+    from src.brand_system import tok
     old, new = _dark_pair(tmp_path, PORTRAIT)
-    early, late = 3, 12                                            # t 0.1 s and 0.4 s
+    early, late = 0, round(tok("motion.reveal") * FPS)             # t 0 and the reveal's end
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, PORTRAIT, keep=(early, late), stop=late)
     a, b = _sources(old, new, PORTRAIT)
     for i, want_on in ((early, False), (late, True)):

@@ -205,6 +205,7 @@ def test_the_hook_grade_out_holds_the_grounds_hue_and_saturation(layer):
     assert np.abs(np.asarray(plain, np.int16) - np.asarray(held, np.int16))[dark].max(initial=0) <= 1
 
 
+
 def _grade_grounds():
     """The dev corpus grounds whose hook grade-out drifted (tests/fixtures/plates_c5_grade_grounds.json: 27 x 48
     colour thumbnails of the 1080 x 1920 cover crop; the c5 review's worst six at ba2750a0 and the six behind it)."""
@@ -225,7 +226,7 @@ def test_the_hook_grade_out_holds_the_hue_to_the_ledgers_bound_on_the_corpus_gro
                                 ("wash", dc._wash_layer(g.size, 736, 1040, 0.70, 901), 0.70)):
             alpha = np.asarray(lay.getchannel("A"), np.float32) / 255.0
             held = Image.alpha_composite(g.convert("RGBA"), band_edge.hold_hue(g, lay, full)).convert("RGB")
-            got = pc.hue_sat(g, held, alpha, full, low=0.05, chroma=12)
+            got = pc.hue_sat(g, held, alpha, full, low=0.05, chroma=12)   # the path and the plate, while lit
             if got is None:
                 continue
             measured += 1
@@ -497,8 +498,13 @@ def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_
     slide = {"kicker": "ANCIENT MARVEL", "line1": "THE ACOUSTIC DOME", "line2": "OF GOL GUMBAZ",
              "body": "Sound circles this vast chamber along its curved wall."}
     _, lay = gen._render_story_frame(photo, slide, 0, 2, {})
+    with multi_format.kicker_set(("plate", 0)):          # the Story's kicker set on its held plate
+        _, plated = gen._render_story_frame(photo, slide, 0, 2, {})
+    k = next(e for e in plated.elements if e["name"] == "kicker")
+    assert isinstance(k.get("plate"), dict), k
     sx0, sy0, sx1, sy1 = safe_zones.safe_box("story")
     inset = safe_zones.TEXT_INSET
+    assert k["plate"]["box"][0] - sx0 >= inset, k                   # the plate stands on the column
     for e in lay.elements:
         boxes = [e["box"]] + ([e["plate"]["box"]] if isinstance(e.get("plate"), dict) else [])
         for b in boxes:
@@ -506,9 +512,8 @@ def test_the_story_band_and_credit_read_at_seven_to_one_and_keep_the_margin(tmp_
         if e["name"] not in ("kicker",) and e.get("contrast") is not None:
             band = (lay.ground or {}).get("text_band") or {}
             assert e["contrast"] >= 7.0 or band.get("short"), (e["name"], e["contrast"], band)
-    # the column itself: the safe box, the token, and the held label plate's pad
-    pad = round(brand_system.tok("plate.label_pad") * brand_system.type_px("kicker", "tall"))
-    assert multi_format.STORY_MARGIN == sx0 + inset + pad
+    # the column itself: the safe box and the token (a plated kicker stands its plate on it)
+    assert multi_format.STORY_MARGIN == sx0 + inset and multi_format.story_body_width() == sx1 - inset - sx0 - inset
 
 
 def test_a_band_grades_the_photograph_keeping_its_hue_and_saturation():

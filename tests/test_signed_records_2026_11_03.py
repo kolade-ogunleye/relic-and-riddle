@@ -569,7 +569,12 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
         row = A[(y0 + y1) // 2, right:]
         assert (np.diff(row) <= 1).all(), rgb                                   # it only eases out: no second band
         g0 = np.asarray(plan.meta["_ground0"]).astype(float)[y0 + 20:y1 - 20, :right].mean(axis=(0, 1))
-        assert max(g0) - min(g0) < 12, (rgb, g0)                                # neutral INK: never olive
+        # never olive: the plate is INK's luma in the ground's own hue while it is lit (freeze c5, PLATES-02 to the
+        # ledger's bound, composite >= 20 luma; review D4), or neutral INK where it is darker (was: neutral always)
+        import colorsys
+        hp = colorsys.rgb_to_hsv(*(g0 / 255))[0] * 360
+        hg = colorsys.rgb_to_hsv(*(np.array(rgb, float) / 255))[0] * 360
+        assert max(g0) - min(g0) < 12 or abs((hp - hg + 180) % 360 - 180) <= 5, (rgb, g0)
 
 
 # ------------------------------------------------------------------------------------------------ review round 4

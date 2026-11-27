@@ -235,7 +235,11 @@ def test_the_development_photos_whose_short_lines_crashed_draw_their_frames(tmp_
     assert len(found) == 2
     for topic, entry in found:
         photo = _staged(tmp_path / topic, entry, colour=(250, 250, 250))
-        assert multi_format.story_credit_fits(photo, {})
+        # freeze c5 PLATES-14: the Story column keeps the margin token (902 px, was 912), so the Tunguska credit no
+        # longer sets in STORY_CREDIT_LINES at the floor: the Story does not choose that photograph (story_credit_fits,
+        # the designed fallback); a frame drawn on it anyway draws whole and says so
+        fits = multi_format.story_credit_fits(photo, {})
+        assert fits or topic == "tunguska_event_1908", topic
         raised, lay = None, None
         try:
             _, lay = MultiFormatGenerator()._render_story_frame(photo, SLIDE, 1, 2, {})
@@ -243,7 +247,8 @@ def test_the_development_photos_whose_short_lines_crashed_draw_their_frames(tmp_
             raised = e
         assert raised is None, raised
         credit = lay.meta["photo_credit"]
-        assert credit["fits"] and credit["contrast"] >= multi_format.STORY_CREDIT_CONTRAST and lay.problems() == []
+        assert bool(credit["fits"]) == fits and credit["complete"]
+        assert credit["contrast"] >= multi_format.STORY_CREDIT_CONTRAST and (lay.problems() == [] or not fits)
 
 
 def _pools():

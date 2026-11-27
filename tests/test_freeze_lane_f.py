@@ -463,7 +463,14 @@ def test_lane_f_c4_hook_plate_grades_out_right_of_the_block(claim, fid, photos):
     assert (row[:xr] == row[0]).all() and row[-1] < row[0]
     assert (np.diff(row) <= 0).all() and np.abs(np.diff(row)).max() <= 2
     col = a[:, 40]
-    assert np.abs(np.diff(col)).max() <= 2 * round(255 * sc["strength"] / dc.HOOK_PLATE_FEATHER) + 2
+    y0, y1 = sc["plate"]
+    crisp = sc.get("crisp_edges") or []
+    # lander ruling 2026-11-26 (review of the PLATES c5 fix): an edge whose ground needs a ramp past the designed reach
+    # keeps the plate's crisp designed edge, recorded; every other edge feathers over HOOK_PLATE_FEATHER, no step
+    assert not crisp or "band_edge.reach" in sc["crisp_rule"], sc
+    for edge, span in (("top", slice(0, (y0 + y1) // 2)), ("foot", slice((y0 + y1) // 2, len(col)))):
+        if edge not in crisp:
+            assert np.abs(np.diff(col[span])).max() <= 2 * round(255 * sc["strength"] / dc.HOOK_PLATE_FEATHER) + 2
 
 
 def _chapter_set(size, acts, titles):

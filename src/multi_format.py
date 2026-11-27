@@ -512,19 +512,19 @@ def story_inset() -> int:
     return round(TEXT_INSET * VIDEO_WIDTH / 1080)
 
 
-# The Story's text column starts here (PLATES-14): the safe box's 65, the margin token (safe_zones.TEXT_INSET) and
-# the held label plate's pad (plate.label_pad em of the Story kicker), so a kicker on its held plate keeps the token
-# too: 103. It was 84 (2026-10-29 to the freeze cycle 5): the text 19 px inside the box, a plated kicker's plate 5.
-STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET + round(brand_system.tok("plate.label_pad")
-                                                      * brand_system.type_px("kicker", "tall"))
+# The Story's text column starts here (PLATES-14): the safe box's 65 and the margin token (safe_zones.TEXT_INSET): 89.
+# It was 84 (2026-10-29 to the freeze cycle 5), 19 px inside the box. A kicker on its held label plate stands with
+# the PLATE on the column and its words the plate's pad inside it (draw_kicker plate_on_column), so the plate keeps
+# the token too (it stood 5 px inside the box).
+STORY_MARGIN = _SAFE_STORY.left + _TEXT_INSET
 
 
 def story_body_width() -> int:
-    """The Story text column: the safe box less STORY_MARGIN's inset on each side (912 px at 1080x1920)."""
+    """The Story text column: the safe box less the margin token on each side (902 px at 1080x1920; 912 before
+    PLATES-14)."""
     from .safe_zones import safe_box
     sx0, _, sx1, _ = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
-    inset = STORY_MARGIN - sx0
-    return (sx1 - inset) - (sx0 + inset)
+    return (sx1 - story_inset()) - STORY_MARGIN
 
 
 def story_window(photo: Path, text_box: tuple[float, float, float, float]) -> tuple[Image.Image, dict[str, Any]]:
@@ -891,7 +891,8 @@ def kickers_on(lays, step) -> bool:
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
-                name: str = "kicker", plates=None) -> tuple[Image.Image, tuple[int, int, int, int]]:
+                name: str = "kicker", plates=None, plate_on_column: bool = False
+                ) -> tuple[Image.Image, tuple[int, int, int, int]]:
     """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
     eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
     ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
@@ -904,6 +905,16 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     rule_box = (round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1)
     plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * track,
                              rule=rule_box)
+    if plate_on_column and plate is not None and getattr(plate, "backing", None) is not None:
+        # PLATES-14: on a held plate, the PLATE stands on the column (its words the plate's pad inside), so the plate
+        # keeps the column's margin to the safe box; planned again there, the same step
+        pad = max(0, round(x - plate.backing.parent.box[0]))
+        if pad:
+            x += pad
+            mid = baseline - ch / 2
+            rule_box = (round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1)
+            plate, rec = plan_kicker(im, (x + bar_w + gap, baseline), text, font, colour, "ls",
+                                     track=font.size * track, rule=rule_box)
     if isinstance(getattr(lay, "meta", None), dict):
         lay.meta.setdefault("kickers", {})[name] = rec
     if plate is None:   # fail closed: no rule and no words under the gate (recorded)
@@ -1661,7 +1672,7 @@ class MultiFormatGenerator:
             lay.meta_room = [int(v) for v in room_box]
         if kicker:
             im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, colour_of("kicker.colour"), lay,
-                                    plates=lay.plates)
+                                    plates=lay.plates, plate_on_column=True)
         by_name: dict[str, list] = {}
         for name, yy, txt, f, fill, track, dx in rows:
             plate = plan_text(im, (x + dx, top + yy), txt, f, fill, "ls", track=track)

@@ -195,7 +195,8 @@ def hold_hue(ground: Image.Image, layer: Image.Image, full: float | None = None)
     brightened) wherever the composite is at least HOLD_LUMA, and the layer's own colour where the composite is under
     HOLD_LUMA - HOLD_SPAN (smoothstepped between). Composited over `ground` the luma is the plain layer's at every
     pixel (so every edge slope and every luma contrast measured on it stands); only the chroma follows the ground.
-    `full` is kept for the callers and decides nothing."""
+    That holds under the type too (the layer at full strength) while the composite there is lit >= HOLD_LUMA: a dark
+    tone of the ground's own hue, never INK's grey over it (review of the c5 fix, D4). `full` decides nothing."""
     lay = np.asarray(layer.convert("RGBA"), np.float32)
     g = np.asarray(ground.convert("RGB"), np.float32)
     a = lay[..., 3] / 255.0

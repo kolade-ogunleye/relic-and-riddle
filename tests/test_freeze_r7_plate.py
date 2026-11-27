@@ -122,22 +122,33 @@ def test_the_myth_plate_edges_are_feathered_by_the_same_token(tmp_path):
     photo = _photo_file(tmp_path, "bright.jpg", (236, 232, 222), size=(1200, 2000))
     geo = dc._Geo(1080, 1920)
     calls = []
-    real = band_edge.feather
+    real = band_edge.reach
 
     def counted(*a, **k):
         calls.append(a[2])
         return real(*a, **k)
-    band_edge.feather = counted
+    band_edge.reach = counted
     try:
-        _, rest = dc._myth_ground(photo, geo, 0.0, 0.8, 400, 900)
+        drift, rest = dc._myth_ground(photo, geo, 0.0, 0.8, 400, 900)
     finally:
-        band_edge.feather = real
+        band_edge.reach = real
     assert {"up", "down"} <= set(calls)                                      # both edges go through the rule
     top, foot = geo.y(dc.MYTH_PANEL[0]), geo.y(dc.MYTH_PANEL[1])
     lum = band_edge.luma_rows(rest)
+    # lander ruling 2026-11-26 (review of the PLATES c5 fix): an edge whose ground needs a ramp past its designed
+    # reach keeps the panel's crisp edge, recorded on the drift (the plan's panel_edges); every other edge eases within
+    # the token
+    crisp = (drift.edges or {}).get("crisp") or []
+    assert not crisp or "band_edge.reach" in drift.edges["rule"]
     for x in (200, 540, 900):
-        assert band_edge.steepest(lum[top - 400:top + 20, x]) <= _cap(1080) + 1.0
-        assert band_edge.steepest(lum[foot - 20:foot + 400, x]) <= _cap(1080) + 1.0
+        if "up" not in crisp:
+            assert band_edge.steepest(lum[top - 400:top + 20, x]) <= _cap(1080) + 1.0
+        else:
+            assert lum[top - 3, x] - lum[top + 3, x] > 80 and np.ptp(lum[max(0, top - 400):top - 3, x]) < 4   # one crisp edge
+        if "down" not in crisp:
+            assert band_edge.steepest(lum[foot - 20:foot + 400, x]) <= _cap(1080) + 1.0
+        else:
+            assert lum[foot + 3, x] - lum[foot - 3, x] > 80 and np.ptp(lum[foot + 3:foot + 400, x]) < 4
     assert lum[(top + foot) // 2].mean() < 60                                # the panel itself stays dark
 
 

@@ -357,6 +357,22 @@ def _band_edge_profile(blur: float = 0.0, floating: bool = False):
     return (band_edge.luma_rows(im) - band_edge.luma_rows(out)).mean(axis=1).round(1).tobytes()
 
 
+def _band_edge_need(blur: float = 0.0, floating: bool = False):
+    """The band-edge rule's own feather (uncapped: band_edge._feather) on the probe ground. Lander ruling 2026-11-26:
+    a drawn ramp is capped at its designed form's (band_edge.reach), so on the probe's short designed feather the
+    ground-measured limits (edge.slope_float, edge.texture_gain) decide what the rule ASKS (whether the edge goes crisp)
+    rather than the scrim's pixels."""
+    from src import band_edge
+    lum = band_edge.luma_rows(_band_edge_ground(blur))
+    return (band_edge._feather(lum, 1000, "down", brand.INK, 1.0, 53, None, floating=floating),
+            band_edge.reach(lum, 1000, "down", brand.INK, 1.0, 53, None, floating=floating, cap=10 ** 6))
+
+
+def _reach_cap():
+    from src import band_edge
+    return band_edge.reach_cap(53, 1080), band_edge.reach_cap(53, 1440)
+
+
 def _follow_label():
     """The end card's follow line (an overlay label) planned on a mid ground: its halo's spread and alpha."""
     from src import end_card
@@ -512,8 +528,9 @@ def _youtube_mark_room():
 
 TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that reads it)
     "edge.slope_max": (0.6, _band_edge_profile),
-    "edge.slope_float": (0.6, lambda: _band_edge_profile(floating=True)),
-    "edge.texture_gain": (0.5, lambda: _band_edge_profile(blur=2.0)),
+    "edge.slope_float": (0.6, lambda: _band_edge_need(floating=True)),
+    "edge.texture_gain": (0.5, lambda: _band_edge_need(blur=2.0)),
+    "edge.reach_max": (192, _reach_cap),
     "halo.label_max": (0.04, lambda: _follow_label()[0]),
     "halo.label_spread": (0.5, lambda: _follow_label()[1:]),
     "plate.gutter": (48, _comparison_ground),

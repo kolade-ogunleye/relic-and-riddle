@@ -80,7 +80,7 @@ def test_a_first_row_no_size_or_rebreak_can_hold_is_drawn_at_the_floor_and_recor
     _, lay = _cover(tmp_path, "LINES IN THE SAND")
     m, rec = lay.meta["masthead"], lay.meta["hook_ratio"]
     assert lay.meta["heading"]["lines"] == ["LINES", "IN THE SAND"]          # text and break as the engine set them
-    assert m["shown"] and abs(m["size_px"] - masthead.fit_ladder(m["size_asked"])[-1]) < 1e-6
+    assert m["shown"] and abs(m["size_px"] - masthead.fit_ladder(brand_system.type_px("masthead", "carousel"))[-1]) < 1e-6
     assert rec["at_ceiling"] and not rec["holds"] and "ceiling" in rec["reason"]
     assert rec["title_remedy"]["kind"] == "none" and "locked" in rec["title_remedy"]["reason"]
 
@@ -99,14 +99,14 @@ def test_the_title_side_rebreaks_to_a_longer_legal_first_row():
     (the engine's valid() and the one line policy)."""
     words = tuple("GIANT STONE RINGS OF THE SAHARA".split())
     form = heading.Form(words, (1,), 150, 0, 3, True)                    # GIANT / STONE RINGS OF THE SAHARA
-    got = heading.longer_first_row(form, lambda t: 40.0 * len(t), 1000, lambda t: 40.0 * len(t), 300)
+    got = heading.longer_first_row(form, lambda t: 40.0 * len(t), 800, lambda t: 40.0 * len(t), 300)
     assert got is not None and got.lines == ("GIANT STONE RINGS", "OF THE SAHARA")
     assert got.size == form.size and got.seam == form.seam and got.record["hook_rebreak"]["from"] == list(form.lines)
     assert [r for line in got.runs() for r in line if r[1] in heading.GOLD_ROLES] == \
         [r for line in form.runs() for r in line if r[1] in heading.GOLD_ROLES]
     # never a re-break that ends a row on a never-end word (THE EYE OF / THE SAHARA)
     eye = heading.Form(tuple("THE EYE OF THE SAHARA".split()), (2,), 150, 0, 4, True)
-    assert heading.longer_first_row(eye, lambda t: 40.0 * len(t), 1000, lambda t: 40.0 * len(t), 400) is None
+    assert heading.longer_first_row(eye, lambda t: 40.0 * len(t), 700, lambda t: 40.0 * len(t), 400) is None
 
 
 def test_the_cover_takes_the_rebreak_where_the_mark_at_its_floor_would_compete(tmp_path):
@@ -118,7 +118,7 @@ def test_the_cover_takes_the_rebreak_where_the_mark_at_its_floor_would_compete(t
     words = tuple("GIANT STONE RINGS OF THE SAHARA".split())
     form = heading.Form(words, (1,), 150, 0, 3, True)
     _render_state.hook_remedy = None
-    got = M()._hook_heading(form, px, measure, 2000)
+    got = M()._hook_heading(form, px, measure, measure("GIANT STONE RINGS", 150) + 40)   # one line does not fit
     assert got.lines[0] == "GIANT STONE RINGS" and _render_state.hook_remedy["kind"] == "re-break"
     _render_state.hook_remedy = None
 

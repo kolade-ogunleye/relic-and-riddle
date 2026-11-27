@@ -86,6 +86,7 @@ def _grounds():
     noise = Image.fromarray((rng.random((1800, 1440, 1)) * 255).repeat(3, 2).astype(np.uint8), "RGB")
     return {"real": real, "white": Image.new("RGB", (1440, 1800), (246, 244, 238)),
             "grey": Image.new("RGB", (1440, 1800), (128, 126, 120)), "dark": Image.new("RGB", (1440, 1800), (22, 20, 18)),
+            "dim": Image.new("RGB", (1440, 1800), (64, 62, 58)),
             "busy": noise}
 
 
@@ -123,7 +124,7 @@ def test_a_block_never_crosses_its_safe_box():
     assert x0 >= box[0] and x1 <= box[2] and y0 >= box[1] and y1 <= box[3]
 
 
-@pytest.mark.parametrize("ground", ["real", "white", "grey", "dark", "busy"])
+@pytest.mark.parametrize("ground", ["real", "white", "grey", "dark", "dim", "busy"])
 def test_scrim_lays_the_block_only_where_it_darkens_no_more_than_the_shipped_band(monkeypatch, ground):
     """Rule 3 (darkened share never above integration 5), at the level production calls it (multi_format.scrim with
     the carousel's tagged items): the block is laid, or the band where the block would darken more."""
@@ -136,6 +137,24 @@ def test_scrim_lays_the_block_only_where_it_darkens_no_more_than_the_shipped_ban
     assert plate_form.dark_share(im, out) <= plate_form.dark_share(im, band) + 1e-4, got["plate_form"]
     if ground in ("white", "busy", "real"):
         assert got["plate_form"]["laid"] == "block"
+    if ground == "dim":   # the band darkens under 20 luma here, an INK block 50: the band stays
+        assert got["plate_form"]["laid"] == "band"
+
+
+def test_under_the_block_family_a_kicker_stands_on_its_held_plate_where_no_block_is(monkeypatch):
+    """Rule 3 (contrast never lower than base; ruling 1, the kicker in its block): a kicker on a frame that keeps the
+    band takes its held plate (the family's smallest block), whatever the deck's one step would be."""
+    from src import brand
+    font = multi_format.get_font(brand.TEXT_FONT, 42, weight=800)
+    im = Image.new("RGB", (1440, 600), (70, 66, 60))
+    monkeypatch.setenv(plate_form.ENV, "block")
+    with multi_format.kicker_set(("halo", 0)):
+        _plate, rec = multi_format.plan_kicker(im, (150, 300), "THE SALT CATHEDRAL", font, GOLD)
+    assert rec["variant"] == "plate", rec
+    monkeypatch.delenv(plate_form.ENV, raising=False)
+    with multi_format.kicker_set(("halo", 0)):
+        _plate, rec = multi_format.plan_kicker(im, (150, 300), "THE SALT CATHEDRAL", font, GOLD)
+    assert rec["variant"] != "plate", rec
 
 
 @pytest.mark.parametrize("ground", ["real", "white", "grey", "busy"])

@@ -554,9 +554,11 @@ def palette_problems(config) -> list[str]:
     with brand.use(config, validate=False):
         grounds = [(name, validation_ground(mean, spread, blur)) for name, mean, spread, blur in VALIDATION_GROUNDS]
         grounds.append((BRIGHT_STRESS[0], stress_ground(*BRIGHT_STRESS[1:])))   # freeze cycle 6 (M3)
-        for name, ground in grounds:
-            _, _, rec = plan(ground, x0, base, size, reach=reach, max_width=room)
+        forms = ("line", "stacked") if stack_lines() else ("line",)   # freeze cycle 6: both lockup forms
+        for (name, ground), form in ((g, f) for g in grounds for f in forms):
+            _, _, rec = plan(ground, x0, base, size, reach=reach, max_width=room, form=form)
             if not rec.get("shown") and rec.get("fit_floor_px") is None:
+                name = name if form == "line" else f"{name} (stacked form)"
                 fails.append(f"masthead on a {name} ground: the name reaches at best {rec.get('best_tried')}:1 "
                              f"({rec.get('best_step')}; {config.name}: masthead.colour_dark best "
                              f"{rec.get('best_dark')}, masthead.colour_light best {rec.get('best_light')}), under "

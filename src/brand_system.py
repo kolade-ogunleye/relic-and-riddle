@@ -652,6 +652,8 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:with_region_line": "A",     # lane A c2: the map label's region line under the name
     "masthead:font_for": "system",
     "masthead:group_width": "system",
+    "masthead:_line_ink": "system",      # freeze c6 M1: a stacked line's ink at the masthead's size
+    "masthead:stack_pitch": "system",    # freeze c6 M1: the stacked form's pitch, from the masthead's cap
     "masthead:mark_geometry": "system",
     "masthead:plan": "system",
     "masthead:plan_at": "system",        # freeze cycle 5: the ruled order (plan adds the margin's longer reach)

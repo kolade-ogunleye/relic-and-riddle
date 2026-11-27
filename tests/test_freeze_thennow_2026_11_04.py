@@ -349,7 +349,7 @@ def test_the_kicker_sits_tight_on_the_year(tmp_path, monkeypatch, size, gap):
         b = rows["then_year"].box                                  # the widest year fits the column, any side
         # lane A cycle 1: a centred column is a candidate too (then_now.marker_sides), so the year sits left-set,
         # right-set or centred on its column, always inside the graphics box (checked below)
-        side = then_now.last_meta["side"]["side"]
+        side = then_now.last_meta["side"]["then"]["side"]        # cycle 6 (T2a): each marker's own place
         if side.startswith("centre:"):
             assert abs((b[0] + b[2]) / 2 - int(side.split(":")[1])) <= 2
         else:
@@ -557,14 +557,15 @@ def test_the_divider_is_five_bone_pixels_between_two_equal_keylines(size, pos):
 
 # ---------------------------------------------------------------- S9: the sweep arrives moving
 def test_the_sweep_is_one_landing():
-    """Round 2 (T4): one landing, WIPE then / to_far / hold_far / settle, the split holding 2.7 s."""
-    W = then_now.WIPE
-    assert W == {"then": 1.2, "to_far": 1.0, "hold_far": 0.25, "settle": 0.85}
-    assert then_now.CLIP_SECONDS - sum(W.values()) == pytest.approx(2.7)
+    """Changed pin, freeze cycle 6 (THENNOW T1, ruling 2026-11-27): WIPE (then / to_far / hold_far / settle) is
+    retired for one eased wipe; it starts at rest (ease_in_out from 0) and lands at rest, the split then held."""
+    assert not hasattr(then_now, "WIPE")
     w, h = PORTRAIT
-    first = then_now.divider_at(36 / FPS, w, h) - then_now.divider_at(37 / FPS, w, h)
-    assert 95 <= first <= 105                                      # in at speed from off-frame
-    assert then_now.divider_at(3.3, w, h) == pytest.approx(then_now._split_at(w, h))
+    t0, t1 = then_now.wipe_window(w, h)
+    first = then_now.divider_at(t0, w, h) - then_now.divider_at(t0 + 1 / FPS, w, h)
+    assert 0 < first <= 5                                          # it starts from rest, eased
+    assert then_now.divider_at(t1, w, h) == pytest.approx(then_now._split_at(w, h))
+    assert then_now.CLIP_SECONDS - t1 >= 2.0
 
 
 # ================================================================ freeze panel round 2 (T1-T10)
@@ -903,26 +904,20 @@ def test_the_clip_is_x264_grain_tuned_bt709_limited(tmp_path):
 # ---------------------------------------------------------------- T4: one landing and a linear push
 @pytest.mark.parametrize("size", [PORTRAIT, LANDSCAPE], ids=["9x16", "16x9"])
 def test_the_divider_lands_once(size):
+    """Changed pin, freeze cycle 6 (THENNOW T1, lander ruling 2026-11-27; panel 7 MO2 8.0, 'a non-monotonic
+    reveal'): T4's landing went past the split to 384 px, held 0.25 s and settled back (one change of direction).
+    Now: THEN alone for its marker's reading time, one ease_in_out travel to the split, no change of direction,
+    no frame past the split, every step within motion.wipe_step (T4(c)/(d)'s 30 px)."""
     w, h = size
     edge, split = max(size), then_now._split_at(w, h)
-    assert all(then_now.divider_at(t, w, h) == edge for t in np.arange(0, 1.2, 0.01))
-    for t in np.arange(2.2, 2.4501, 0.01):
-        assert then_now.divider_at(t, w, h) == pytest.approx(384, abs=0.01)
-    landed = 2.45 + then_now.settle_seconds(w, h)            # review round 3 (T4d): 3.3 s on 9:16, 3.4167 s on 16:9
-    assert landed == pytest.approx(3.3 if size == PORTRAIT else 3.4167, abs=1e-3)
-    assert then_now.divider_at(landed, w, h) == pytest.approx(split) and then_now.divider_at(5.9, w, h) == split
+    t0, t1 = then_now.wipe_window(w, h)
+    assert t0 >= 1.2                                                           # at least the old THEN hold
+    assert all(then_now.divider_at(t, w, h) == edge for t in np.arange(0, t0, 0.01))
+    assert then_now.divider_at(t1, w, h) == pytest.approx(split) and then_now.divider_at(5.9, w, h) == split
     pos = [then_now.divider_at(i / FPS, w, h) for i in range(180)]
     steps = np.diff(pos)
-    signs = [np.sign(s) for s in steps if abs(s) > 1e-9]
-    assert sum(1 for a, b in zip(signs, signs[1:]) if a != b) == 1           # T4(b): one change of direction
-    hold = [s for i, s in enumerate(steps, 1) if 2.2 + 1e-9 < i / FPS <= 2.45 + 1e-9]
-    assert hold and all(abs(s) < 1e-9 for s in hold)
-    first_up = next(i for i, s in enumerate(steps, 1) if s > 1e-9)
-    assert 2.45 < first_up / FPS <= 2.45 + 1.5 / FPS                          # ... at the start of the settle
-    assert np.abs(steps).max() <= 105                                          # T4(c)
-    settle = [abs(s) for i, s in enumerate(steps, 1) if 2.45 < i / FPS <= landed + 1e-9]
-    # T4(d): <= 30 px on both formats; 16:9's settle is lengthened to 0.9667 s (was a 34 px allowance there)
-    assert max(settle) <= 30
+    assert all(s <= 1e-9 for s in steps) and min(pos) == pytest.approx(split)   # one direction, never past
+    assert np.abs(steps).max() <= 30                                           # T4(c)/(d)
 
 
 def test_the_push_is_linear():
@@ -1236,14 +1231,17 @@ def test_the_916_markers_take_the_quieter_side(tmp_path, monkeypatch, busy_left,
     new = _half_busy(tmp_path / "n.png", busy_left, seed=10)
     got, plates = _plates_of(monkeypatch, tmp_path, old, new, PORTRAIT, keep=(), stop=0)
     meta = then_now.last_meta
-    got = meta["side"]["side"]
-    sums = meta["side"]["edge_sum"]
+    # Changed pin, freeze cycle 6 (THENNOW T2a, ruling 2026-11-27): each marker takes its own panel's calmest place
+    # (ground_detail, recorded per marker); both photos are busy on the same half here, so both take the same side.
+    got = meta["side"]["then"]["side"]
+    assert meta["side"]["now"]["side"] == got
+    sums = meta["side"]["then"]["detail"]
     # lane A cycle 1: centred columns are candidates too; the busy half is still never taken and the pick is the
     # quietest candidate (left kept unless another is SIDE_MARGIN quieter)
     if side == "left":
         assert got == "left"
     else:
-        assert got != "left" and sums[got] == min(sums.values())
+        assert got != "left" and sums[got] <= min(sums.values()) / (1 - then_now.SIDE_MARGIN)
         side = "right" if got == "right" else got
     x0, y0, x1, y1 = safe_zones.safe_box("reel", *PORTRAIT)
     for t in ("THEN", "1925", meta["kicker"]["now"], "2019"):

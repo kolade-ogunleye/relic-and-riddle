@@ -206,18 +206,19 @@ def test_render_records_measured_nontext_contrast(tmp_path):
 
 # ---------------------------------------------------------------- then and now: the registered wipe
 @pytest.mark.parametrize("size", [(1080, 1920), (1920, 1080)])
-def test_divider_holds_then_sweeps_dwells_overshoots_and_settles(size):
-    """Freeze panel round 2 (T4): one landing. THEN alone, a sweep to the far point, a hold there, a settle."""
+def test_divider_holds_then_wipes_once_to_the_split(size):
+    """Freeze panel round 2 (T4) pinned one landing past the split (a sweep to the far point, a hold, a settle back).
+    Changed pin, freeze cycle 6 (THENNOW T1, lander ruling 2026-11-27, panel 7 MO2 8.0 'a non-monotonic reveal'):
+    THEN alone for its marker's reading time, then one ease_in_out wipe straight to the split, which holds."""
     w, h = size
     edge, split = max(w, h), then_now._split_at(w, h)
-    W = then_now.WIPE
-    assert then_now.divider_at(W["then"] - 0.01, w, h) == edge             # THEN alone
-    t_far = W["then"] + W["to_far"]
-    for t in (t_far, t_far + W["hold_far"] / 2, t_far + W["hold_far"]):    # the hold at the far point
-        assert then_now.divider_at(t, w, h) == pytest.approx(edge * (1 - then_now.SWEEP_TO), abs=0.01)
+    t0, t1 = then_now.wipe_window(w, h)
+    assert then_now.divider_at(t0 - 0.01, w, h) == edge                    # THEN alone
+    mid = then_now.divider_at((t0 + t1) / 2, w, h)
+    assert mid == pytest.approx((edge + split) / 2, abs=0.01)              # the smoothstep's middle, between the two
+    assert then_now.divider_at(t1, w, h) == pytest.approx(split)
     assert then_now.divider_at(then_now.CLIP_SECONDS, w, h) == pytest.approx(split)
-    assert then_now.CLIP_SECONDS - sum(W.values()) >= 1.2
-    assert W["then"] == 1.2 and W["to_far"] == 1.0 and W["hold_far"] == 0.25 and W["settle"] == 0.85
+    assert then_now.CLIP_SECONDS - t1 >= 1.2
 
 
 def test_compose_keeps_each_photo_at_its_own_pixels():
@@ -362,8 +363,9 @@ def test_shade_falls_off_over_shade_fall_screen_pixels_on_both_formats(size, whi
 
 
 def test_final_hold_is_what_the_comment_says():
-    W = then_now.WIPE
-    assert sum(W.values()) == pytest.approx(3.3)                 # freeze panel round 2 (T4): was 3.4
-    assert then_now.CLIP_SECONDS - sum(W.values()) == pytest.approx(2.7)
+    # Changed pin, freeze cycle 6 (THENNOW T1, ruling 2026-11-27): the split's hold is derived (hold_seconds), no
+    # longer the written 2.7 s of WIPE; it holds both markers' text for its reading time on both formats.
+    for w, h in ((1080, 1920), (1920, 1080)):
+        assert then_now.hold_seconds(w, h) >= then_now.read_seconds("THEN 1876 NOW 2011")
     src = Path(then_now.__file__).read_text()
-    assert ">= 1.2 s" not in src and "= 2.7 s" in src
+    assert ">= 1.2 s" not in src and "WIPE = {" not in src

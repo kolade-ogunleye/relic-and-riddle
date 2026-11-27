@@ -968,8 +968,10 @@ def frame_pair(old: Path, new: Path, width: int, height: int, subjects: list | N
 #     [0.25, 0.75] on both axes); one shorter than its panel is shown whole against the divider, the rest of its panel
 #     the INK field; one so tall that the panel would hold less than its central half is CONTAINED in its panel
 #     (whole, at the panel's height, centred, INK beside it), the designed alternative, recorded.
-#   - the THEN photograph opens whole where the frame can hold it whole (the old picture seen whole before the
-#     reveal) and travels with the wipe's own progress to its place in its panel (the same ease, monotonic).
+#   - each photograph stays where its panel puts it for the whole clip (only the shared push moves it): the old one
+#     opens in the frame as it will rest, its own rows below its panel showing until the divider covers them. A
+#     builder's trial that slid the old photograph from whole to its panel with the wipe stepped the frame's mean
+#     luma 13-15 a frame on Roman 9:16 (limit 8.0, end_card.DIM_STEP_MAX): withdrawn, recorded in the hand-back.
 # A registered pair keeps the shared window (one frame, two parts of it); 16:9 is unchanged (the reference layout).
 PANEL_LAYOUT = "panels"
 PANEL_CENTRE_HALF = 0.25            # the central half: the shown box covers [0.25, 0.75] of each axis
@@ -978,8 +980,7 @@ PANEL_CENTRE_HALF = 0.25            # the central half: the shown box covers [0.
 def panel_geometry(size: tuple[int, int], which: str, width: int, height: int) -> dict[str, Any]:
     """Where photograph `size` (w, h) sits in its 9:16 panel, in the push's source px (the frame x (1 + PUSH)): mode
     ("rows": full width, cut to its panel round its centre; "whole": full width, whole against the divider;
-    "contained": whole at its panel's height), x, y (at rest), w, h (drawn size), y_open (THEN: where it opens),
-    and the part of the photograph the frame shows at rest (shown: shares of its width and height, box, centre_half)."""
+    "contained": whole at its panel's height), x, y, w, h (drawn size), and the part of the photograph the frame shows at rest (shown: shares of its width and height, box, centre_half)."""
     import math
     sw, sh = size
     a = sw / sh
@@ -1004,72 +1005,46 @@ def panel_geometry(size: tuple[int, int], which: str, width: int, height: int) -
     else:
         mode = "whole"
         y = (bot - ph) if which == "then" else float(top)
-    y_open = y
-    if which == "then" and mode == "rows" and ph <= bh:
-        y_open = min(max(y, 0.0), bh - ph)                # the old photograph whole in the opening frame
     bx0, bx1 = (max(x, ox) - x) / pw, (min(x + pw, ox + width) - x) / pw
     by0, by1 = (max(y, rest[0]) - y) / ph, (min(y + ph, rest[1]) - y) / ph
     box = [round(max(0.0, v), 4) for v in (bx0, by0)] + [round(min(1.0, v), 4) for v in (bx1, by1)]
     half = (box[0] <= PANEL_CENTRE_HALF + 1e-4 and box[2] >= 1 - PANEL_CENTRE_HALF - 1e-4
             and box[1] <= PANEL_CENTRE_HALF + 1e-4 and box[3] >= 1 - PANEL_CENTRE_HALF - 1e-4)
     return {"mode": mode, "x": round(x, 2), "y": round(y, 2), "w": round(pw, 2), "h": round(ph, 2),
-            "y_open": round(y_open, 2), "slide_px": round(y_open - y, 2), "aspect": round(a, 4),
+            "aspect": round(a, 4),
             "shown": {"w": round(box[2] - box[0], 4), "h": round(box[3] - box[1], 4), "box": box,
                       "centre_half": bool(half)}}
 
 
-def _panel_layer(im: Image.Image, geo: dict[str, Any], big: tuple[int, int], fill: Any, extra: int = 0,
+def _panel_layer(im: Image.Image, geo: dict[str, Any], big: tuple[int, int], fill: Any,
                  resample: Any = Image.LANCZOS) -> Image.Image:
-    """`im` drawn at `geo`'s size and place on a `fill` canvas of `big` (plus `extra` rows above it, where a THEN
-    photograph that opens lower is drawn whole)."""
+    """`im` drawn at `geo`'s size and place on a `fill` canvas of `big`."""
     w, h = max(1, round(geo["w"])), max(1, round(geo["h"]))
-    canvas = Image.new(im.mode, (big[0], big[1] + extra), fill)
-    canvas.paste(im if im.size == (w, h) else im.resize((w, h), resample), (round(geo["x"]), round(geo["y"]) + extra))
+    canvas = Image.new(im.mode, big, fill)
+    canvas.paste(im if im.size == (w, h) else im.resize((w, h), resample), (round(geo["x"]), round(geo["y"])))
     return canvas
 
 
 def _panels(ims: list, masks: list, width: int, height: int, info: dict[str, Any], subjects: list | None
             ) -> tuple[Image.Image, Image.Image, dict[str, Any]]:
     """The 9:16 "panels" layout of an unregistered pair (above): each photograph at its own panel_geometry, graded as
-    the master grades a bare photo (QF-86); the THEN layer at rest is returned, and the taller canvas it opens on
-    (info["_then_open"], with its slide in info["panels"]["then"]["slide_px"]) for the wipe (then_layer)."""
+    the master grades a bare photo (QF-86), each on the INK field of its own layer."""
     from .photo_grade import grade
     big = (round(width * (1 + PUSH)), round(height * (1 + PUSH)))
     geos = [panel_geometry(im.size, w, width, height) for im, w in zip(ims, ("then", "now"))]
     ink = tuple(brand.INK)
-    extra = max(0, int(round(geos[0]["slide_px"])) + 1)
     graded = [grade(im.convert("RGB").resize((max(1, round(g["w"])), max(1, round(g["h"]))), Image.LANCZOS))
               for im, g in zip(ims, geos)]
-    tall = _panel_layer(graded[0], geos[0], big, ink, extra)
-    a = tall.crop((0, extra, big[0], extra + big[1]))
-    b = _panel_layer(graded[1], geos[1], big, ink, 0)
-    info.update({"layout": PANEL_LAYOUT, "window": "panels",
-                 "panels": {"then": geos[0], "now": geos[1], "extra_rows": extra}})
-    info["_then_open"] = tall
+    a, b = (_panel_layer(im, g, big, ink) for im, g in zip(graded, geos))
+    info.update({"layout": PANEL_LAYOUT, "window": "panels", "panels": {"then": geos[0], "now": geos[1]}})
     for w, g in zip(("then", "now"), geos):
         log.info("Then-and-now 9:16 panels: %s photograph %s, %.0f %% of its width and %.0f %% of its height shown "
                  "at rest%s.", w, g["mode"], 100 * g["shown"]["w"], 100 * g["shown"]["h"],
                  "" if g["shown"]["centre_half"] else " (NOT its central half)")
     if subjects is not None:
-        subjects[:] = [None if m is None else _panel_layer(m.convert("L"), g, big, 0, 0, Image.NEAREST)
+        subjects[:] = [None if m is None else _panel_layer(m.convert("L"), g, big, 0, Image.NEAREST)
                        for m, g in zip(masks, geos)]
     return a, b, info
-
-
-def then_layer(a_src: Image.Image, info: dict[str, Any] | None, t: float, size: tuple[int, int],
-               progress: float) -> Image.Image:
-    """The THEN photograph as the frame shows it at `t` with the wipe at `progress` (0 opening .. 1 at rest): the
-    push (pushed) of its layer, and in the panels layout the slide from where it opens to its rest place on the same
-    progress (the wipe's own ease, so it is monotonic with the divider)."""
-    panels = info.get("panels") if isinstance(info, dict) else None
-    tall = info.get("_then_open") if isinstance(info, dict) else None
-    slide = float(panels["then"]["slide_px"]) if panels else 0.0
-    if not panels or tall is None or slide <= 0 or progress >= 1:
-        return pushed(a_src, t, size)
-    extra = int(panels["extra_rows"])
-    box = (0.0, float(extra), float(a_src.width), float(extra + a_src.height))
-    return kenburns(tall, size, zoom=push_at(t), pan=(0.0, -slide * (1.0 - progress)), source_box=box,
-                    fill=tuple(brand.INK), resample=Image.LANCZOS)
 
 
 KEYLINE_W, KEYLINE_ALPHA = 2, 170   # the INK keyline either side of the bone divider (freeze panel 2026-11-04)
@@ -1830,24 +1805,11 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     # The one wipe (freeze cycle 6, T1): its timing from the THEN marker's text and the motion tokens.
     text0 = then_text(old_year)
     t0, t1 = wipe_window(width, height, text0)
-    info = dict(framing)
-    framing = {k: v for k, v in framing.items() if not k.startswith("_")}    # the record (no images)
-
-    def progress(t: float) -> float:
-        return wipe_progress(t, width, height, text0)
-
-    def then_at(t: float) -> Image.Image:
-        return then_layer(a_src, info, t, size, progress(t))
     # Each marker is planned where it rests (the split, at the end of the push) and solved again on the other frame
-    # it is read on: THEN alone at the start (the photograph as it opens), NOW as the divider lands (its entry). In
-    # the panels layout the THEN photograph travels under its marker during the wipe: those grounds are read too.
-    split0 = compose(then_at(CLIP_SECONDS), pushed(b_src, CLIP_SECONDS, size), split)
-    alone0 = {"then": compose(then_at(0.0), pushed(b_src, 0.0, size), edge),
-              "now": compose(then_at(t1), pushed(b_src, t1, size), split)}
-    travel = []
-    if info.get("panels") and float(info["panels"]["then"]["slide_px"]) > 0:
-        travel = [compose(then_at(t0 + k / 4 * (t1 - t0)), pushed(b_src, t0 + k / 4 * (t1 - t0), size), edge)
-                  for k in (1, 2, 3)]
+    # it is read on: THEN alone at the start, NOW as the divider lands (its entry).
+    split0 = compose(pushed(a_src, CLIP_SECONDS, size), pushed(b_src, CLIP_SECONDS, size), split)
+    alone0 = {"then": compose(pushed(a_src, 0.0, size), pushed(b_src, 0.0, size), edge),
+              "now": compose(pushed(a_src, t1, size), pushed(b_src, t1, size), split)}
 
     def ink_boxes(which: str, ln: tuple) -> list:
         kxy, fxy, anchor = ln
@@ -1891,10 +1853,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     lines = {w: marker_lines(w, years[w], width, height, words[w], sides[w]) for w in years}
     gate = {}
     for w in years:
-        frames_w = [(split0, panel_box(w, width, height)), (alone0[w], (0, 0, width, height))]
-        if w == "then":
-            frames_w += [(g, (0, 0, width, height)) for g in travel]
-        ok, st = paper_gate(ink_boxes(w, lines[w]), frames_w)
+        ok, st = paper_gate(ink_boxes(w, lines[w]), [(split0, panel_box(w, width, height)),
+                                                     (alone0[w], (0, 0, width, height))])
         gate[w] = {"ok": ok, "split": st[0], "alone": st[1]}
 
     # Cycle 0 round 8 (operator ruling 2; panel consensus 7): each marker (its kicker and its year) is ONE overlay
@@ -1909,13 +1869,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     from .brand_system import colour_of
     from .typography import plan_label_set
     rules = {w: marker_rule(lines[w][0], words[w], key, lines[w][2]) for w in years}
-    def _extreme(op, w: str) -> Image.Image:
-        out = op(np.asarray(split0), np.asarray(alone0[w]))
-        for g in (travel if w == "then" else []):
-            out = op(out, np.asarray(g))
-        return Image.fromarray(out)
-    lightest = {w: _extreme(np.maximum, w) for w in years}
-    darkest = {w: _extreme(np.minimum, w) for w in years}
+    lightest = {w: Image.fromarray(np.maximum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
+    darkest = {w: Image.fromarray(np.minimum(np.asarray(split0), np.asarray(alone0[w]))) for w in years}
     fills = [colour_of("kicker.colour"), colour_of("figure.colour")]
 
     def member(which: str) -> dict:
@@ -1992,9 +1947,8 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     final: dict[str, Image.Image] = {}
 
     def layer(which: str, t: float, g: float) -> Image.Image:
-        """One photo at this frame's push (and, THEN in the panels layout, its place on the wipe) with its own labels
-        at the group alpha `g`."""
-        im = then_at(t) if which == "then" else pushed(srcs[which], t, size)
+        """One photo at this frame's push with its own labels at the group alpha `g`."""
+        im = pushed(srcs[which], t, size)
         if g <= 0 or not plates[which]:
             return im
         if getattr(plates[which][0], "backing", None) is None:   # the kicker's rule (on a plate, the plate draws it)

@@ -37,7 +37,6 @@ def layout(then_now, pair, w, h):
 def main() -> int:
     tree, dev = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     then_now = tc.use_tree(tree)
-    from src.typography import TextPlate  # noqa: F401  (the tree's own)
     rows, records = [], []
     for pair in tc.pairs(tree, dev):
         info16 = then_now.frame_pair(pair["old"], pair["new"], 1920, 1080)[2]
@@ -61,13 +60,9 @@ def main() -> int:
                              f" h), box {s['box']}, centre half {s['centre_half']}", "PASS" if ok else "FAIL"))
             meta = layout(then_now, pair, w, h)
             split = then_now._split_at(w, h)
-            prog_end = 1.0
-            rest = then_now.compose(then_now.then_layer(a, info, then_now.CLIP_SECONDS, size, prog_end)
-                                    if hasattr(then_now, "then_layer") else then_now.pushed(a, then_now.CLIP_SECONDS, size),
+            rest = then_now.compose(then_now.pushed(a, then_now.CLIP_SECONDS, size),
                                     then_now.pushed(b, then_now.CLIP_SECONDS, size), split)
-            opening = then_now.compose(then_now.then_layer(a, info, 0.0, size, 0.0)
-                                       if hasattr(then_now, "then_layer") else then_now.pushed(a, 0.0, size),
-                                       then_now.pushed(b, 0.0, size), max(w, h))
+            opening = then_now.compose(then_now.pushed(a, 0.0, size), then_now.pushed(b, 0.0, size), max(w, h))
             side = meta.get("side") or {}
             cands = side.get("candidates") or list((side.get("edge_sum") or {"default": 0}).keys())
             words = meta["kicker"]
@@ -75,22 +70,30 @@ def main() -> int:
             rec["place"] = {}
             for which in ("then", "now"):
                 chosen = (side.get(which) or {}).get("side") or side.get("side") or cands[0]
-                box = meta["groups"][which]
-                k0 = then_now.marker_lines(which, years[which], w, h, words[which], chosen)[0]
 
                 def at(c):
-                    k = then_now.marker_lines(which, years[which], w, h, words[which], c)[0]
-                    dx = k[0] - k0[0]
-                    return (box[0] + dx, box[1], box[2] + dx, box[3])
+                    """The plate's place at documented position `c`, as render() reads it: the marker's two lines'
+                    ink boxes (kicker and year, TextPlate), their union PAPER_PAD px wider, kept to its panel."""
+                    k, f, anchor = then_now.marker_lines(which, years[which], w, h, words[which], c)
+                    key = "landscape" if w > h else "portrait"
+                    bx = [then_now.TextPlate(t, font, then_now.brand.BONE, xy, anchor, tr, 0, then_now.brand.INK, 0,
+                                             False, size).box
+                          for t, font, xy, tr in ((words[which], then_now.kicker_font(key), k, then_now.kicker_track(key)),
+                                                  (str(years[which]), then_now.year_font(key), f, 0))]
+                    clip = then_now.panel_box(which, w, h)
+                    pad = then_now.PAPER_PAD
+                    return (max(clip[0], min(b[0] for b in bx) - pad), max(clip[1], min(b[1] for b in bx) - pad),
+                            min(clip[2], max(b[2] for b in bx) + pad), min(clip[3], max(b[3] for b in bx) + pad))
 
                 def d(bx):
                     vals = [tc.detail(rest, bx)] + ([tc.detail(opening, bx)] if which == "then" else [])
                     return sum(vals) / len(vals)
                 per = {c: round(d(at(c)), 3) for c in cands}
-                got = round(d(box), 3)
+                got = per[chosen] if chosen in per else round(d(at(chosen)), 3)
                 calm = min(per.values())
                 ok = got <= calm / (1 - tc.SIDE_MARGIN) + 1e-6
-                rec["place"][which] = {"chosen": chosen, "detail": got, "candidates": per}
+                rec["place"][which] = {"chosen": chosen, "detail": got, "candidates": per,
+                                       "drawn_box": meta["groups"][which]}
                 rows.append((pair["id"], tag, f"place {which}", f"{chosen}: detail {got:.2f}, calmest documented "
                              f"{calm:.2f} ({min(per, key=per.get)})", "PASS" if ok else "FAIL"))
             records.append(rec)

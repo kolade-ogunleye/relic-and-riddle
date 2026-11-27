@@ -26,18 +26,18 @@ from .llm import degenerate_reason
 # Bumped when the question or the validation changes: an answer is only comparable with answers to the same question.
 VERSION = 1
 # Mechanical validation (subject_record)
-MIN_SIDE = 0.01       # a box narrower or shorter than 1 % of the picture is degenerate (Richat 08's Eye is 8 x 9 %)
+MIN_SIDE = 0.01       # a box narrower or shorter than 1 % of the picture is degenerate (the smallest labelled subject is 8 x 9 %)
 WHOLE_FRAME = 0.95    # an object box covering >= 95 % of the frame is the whole frame: only a scene may say so
 CONTEXT_CHARS = 400   # each metadata field is cut to this many characters (a Commons description can run to pages)
 
 SUBJECT_SYSTEM = (
     " Then say WHERE the subject is. The documentary's topic, the photograph's title, caption and credit, and the "
     "claim its slide makes are given as context; they can be wrong, so judge the picture. subject_name: the subject "
-    "in a few words, as the picture shows it (\"the two seated colossi\", \"the Richat rings\", \"the coffered dome\"). "
+    "in a few words, as the picture shows it (\"the two seated statues\", \"the ring structure\", \"the coffered dome\"). "
     "scene: true when the whole view is the subject and no single bounded thing is (a landscape, a room interior, a "
     "pattern filling the frame, a whole map, chart or page); then subject_box is [0, 0, 1000, 1000]. subject_box: "
     "[ymin, xmin, ymax, xmax] as integers from 0 to 1000 around ALL of the subject (the whole statue from head to "
-    "base, both colossi, the whole ring system, the whole folio), as tight as it can be without cutting any of it. "
+    "base, both statues of a pair, the whole ring system, the whole folio), as tight as it can be without cutting any of it. "
     "A part that catches the eye is not the subject when the subject is the whole thing (an oculus in a dome, a "
     "marker on a map, a face on a statue). not_subject: things in the picture that are NOT the subject and must not "
     "be taken for it: part of the aircraft or spacecraft the photo was taken from, tourists or a crowd, a museum label "

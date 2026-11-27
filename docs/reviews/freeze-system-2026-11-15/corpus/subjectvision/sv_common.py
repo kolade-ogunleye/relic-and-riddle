@@ -10,7 +10,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SUBJECT = HERE.parent / "subject"
-RR_DEV = Path(os.environ.get("RR_DEV", r"C:\Users\omokolade\GitHub\relic-and-riddle"))
+RR_DEV = Path(os.environ.get("RR_DEV") or HERE.parents[4])   # the dev checkout: set RR_DEV when run from a worktree
 SCRATCH = Path(os.environ.get("SV_SCRATCH", r"C:\tmp\qf-scratch-c6\subjectvision"))
 LABELS = json.load(open(SUBJECT / "subject_labels.json", encoding="utf-8"))
 CUT = 0.85            # the SUBJECT stream's failure: the predicted box holds < 85 % of the labelled subject

@@ -332,10 +332,19 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
             wl, wh = max(0, lo - 1), min(len(phrases), hi + 2)
             before = changes(phrases[wl:wh])
 
+            def is_prep(w: str) -> bool:
+                b = lp.bare(w)
+                return b in never_end and b not in not_prep and b not in conj and b not in weak
+
             def ok_cut(c: int) -> bool:
                 k = pos[id(flat[c - 1])]
-                if vc.never_end_end(raw_all[k]) or lp.bare(raw_all[k]) in weak:
+                if lp.bare(raw_all[k]) in weak:
                     return False
+                if vc.never_end_end(raw_all[k]):
+                    # round 3 ruling: a preposition end under rule 3's conditions (its dwell is checked below)
+                    return (is_prep(raw_all[k]) and (k not in protected or k in lead_only)
+                            and vc.noun_phrase_cut(words, k) is None
+                            and not vc._is_atomic_boundary(raw_all[k], raw_all[k + 1]))
                 return c in olds or (k not in protected and not vc._is_atomic_boundary(raw_all[k], raw_all[k + 1])
                                      and vc.noun_phrase_cut(words, k) is None)
             cuts_ok = [c for c in range(1, n) if ok_cut(c)]
@@ -359,6 +368,14 @@ def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[di
                     ctx = phrases[wl:lo] + parts + phrases[hi + 1:wh]
                     if short(wl, ctx, lo - wl, len(parts)) or changes(ctx) > before:
                         continue
+                    preps = [j for j, p in enumerate(parts[:-1]) if vc.never_end_end(str(p[-1]["word"]))]
+                    if any(unit_line(parts[j]) for j in preps):
+                        continue
+                    if preps:
+                        prev = phrases[:wl][-1:]
+                        tm = vc.burst_timings(prev + ctx, dwell=True)[len(prev):]
+                        if any(tm[lo - wl + j][1] - (float(parts[j][-1]["start"]) - lead) < 0.3 - 1e-6 for j in preps):
+                            continue
                     found.append({"kind": "recut", "form": " | ".join(" ".join(str(w["word"]) for w in p)
                                                                       for p in parts)})
         if i > 0 and len(phrases[i]) > 2 and not (hook and i - 1 == 0) and linked(i - 1, i):

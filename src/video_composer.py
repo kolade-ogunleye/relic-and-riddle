@@ -4838,10 +4838,22 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
         win_lo, win_hi = max(0, lo - 1), min(len(out), hi + 2)
         before = changes(out[win_lo:win_hi])
 
+        prep_cuts: set[int] = set()
+
         def cut_ok(c: int) -> bool:
             k = pos[id(flat[c - 1])]
-            if never_end_end(raw_all[k]) or _bare(raw_all[k]) in _line_policy.brand_system.LINE_END_WEAK:
-                return False   # rule 1: no burst of a re-cut ends on a function word or an auxiliary
+            if _bare(raw_all[k]) in _line_policy.brand_system.LINE_END_WEAK:
+                return False   # rule 1: no burst of a re-cut ends on an auxiliary
+            if never_end_end(raw_all[k]):
+                # round 3 ruling: a re-cut may end a burst on a PREPOSITION under rule 3's conditions (its own lead-in
+                # bond only, no phrase unit, name, key term, bond or figure group parted; on screen 0.3 s: below);
+                # never on an article, conjunction or other function word
+                if not (_is_preposition(raw_all[k]) and (k not in protected or k in lead_only)
+                        and noun_phrase_cut(words, k) is None
+                        and not _is_atomic_boundary(raw_all[k], raw_all[k + 1])):
+                    return False
+                prep_cuts.add(c)
+                return True
             if c in old_cuts:
                 return True
             return (k not in protected and not _is_atomic_boundary(raw_all[k], raw_all[k + 1])
@@ -4871,11 +4883,23 @@ def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[st
                 continue
             if not timed_ok(win_lo, win_hi, lo, hi, parts):
                 continue
+            ends_prep = [j for j, c in enumerate(cuts) if c in prep_cuts]
+            # rule 3's conditions: a burst ending on its preposition breaks no line inside a phrase unit
+            if any(unit_line(parts[j]) for j in ends_prep):
+                continue
+            if ends_prep:   # each preposition burst end on screen STRAND_MOVE_MIN_S as its burst's last word
+                ctx = out[win_lo:lo] + parts + out[hi + 1:win_hi]
+                prev = out[:win_lo][-1:]
+                tm = burst_timings(prev + ctx, dwell=True)[len(prev):]
+                first = lo - win_lo
+                if any(tm[first + j][1] - (float(parts[j][-1].get("start", 0.0)) - lead) < STRAND_MOVE_MIN_S - 1e-6
+                       for j in ends_prep):
+                    continue
             after = changes(out[win_lo:lo] + parts + out[hi + 1:win_hi])
             if after > before:
                 continue
             lens = [len(" ".join(raw_of(q))) for q in parts]
-            found.append({"lo": lo, "hi": hi, "parts": parts, "kind": "recut", "function_end": False,
+            found.append({"lo": lo, "hi": hi, "parts": parts, "kind": "recut", "function_end": bool(ends_prep),
                           "height_changes": [before, after], "form": " | ".join(" ".join(raw_of(q)) for q in parts),
                           "key": (0, hi - lo, len(set(cuts) ^ old_cuts), after, max(lens) - min(lens))})
     # rule 3: the stranded preposition moves to the previous burst

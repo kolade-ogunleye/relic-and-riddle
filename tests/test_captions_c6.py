@@ -114,9 +114,19 @@ def test_a_moved_word_stays_on_screen_and_the_remedies_keep_their_order(tmp_path
             if e["strand_remedy"] == "recut":
                 for part in e["into"].split(" | ")[:-1]:
                     last = part.split()[-1]
-                    assert not vc.never_end_end(last) and vc._bare(last) not in vc._line_policy.brand_system.LINE_END_WEAK
+                    # round 3 ruling: a re-cut may end on a preposition (rule 3's conditions), never on an article,
+                    # conjunction or auxiliary
+                    assert vc._bare(last) not in vc._line_policy.brand_system.LINE_END_WEAK
+                    assert not vc.never_end_end(last) or vc._is_preposition(last), e
         assert not any(" ".join(b["raw"]) == "German soldiers of" for b in cap["bursts"])
     assert vc.strand_remedies is not None
+
+
+def test_a_preposition_is_the_only_function_word_a_recut_may_end_on():
+    """Round 3 ruling: the re-cut and the move share rule 3's preposition test."""
+    assert vc._is_preposition("across") and vc._is_preposition("on") and vc._is_preposition("into")
+    for w in ("the", "an", "and", "when", "was", "that", "its"):
+        assert not vc._is_preposition(w), w
 
 
 def test_a_multi_word_hedge_line_above_its_figure_with_its_unit_is_legal():

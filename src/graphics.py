@@ -10799,7 +10799,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             # the floor's figure at its least size and (review 2, N5) the widest axis figure
             half = max(half - max(0.0, x0 - min(need, need_t) - move), ref_w / 2 + 16)
             # and the narrower shaft moves right again into the room its walls left, for the axis figures
-            cx += max(0.0, min(x0 - (cx - half - 26 - tick_w), x1 - (cx + half)))
+            # (and for the floor's figure at its step, FIG-09)
+            want_w = max(tick_w, tracked_width(floor_txt, figure_font(subj_px), 2))
+            cx += max(0.0, min(x0 + 0.5 - (cx - half - 26 - want_w), x1 - (cx + half)))
             shaft = (cx - half, cx + half)
         ref_cx = cx
         top_y = floor_y - ref_feet * px_ft

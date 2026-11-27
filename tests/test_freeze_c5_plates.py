@@ -269,11 +269,12 @@ def test_a_masthead_short_of_the_target_takes_a_longer_reach_never_a_higher_peak
         assert rec["margin_short"] is True and "margin" in rec["margin_note"]
 
 
-def test_a_real_ground_at_the_gate_floor_takes_the_longer_reach_to_the_margin():
-    """Review of the c5 fix (D3): on a real ground the ruled order leaves at the gate floor (the Richat carousel slide
-    4 of run 1793474843, its masthead region kept at half size: tests/fixtures/plates_c5_masthead_ground.jpg), the
-    margin step takes a longer reach of the same ruled scrim (never a higher peak) and the name clears MARGIN.
-    Disabling the margin loop fails this."""
+def test_a_real_ground_at_the_gate_floor_records_its_ceiling_and_never_lengthens_the_scrim():
+    """Lander ruling N1 (2026-11-26, review 2): no band darkens more of the photograph than base, so the masthead's
+    longer-reach margin steps are gone: on a real ground the ruled order leaves at the gate floor (the Richat carousel
+    slide 4 of run 1793474843, its masthead region kept at half size: tests/fixtures/plates_c5_masthead_ground.jpg) the
+    masthead is drawn at the ruled order's own reach, its scrim no longer, and the shortfall is recorded. Restoring a
+    longer reach fails this."""
     with Image.open(ROOT / "tests" / "fixtures" / "plates_c5_masthead_ground.jpg") as im:
         half = im.convert("RGB")
     ground = Image.new("RGB", (1440, 1800), (0, 0, 0))
@@ -282,9 +283,8 @@ def test_a_real_ground_at_the_gate_floor_takes_the_longer_reach_to_the_margin():
     _, _, ruled = masthead.plan_at(ground, x0, baseline, size, reach=reach, max_width=room)
     _, _, rec = masthead.plan(ground, x0, baseline, size, reach=reach, max_width=room)
     assert ruled["shown"] and ruled["contrast"] < masthead.MARGIN, ruled
-    assert rec["shown"] and rec.get("margin_step", "").startswith("reach x") and rec["reach"] > reach, rec
-    assert rec["contrast"] >= masthead.MARGIN and not rec.get("margin_short"), rec
-    assert rec["scrim_peak"] <= brand_system.tok("scrim.masthead_peak") + 1e-9 and not rec["halo_exception"]
+    assert rec["reach"] == reach and "margin_step" not in rec, rec
+    assert rec["shown"] and ruled["contrast"] <= rec["contrast"] < masthead.MARGIN and rec["margin_short"], rec
 
 
 def test_the_ruled_order_is_untouched_where_it_reaches_the_target():

@@ -131,9 +131,12 @@ for topic, n, photo in pc.corpus_photos(dev, a.per_topic):
         layer = dc._plate_layer(tall.size, y0, y1, st, dc.HOOK_PLATE_FEATHER, right)
     comp = Image.alpha_composite(tall.convert("RGBA"), layer).convert("RGB")
     left = (0, 0, right, 1920)                       # the plate's top and foot, read left of its ease
+    crisp_form = hasattr(dc, "_plate_feathers") and tuple(feathers) == (0, 0)
+    # ruling R1: the plate's top and foot are its crisp form on every ground (no ramp to read back: a read-back there
+    # would only find the photograph's own structure beside a one-pixel edge)
     add(topic, n, photo, "hook plate top/foot",
-        pc.band_edges(tall.crop(left), comp.crop(left), brand.INK, True, 1080),
-        sum(1 for v in feathers if not v) if hasattr(dc, "_plate_feathers") else 0)
+        [] if crisp_form else pc.band_edges(tall.crop(left), comp.crop(left), brand.INK, True, 1080),
+        2 if crisp_form else sum(1 for v in feathers if not v) if hasattr(dc, "_plate_feathers") else 0)
     band = (0, y0, 1080, y1)                         # its ease right of the block, read across the plate's rows
     add(topic, n, photo, "hook plate side",
         capped(cap(dc.HOOK_PLATE_SIDE, 1080))(pc.band_edges(tall.crop(band), comp.crop(band), brand.INK, True, 1080,

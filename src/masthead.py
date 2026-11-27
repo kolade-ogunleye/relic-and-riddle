@@ -347,7 +347,11 @@ def palette_problems(config) -> list[str]:
 
 
 MARGIN = 6.0                      # the worst glyph's ratio a drawn masthead should clear (the gate is 5.5)
-MARGIN_REACH = (1.25, 1.5, 2.0)   # the longer top-scrim reaches tried, in order, where the ruled order ends short
+# the longer top-scrim reaches tried where the ruled order ends short: none. Lander ruling N1 (2026-11-26, review 2 of
+# the PLATES c5 fix: no band darkens more of the photograph than base on any surface): the x1.25 / x1.5 / x2 reaches
+# darkened 18 dev carousel slides by > 20 luma on 3.9-32.5 % of the frame and lowered a heading the x2 reach reached
+# (Tunguska Facebook cover 3.70 -> 3.59); a masthead short of MARGIN is recorded (margin_short), never lengthened
+MARGIN_REACH: tuple[float, ...] = ()
 MARGIN_REACH_FREE = 1.5           # past this a reach is taken only to draw a withheld name or to leave the halo exception
 # (measured on the dev decks: x1.25 keeps 0.72-0.94 of the top half's luma against 0.79-0.95 at the surface's own
 # reach; x2 kept 0.57 against 0.77, a fifth of the photograph's top half for a ratio already over the gate)

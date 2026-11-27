@@ -308,9 +308,14 @@ def test_a_move_off_a_frame_is_the_minimal_one(case):
     along the frame's axis just far enough, or made closer about the asked centre), never the most salient one: the
     salient choice slid Richat 14's Story 230 px sideways off a 15 px scan edge and cut the Eye's ring, halved a
     Memnon colossus and cut the Voynich plant."""
-    an = pf.analyse(Image.open(ROOT / "tests/fixtures/photo_fitness_c5" / case["file"]).convert("RGB"))
+    thumb = Image.open(ROOT / "tests/fixtures/photo_fitness_c5" / case["file"]).convert("RGB")
+    w0, h0 = case["size"]                                  # the photograph's own size (kept at THUMB px here)
+    k = pf.ANALYSIS / max(w0, h0)
+    rgb = np.asarray(thumb.resize((max(1, round(w0 * k)), max(1, round(h0 * k))), Image.Resampling.BOX))
+    an = pf.analyse_maps(rgb, (w0, h0), thumb=thumb)
     assert an.matte_share > 0
     x0, y0, x1, y1 = an.content_box
+    moved = 0
     for window in (pf.Window((1080, 1920), name="story"),
                    pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground"),
                    pf.Window((1080, 1920), checks=("matte",), name="9:16 ground")):
@@ -319,6 +324,7 @@ def test_a_move_off_a_frame_is_the_minimal_one(case):
         if not rec["moved"]:
             assert "matte" in rec["problems"], (case["name"], window.name)
             continue
+        moved += 1
         assert rec["basis"] == "minimal frame move" and rec["matte"] <= pf.MATTE_MAX
         b = rec["box"]
         w, h = asked[2] - asked[0], asked[3] - asked[1]
@@ -327,6 +333,7 @@ def test_a_move_off_a_frame_is_the_minimal_one(case):
         dx = abs((b[0] + b[2]) / 2 - (asked[0] + asked[2]) / 2)
         dy = abs((b[1] + b[3]) / 2 - (asked[1] + asked[3]) / 2)
         assert dx <= need_x + 0.01 * w and dy <= need_y + 0.01 * h, (case["name"], window.name, b, asked)
+    assert moved                                            # each photograph's frame is cleared on some window
 
 
 def test_every_move_keeps_most_of_what_was_asked_for():

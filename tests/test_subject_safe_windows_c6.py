@@ -1,17 +1,23 @@
-"""Subject-safe window rules (design-freeze cycle 6, SUBJECT stream, round 2). With a subject box:
-(a) no crop shows less of the subject than the crop the photograph gets without one;
-(b) a subject larger than the window is shown as whole as the window can hold, and that crop is fit (its size alone
-    is no fault: no photograph is swapped for it);
-(c) the Reel cover takes the full-width photograph when the hold keeps the subject whole or as whole as
-    SUBJECT_CUT_MAX, and stands contained (the subject whole) only when every full-width crop cuts it more.
-Without a subject box every placement is what it was (place() == _place())."""
+"""Subject-safe window rules (design-freeze cycle 6, SUBJECT stream, rounds 2-3). With a subject box:
+(a) no crop shows less of the subject, in the view or the hold, than BOTH bases: the crop without the box and the
+    cycle-5 crop with the same box (_place(..., legacy=True));
+(b) the subject's need spans the zoom ladder the window may use: a subject the window can show whole is shown whole;
+    a subject larger than every crop is shown as whole as the best crop shows it, and that crop is fit;
+(c) the Reel cover leaves its layout for a full-width one only when the hold keeps the subject whole (SUBJECT_WHOLE)
+    and the profile tile COVER_GRID_FOCUS of it; it first tries the layout it takes without the box;
+(d) a crop drawn as without the box keeps that record's fitness ("subject_partial").
+Without a subject box every placement is base a9de76b3's (fixture written by the base tree)."""
 import dataclasses
+import json
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
 
 from src import cover_design as cd
 from src import photo_fitness as pf
+
+FIXTURE = Path(__file__).parent / "fixtures" / "subject_c6_nobox_base.json"
 
 
 def _picture(w, h, seed=3):
@@ -23,6 +29,11 @@ def _picture(w, h, seed=3):
 def _with_focus(img, box):
     a = pf.analyse(img)
     return dataclasses.replace(a, focus=box, _sat={})
+
+
+def _shown(a, r, window):
+    view = pf._sub(tuple(r["box"]), window.size, window.view_box())
+    return pf._overlap(a.focus, view)
 
 
 def test_wide_subject_in_a_narrow_window_is_fit_and_shown_as_whole_as_it_can_be():
@@ -37,7 +48,7 @@ def test_wide_subject_in_a_narrow_window_is_fit_and_shown_as_whole_as_it_can_be(
     assert rec["focus"] >= best - 0.01                      # as whole as the window can hold
 
 
-def test_no_crop_shows_less_of_the_subject_than_without_it():
+def test_no_crop_shows_less_of_the_subject_than_either_base():
     img = _picture(1800, 900, seed=5)
     d = ImageDraw.Draw(img)
     d.rectangle((60, 120, 1740, 860), fill=(30, 30, 30))   # a subject filling most of the picture
@@ -45,11 +56,22 @@ def test_no_crop_shows_less_of_the_subject_than_without_it():
     window = pf.Window((1080, 1350), name="ig carousel immersive")
     a = _with_focus(img, (60.0, 120.0, 1740.0, 860.0))
     blind = dataclasses.replace(a, focus=None, _sat={})
-    without = pf.place(None, window, analysis=blind)
     got = pf.place(None, window, analysis=a)
-    view = window.view_box()
-    shown = lambda r: pf._overlap(a.focus, pf._sub(tuple(r["box"]), window.size, view))
-    assert shown(got) >= shown(without) - 1e-6              # (a)
+    assert _shown(a, got, window) >= _shown(a, pf.place(None, window, analysis=blind), window) - 1e-3
+    assert _shown(a, got, window) >= _shown(a, pf._place(None, window, analysis=a, legacy=True), window) - 1e-3
+
+
+def test_a_subject_the_window_can_show_whole_is_shown_whole_on_the_zoom_ladder():
+    # the window's view is its top half (a panel covers the rest): at the plain fit the subject lies under the panel;
+    # a closer crop (the zoom ladder) puts it whole in the view - the cycle-5 rules find it, so must these
+    img = _picture(2400, 1200, seed=13)
+    d = ImageDraw.Draw(img)
+    d.rectangle((1100, 660, 1300, 816), fill=(220, 40, 40))
+    a = _with_focus(img, (1100.0, 660.0, 1300.0, 816.0))
+    window = pf.Window((1080, 1350), view=(0, 0, 1080, 675), name="debate")
+    got = pf.place(None, window, analysis=a)
+    assert got["focus"] >= pf.FOCUS_KEEP and got["fit"], got
+    assert got["focus_need"] > 0.9                          # the need is not lowered to what the plain fit shows
 
 
 def test_cover_takes_the_full_width_photograph_when_the_subject_fits_its_hold():
@@ -60,7 +82,7 @@ def test_cover_takes_the_full_width_photograph_when_the_subject_fits_its_hold():
     fit = [(mode, pf.place(None, w, analysis=a)) for mode, w in cd.cover_windows()]
     mode, rec = next(((m, r) for m, r in fit if r["fit"]), (None, None))
     assert mode in ("full_bleed", "photo_over_ink"), [r["problems"] for _, r in fit]
-    assert rec["held"] >= pf.FOCUS_KEEP
+    assert rec["held"] >= pf.SUBJECT_WHOLE and rec["focus"] >= cd.COVER_GRID_FOCUS
 
 
 def test_cover_stands_contained_when_every_full_width_crop_cuts_the_subject():
@@ -71,41 +93,85 @@ def test_cover_stands_contained_when_every_full_width_crop_cuts_the_subject():
     assert not any(pf.place(None, w, analysis=a)["fit"] for _m, w in cd.cover_windows())
 
 
-def test_without_a_subject_nothing_changes():
-    img = _picture(1600, 1000, seed=11)
-    a = pf.analyse(img)
-    for _m, w in cd.cover_windows():
-        assert pf.place(None, w, analysis=a) == pf._place(None, w, analysis=a)
-    w = pf.Window((1080, 1920), name="story")
-    assert pf.place(None, w, (0.3, 0.5), analysis=a) == pf._place(None, w, (0.3, 0.5), analysis=a)
-
-
-def test_cover_takes_the_full_width_photograph_when_the_subject_is_as_whole_as_the_hold_allows():
+def test_a_cover_never_draws_a_subject_cut_in_its_hold():
+    # 4 % of the subject below every full-width hold: a viewer reads a cut (round 3, B3 / B4): not full-width
     img = _picture(1200, 1800, seed=7)
     d = ImageDraw.Draw(img)
-    d.rectangle((420, 300, 780, 1100), fill=(200, 60, 40))  # 4 % of it below any full-width hold: not a cut
+    d.rectangle((420, 300, 780, 1100), fill=(200, 60, 40))
     a = _with_focus(img, (420.0, 300.0, 780.0, 1100.0))
-    fit = [(m, pf.place(None, w, analysis=a)) for m, w in cd.cover_windows()]
-    mode, rec = next(((m, r) for m, r in fit if r["fit"]), (None, None))
-    assert mode in ("full_bleed", "photo_over_ink"), [r["problems"] for _, r in fit]
-    assert pf.SUBJECT_CUT_MAX <= rec["held"] < pf.FOCUS_KEEP
+    for _m, w in cd.cover_windows():
+        rec = pf.place(None, w, analysis=a)
+        assert not rec["fit"] or rec["held"] >= pf.SUBJECT_WHOLE, rec
 
 
-def test_the_cover_hold_asks_for_subject_cut_max():
-    assert all(w.hold_min == pf.SUBJECT_CUT_MAX for _m, w in cd.cover_windows())
-
-
-def test_the_cover_keeps_its_layout_without_the_subject_when_that_is_still_fit():
+def test_the_cover_asks_the_subject_whole_and_the_tile_its_share_never_lowered():
     img = _picture(1200, 1800, seed=7)
     d = ImageDraw.Draw(img)
     d.rectangle((420, 300, 780, 950), fill=(200, 60, 40))
     a = _with_focus(img, (420.0, 300.0, 780.0, 950.0))
-    blind = dataclasses.replace(a, focus=None, _sat={})
-    first = next((m for m, w in cd.cover_windows() if pf.place(None, w, analysis=blind)["fit"]), None)
-    order = [m for m, _w in cd.cover_order(None, a)]
-    if first is not None:
-        assert order[0] == first
-    assert sorted(order) == sorted(m for m, _w in cd.cover_windows())
+    for _m, w in cd.cover_windows():
+        assert w.hold_min == pf.SUBJECT_WHOLE
+        needs = pf._subject_needs(a, w, pf.fit_box(a.size, w.size))
+        assert needs["focus_need"] == cd.COVER_GRID_FOCUS and needs["held_need"] == pf.SUBJECT_WHOLE
+
+
+def test_the_cover_tries_first_the_layout_it_takes_without_the_box(monkeypatch):
+    img = _picture(1200, 1800, seed=7)
+    a = _with_focus(img, (420.0, 300.0, 780.0, 950.0))
+    real = pf.place
+
+    def place(photo, window, *args, analysis=None, **kw):
+        if analysis is not None and analysis.focus is None:   # without the box only photo_over_ink is fit
+            return {"fit": window.name.endswith("photo_over_ink")}
+        return real(photo, window, *args, analysis=analysis, **kw)
+    monkeypatch.setattr(pf, "place", place)
+    assert [m for m, _w in cd.cover_order(None, a)] == ["photo_over_ink", "full_bleed"]
+
+
+def test_a_crop_drawn_as_without_the_box_keeps_its_fitness():
+    # a fixed ground (the hook card's) cannot move to the subject: the box records it, it does not turn it unfit
+    img = _picture(2400, 1200, seed=17)
+    d = ImageDraw.Draw(img)
+    d.rectangle((60, 300, 500, 900), fill=(200, 200, 40))
+    a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))
+    window = pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground")
+    blind = pf.place(None, window, analysis=dataclasses.replace(a, focus=None, _sat={}), fixed=True)
+    got = pf.place(None, window, analysis=a, fixed=True)
+    assert got["box"] == blind["box"] and got["focus"] < 0.5
+    if blind["fit"]:
+        assert got["fit"] and got.get("subject_partial")
+
+
+def _nobox_cases():
+    out = []
+    for k, (w, h, seed) in enumerate(((1600, 1000, 11), (1000, 1600, 12), (2400, 800, 14), (1200, 1200, 15))):
+        img = _picture(w, h, seed)
+        d = ImageDraw.Draw(img)
+        d.rectangle((w // 5, h // 4, w // 2, h // 2), fill=(230, 120, 40))
+        d.rectangle((0, 0, w, 10), fill=(0, 0, 0))
+        out.append((f"p{k}", img))
+    windows = [(m, w) for m, w in cd.cover_windows()] + [
+        ("story", pf.Window((1080, 1920), name="story")),
+        ("slide", pf.Window((1440, 1800), view=(0, 0, 1440, 1000), protected=((100, 60, 700, 160),), name="slide")),
+        ("ground", pf.Window((1920, 1080), checks=("matte",), name="wide ground"))]
+    return out, windows
+
+
+def _rounded(rec):
+    keep = ("box", "fit", "problems", "moved", "zoom", "upscale", "matte", "flat", "subject", "shown", "basis")
+    return {k: (round(v, 2) if isinstance(v, float) else [round(x, 1) for x in v] if k == "box" else v)
+            for k, v in rec.items() if k in keep}
+
+
+def test_without_a_subject_every_placement_is_the_bases():
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    photos, windows = _nobox_cases()
+    for name, img in photos:
+        a = pf.analyse(img)
+        for wn, w in windows:
+            for cen in ((0.5, 0.5), (0.2, 0.5)):
+                got = _rounded(pf.place(None, w, cen, analysis=a))
+                assert got == fixture[f"{name}|{wn}|{cen[0]}"], (name, wn, cen)
 
 
 def test_a_window_moved_for_a_subject_costs_no_text_element_its_contrast():

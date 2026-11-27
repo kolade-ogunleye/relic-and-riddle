@@ -154,79 +154,136 @@ def _parse(text: str, words: list[dict], gold_col: str) -> dict:
     return {"bursts": bursts, "words_matched": wi, "n_words": len(words)}
 
 
+C1_HEDGES = ("almost", "about", "nearly", "roughly", "around", "approximately", "over", "under", "some", "circa",
+             "estimated")
+C1_HEDGE_PAIRS = (("more", "than"), ("less", "than"), ("fewer", "than"), ("up", "to"), ("at", "least"))
+
+
+def c1_faults(lp, never_end, raw: list[str], k: int) -> list[str]:
+    """The C1 faults of a two-line burst broken before word k (this collector's own reading, the judge's too): a line
+    of one function word (the one closed-class vocabulary: NEVER_END, LINE_END_FUNCTION); a hedge on line 1 parted
+    from its figure on line 2 (MORE THAN / 590); a figure on line 1 parted from its unit on line 2 (590 / FEET)."""
+    l1, l2 = raw[:k], raw[k:]
+    out = []
+
+    def fn(w: str) -> bool:
+        return (lp.is_function(w) or lp.bare(w) in never_end) and not lp.closes(w)
+    if any(len(x) == 1 and fn(x[0]) for x in (l1, l2)):
+        out.append("lone_function_word_line")
+    tail = [lp.bare(w) for w in l1[-2:]]
+    if l2 and (lp.is_number(l2[0]) or lp.bare(l2[0]) in lp.SPELLED_NUMBERS) and not lp.closes(l1[-1]) and (
+            (tail and tail[-1] in C1_HEDGES) or tuple(tail[-2:]) in C1_HEDGE_PAIRS):
+        out.append("hedge_parted_from_figure")
+    if l1 and l2 and lp.is_number(l1[-1]) and not lp.closes(l1[-1]) and lp.bare(l2[0]) in lp.UNITS | lp.AREA_WORDS:
+        out.append("figure_parted_from_unit")
+    return out
+
+
 def _forced_proof(vc, words: list[dict], emph, cap: dict, rate: dict) -> list[dict]:
-    """For each burst drawn on a recorded forced break: is a remedy available? Remedy 1: one word at either end moved
-    to the neighbouring burst; remedy 2: the pair (with either neighbour) re-cut at any other place. A form is legal
-    when every burst of it sets at the clip's size on legal lines (_clip_form), is two words or more, not function
-    words only, is up CAPTION_SPLIT_MIN_S or more on the narration's own times (the next burst's first word), holds
-    no clause punctuation inside, and its new cut parts no bond, unit, name, figure group or key term and does not end
-    on a never-end word."""
+    """For each 9:16 burst drawn with a C1 fault (c1_faults) or recorded on a forced break (clip_size.no_legal_form):
+    every remedy the lander's ruling allows, enumerated here (not the composer's own search). With each back-to-back
+    neighbour (no pause break between them; never the hook burst shown whole on frame 0) the pair's words are re-cut
+    at every other place or joined into one burst. Remedy 1: the cut moves by one word; remedy 2: any other. Legal:
+    every burst is two words or more, not function words only, holds no clause punctuation inside, sets at the clip's
+    size on legal lines (_clip_form; one line not over one burst's caps), is up CAPTION_SPLIT_MIN_S or more on the
+    delivered timing (burst_timings, dwell, with its neighbours); the new cut parts no bond, name, unit, figure group,
+    key term, atomic pair or phrase unit (noun_phrase_cut; remedy 1 may part the stranded word's own lead-in bond,
+    lead_in_bonds, as the lander's example does); the window's plate-height changes do not grow. A remedy
+    whose new cut ends a burst on a function word (the lander's own remedy-1 example) counts as a remedy."""
     clip = (rate.get("clip_size") or {})
     px = clip.get("px")
-    forced = {_key(e.get("text", "").replace(" / ", " ")) for e in clip.get("no_legal_form") or []}
-    if not forced or px is None:
+    if px is None:
         return []
     bursts = cap["bursts"]
+    if any(b["raw"] is None for b in bursts):
+        return []
     raw_all = [str(w.get("word", "")) for w in words]
     protected = (vc.name_bonds(raw_all) | vc.caption_bonds(words) | vc.unit_links(words)
                  | vc.figure_group_tail_links(words) | vc.emphasis_bonds(words, emph))
-    lead = vc.CAPTION_LEAD_FRAMES / vc.VIDEO_FPS
-    starts = [float(w["start"]) for w in words]
-    spans, at = [], 0
+    never_end = {str(w).lower() for w in vc.NEVER_END}
+    # the lander's remedy 1 moves a stranded lead-in word (OF) to the previous burst: its lead-in bond may part
+    hard = vc.caption_bonds(words, names=False) | vc.name_bonds(raw_all)
+    lead_only = vc.lead_in_bonds(raw_all, hard) - (hard | vc.unit_links(words) | vc.figure_group_tail_links(words))
+    phrases, at = [], 0
     for b in bursts:
-        n = len(b["raw"] or [])
-        spans.append((at, at + n))
+        n = len(b["raw"])
+        phrases.append(words[at:at + n])
         at += n
+    pos = {id(w): k for k, w in enumerate(words)}
+    timing = vc.burst_timings(phrases, dwell=True)
+    lead = vc.CAPTION_LEAD_FRAMES / vc.VIDEO_FPS
+    hook = float(words[0]["start"]) - lead <= vc.CAPTION_FIRST_FRAME_WHOLE_S + 1e-9
+    forced = {_key(e.get("text", "").replace(" / ", " ")) for e in clip.get("no_legal_form") or []}
 
-    def legal(x: int, y: int, hide: float | None) -> bool:
-        raw = tuple(raw_all[x:y])
-        if y - x < 2 or vc._function_only([{"word": w} for w in raw]):
-            return False
-        if any(vc.CLAUSE_PUNCT.search(w) or vc.TERMINAL_PUNCT.search(w) for w in raw[1:-1]):
-            return False
-        end = (starts[y] - lead) if y < len(starts) else (hide or 0.0)
-        if hide is not None and y >= len(starts):
-            end = hide
-        if end - (starts[x] - lead) < vc.CAPTION_SPLIT_MIN_S - 1e-6:
-            return False
+    def lines_of(q) -> int | None:
+        raw = tuple(str(w["word"]) for w in q)
         form = vc._clip_form(raw, px)
         if form is None:
-            return False
-        if form[0] == "one" and len(raw) > 1 and vc.over_caps(list(raw)):
-            return False
-        return not (form[0] == "two" and vc._break_faults(vc._phrase_words(list(raw)), form[1]))
+            return None
+        if form[0] == "one":
+            return None if (len(raw) > 1 and vc.over_caps(list(raw))) else 1
+        return 2
 
-    def cut_ok(c: int, old: set[int]) -> bool:
-        if c in old:
-            return True
-        k = c - 1
-        return (k not in protected and not vc.never_end_end(raw_all[k])
-                and not vc._is_atomic_boundary(raw_all[k], raw_all[k + 1]))
+    def bad(q) -> bool:
+        raw = [str(w["word"]) for w in q]
+        return (len(q) < 2 or vc._function_only(q) or lines_of(q) is None
+                or any(vc.CLAUSE_PUNCT.search(w) or vc.TERMINAL_PUNCT.search(w) for w in raw[1:-1]))
+
+    def changes(seq) -> int:
+        lc = [lines_of(q) or 2 for q in seq]
+        return sum(u != v for u, v in zip(lc, lc[1:]))
 
     out = []
     for i, b in enumerate(bursts):
-        if not b["raw"] or _key(" ".join(b["raw"])) not in forced:
+        faults = c1_faults(lp_tree(vc), never_end, b["raw"], b["k"]) if len(b["lines"]) == 2 else []
+        key = _key(" ".join(b["raw"]))
+        if not faults and key not in forced:
             continue
-        x, y = spans[i]
         found = []
-        for jn in (i - 1, i + 1):
-            if not 0 <= jn < len(bursts) or not bursts[jn]["raw"]:
+        for j in (i - 1, i + 1):
+            lo, hi = min(i, j), max(i, j)
+            if lo < 0 or hi >= len(bursts) or (hook and lo == 0):
                 continue
-            if abs((bursts[jn]["hide"] if jn < i else b["hide"]) - (b["show"] if jn < i else bursts[jn]["show"])) > 1e-3:
-                continue   # a pause between them: not one run, the pause stays a cut
-            lo, hi = (spans[jn][0], y) if jn < i else (x, spans[jn][1])
-            old = {spans[jn][1]} if jn < i else {y}
-            hide = bursts[max(i, jn)]["hide"]
-            for c in range(lo + 1, hi):
-                if c in old or not cut_ok(c, old):
+            if timing[lo][1] < timing[hi][0] - 1e-3 or vc._pause_break(words, pos[id(phrases[lo][-1])]):
+                continue
+            pair = phrases[lo] + phrases[hi]
+            c0 = len(phrases[lo])
+            wl, wh = max(0, lo - 1), min(len(phrases), hi + 2)
+            before = changes(phrases[wl:wh])
+            for c in [*range(1, len(pair)), None]:
+                if c == c0:
                     continue
-                if any(vc._pause_break(words, k) for k in old if k != c for _ in [0]) and False:
+                if c is None:
+                    parts, fe = [pair], False
+                else:
+                    k = pos[id(pair[c - 1])]
+                    if ((k in protected and not (abs(c - c0) == 1 and k in lead_only))
+                            or vc._is_atomic_boundary(raw_all[k], raw_all[k + 1])
+                            or vc.noun_phrase_cut(words, k) is not None):
+                        continue
+                    parts, fe = [pair[:c], pair[c:]], vc.never_end_end(raw_all[k])
+                    if fe and abs(c - c0) != 1:
+                        continue   # a function-word burst end only for the stranded word moved (remedy 1)
+                if any(bad(q) for q in parts):
                     continue
-                if legal(lo, c, None) and legal(c, hi, hide):
-                    kind = "remedy_1" if abs(c - (x if jn < i else y)) == 1 else "remedy_2"
-                    found.append({"kind": kind, "form": " ".join(raw_all[lo:c]) + " | " + " ".join(raw_all[c:hi])})
-        out.append({"text": " / ".join(b["lines"]), "remedies": found})
+                ctx = phrases[wl:lo] + parts + phrases[hi + 1:wh]
+                prev = phrases[:wl][-1:]
+                tm = vc.burst_timings(prev + ctx, dwell=True)[len(prev):]
+                first = lo - wl
+                if any(h - s < vc.CAPTION_SPLIT_MIN_S - 1e-6 for s, h, _ in tm[first:first + len(parts)]):
+                    continue
+                if changes(ctx) > before:
+                    continue
+                found.append({"kind": "remedy_1" if c is not None and abs(c - c0) == 1 else "remedy_2",
+                              "function_end": bool(fe),
+                              "form": " | ".join(" ".join(str(w["word"]) for w in q) for q in parts)})
+        out.append({"text": " / ".join(b["lines"]), "key": key, "faults": faults, "recorded": key in forced,
+                    "remedies": found})
     return out
+
+
+def lp_tree(vc):
+    return vc._line_policy
 
 
 if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "--collect":
@@ -335,43 +392,30 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
                     tot[f"{fmt} C2 burst ends on an auxiliary/copula"] += 1
                     table.append((run, fmt, f"C2 auxiliary end: {' '.join(raw)} | {' '.join(nxt)}", "reported"))
                 tot[f"{fmt} C2 any (unit or function or auxiliary end)"] += bool(unit or cls)
-            # C1: 9:16 two-line bursts
+            # C1: 9:16 two-line bursts (the collector's c1_faults and its enumeration of the remedies)
             if fmt == "916":
-                proof = {_key(p["text"].replace(" / ", " ")): p for p in cap.get("forced_proof") or []}
-                forced = {_key(e.get("text", "").replace(" / ", " ")) for e in
-                          (rate.get("clip_size") or {}).get("no_legal_form") or []}
-                for b in bursts:
-                    if len(b["lines"]) != 2 or not b["raw"]:
-                        continue
-                    k = b["k"]
-                    l1, l2 = b["raw"][:k], b["raw"][k:]
-                    faults = []
-                    if any(len(x) == 1 and lp.is_function(x[0]) for x in (l1, l2)):
-                        faults.append("lone_function_word_line")
-                    kt = lp.keep_together(b["raw"])
-                    if (k - 1) in kt:
-                        faults.append("figure_or_group_parted")
-                    if l2 and lp.is_number(l2[0]) and _hedge_lead(l1):
-                        faults.append("hedge_parted_from_figure")
-                    if not faults:
-                        continue
-                    key = _key(" ".join(b["raw"]))
+                for p in cap.get("forced_proof") or []:
+                    if not p["faults"]:
+                        continue   # a recorded forced break with no C1 fault (a name parted): not this class
                     tot["916 C1 bursts"] += 1
-                    for f in sorted(set(faults)):
+                    for f in p["faults"]:
                         tot[f"916 C1 {f}"] += 1
-                    text = " / ".join(b["lines"])
-                    if key not in forced:
+                    rem = p["remedies"]
+                    if not p["recorded"]:
                         tot["916 C1 not recorded UNRECORDED"] += 1
-                        table.append((run, fmt, f"C1 {faults}: {text}", "FAIL"))
-                        continue
-                    rem = (proof.get(key) or {}).get("remedies")
-                    if rem:
+                        table.append((run, fmt, f"C1 {p['faults']}: {p['text']}", "FAIL"))
+                    elif rem:
                         tot["916 C1 recorded forced but a remedy exists UNRECORDED"] += 1
-                        table.append((run, fmt, f"C1 forced, remedy {rem[0]['kind']}: {text} -> {rem[0]['form']}",
-                                      "FAIL"))
+                        table.append((run, fmt, f"C1 forced, {rem[0]['kind']} exists: {p['text']} -> "
+                                      f"{rem[0]['form']}", "FAIL"))
                     else:
                         tot["916 C1 recorded forced, proved (no remedy 1 or 2)"] += 1
-                        table.append((run, fmt, f"C1 forced, proved: {text}", "pass (recorded, proved)"))
+                        table.append((run, fmt, f"C1 forced, proved: {p['text']}", "pass (recorded, proved)"))
+                for e in (rate.get("line_split") or []) + (rate.get("recut") or []):
+                    if isinstance(e, dict) and e.get("strand_remedy"):
+                        tot[f"916 C1 remedied ({e['strand_remedy']}{', function end' if e.get('function_end') else ''})"] += 1
+                        table.append((run, fmt, f"C1 remedied {e['strand_remedy']}: {e['was']} -> {e['into']}",
+                                      "fixed"))
             # C3: gold
             accent = rate.get("accent")
             tot[f"{fmt} clips recording their accent rule"] += bool(accent and accent.get("rule"))
@@ -382,21 +426,19 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
                 raw = b["raw"] or " ".join(b["lines"]).split()
                 gold = set(b["gold"])
                 keys = [_key(w) for w in raw]
-                gold_pos = [j for j, w in enumerate(b["gold_words"])]
-                gw = b["gold_words"]
-                for w in gw:
-                    if lp.bare(w) in HEDGE_WORDS and not lp.is_number(w):
-                        # a hedge word drawn gold (ALMOST 50: ALMOST gold); TO inside a gold range (94 TO 104) and AT
-                        # LEAST etc. are judged as hedges only before the figure
-                        idx = [j for j, x in enumerate(raw) if x.split()[0] == w.split()[0] or _key(x) == _key(w)]
-                        before_fig = any(j + 1 < len(raw) and (lp.is_number(raw[j + 1]) or lp.bare(raw[j + 1]) in
-                                         lp.SPELLED_NUMBERS or lp.bare(raw[j + 1]) in HEDGE_WORDS) for j in idx)
-                        if before_fig:
-                            tot[f"{fmt} C3 hedge word gold UNRECORDED"] += 1
-                            table.append((run, fmt, f"C3 hedge gold: {w} in {' '.join(raw)}", "FAIL"))
+                for j, w in enumerate(raw):
+                    # a quantity's hedge drawn gold (ALMOST 50): a hedge word before a figure, not a range joiner
+                    # between two figures (94 TO 104)
+                    fig = lambda x: lp.is_number(x) or lp.bare(x) in lp.SPELLED_NUMBERS   # noqa: E731
+                    if (_key(w) in gold and lp.bare(w) in HEDGE_WORDS and not fig(w) and j + 1 < len(raw)
+                            and (fig(raw[j + 1]) or lp.bare(raw[j + 1]) in HEDGE_WORDS)
+                            and not (j and fig(raw[j - 1]))
+                            and not (lp.bare(w) in ("to", "and", "or") and not (j and lp.bare(raw[j - 1]) == "up"))):
+                        tot[f"{fmt} C3 hedge word gold UNRECORDED"] += 1
+                        table.append((run, fmt, f"C3 hedge gold: {w} in {' '.join(raw)}", "FAIL"))
                 for j, w in enumerate(raw):
                     if _key(w) in gold and (lp.is_number(w) or lp.bare(w) in lp.SPELLED_NUMBERS):
-                        if j + 1 < len(raw) and lp.bare(raw[j + 1]) in lp.UNITS and _key(raw[j + 1]) not in gold:
+                        if j + 1 < len(raw) and lp.bare(raw[j + 1]) in lp.UNITS | lp.AREA_WORDS and _key(raw[j + 1]) not in gold:
                             tot[f"{fmt} C3 figure gold, unit bone UNRECORDED"] += 1
                             table.append((run, fmt, f"C3 unit bone: {w} {raw[j + 1]}", "FAIL"))
                 for tk in tkeys:
@@ -405,7 +447,6 @@ def judge(data: dict) -> tuple[list[tuple], collections.Counter]:
                     for j in range(len(keys) - len(tk) + 1):
                         if keys[j:j + len(tk)] == tk:
                             mentions[" ".join(tk)].add(all(x in gold for x in tk))
-                del gold_pos
             mixed = [t for t, s in mentions.items() if len(s) > 1]
             tot[f"{fmt} C3 key terms gold at one mention, bone at another"] += len(mixed)
             for t in mixed:

@@ -3840,9 +3840,13 @@ CAPTION_SPLIT_MIN_S = 0.8   # no burst a split or a merge forms is on screen for
 
 
 def _lone_function_line(shown: list[str], k: int) -> bool:
-    """A two-line break before word k that leaves a line of one function word (WHEN / KÖNIGSBERG CASTLE)."""
-    return (k == 1 and _bare(shown[0]) in FUNCTION_WORDS) or (
-        k == len(shown) - 1 and _bare(shown[-1]) in FUNCTION_WORDS)
+    """A two-line break before word k that leaves a line of one function word (WHEN / KÖNIGSBERG CASTLE). Freeze cycle 6
+    (panel 7 C1): the function words are the one vocabulary every caption line end is judged by (NEVER_END, the
+    derived closed class: RECONSTRUCTION / INSIDE, ARTIFACTS / ALONGSIDE), with the auxiliaries of FUNCTION_WORDS."""
+    def lone(w: str) -> bool:
+        b = _bare(w)
+        return b in FUNCTION_WORDS or (b in NEVER_END and not CLAUSE_PUNCT.search(w) and not TERMINAL_PUNCT.search(w))
+    return (k == 1 and lone(shown[0])) or (k == len(shown) - 1 and lone(shown[-1]))
 
 
 def phrase_unit_cut(words: list[Any], k: int) -> str | None:
@@ -4647,6 +4651,149 @@ def _clip_size_capacity(phrases: list[list[dict[str, Any]]], words: list[dict[st
     return min(CAPTION_LADDER), shares
 
 
+CAPTION_STRAND_PASS = True   # freeze cycle 6 (panel 7 C1): a forced break is the last remedy, not the first
+STRAND_RULE = ("caption forced-break rule (lander ruling, freeze cycle 6, refining R1): a burst with no legal form at "
+               "the clip's size never draws a line of one function word, nor parts a figure from its unit or hedge, "
+               "while (1) moving the stranded word to the neighbouring burst or (2) re-cutting the pair gives bursts "
+               "that set on legal lines at the clip's size, up 0.8 s or more, with no more plate-height changes; only "
+               "then (3) the recorded forced break")
+
+
+def strand_remedies(out: list[list[dict[str, Any]]], i: int, words: list[dict[str, Any]],
+                    emphasis: list[str] | None, size: int,
+                    protected: set[int] | None = None) -> list[dict[str, Any]]:
+    """Every legal remedy for burst i of `out`, which has no legal form at the clip's size `size` (_clip_form None):
+    with each back-to-back neighbour (no pause between them; never the hook burst shown whole on frame 0), the pair's
+    words re-cut at every other place, or joined into one burst. Remedy 1: the cut moves by one word (the stranded word
+    goes to the neighbour, its timing with it); remedy 2: any other re-cut of the pair. Legal: every burst of it is
+    two words or more, not function words only, holds no clause punctuation inside, sets at `size` on legal lines
+    (_clip_form; one line not over one burst's caps), is up CAPTION_SPLIT_MIN_S or more on the delivered timing
+    (burst_timings with its neighbours), and the window's plate-height changes do not grow; the new cut parts no bond,
+    name, unit, figure group, key term, atomic pair or phrase unit (remedy 1 may part a lead-in bond: the stranded
+    word's own). "function_end": the new cut ends a burst on a
+    function word (the lander's remedy-1 example, GERMAN SOLDIERS OF | ARMY GROUP NORTH): allowed for remedy 1 only
+    (the stranded word itself moved), ranked after every remedy without one. Sorted best first: no function end, remedy 1 before 2, fewer height changes, evener."""
+    pos = {id(w): k for k, w in enumerate(words)}
+    raw_all = [str(w.get("word", "")) for w in words]
+    if protected is None:
+        protected = (name_bonds(raw_all) | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words)
+                     | emphasis_bonds(words, emphasis))
+    # remedy 1 may move a stranded LEAD-IN word (OF before ARMY GROUP NORTH) to the previous burst: the lead-in bond
+    # (lead_in_bonds) is what stranded it; a hedge, figure, unit or name bond never gives way
+    lead_only = lead_in_bonds(raw_all, caption_bonds(words, names=False) | name_bonds(raw_all)) - (
+        caption_bonds(words, names=False) | name_bonds(raw_all) | unit_links(words) | figure_group_tail_links(words))
+    timing = burst_timings(out, dwell=True)
+    lead = CAPTION_LEAD_FRAMES / VIDEO_FPS
+    hook = bool(out) and float(out[0][0].get("start", 0.0)) - lead <= CAPTION_FIRST_FRAME_WHOLE_S + 1e-9
+
+    def raw_of(q: list[dict[str, Any]]) -> tuple[str, ...]:
+        return tuple(str(w.get("word", "")) for w in q)
+
+    def lines_of(q: list[dict[str, Any]]) -> int | None:
+        raw = raw_of(q)
+        form = _clip_form(raw, size)
+        if form is None:
+            return None
+        if form[0] == "one":
+            return None if (len(raw) > 1 and over_caps(list(raw))) else 1
+        return 2
+
+    def bad_part(q: list[dict[str, Any]]) -> bool:
+        raw = raw_of(q)
+        return (len(q) < 2 or _function_only(q) or lines_of(q) is None
+                or any(CLAUSE_PUNCT.search(w) or TERMINAL_PUNCT.search(w) for w in raw[1:-1]))
+
+    def changes(seq: list[list[dict[str, Any]]]) -> int:
+        lc = [lines_of(q) or 2 for q in seq]
+        return sum(u != v for u, v in itertools.pairwise(lc))
+
+    found: list[dict[str, Any]] = []
+    for j in (i - 1, i + 1):
+        lo, hi = min(i, j), max(i, j)
+        if lo < 0 or hi >= len(out) or (hook and lo == 0):
+            continue
+        if timing[lo][1] < timing[hi][0] - 1e-3 or _pause_break(words, pos[id(out[lo][-1])]):
+            continue   # a pause between them stays a cut: the words never cross it
+        pair = out[lo] + out[hi]
+        c0 = len(out[lo])
+        win_lo, win_hi = max(0, lo - 1), min(len(out), hi + 2)
+        before = changes(out[win_lo:win_hi])
+        for c in [*range(1, len(pair)), None]:
+            if c == c0:
+                continue
+            if c is None:
+                if len(pair) > MAX_BURST_WORDS + CAPTION_BOND_EXTRA_WORDS:
+                    continue
+                parts = [pair]
+                end_fn = False
+            else:
+                k = pos[id(pair[c - 1])]
+                if ((k in protected and not (abs(c - c0) == 1 and k in lead_only))
+                        or _is_atomic_boundary(raw_all[k], raw_all[k + 1]) or noun_phrase_cut(words, k) is not None):
+                    continue
+                parts = [pair[:c], pair[c:]]
+                end_fn = never_end_end(raw_all[k])
+                if end_fn and abs(c - c0) != 1:
+                    continue   # a burst ends on a function word only where it is the stranded word moved (remedy 1)
+            if any(bad_part(q) for q in parts):
+                continue
+            ctx = out[win_lo:lo] + parts + out[hi + 1:win_hi]
+            prev = out[:win_lo][-1:]
+            tm = burst_timings(prev + ctx, dwell=True)[len(prev):]
+            first = lo - win_lo
+            if any(hide - show < CAPTION_SPLIT_MIN_S - 1e-6 for show, hide, _ in tm[first:first + len(parts)]):
+                continue
+            after = changes(ctx)
+            if after > before:
+                continue
+            kind = "remedy_1" if c is not None and abs(c - c0) == 1 else "remedy_2"
+            lens = [len(" ".join(raw_of(q))) for q in parts]
+            found.append({"lo": lo, "hi": hi, "parts": parts, "kind": kind, "function_end": bool(end_fn),
+                          "height_changes": [before, after],
+                          "form": " | ".join(" ".join(raw_of(q)) for q in parts),
+                          "key": (int(bool(end_fn)), kind != "remedy_1", after, max(lens) - min(lens))})
+    found.sort(key=lambda e: e["key"])
+    return found
+
+
+def _strand_pass(out: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None,
+                 size: int, record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
+    """Freeze cycle 6 (panel 7 C1; lander ruling refining R1): before a burst with no legal form at the clip's size is
+    drawn on a forced break (_clip_fallback: OF / ARMY GROUP NORTH, MORE THAN / 590 SQUARE FEET), its remedies are
+    tried in the lander's order (strand_remedies: the stranded word moved to the neighbouring burst, then the pair
+    re-cut), and the best is taken, recorded ("strand_remedy"). What is left on a forced break has none (the record's
+    "no legal form" is then true: the corpus enumerates it)."""
+    out = [list(p) for p in out if p]
+    if not CAPTION_STRAND_PASS or len(out) < 2:
+        return out
+    ids = [id(w) for q in out for w in q]
+    raw_all = [str(w.get("word", "")) for w in words]
+    protected = (name_bonds(raw_all) | caption_bonds(words) | unit_links(words) | figure_group_tail_links(words)
+                 | emphasis_bonds(words, emphasis))
+    for _ in range(len(out)):
+        bad = [i for i, p in enumerate(out)
+               if len(p) > 1 and _clip_form(tuple(str(w.get("word", "")) for w in p), size) is None]
+        took = False
+        for i in bad:
+            rem = strand_remedies(out, i, words, emphasis, size, protected)
+            if not rem:
+                continue
+            r = rem[0]
+            was = " | ".join(" ".join(str(w.get("word", "")) for w in q) for q in out[r["lo"]:r["hi"] + 1])
+            out[r["lo"]:r["hi"] + 1] = r["parts"]
+            if record is not None:
+                record.append({"at": round(float(r["parts"][0][0].get("start", 0.0)), 2), "strand_remedy": r["kind"],
+                               "was": was, "into": r["form"], "function_end": r["function_end"],
+                               "height_changes": r["height_changes"], "rule": STRAND_RULE})
+            took = True
+            break
+        if not took:
+            break
+    if [id(w) for q in out for w in q] != ids:
+        raise RuntimeError("caption strand pass lost or reordered a word")
+    return out
+
+
 def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], emphasis: list[str] | None = None,
               record: list[dict[str, Any]] | None = None) -> list[list[dict[str, Any]]]:
     """Lander ruling on D4 / D5 (2026-11-26): the clip's ONE caption size and every burst's form at it. The size is
@@ -4707,7 +4854,7 @@ def _clip_fit(phrases: list[list[dict[str, Any]]], words: list[dict[str, Any]], 
                            "removed": ["over_clip_size"], "forced_split": True, "rule": CLIP_RULE,
                            "into": " ".join(raw[:j]) + " | " + " ".join(raw[j:]),
                            "why": "no two-line break sets at the clip's size and no legal split holds"})
-    out = done
+    out = _strand_pass(done, words, emphasis, size, record)
     for p in out:
         raw = raw_of(p)
         form = _clip_form(raw, size)
@@ -4998,6 +5145,79 @@ ATTRIBUTION_HEDGES: tuple[tuple[str, ...], ...] = tuple(sorted((
     ("may", "have", "been"), ("might", "have", "been"), ("may", "have"), ("might", "have"), ("possibly",),
     ("probably",), ("likely",), ("perhaps",), ("reportedly",), ("supposedly",), ("allegedly",), ("presumably",),
 ), key=len, reverse=True))
+CAPTION_ACCENT_RULE = (
+    "caption accent rule (freeze cycle 6, panel 7 TY3; ruling R8-8): gold marks each of the script's key terms at "
+    "EVERY mention, a figure term as its figure with its unit (and its range); a quantity's hedge (ABOUT, ALMOST, "
+    "OVER, NEARLY, UP TO, UNDER, MORE THAN, BETWEEN ...) is never gold; an attribution hedge (POSSIBLY, LIKELY) "
+    "goes with its term; no other word is gold. A mention is bone only while a graphic is on screen (one gold "
+    "event at a time) or, on a 16:9 line, where another gold span holds the line (one gold span a line): each "
+    "such mention is recorded")
+# Words that open or qualify a figure and are never its accent (ruling R8-8): the quantity hedges and BETWEEN
+ACCENT_NEVER = frozenset(w for h in HEDGE_PHRASES for w in h) | {"between", "and", "to", "or"}
+
+
+def accent_plan(words: list[dict[str, Any]], terms: list[str] | None) -> tuple[set[int], dict[int, int], list[list[int]]]:
+    """Freeze cycle 6 (panel 7 TY3, ruling R8-8; CAPTION_ACCENT_RULE): (gold positions, {attribution hedge position:
+    start of its term}, the mentions as lists of positions) for build_subtitles' gold. Every mention of each key term
+    (the first three, as emphasis_indices reads them), a figure term over its range (_range_span) with its unit
+    (MEASURE_UNITS, an area qualifier and its unit: 590 SQUARE FEET), its opening hedge and BETWEEN left out (they
+    are bone: ALMOST 50 KILOMETRES sets 50 KILOMETRES gold). Without terms: the first two figures, each with its unit.
+    The bursts are cut by emphasis_bonds (the first mentions and their hedges), unchanged."""
+    tokens = [_norm(w["word"]) for w in words]
+    raw = [str(w.get("word", "")) for w in words]
+    n = len(tokens)
+    spans: list[tuple[int, int, bool]] = []
+
+    def figure_span(lo: int, hi: int) -> tuple[int, int]:
+        while lo < hi and tokens[lo] in ACCENT_NEVER and not _is_figure_at(tokens, lo):
+            lo += 1
+        if hi + 1 < n and not _ends_clause(raw[hi]):
+            if tokens[hi + 1] in MEASURE_UNITS:
+                hi += 1
+            elif (hi + 2 < n and tokens[hi + 1] in AREA_QUALIFIERS and tokens[hi + 2] in MEASURE_UNITS
+                  and not _ends_clause(raw[hi + 1])):
+                hi += 2
+        return lo, hi
+
+    for term in (terms or [])[:3]:
+        seq = [t for t in (_norm(x) for x in term.split()) if t]
+        if not seq:
+            continue
+        is_figure = any(c.isdigit() for c in term) or any(t in SPELLED_NUMBERS for t in seq)
+        for i in range(n - len(seq) + 1):
+            if tokens[i:i + len(seq)] == seq:
+                lo, hi = (_range_span(tokens, raw, i, i + len(seq) - 1) if is_figure else (i, i + len(seq) - 1))
+                if is_figure:
+                    lo, hi = figure_span(lo, hi)
+                spans.append((lo, hi, is_figure))
+    if not terms:
+        for i in [i for i, w in enumerate(words) if any(c.isdigit() for c in w["word"])][:2]:
+            lo, hi = figure_span(i, i)
+            spans.append((lo, hi, True))
+    gold: set[int] = set()
+    for lo, hi, _ in spans:
+        gold.update(range(lo, hi + 1))
+    hedges: dict[int, int] = {}
+    for lo, _, _ in spans:   # an attribution hedge (POSSIBLY THE PHRYGIANS) goes with its term, after one article
+        for lead_in in ((), ("the",), ("a",), ("an",)):
+            j = lo - len(lead_in)
+            if j < 0 or tuple(tokens[j:lo]) != lead_in or any(CLAUSE_PUNCT.search(raw[x]) for x in range(j, lo)):
+                continue
+            hit = False
+            for hedge in ATTRIBUTION_HEDGES:
+                k = len(hedge)
+                if j - k >= 0 and tuple(tokens[j - k:j]) == hedge and not any(
+                        CLAUSE_PUNCT.search(raw[x]) or TERMINAL_PUNCT.search(raw[x]) for x in range(j - k, j)):
+                    for h in range(j - k, lo):
+                        if h not in gold:
+                            hedges[h] = lo
+                    hit = True
+                    break
+            if hit:
+                break
+    return gold, hedges, [list(range(lo, hi + 1)) for lo, hi, _ in sorted(spans)]
+
+
 # Freeze pass U1 (2026-11-04): fixed, topic-agnostic hedge phrases kept whole in a burst, cue and cue line.
 HEDGE_GROUPS: tuple[tuple[str, ...], ...] = (
     ("by", "one", "estimate"), ("by", "one", "account"), ("by", "some", "accounts"), ("by", "some", "estimates"),
@@ -6500,8 +6720,10 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
-        key = emphasis_indices(words, emphasis)
-        hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
+        # freeze cycle 6 (panel 7 TY3, R8-8): the gold is the clip's one accent rule (CAPTION_ACCENT_RULE): every mention
+        # of a key term, a figure with its unit, never a quantity's hedge; an attribution hedge's gold waits for its term
+        key, hedge_of, mentions = accent_plan(words, emphasis)
+        accent: dict[str, Any] = {"rule": CAPTION_ACCENT_RULE, "gold": [], "bone": []}
         bond_extra: list[dict[str, Any]] = []
         line_split: list[dict[str, Any]] = []   # lane C cycle 4: each burst LINE_RULE split, or could not
         recut: list[dict[str, Any]] = []        # freeze cycle 5: each re-cut of the readable merge, each short burst kept
@@ -6741,6 +6963,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 gold_words = single_gold_span(shown, gold_words)
             gold_from = {ji: (hedge_of[base + ji] - base if base + ji in hedge_of else ji) for ji in gold_words}
             contrast_rows.append({"burst": pi, "text": " ".join(shown), "gold": bool(gold_words)})
+            drawn = {base + ji for ji in gold_words}
+            for m in mentions:   # the accent record: each mention on this burst, gold or bone with the reason
+                here = [x for x in m if base <= x < base + len(shown)]
+                if not here:
+                    continue
+                text = " ".join(str(words[x].get("word", "")) for x in here)
+                if all(x in drawn for x in here):
+                    accent["gold"].append({"burst": pi, "text": text})
+                else:
+                    accent["bone"].append({"burst": pi, "text": text, "why": (
+                        "a graphic is on screen (one gold event at a time)" if not g["gold"]
+                        else "one gold span a 16:9 line" if is_widescreen else "not drawn gold")})
 
             if is_widescreen:
                 # Layer 1, 16:9: the whole burst at once, still, from show to hide, fading with its plate
@@ -6788,6 +7022,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     out_fad = f"{{\\fad(0,{fade_out})}}" if fade_out and wi == len(phrase) - 1 else ""
                     raw_events.append((1, t_start, t_end, "CapText", f"{line_pos}{out_fad}{g['size_tag']}{line}"))
 
+        rates["accent"] = accent
         record = caption_contrast_record(contrast_rows)
         record_path = ass_path.with_name(ass_path.stem + CAPTION_CONTRAST_SIDECAR)
         record_path.write_text(json.dumps(record, indent=1), encoding="utf-8")

@@ -751,6 +751,7 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"] + (["subject"] if subject else [])}
         if subject:
             rec["subject_partial"] = True
+    rec["fit"] = not rec["problems"]
     return rec
 
 
@@ -1052,12 +1053,8 @@ def drawn_record(photo: Path, window: Window, rec: dict[str, Any], drew: dict[st
         return rec
     a = analysis_of(Path(photo))
     got = measure(a, tuple(float(v) for v in box), window)
-    if a.focus is not None:   # the drawn crop is the one without a subject: as whole as it shows it (cycle 6)
-        got.update(_subject_needs(a, window, fit_box(a.size, window.size)))
-    got["problems"] = problems(got, window)
-    if "subject" in got["problems"] and a.focus is not None and not got.get("hold_short"):
-        # the drawn crop is the surface's crop without the box: the box does not turn it unfit (round 3, D3)
-        got["problems"] = [p for p in got["problems"] if p != "subject"]
+    got["problems"] = problems(got, window)   # the verdict is the cycle-5 measure (round 4 ruling)
+    if "subject" in got["problems"] and a.focus is not None:
         got["subject_partial"] = True
     return {**got, "fit": not got["problems"], "moved": bool(drew.get("moved")), "window": window.name,
             "drawn": "cover crop", "measured": {k: v for k, v in rec.items() if k != "window"}}

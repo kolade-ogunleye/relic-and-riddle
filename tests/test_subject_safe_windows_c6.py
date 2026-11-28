@@ -260,3 +260,14 @@ def test_a_placement_a_base_rejected_stays_unfit_unless_the_subject_is_served():
     got = pf.place(None, window, analysis=a, fixed=True)
     assert not c5["fit"]                                    # the cycle-5 rules with the box reject it
     assert not got["fit"] and got.get("subject_partial") and "subject" in got["problems"]
+
+
+def test_the_record_is_fit_exactly_when_it_has_no_problem():
+    img = _picture(1800, 900)
+    d = ImageDraw.Draw(img)
+    d.rectangle((200, 300, 1600, 650), fill=(230, 200, 60))
+    a = _with_focus(img, (200.0, 300.0, 1600.0, 650.0))
+    for window in (pf.Window((1080, 1920), name="story"), pf.Window((1080, 1350), name="slide"),
+                   *(w for _m, w in cd.cover_windows())):
+        rec = pf.place(None, window, analysis=a)
+        assert rec["fit"] == (not rec["problems"]), rec

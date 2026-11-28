@@ -198,12 +198,7 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
             box = got["box"] if got and got["fit"] and got["moved"] else pf.fit_box(a.size, window.size, cen)
             if any(abs(x - y) >= 1.0 for x, y in zip(box, rec["box"])):
                 m = pf.measure(a, tuple(box), window)
-                if a.focus is not None and hasattr(pf, "_subject_needs"):   # as photo_fitness.drawn_record (cycle 6)
-                    m.update(pf._subject_needs(a, window, pf.fit_box(a.size, window.size, cen)))
-                m["problems"] = pf.problems(m, window)
-                if (a.focus is not None and hasattr(pf, "_subject_needs") and not m.get("hold_short")
-                        and m.get("focus_need", window.focus_min) < window.focus_min - 1e-3):
-                    m["problems"] = [p for p in m["problems"] if p != "subject"]
+                m["problems"] = pf.problems(m, window)   # as photo_fitness.drawn_record: the cycle-5 verdict
                 rec = {**m, "fit": not m["problems"], "moved": True, "window": window.name, "drawn": "cover crop"}
     elif kind == "ground":   # typography.cover_crop: its own fit record (photo_fitness.ground_fit), as written
         rec = pf.ground_fit(a, window.size, cen)

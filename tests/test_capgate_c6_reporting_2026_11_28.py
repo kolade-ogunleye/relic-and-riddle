@@ -205,3 +205,16 @@ def test_a_finding_with_another_claim_keeps_its_severity_and_blocks(tmp_path, mo
     assert visual["status"] == "fail" and "checker_false_positives" not in visual
     assert any("cut off" in p for p in release.release_problems(report, dry_run=True))
 
+
+def test_the_fade_note_lists_fade_frames_with_no_reading(tmp_path):
+    master = tmp_path / "x_master.mp4"
+    master.write_bytes(b"video")
+    unread = [{"t": 12.3, "frames": 1, "from": 12.3, "burst": 4, "text": "x", "contrast": None,
+               "why": "only 40 px of glyph ink"}]
+    quality = {"master_sha256": sha256_file(master), "issues": [], "atomic_breakdown": {"text_contrast": {
+        "captions": {"dips": [], "unread": unread, "allowance_frames": 2, "min": 8.0}}}}
+    report = release.write_release_report(_run(master, {"self_healing": quality, "video_check": {"issues": []}}),
+                                          dry_run=True)
+    fades = next(c for c in report["checks"] if c["name"] == "caption_fades")
+    assert fades["status"] == "pass" and "12.30s" in fades["detail"] and "only 40 px of glyph ink" in fades["detail"]
+

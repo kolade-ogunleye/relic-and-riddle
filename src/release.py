@@ -589,19 +589,29 @@ def split_checker_false_positives(look: list) -> tuple[list, list]:
 
 def _caption_fade_notes(quality: dict, audited_master: bool) -> list:
     """The caption gate's dips (video_qa.caption_verdict: a reading under the bar for no longer than a caption fade,
-    inside one), each with its time and value: a note, never a block (freeze c6 capgate, ruling 2). Only from the
-    audit of this master."""
+    inside one), each with its time and value, and its fade frames with no reading at all ("unread", review round):
+    a note, never a block (freeze c6 capgate, ruling 2). Only from the audit of this master."""
     caps = (((quality or {}).get("atomic_breakdown") or {}).get("text_contrast") or {}).get("captions") or {}
     dips = caps.get("dips") or []
-    if not audited_master or not dips:
+    unread = caps.get("unread") or []
+    if not audited_master or not (dips or unread):
         return []
-    shown = "; ".join(f"{d['contrast']:.2f}:1 at {d['t']:.2f}s ({d['frames']} frame{'s' if d['frames'] > 1 else ''},"
-                      f" \"{d.get('text', '')}\")" for d in dips[:6])
-    more = f" (and {len(dips) - 6} more)" if len(dips) > 6 else ""
-    return [{"name": "caption_fades", "status": "pass", "minor": True, "note": True, "dips": dips, "detail":
-             f"{len(dips)} caption moment(s) read under the bar only while a word fades in or a burst fades out, for "
-             f"no longer than the fade ({caps.get('allowance_frames')} frames): {shown}{more}. Every burst fully "
-             f"shown reads at {caps.get('min', 0) or 0:.2f}:1 or better."}]
+    detail = []
+    if dips:
+        shown = "; ".join(f"{d['contrast']:.2f}:1 at {d['t']:.2f}s ({d['frames']} frame{'s' if d['frames'] > 1 else ''},"
+                          f" \"{d.get('text', '')}\")" for d in dips[:6])
+        more = f" (and {len(dips) - 6} more)" if len(dips) > 6 else ""
+        detail.append(f"{len(dips)} caption moment(s) read under the bar only while a word fades in or a burst fades "
+                      f"out, for no longer than the fade ({caps.get('allowance_frames')} frames): {shown}{more}.")
+    if unread:
+        shown = "; ".join(f"{u['t']:.2f}s ({u['frames']} frame{'s' if u['frames'] > 1 else ''}: {u.get('why')})"
+                          for u in unread[:4])
+        more = f" (and {len(unread) - 4} more)" if len(unread) > 4 else ""
+        detail.append(f"{len(unread)} fade moment(s) had no reading (a word too faint to read yet, or already gone): "
+                      f"{shown}{more}.")
+    detail.append(f"Every burst fully shown reads at {caps.get('min', 0) or 0:.2f}:1 or better.")
+    return [{"name": "caption_fades", "status": "pass", "minor": True, "note": True, "dips": dips, "unread": unread,
+             "detail": " ".join(detail)}]
 
 
 def _ingest_notes(run_dir: Path) -> list:

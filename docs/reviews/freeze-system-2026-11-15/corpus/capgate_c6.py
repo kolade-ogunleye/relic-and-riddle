@@ -158,7 +158,12 @@ def main() -> int:
                 findings.insert(0, f"caption contrast could not be measured ({why})")
             row = {"run": run, "bursts": cap["bursts"], "fully_shown_under": sum(
                 1 for s in cap["samples"] if s["contrast"] is not None and s["contrast"] < TEXT_CONTRAST),
-                "dips": len(cap["dips"]), "frames": cap["frames"], "frames_under": cap["frames_under"],
+                "dips": len(cap["dips"]), "unread": len(cap.get("unread") or []),
+                "no_reading_blocks": sum(1 for u in cap["under"] if u["kind"] == "no_reading"),
+                "badge": None if not cap.get("badge") else {
+                    "intervals": cap["badge"]["bursts"], "min": cap["badge"]["min"],
+                    "blocking": len(cap["badge"]["under"])},
+                "frames": cap["frames"], "frames_under": cap["frames_under"],
                 "blocking": len(cap["under"]), "verdict": "fail" if findings else "pass", "findings": findings,
                 "dip_list": [(d["t"], round(d["contrast"], 2), d["frames"]) for d in cap["dips"]],
                 "min_fully_shown": None if cap["min"] is None else round(cap["min"], 2)}
@@ -179,7 +184,7 @@ def main() -> int:
             row["crops"] = crop(mp4, float(worst["t"]), where, ass)
         rows.append(row)
         print(f"{run:55s} bursts {row['bursts']!s:>9}  fully-shown under {row['fully_shown_under']!s:>12}  "
-              f"dips {row['dips']!s:>3}  frames under {row['frames_under']!s:>5}/{row['frames']!s:<5} "
+              f"dips {row['dips']!s:>3}  unread {row.get('unread', '-')!s:>3}  frames under {row['frames_under']!s:>5}/{row['frames']!s:<5} "
               f"{row['verdict'].upper():4s} ({row['seconds']} s)", flush=True)
         if row.get("note"):
             print(f"    {row['note']}", flush=True)

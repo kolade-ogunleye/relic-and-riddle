@@ -467,3 +467,42 @@ def test_a_badge_that_cannot_be_measured_fails_closed():
     assert "AI badge" in video_qa.caption_unmeasured(v)
     v["badge"]["samples"] = []
     assert "AI badge" in video_qa.caption_unmeasured(v)
+
+
+# ---------------------------------------------------------------- review round, lander ruling: no reading fails closed
+def _gate_none(none_frames, reasons=None):
+    bursts = video_qa.caption_bursts(ONE)
+    rows, shown = video_qa.caption_frame_plan(bursts, 30.0)
+    values = {n: (None if n in none_frames else 9.0) for n, _, _ in rows}
+    return video_qa.caption_verdict(bursts, rows, shown, values, 30.0, reasons=reasons)
+
+
+def test_a_still_frame_with_no_reading_fails_closed_and_says_why():
+    """A caption frame outside any fade that yields no reading blocks (it passed silently), and the block reason
+    says what went wrong with the measurement."""
+    still = [n for n in range(40) if 0 < video_qa._frame_ms(n, 30.0) < 500
+             and not any(f0 <= video_qa._frame_ms(n, 30.0) < f1 for f0, f1 in video_qa.caption_bursts(ONE)[0]["fades"])]
+    v = _gate_none({still[0]}, {still[0]: "only 12 px of glyph ink"})
+    assert [u["kind"] for u in v["under"]] == ["no_reading"] and v["under"][0]["in_fade"] is False
+    found = video_qa.caption_findings(v)
+    assert found and "no reading" in found[0] and "no fade in progress" in found[0] and "only 12 px of glyph ink" in found[0]
+
+
+def test_a_missing_reading_inside_a_fade_is_a_note_and_a_longer_one_blocks():
+    fade_out = [n for n in range(40) if 920 <= video_qa._frame_ms(n, 30.0) < 1000]
+    v = _gate_none(set(fade_out[:1]))
+    assert not v["under"] and len(v["unread"]) == 1 and not video_qa.caption_findings(v)
+    ease = [n for n in range(40) if 500 <= video_qa._frame_ms(n, 30.0) < 570]
+    v = _gate_none(set(ease))
+    assert [u["kind"] for u in v["under"]] == ["no_reading"] and v["under"][0]["in_fade"] is True
+    assert "longer than one" in video_qa.caption_findings(v)[0]
+
+
+def test_the_frame_reading_names_why_there_is_none():
+    rgb, cov = _stems(PLATE, BONE)
+    assert video_qa.caption_frame_reading(rgb, np.zeros_like(cov))[1].startswith("the caption mask drew no glyph")
+    small = np.zeros_like(cov)
+    small[40:45, 40:45] = 255
+    val, why = video_qa.caption_frame_reading(rgb, small)
+    assert val is None and "px of glyph ink" in why
+    assert video_qa.caption_frame_reading(rgb, cov)[1] is None

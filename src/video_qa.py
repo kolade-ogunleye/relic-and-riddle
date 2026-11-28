@@ -1893,24 +1893,37 @@ def caption_letter_mask(coverage):
     return out
 
 
-def caption_frame_contrast(rgb, coverage) -> Optional[float]:
+def caption_frame_reading(rgb, coverage) -> Tuple[Optional[float], Optional[str]]:
     """One master frame's caption ratio, UNROUNDED (typography.text_contrast: the ring and the worst letter, the ink
-    as drawn), the letters read from libass's coverage (caption_letter_mask). Measured in the box around the
-    coverage (the same values as on the whole frame). None when the frame has under CAPTION_MASK_MIN_INK ink pixels."""
+    as drawn), the letters read from libass's coverage (caption_letter_mask), measured in the box around the coverage
+    (the same values as on the whole frame), and, when there is no reading, why (review round, lander ruling: a frame
+    with no reading outside a fade fails closed and the block reason says what went wrong)."""
     import numpy as np
     from .typography import text_contrast
     cov = np.asarray(coverage, np.uint8)
     if not (cov > CAPTION_GROUND_COVERAGE).any():
-        return None
+        return None, "the caption mask drew no glyph at all while a caption event is on screen"
     ys, xs = np.nonzero(cov > CAPTION_GROUND_COVERAGE)
     h, w = cov.shape
     y0, y1 = max(0, ys.min() - _CAPTION_CROP_PAD), min(h, ys.max() + _CAPTION_CROP_PAD + 1)
     x0, x1 = max(0, xs.min() - _CAPTION_CROP_PAD), min(w, xs.max() + _CAPTION_CROP_PAD + 1)
     mask = caption_letter_mask(cov[y0:y1, x0:x1])
-    if int((mask > 127).sum()) < CAPTION_MASK_MIN_INK:
-        return None
+    ink = int((mask > 127).sum())
+    if ink < CAPTION_MASK_MIN_INK:
+        peak = int(cov.max())
+        return None, (f"only {ink} px of glyph ink (a reading needs {CAPTION_MASK_MIN_INK}; peak coverage {peak}"
+                      + (f", under the {CAPTION_FAINT_MIN_PEAK} a drawn letter reaches" if peak < CAPTION_FAINT_MIN_PEAK
+                         else "") + ")")
     rgb = np.ascontiguousarray(np.asarray(rgb)[y0:y1, x0:x1])
-    return text_contrast(rgb, mask, (0, 0))
+    val = text_contrast(rgb, mask, (0, 0))
+    if val is None:
+        return None, "no letter and no ring could be measured (no ink colour, or the ground is off the frame)"
+    return val, None
+
+
+def caption_frame_contrast(rgb, coverage) -> Optional[float]:
+    """caption_frame_reading's ratio alone (None when the frame has no reading)."""
+    return caption_frame_reading(rgb, coverage)[0]
 
 
 def caption_fade_allowance(fps: float) -> int:
@@ -2028,12 +2041,16 @@ def caption_frame_plan(bursts: List[Dict[str, Any]], fps: float, frames: Optiona
 
 
 def caption_verdict(bursts: List[Dict[str, Any]], rows: List[Tuple[int, int, bool]], shown: Dict[int, int],
-                    values: Dict[int, Optional[float]], fps: float, bound: Optional[float] = None) -> Dict[str, Any]:
+                    values: Dict[int, Optional[float]], fps: float, bound: Optional[float] = None,
+                    reasons: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
     """The caption gate on measured frames (`values`: {frame: ratio or None}): every burst's FULLY SHOWN reading
     ("samples"; "min" the lowest), what blocks ("under") and what is only reported ("dips"). A run of consecutive
     frames under `bound` (brand.TEXT_CONTRAST) is a DIP, reported with its time, value and length, when every frame of
     it is inside a fade and it lasts no longer than caption_fade_allowance frames; any other run under the bound
-    blocks (longer than the fade, or on a still caption), as does a burst under the bound fully shown (ruling 2)."""
+    blocks (longer than the fade, or on a still caption), as does a burst under the bound fully shown (ruling 2).
+    A frame with NO reading (`values` None; `reasons`: why, per frame) is judged the same way (review round, lander
+    ruling): inside a fade, for no longer than the allowance, it is a note ("unread"); anywhere else it fails closed,
+    an "under" entry of kind "no_reading" carrying the reason."""
     from .brand import TEXT_CONTRAST
     bound = TEXT_CONTRAST if bound is None else bound
     allow = caption_fade_allowance(fps)
@@ -2072,6 +2089,25 @@ def caption_verdict(bursts: List[Dict[str, Any]], rows: List[Tuple[int, int, boo
         else:
             whole = [s["text"] for s in samples if seq[0] <= s["frame"] <= seq[-1]]   # a burst fully shown in it
             under.append({"kind": "longer_than_fade" if in_fade else "still", "fully_shown": whole, **entry})
+    unread: List[Dict[str, Any]] = []
+    gaps: List[List[int]] = []
+    for n in sorted(fade_of):
+        if values.get(n) is not None:
+            continue
+        if gaps and gaps[-1][-1] == n - 1:
+            gaps[-1].append(n)
+        else:
+            gaps.append([n])
+    for seq in gaps:
+        bi = fade_of[seq[0]][0]
+        why = [(reasons or {}).get(n) or "no reading" for n in seq]
+        entry = {"t": round(seq[0] / fps, 3), "contrast": None, "frames": len(seq), "from": round(seq[0] / fps, 3),
+                 "burst": bi, "text": bursts[bi]["text"], "why": max(set(why), key=why.count)}
+        in_fade = all(fade_of[n][1] for n in seq)
+        if in_fade and len(seq) <= allow:
+            unread.append(entry)
+        else:
+            under.append({"kind": "no_reading", "in_fade": in_fade, **entry})
     blocked = {n for u in under for n in range(round(u["from"] * fps), round(u["from"] * fps) + u["frames"])}
     for s in samples:   # a burst under the bound fully shown blocks, its frame in a dip or not (named once)
         if s["contrast"] is not None and s["contrast"] < bound and s["frame"] not in blocked:
@@ -2080,11 +2116,11 @@ def caption_verdict(bursts: List[Dict[str, Any]], rows: List[Tuple[int, int, boo
     # a dip that holds a burst's fully shown frame under the bar is that burst's block, not a note (review B1, G2)
     held = {round(u["from"] * fps) for u in under if u["kind"] == "fully_shown"}
     dips = [d for d in dips if not any(round(d["from"] * fps) <= n < round(d["from"] * fps) + d["frames"] for n in held)]
-    under.sort(key=lambda u: u["contrast"])
+    under.sort(key=lambda u: -1.0 if u["contrast"] is None else u["contrast"])
     vals = [s["contrast"] for s in samples if s["contrast"] is not None]
     measured = [v for v in values.values() if v is not None]
     return {"samples": samples, "min": min(vals) if vals else None, "bursts": len(bursts), "under": under,
-            "dips": dips, "allowance_frames": allow, "fps": fps, "frames": len(fade_of),
+            "dips": dips, "unread": unread, "allowance_frames": allow, "fps": fps, "frames": len(fade_of),
             "frames_measured": len(measured), "frames_under": sum(1 for v in measured if v < bound)}
 
 
@@ -2100,12 +2136,12 @@ def _video_stream(video: Path) -> Tuple[int, int, float, Optional[int]]:
 
 
 def caption_frames_record(rows: List[Tuple[int, int, bool]], values: Dict[int, Optional[float]], fps: float,
-                          allowance: int) -> Dict[str, Any]:
+                          allowance: int, reasons: Optional[Dict[int, str]] = None) -> Dict[str, Any]:
     """The per-frame record caption_contrast keeps (caption_frames.json): every reading UNROUNDED, so the record and
     the verdict agree on which side of the bar a frame is (review N7: 4.4996 was written 4.500)."""
     return {"fps": fps, "allowance_frames": allowance,
-            "frames": [{"n": n, "t": round(n / fps, 3), "burst": bi, "fade": fading, "contrast": values.get(n)}
-                       for n, bi, fading in rows]}
+            "frames": [{"n": n, "t": round(n / fps, 3), "burst": bi, "fade": fading, "contrast": values.get(n),
+                        **({"why": (reasons or {})[n]} if (reasons or {}).get(n) else {})} for n, bi, fading in rows]}
 
 
 def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
@@ -2154,6 +2190,8 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
                  "-pix_fmt", "rgb24", "-"]
     values: Dict[int, Optional[float]] = {}
     b_values: Dict[int, Optional[float]] = {}
+    why: Dict[int, str] = {}
+    b_why: Dict[int, str] = {}
     with subprocess.Popen(mask_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as mp, \
             subprocess.Popen(video_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as vp:
         try:
@@ -2166,9 +2204,13 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
                     full = np.frombuffer(mb, np.uint8).reshape(h, mw)
                     rgb = np.frombuffer(vb, np.uint8).reshape(h, w, 3)
                     if n in want:
-                        values[n] = caption_frame_contrast(rgb, full[:, :w])
+                        values[n], r = caption_frame_reading(rgb, full[:, :w])
+                        if r:
+                            why[n] = r
                     if n in b_want:
-                        b_values[n] = caption_frame_contrast(rgb, full[:, w:])
+                        b_values[n], r = caption_frame_reading(rgb, full[:, w:])
+                        if r:
+                            b_why[n] = r
         finally:
             for p in (mp, vp):
                 p.kill()
@@ -2176,12 +2218,13 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
     if missing:
         raise RuntimeError(f"{len(missing)} caption frame(s) could not be decoded from the master (from frame "
                            f"{min(missing)}, {min(missing) / fps:.2f}s)")
-    verdict = caption_verdict(bursts, rows, shown, values, fps)
-    record = caption_frames_record(rows, values, fps, verdict["allowance_frames"])
+    verdict = caption_verdict(bursts, rows, shown, values, fps, reasons=why)
+    record = caption_frames_record(rows, values, fps, verdict["allowance_frames"], why)
     verdict["badge"] = None
     if badges:
-        verdict["badge"] = caption_verdict(badges, b_rows, b_shown, b_values, fps)
-        record["badge_frames"] = caption_frames_record(b_rows, b_values, fps, verdict["allowance_frames"])["frames"]
+        verdict["badge"] = caption_verdict(badges, b_rows, b_shown, b_values, fps, reasons=b_why)
+        record["badge_frames"] = caption_frames_record(b_rows, b_values, fps, verdict["allowance_frames"],
+                                                       b_why)["frames"]
     (out_dir / "caption_frames.json").write_bytes(json.dumps(record, indent=0).encode("utf-8"))
     return verdict
 
@@ -2190,6 +2233,12 @@ def _verdict_findings(v: Dict[str, Any], what: str, bound: float) -> List[str]:
     out = []
     for u in v.get("under") or []:
         where = f"at {u['t']:.2f}s on the master"
+        if u["kind"] == "no_reading":
+            span = f"{u['frames']} frame{'s' if u['frames'] > 1 else ''} from {u['from']:.2f}s"
+            ctx = (f"inside a fade but longer than one ({v.get('allowance_frames')} frames)" if u.get("in_fade")
+                   else "no fade in progress")
+            out.append(f"{what}: no reading {where} ({span}, {ctx}): the measurement failed: {u['why']}")
+            continue
         if u["kind"] == "fully_shown":
             how = f"burst \"{u['text']}\" fully shown" if what == "captions" else f"\"{u['text']}\" shown"
         else:

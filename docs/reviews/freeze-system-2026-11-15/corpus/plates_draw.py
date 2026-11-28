@@ -38,6 +38,9 @@ def args():
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--runs", default="")
+    ap.add_argument("--copies", default="ig,fb", help="the carousel copies a deck draws (ig, fb; default both)")
+    ap.add_argument("--ground-record", action="store_true",
+                    help="record each still's text ground (PLATEFORM): what multi_format.scrim darkened")
     ap.add_argument("--one", default="", help=argparse.SUPPRESS)
     return ap.parse_args()
 
@@ -94,6 +97,89 @@ def match_delivered(delivered: list[Path], stills: list[Path], shape=(36, 45)) -
     return out
 
 
+class _Ground:
+    """PLATEFORM (cycle 6): what the text grounds darkened on the still being drawn. multi_format.scrim is wrapped (the
+    top-level call only: a form's own comparison call is inside it); each call's darkening map D = luma(in) -
+    luma(out) is kept as the per-pixel maximum over one drawing of one still: still_layout.drawn's render is wrapped
+    (reset before, the maps attached to the drawing's own layout after), so a deck's or a Story's survey drawings
+    and its draw-all-then-save order never mix two stills. At save: <still>.ground.png (D, 8-bit, full size) and the
+    record: dark share (> 20 luma), the edge measures of D (plateform/pf_measure.edges, the photograph's own
+    gradient from the ground's input) and what each ground call laid (the form, or "band")."""
+
+    def __init__(self, tree: Path) -> None:
+        import numpy as np
+        sys.path.insert(0, str(tree / "docs/reviews/freeze-system-2026-11-15/plateform"))
+        import pf_measure
+        from src import multi_format
+        self.np, self.pm, self.depth = np, pf_measure, 0
+        self.reset()
+        orig = multi_format.scrim
+
+        def scrim(im, *args, **kw):
+            self.depth += 1
+            try:
+                out = orig(im, *args, **kw)
+            finally:
+                self.depth -= 1
+            if self.depth == 0:
+                self.add(im, out, kw.get("out"))
+            return out
+        multi_format.scrim = scrim
+        from src import still_layout
+        drawn = still_layout.drawn
+
+        def wrap(render):
+            if render is None:
+                return None
+
+            def one(tight):
+                self.reset()
+                im, lay = render(tight)
+                lay._pf_ground = (self.D, self.Lin, list(self.laid))
+                self.reset()
+                return im, lay
+            return one
+
+        def drawn_rec(render, tight_render=None):
+            return drawn(wrap(render), wrap(tight_render))
+        still_layout.drawn = drawn_rec
+
+    def reset(self) -> None:
+        self.D, self.Lin, self.laid = None, None, []
+
+    def add(self, im, out, rec) -> None:
+        np = self.np
+        Lin = self.pm.luma(im)
+        D = Lin - self.pm.luma(out)
+        if self.D is None or self.D.shape != D.shape:
+            self.D, self.Lin = D, Lin
+        else:
+            self.D = np.maximum(self.D, D)
+        pf = (rec or {}).get("plate_form") if isinstance(rec, dict) else None
+        self.laid.append(pf.get("laid") if pf else "band")
+
+    def flush(self, still: Path, layout=None) -> dict:
+        from PIL import Image
+        np = self.np
+        got = getattr(layout, "_pf_ground", None)
+        if got is not None:
+            self.D, self.Lin, self.laid = got
+        if self.D is None:
+            rec = {"dark_share": 0.0, "laid": [], "edge": None}
+        else:
+            D = np.clip(self.D, 0, 255)
+            Image.fromarray(D.astype(np.uint8), "L").save(still.with_suffix(".ground.png"))
+            dark = D > 20
+            rec = {"dark_share": round(float(dark.mean()), 5), "laid": self.laid,
+                   "edge": self.pm.edges(self.Lin, self.Lin - D, np.zeros(D.shape, bool))}
+        self.reset()
+        return rec
+
+
+def _ground_recorder(tree: Path) -> _Ground:
+    return _Ground(tree)
+
+
 def one(a) -> int:
     tree, dev = a.tree.resolve(), a.dev.resolve()
     run = dev / "output" / a.one
@@ -116,10 +202,14 @@ def one(a) -> int:
     from src.visual_engine import VisualEngine
 
     keep = still_layout.save
+    ground = _ground_recorder(tree) if a.ground_record else None
 
     def save(still, layout, recipe, attempts=1):
         entry = keep(still, layout, recipe, attempts)
         meta = getattr(layout, "meta", None)
+        if ground is not None:
+            meta = meta if isinstance(meta, dict) else {}
+            meta["ground_record"] = ground.flush(Path(still), layout)
         if isinstance(meta, dict):
             side = still_layout.sidecar(Path(still))
             data = json.loads(side.read_text(encoding="utf-8"))
@@ -153,7 +243,7 @@ def one(a) -> int:
                                            encoding="utf-8", newline="\n")
         graphics = sorted((run / "graphics").glob("graphic_*.mp4"))
         got = {}
-        for fb in (False, True):
+        for fb in [c == "fb" for c in ("ig", "fb") if c in a.copies.split(",")]:
             p = dict(payload)
             gen.generate_carousel_sequence(stills, p, out, facebook=fb, graphics=graphics)
             got["facebook" if fb else "instagram"] = {
@@ -216,7 +306,8 @@ def main() -> int:
         n, missing = item
         t = time.time()
         r = subprocess.run([sys.executable, str(Path(__file__).resolve()), str(tree), str(dev), str(a.out), "--brand",
-                            a.brand, "--kinds", ",".join(missing), "--one", n], capture_output=True, text=True, env=env)
+                            a.brand, "--kinds", ",".join(missing), "--copies", a.copies, "--one", n]
+                           + (["--ground-record"] if a.ground_record else []), capture_output=True, text=True, env=env)
         (a.out / a.brand / n).mkdir(parents=True, exist_ok=True)
         (a.out / a.brand / n / "draw.log").write_text((r.stdout or "") + (r.stderr or ""), encoding="utf-8",
                                                       errors="replace", newline="\n")

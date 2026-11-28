@@ -544,6 +544,13 @@ def story_window(photo: Path, text_box: tuple[float, float, float, float]) -> tu
     return cover_crop(photo, size, tuple(rec["centering"])).convert("RGB"), rec
 
 
+def _story_safe(im: Image.Image):
+    """PLATEFORM: the Story safe box a block keeps inside (None under the shipped form: the band ignores it)."""
+    from . import plate_form
+    from .safe_zones import safe_box
+    return safe_box("story", *im.size) if plate_form.active() != "base" else None
+
+
 def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, int, int]:
     """The poll sticker's room from `y0`: STORY_STICKER_W wide (no wider than the text column), centred on the
     Story's text column."""
@@ -555,7 +562,7 @@ def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, i
 
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
           floor: float = 0.18, colour=None, pct: float = 95, grade: bool | None = None,
-          out: dict | None = None, plain=()) -> Image.Image:
+          out: dict | None = None, plain=(), safe=None, shipped: bool = False) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
@@ -569,7 +576,32 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     PLATES-03: the ground's hue and saturation kept, the luma the INK alpha's); an opaque panel stays its colour."""
     import numpy as np
 
-    from . import band_edge
+    from . import band_edge, plate_form
+    if plain and plate_form.active() != "base" and not shipped:
+        # design freeze cycle 6 (PLATEFORM; the block family, lander decision, by switch until the default flips): the
+        # form laid from the type's boxes (with their fills and block tags where the caller gives them), inside
+        # `safe`; laid only where it darkens no more of the frame than this band itself would, else the band
+        # (recorded: the darkened-share rule holds by construction, per still)
+        lyr, rec = plate_form.layer(im, plain, safe=safe)
+        boxes = [p[0] if len(p) in (2, 3) and hasattr(p[0], "__len__") else p for p in plain]
+        got: dict = {}
+        banded = scrim(im, y0, y1, feather, target, cap, floor, colour, pct, grade, out=got, plain=boxes, shipped=True)
+        # inside the block, never lighter than the band would be there: a photograph darker than INK under a band
+        # reads darker than an INK block (cycle 6 corpus: Story titles 0.2-0.5 under base); the block takes the
+        # darker of the two, pixel by pixel (INK where the photograph is lighter, which is almost everywhere)
+        shaded = plate_form.darker_inside(Image.alpha_composite(im.convert("RGBA"), lyr), banded, lyr)
+        shaded = shaded if im.mode == "RGBA" else shaded.convert(im.mode)
+        rec["dark_share"] = round(plate_form.dark_share(im, shaded), 4)
+        rec["band_dark_share"] = round(plate_form.dark_share(im, banded), 4)
+        # and never a lighter ground under the type than the band gives it (a band over a photograph darker than
+        # INK reads darker than an INK block: cycle 6 corpus, three Story titles 0.2-0.5 under base)
+        rec["under_type"] = [plate_form.ground_under(shaded, boxes), plate_form.ground_under(banded, boxes)]
+        darker = rec["dark_share"] <= rec["band_dark_share"] + 1e-4
+        rec["laid"] = rec["form"] if darker and rec["under_type"][0] <= rec["under_type"][1] + 0.5 else "band"
+        if out is not None:
+            out["plate_form"] = rec
+            out["strength"] = 0.0 if rec["laid"] != "band" else got.get("strength", 0.0)
+        return shaded if rec["laid"] != "band" else banded
     W, H = im.size
     colour = colour or brand.INK
     lum = band_edge.luma_rows(im)
@@ -601,6 +633,41 @@ def text_band_boxes(d, rows, x: float, bottom: float) -> list:
     low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
     off = bottom - low
     return [d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls") for r in drawn]
+
+
+def row_ink_box(d, x: float, baseline: float, text: str, font, track: float = 0.0) -> tuple:
+    """A row's drawn ink box at (x, baseline), its tracking included (PLATEFORM: a block holds the drawn ink)."""
+    b = d.textbbox((x, baseline), text, font=font, anchor="ls")
+    if track:
+        b = (b[0], b[1], b[0] + tracked_width(text, font, track), b[3])
+    return tuple(b)
+
+
+def kicker_ink_box(x: float, baseline: float, text: str, font) -> tuple:
+    """A kicker's drawn box (draw_kicker): from its lead rule at x to the tracked words' end, cap top to baseline
+    (descenders included)."""
+    b = font.getbbox(text, anchor="ls")
+    return (x, baseline - cap_height(font), x + kicker_width(text, font), baseline + max(0, b[3]))
+
+
+def text_band_items(d, rows, x: float, bottom: float, px) -> list:
+    """PLATEFORM (the block family): a carousel stack's rows as (ink box, fill, block tag): the kicker, heading and
+    body one block ("main"), a share / CTA line its own ("cta"), its gold rule (drawn 26 + 6 design px above the share
+    line's first cap, 96 wide) inside it."""
+    drawn = [r for r in rows if r.get("text")]
+    if not drawn:
+        return []
+    low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+    off = bottom - low
+    boxes = [kicker_ink_box(x + r.get("x", 0), off + r["y"], r["text"], r["font"]) if r.get("kicker")
+             else row_ink_box(d, x + r.get("x", 0), off + r["y"], r["text"], r["font"], r.get("track", 0.0))
+             for r in drawn]
+    out = [(b, tuple(r["fill"][:3]), "cta" if r.get("name") == "share" else "main") for b, r in zip(boxes, drawn)]
+    share = [b for b, r in zip(boxes, drawn) if r.get("name") == "share"]
+    if share:
+        top = min(b[1] for b in share)
+        out.append(((x, top - px(26) - px(6), x + px(96), top - px(26)), tuple(brand.GOLD[:3]), "cta"))
+    return out
 
 
 def text_band_need(im: Image.Image, d, rows, x: float, bottom: float) -> float:
@@ -692,15 +759,22 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float,
     need = band_edge.text_strength(base, [(d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls"), r[4])
                                           for r in rows if r[2]], brand.INK)
     got: dict = {}
+    from . import plate_form as _pf
+    from .safe_zones import safe_box
+    items = list(every) + list(plain)
+    if _pf.active() != "base":   # PLATEFORM (the block family): the drawn lines with their fills, one block
+        items = [(row_ink_box(d, x + r[6], top + r[1], r[2], r[3], r[5]), tuple(r[4][:3]), "main")
+                 for r in rows if r[2]] + list(plain)
     for target in STORY_SCRIM_STEPS:
         shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, out=got,
-                       plain=list(every) + list(plain))
+                       plain=items, safe=safe_box("story", *base.size) if _pf.active() != "base" else None)
         energy = max((ground_energy(shaded, b) for b in every), default=0.0)
         clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
             break
     record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False,
-              "text_band": text_band_record(need, got.get("strength", 0.0))}
+              "text_band": text_band_record(need, got.get("strength", 0.0)),
+              **({"plate_form": got["plate_form"]} if "plate_form" in got else {})}
     if clash >= GOLD_CLASH_SHARE:
         rows = [(r[0], r[1], r[2], r[3], brand.BONE if r[4] == brand.GOLD else r[4], r[5], r[6]) for r in rows]
         record["gold_to_bone"] = True
@@ -768,6 +842,14 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
         return plan_text(im, xy, text, font, tuple(colour), anchor, track=track), {
             "variant": "colour", "contrast": None, "gate": gate, "shown": True}
     member = kicker_label(im, xy, text, font, colour, anchor, track, rule, target)
+    from . import plate_form
+    if step is None and plate_form.active() == "block":
+        # PLATEFORM (the block family, lander ruling 1): every kicker stands on INK: inside its text block the block
+        # is its ground (its own held plate, INK on the opaque block, adds nothing visible); on a frame that keeps
+        # the shipped band (the block would darken more) it takes its own held plate, the family's smallest block,
+        # so a deck whose bright slides move onto blocks never drops a dark slide's kicker off its plate (cycle 6
+        # corpus check: 7 kickers 0.5-0.7 under base when the deck's one step fell to bare colour)
+        step = ("plate", 0)
     # cycle 0 round 8 (R1, one treatment per set): a deck's kickers take ONE step (the deck's, kicker_step); the
     # first drawing of a deck surveys every step each kicker's ground holds (kicker_survey) so the deck can choose
     forced = step if step is not None else getattr(_render_state, "kicker_step", None)
@@ -1450,7 +1532,9 @@ class MultiFormatGenerator:
             # not graded (ruling N2): the credit's small data face sits in the band's fall-off, and a graded ground there
             # read 0.05-0.25 lower after the platform re-encode
             base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
-                         grade=False)
+                         grade=False, plain=[(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"), c_fill,
+                                              "credit") for k, ln in enumerate(c_drawn)],
+                         safe=_story_safe(base))
             credit["text_band"] = text_band_record(need_c, got_c.get("strength", 0.0))
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
@@ -1689,7 +1773,9 @@ class MultiFormatGenerator:
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
         shade_rows, shade_block = rows, block
-        if i == 0 and not pointer:
+        from . import plate_form as _pf
+        formed = _pf.active() != "base"   # PLATEFORM (design switch): a form is laid for the drawn lines only
+        if i == 0 and not pointer and not formed:
             # Rulings N1 / N2 (2026-11-26, review 2 of the PLATES c5 fix): the band and its step are laid for the block
             # as designed, the withheld pointer's line included (its room, as the base laid it), so withholding the
             # line by ruling neither lightens the band under the other lines nor moves the kicker off its plate
@@ -1698,8 +1784,11 @@ class MultiFormatGenerator:
                      font_p.size * 0.11, 0)
             shade_rows = rows + [ghost]
             shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
-        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block,
-                                                 plain=[tuple(credit["backing"])] if credit.get("backing") else ())
+        extra = [tuple(credit["backing"])] if credit.get("backing") else []
+        if formed:   # the block family: the kicker (drawn apart, above the rows) is in its frame's one block
+            extra = [(kicker_ink_box(x, top + cap_k, kicker, font_k), tuple(colour_of("kicker.colour")[:3]), "main")
+                     ] if kicker else []
+        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block, plain=extra)
         rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")
@@ -2678,10 +2767,16 @@ class MultiFormatGenerator:
             cap = 0.95 if deep else 0.90
             need = text_band_need(im, d, drawn, px(margin), stack_bottom)
             got: dict = {}
+            plain = text_band_boxes(d, drawn, px(margin), stack_bottom)
+            from . import plate_form as _pf
+            if _pf.active() != "base":
+                plain = text_band_items(d, drawn, px(margin), stack_bottom, px)
             im = scrim(im, stack_bottom - (low - high) - px(40), chh, feather=px(300), target=0.08 if deep else 0.26,
-                       cap=cap, out=got, plain=text_band_boxes(d, drawn, px(margin), stack_bottom))
+                       cap=cap, out=got, plain=plain)
             if lay is not None:
                 lay.meta["text_band"] = text_band_record(need, got.get("strength", 0.0))
+                if "plate_form" in got:
+                    lay.meta["plate_form"] = got["plate_form"]
             if lay is not None and deep:
                 lay.meta["ink_band"] = True
         elif drawn and lay is not None:

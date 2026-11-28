@@ -587,8 +587,8 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
         got: dict = {}
         banded = scrim(band_on if band_on is not None else im, y0, y1, feather, target, cap, floor, colour, pct,
                        grade, out=got, plain=boxes, shipped=True)
-        if getattr(_render_state, "shipped_ground", False) or getattr(_render_state, "kicker_survey", False):
-            # a survey or the window fitter's move test reads the shipped ground (lander ruling 1, review of cycle 6)
+        if getattr(_render_state, "shipped_ground", False):
+            # the window fitter's move test reads the shipped ground (lander ruling 1, review of cycle 6)
             if out is not None:
                 out["strength"] = got.get("strength", 0.0)
             return banded
@@ -596,6 +596,9 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
         shaded = plate_form.with_block(im, lyr, banded)
         plate_form.choose(im, banded, shaded, plate_form.items_of(plain), rec)
         _render_state.frame_form = rec["laid"]
+        # the frame's shipped ground, where a block is laid: a deck's or Story's kicker survey reads the kicker's
+        # passes on it, so the set's one step is base's (plan_kicker); the drawing itself keeps its block
+        _render_state.shipped_image = banded if rec["laid"] != "band" else None
         if out is not None:
             out["plate_form"] = rec
             out["strength"] = 0.0 if rec["laid"] != "band" else got.get("strength", 0.0)
@@ -859,7 +862,8 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
         # PLATEFORM (the block family; lander ruling 2, review of cycle 6: one form per frame): a kicker inside its
         # frame's block takes the first step of the ladder (its colour; the block is its ground, no plate of its own);
         # on a frame that keeps the band it takes the deck's one step, which the survey chose on the shipped grounds
-        # (scrim draws the band while a deck or Story is surveyed), so it is base's step there
+        # (a surveyed kicker's passes are read on its frame's shipped ground, _render_state.shipped_image), so it is
+        # base's step there
         step = LABEL_FIRST_STEP
     # cycle 0 round 8 (R1, one treatment per set): a deck's kickers take ONE step (the deck's, kicker_step); the
     # first drawing of a deck surveys every step each kicker's ground holds (kicker_survey) so the deck can choose
@@ -874,7 +878,8 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
         plates, rec = plan_label(**member)
     passes = None
     if getattr(_render_state, "kicker_survey", False):
-        passes = [list(s) for s in label_passes(**member)]
+        shipped = getattr(_render_state, "shipped_image", None) if plate_form.active() == "block" else None
+        passes = [list(s) for s in label_passes(**(dict(member, ground=shipped) if shipped is not None else member))]
     return finish_kicker(plates, rec, rule, gate, target, text, passes=passes, set_broken=broken,
                          forced=forced is not None and broken is None)
 
@@ -1331,6 +1336,7 @@ def _holds_text_contrast(draw):
     @functools.wraps(draw)
     def guarded(self, *args, **kw):
         _render_state.frame_form = None   # PLATEFORM: this frame's form is its own (a split slide lays none)
+        _render_state.shipped_image = None
         im, lay = draw(self, *args, **kw)
         return keep_text_contrast(lambda: draw(self, *args, **kw), im, lay)
     return guarded

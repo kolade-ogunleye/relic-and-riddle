@@ -200,16 +200,34 @@ def test_the_block_reaches_the_target_after_a_platform_re_encode(monkeypatch, gr
                                 float(np.percentile(g, 95))) >= plate_form.tk("target")
 
 
-def test_a_survey_or_the_window_test_reads_the_shipped_ground(monkeypatch):
-    """Rule 1: while a deck is surveyed (kicker_survey) or the window fitter tests a move (shipped_ground), scrim
-    lays the band, so the deck's kicker step and the window's move are decided on the shipped ground."""
+def test_a_surveyed_kicker_reads_its_frames_shipped_ground(monkeypatch):
+    """Rule 1/2: a frame that lays its block keeps the band it replaces (_render_state.shipped_image), and a deck's
+    or Story's kicker survey reads the kicker's passes on it (so the set's one step is base's), while the drawing
+    keeps its block (a survey drawing may be the one kept)."""
     monkeypatch.setenv(plate_form.ENV, "block")
     im = _flat(240)
     with multi_format.kicker_set(None, survey=True):
-        surveyed, rec = _scrim(im)
+        out, rec = _scrim(im)
+    assert rec["laid"] == "block"
     monkeypatch.delenv(plate_form.ENV, raising=False)
     band = multi_format.scrim(im, 900, 1800, feather=400, target=0.26, cap=0.90, plain=BOXES)
-    assert np.array_equal(np.asarray(surveyed), np.asarray(band)) and not rec
+    assert np.array_equal(np.asarray(multi_format._render_state.shipped_image), np.asarray(band))
+    monkeypatch.setenv(plate_form.ENV, "block")
+    font = multi_format.get_font(multi_format.brand.TEXT_FONT, 42, weight=800)
+    seen = []
+    real = multi_format.label_passes if hasattr(multi_format, "label_passes") else None
+    import src.typography as typo
+    orig = typo.label_passes
+
+    def spy(**kw):
+        seen.append(kw["ground"])
+        return orig(**kw)
+    monkeypatch.setattr(typo, "label_passes", spy)
+    with multi_format.kicker_set(None, survey=True):
+        multi_format.plan_kicker(out, (150, 950), "THE SALT CATHEDRAL", font, GOLD)
+    assert seen and seen[0] is multi_format._render_state.shipped_image
+    multi_format._render_state.shipped_image = None
+    del real
 
 
 def test_the_window_fitters_move_test_reads_the_shipped_ground(monkeypatch):

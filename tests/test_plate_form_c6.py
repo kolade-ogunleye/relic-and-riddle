@@ -519,3 +519,26 @@ def test_the_hooks_eyebrow_is_in_its_block(monkeypatch, tmp_path):
     # the eyebrow's box (its rule with it) is a line of the block in its own right, not only reached by a pad
     drawn = [p for p in plan.meta["_r"]["plates"] if not getattr(p, "empty", False)]
     assert sum(b["lines"] for b in rec["blocks"]) == len(drawn) + 1, (rec["blocks"], len(drawn))
+
+
+def test_the_switched_off_cta_share_rule_is_bases_pixels(monkeypatch, tmp_path):
+    """Switch off is shipped output (re-review step 1): the CTA slide's gold share rule and the 120 px above the
+    share line, drawn with the form unset, equal base's pixels (fixture rendered at a9de76b3, the stream's base) to
+    the pixel, so a refactor of shared drawing code cannot shift shipped pixels unnoticed."""
+    from src.multi_format import MultiFormatGenerator
+    monkeypatch.delenv(plate_form.ENV, raising=False)
+    rng = np.random.default_rng(7)
+    rows = np.linspace(0, 1, 1920)[:, None, None]
+    arr = np.array((235, 228, 214), float) * (1 - rows) + np.array((120, 110, 96), float) * rows
+    arr = np.broadcast_to(arr, (1920, 1440, 3)).copy() + rng.normal(0, 18, (1920, 1440, 3))
+    p = tmp_path / "bright.jpg"
+    Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8)).save(p, quality=92)
+    share = "Send this to a friend who loves ancient engineering, and follow for the next one."
+    im, lay = MultiFormatGenerator()._render_carousel_slide(
+        "debate", p, p, {"heading": "Hideout or home?", "body": "Which was it?"}, 6, 7, {}, share, False)
+    s = next(e for e in lay.elements if e["name"] == "share")["box"]
+    got = np.asarray(im.convert("RGB").crop((0, int(s[1]) - 120, 400, int(s[1]))), np.int16)
+    want = np.asarray(Image.open(FIX / "plateform_c6" / "share_rule_base.png").convert("RGB"), np.int16)
+    gold = np.all(np.abs(want - np.array(multi_format.brand.GOLD[:3], np.int16)) <= 2, axis=2)
+    assert gold.sum() >= 96 * 6 * 0.9          # the fixture holds the rule itself
+    assert got.shape == want.shape and int((got != want).any(axis=2).sum()) == 0

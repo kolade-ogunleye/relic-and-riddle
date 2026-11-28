@@ -3017,7 +3017,8 @@ class MultiFormatGenerator:
         if share_box and "y" in rule:
             # The gold rule: 6 design px tall, 96 wide, its own height above the share line's first cap.
             r = share_rule_box(px(self.MARGIN), share_box[1], px)
-            ImageDraw.Draw(im).rectangle([r[0], r[1], r[2] - 1, r[3] - 1], fill=brand.GOLD)
+            # base's pixels: the right end inclusive (x0 + 96 px), the foot exclusive (6 px tall)
+            ImageDraw.Draw(im).rectangle([r[0], r[1], r[2], r[3] - 1], fill=brand.GOLD)
         return im
 
     def _diagram_fit(self, size: tuple[int, int], box: tuple[int, int, int, int], cw: int, facebook: bool,

@@ -325,6 +325,8 @@ def test_the_myth_block_is_chosen_never_lighter_and_holds_every_line(monkeypatch
     Image.new("RGB", (1600, 2400), (2, 2, 2)).save(photo2)
     _dc, plan2 = _myth(photo2)
     assert plan2.meta["panel_edges"]["plate_form"]["laid"] == "band"
+    assert plan2.meta["panel_edges"].get("form") != "block"           # what is drawn: the shipped panel
+    assert plan.meta["panel_edges"].get("form") == "block"
 
 
 def test_the_myth_block_enters_by_its_first_element_on_a_flash_safe_curve():
@@ -402,3 +404,16 @@ def test_each_frame_starts_without_a_form():
     multi_format._render_state.frame_form = "block"
     Gen().render()
     assert seen == [None]
+
+
+def test_the_myth_block_grows_to_hold_every_drawn_line():
+    """Rule 6: a drawn line nearer than pad_min to the block's edge (the source line at its own metrics) grows the
+    block (design_cards._BlockDrift.cover), and the mask is drawn again."""
+    from src import design_cards as dc
+    geo = dc._Geo(1080, 1920)
+    rec = {"tier": 1.0, "blocks": [{"box": [119, 296, 707, 1060]}]}
+    pic = Image.new("RGB", (1080, 1920), (230, 228, 220))
+    drift = dc._BlockDrift(pic, rec, geo, None, dc.MYTH_KICKER_IN, Image.new("RGB", (1080, 1920), (11, 14, 18)))
+    drift.cover([(137, 1051, 594, 1078)])
+    assert rec["blocks"][0]["box"][3] >= 1078 + plate_form.tk("block.pad_min")
+    assert float(np.asarray(drift(5.0).convert("L"))[1090, 300]) < 40

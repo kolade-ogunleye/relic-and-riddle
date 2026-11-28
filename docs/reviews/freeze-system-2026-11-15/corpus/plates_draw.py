@@ -121,10 +121,28 @@ class _Ground:
                 out = orig(im, *args, **kw)
             finally:
                 self.depth -= 1
-            if self.depth == 0:
-                self.add(im, out, kw.get("out"))
+            state = multi_format._render_state
+            if self.depth == 0 and not kw.get("shipped") and not getattr(state, "shipped_ground", False) \
+                    and not getattr(state, "kicker_survey", False):
+                self.add(im, out, kw.get("out"))   # the drawing's own grounds (never a survey or a window test's)
             return out
         multi_format.scrim = scrim
+        # the window fitter draws a frame again (moved / as asked, and under the block family on the shipped ground):
+        # the record is the drawing keep_text_contrast returns, never a union of the drawings it compared
+        keep = multi_format.keep_text_contrast
+
+        def keep_text_contrast(draw, im, lay):
+            first = self.snapshot()
+
+            def again():
+                self.reset()
+                got = draw()
+                got[1]._pf_snap = self.snapshot()
+                return got
+            im_c, lay_c = keep(again, im, lay)
+            self.restore(first if lay_c is lay else getattr(lay_c, "_pf_snap", first))
+            return im_c, lay_c
+        multi_format.keep_text_contrast = keep_text_contrast
         from src import still_layout
         drawn = still_layout.drawn
 
@@ -146,6 +164,12 @@ class _Ground:
 
     def reset(self) -> None:
         self.D, self.Lin, self.laid = None, None, []
+
+    def snapshot(self):
+        return (self.D, self.Lin, list(self.laid))
+
+    def restore(self, snap) -> None:
+        self.D, self.Lin, self.laid = snap[0], snap[1], list(snap[2])
 
     def add(self, im, out, rec) -> None:
         np = self.np

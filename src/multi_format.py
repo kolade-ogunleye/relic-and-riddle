@@ -1330,6 +1330,7 @@ def _holds_text_contrast(draw):
 
     @functools.wraps(draw)
     def guarded(self, *args, **kw):
+        _render_state.frame_form = None   # PLATEFORM: this frame's form is its own (a split slide lays none)
         im, lay = draw(self, *args, **kw)
         return keep_text_contrast(lambda: draw(self, *args, **kw), im, lay)
     return guarded

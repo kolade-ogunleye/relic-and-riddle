@@ -5,6 +5,8 @@ visual-check finding that contradicts itself ("'DEDICATED' appears as 'DEDICATED
 reason. Also: the caption gate's fade dips are a note in the release report (ruling 2)."""
 import logging
 
+import pytest
+
 from src import config, release, video_qa
 from src.credits import sha256_file
 
@@ -175,3 +177,31 @@ def test_the_release_check_fails_when_the_captions_could_not_be_measured(tmp_pat
     assert visual["status"] == "fail"
     assert any("caption contrast could not be measured (RuntimeError: no frames decoded)" in p
                for p in release.release_problems(report, dry_run=True))
+
+
+# ---------------------------------------------------------------- review round, ruling B2: drop only a finding with no other claim
+@pytest.mark.parametrize("text, dropped", [
+    (DEDICATED, True),
+    ("'ROME' appears as 'ROME', but the caption misspells 'PANTHEON' as 'PANTHOEN'", False),
+    ("The text 'DEDICATED' appears as 'DEDICATED' but the caption is cut off at the right edge of the frame", False),
+    ("the text 'ROME' appears as 'ROME' and the text 'PANTHEON' appears as 'PANTHOEN'", False),
+    ("The text 'ROME' appears as 'ROME' (the caption is cropped by the plate)", False),
+    ("The text 'ROME' appears as 'ROME' while the photo shows 'PARIS'", False),
+], ids=["real_dedicated", "other_pair_misspelt", "cut_off", "two_pairs_one_differs", "parenthetical_crop",
+        "other_quoted_text"])
+def test_a_finding_is_dropped_only_when_it_claims_nothing_else(text, dropped):
+    assert release.checker_false_positive({"severity": "major", "issue": text}) is dropped
+
+
+def test_a_finding_with_another_claim_keeps_its_severity_and_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "MINOR_FINDINGS_BLOCK_RELEASE", False)
+    master = tmp_path / "x_master.mp4"
+    master.write_bytes(b"video")
+    quality = {"master_sha256": sha256_file(master), "issues": []}
+    cut = "The text 'DEDICATED' appears as 'DEDICATED' but the caption is cut off at the right edge of the frame"
+    look = {"run": True, "issues": [{"beat": 2, "severity": "major", "issue": cut}]}
+    report = release.write_release_report(_run(master, {"self_healing": quality, "video_check": look}), dry_run=True)
+    visual = next(c for c in report["checks"] if c["name"] == "visual_checks")
+    assert visual["status"] == "fail" and "checker_false_positives" not in visual
+    assert any("cut off" in p for p in release.release_problems(report, dry_run=True))
+

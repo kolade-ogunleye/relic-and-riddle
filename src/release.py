@@ -523,19 +523,60 @@ def _reading_rate_checks(composition: dict | None) -> list:
 
 
 # "the text 'X' appears as 'Y'": the quoted text a finding says was expected, and what it says was seen
-_QUOTE_OPEN, _QUOTE_CLOSE = "'\"‘“", "'\"’”"
+_QUOTE_OPEN, _QUOTE_CLOSE = "'\"\u2018\u201c", "'\"\u2019\u201d"
 _SEEN_AS = re.compile(f"[{_QUOTE_OPEN}](?P<a>[^{_QUOTE_OPEN}{_QUOTE_CLOSE}]+)[{_QUOTE_CLOSE}]\\s+"
                       r"(?:appears|is shown|is displayed|is drawn|is rendered|reads|is spelled|is written)\s+as\s+"
                       f"[{_QUOTE_OPEN}](?P<b>[^{_QUOTE_OPEN}{_QUOTE_CLOSE}]+)[{_QUOTE_CLOSE}]")
+_QUOTED = re.compile(f"[{_QUOTE_OPEN}]([^{_QUOTE_OPEN}{_QUOTE_CLOSE}]+)[{_QUOTE_CLOSE}]")
+# A statement of a problem (review round B2): any of these in a clause of the finding is a claim the finding makes.
+_PROBLEM = re.compile(r"\b(?:misspel\w*|typo\w*|cut\s*off|cut\b|cropp\w*|clipp\w*|truncat\w*|overlap\w*|obscur\w*|"
+                      r"hidden|hides?|cover(?:s|ed|ing)?|illegible|unreadable|hard to read|blurr?\w*|wrong\w*|"
+                      r"incorrect\w*|missing|absent|omit\w*|mismatch\w*|differ\w*|not match\w*|doesn't match|"
+                      r"does not match|garbled|broken|off[- ]?screen|outside|low contrast|too (?:small|fast|faint|"
+                      r"dark|light|long|short)|duplicat\w*|repeat\w*|error\w*|fault\w*|defect\w*|problem\w*|issue\w*|"
+                      r"glitch\w*|flicker\w*|artifact\w*|artefact\w*|misalign\w*|out of sync|desync\w*|late|early)\b",
+                      re.IGNORECASE)
+# A clause about the checker's own reference (the transcription or narration it compares the caption with), not
+# about anything drawn: "the transcription is missing the first words" says nothing wrong with the video.
+_REFERENCE = re.compile(r"\b(?:transcri\w*|narration|narrator|voice[- ]?over|spoken|audio)\b", re.IGNORECASE)
+_CLAUSE = re.compile(r"[.;:()\[\]]|\bbut\b|\bhowever\b|\bwhile\b|\band\b|\bwhereas\b|\byet\b", re.IGNORECASE)
+
+
+def _same(a: str, b: str) -> bool:
+    return " ".join(a.split()) == " ".join(b.split())
+
+
+def _consistent(quotes: list) -> bool:
+    """True when every quoted text names the same words (case and spacing aside): each is part of the others."""
+    norm = [" ".join(q.casefold().split()) for q in quotes if q.strip()]
+    return all(a in b or b in a for i, a in enumerate(norm) for b in norm[i + 1:])
 
 
 def checker_false_positive(issue) -> bool:
-    """True when a visual-check finding contradicts itself: every "'X' appears as 'Y'" it quotes has X and Y the same
-    text (whitespace aside), so it reports nothing that differs (freeze c6 capgate, audit item 14)."""
+    """True when a visual-check finding contradicts itself and claims nothing else (freeze c6 capgate, audit item 14;
+    narrowed in the review round, lander ruling B2): every "'X' appears as 'Y'" it quotes has X and Y the same text
+    (whitespace aside), and with those pairs taken out it makes NO other claim: every other quoted text names the
+    same words (no other pair that differs), and no clause states a problem (_PROBLEM), unless that clause is only
+    about the checker's own reference (the transcription or narration, _REFERENCE). When in doubt it is kept."""
     if not isinstance(issue, dict):
         return False
-    pairs = _SEEN_AS.findall(str(issue.get("issue") or ""))
-    return bool(pairs) and all(" ".join(a.split()) == " ".join(b.split()) for a, b in pairs)
+    text = str(issue.get("issue") or "")
+    pairs = list(_SEEN_AS.finditer(text))
+    if not pairs or not all(_same(m.group("a"), m.group("b")) for m in pairs):
+        return False
+    rest, last = [], 0
+    for m in pairs:
+        rest.append(text[last:m.start()])
+        last = m.end()
+    rest.append(text[last:])
+    rest_text = " ".join(rest)
+    quotes = [m.group("a") for m in pairs] + _QUOTED.findall(rest_text)
+    if not _consistent(quotes):
+        return False
+    for clause in _CLAUSE.split(_QUOTED.sub(" ", rest_text)):
+        if _PROBLEM.search(clause) and not _REFERENCE.search(clause):
+            return False
+    return True
 
 
 def split_checker_false_positives(look: list) -> tuple[list, list]:

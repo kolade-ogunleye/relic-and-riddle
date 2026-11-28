@@ -613,20 +613,26 @@ def branches() -> dict[str, dict[str, Callable]]:
         return long_wide(ctx, size)
     out["design_cards.plan_myth_fact"]["long"] = long_myth
 
-    def block_myth(ctx, size):
-        """Design freeze cycle 6 (PLATEFORM, the block family by switch): the 9:16 myth with RR_PLATE_FORM=block on a
-        photograph, where the block's ink boxes are measured at the lines' own sizes (design_cards._myth_ink_boxes)."""
-        import os
-        saved = os.environ.get("RR_PLATE_FORM")
-        os.environ["RR_PLATE_FORM"] = "block"
-        try:
-            return _card_plan("plan_myth_fact", photo=ctx.busy)(ctx, size)
-        finally:
-            if saved is None:
-                os.environ.pop("RR_PLATE_FORM", None)
-            else:
-                os.environ["RR_PLATE_FORM"] = saved
-    out["design_cards.plan_myth_fact"]["block"] = block_myth
+    def under_block(render):
+        """Design freeze cycle 6 (PLATEFORM, the block family by switch): a myth variant drawn with RR_PLATE_FORM=block
+        on a photograph, where the block's ink boxes are measured at the lines' own sizes (design_cards._myth_ink_boxes),
+        so the registry observes the same sizes with the switch off as with it on (re-review step 2.1)."""
+        def render_block(ctx, size):
+            import os
+            saved = os.environ.get("RR_PLATE_FORM")
+            os.environ["RR_PLATE_FORM"] = "block"
+            try:
+                return render(ctx, size)
+            finally:
+                if saved is None:
+                    os.environ.pop("RR_PLATE_FORM", None)
+                else:
+                    os.environ["RR_PLATE_FORM"] = saved
+        return render_block
+    myth = out["design_cards.plan_myth_fact"]
+    for name, render in list(myth.items()):
+        myth[f"block_{name}"] = under_block(render)
+    myth["block"] = under_block(lambda ctx, size: _card_plan("plan_myth_fact", photo=ctx.busy)(ctx, size))
     # SYS-D-5: a carousel deck sets every content heading at ONE tier (MultiFormatGenerator._deck_heading_tier,
     # measured over both copies before any slide is drawn); the single-slide renders above never reach it
     out.setdefault("carousel.immersive.instagram", {})["deck_tier"] = _deck_tier

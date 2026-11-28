@@ -654,12 +654,15 @@ def kicker_ink_box(x: float, baseline: float, text: str, font) -> tuple:
     return (x, baseline - cap_height(font), x + kicker_width(text, font), baseline + max(0, b[3]))
 
 
-SHARE_RULE = (96, 6, 26)   # design px: the CTA slide's gold rule (length, thickness, gap above the share line's cap)
+# design px: the CTA slide's gold rule over its share line (its length, thickness and gap above the line's cap)
+SHARE_RULE_LENGTH = 96
+SHARE_RULE_THICK = 6
+SHARE_RULE_GAP = 26
 
 
 def share_rule_box(x: float, share_top: float, px) -> tuple:
-    """The CTA slide's gold rule over its share line (SHARE_RULE): (x0, y0, x1, y1), drawn and blocked from here."""
-    length, thick, gap = SHARE_RULE
+    """The CTA slide's gold rule over its share line (SHARE_RULE_*): (x0, y0, x1, y1), drawn and blocked from here."""
+    length, thick, gap = SHARE_RULE_LENGTH, SHARE_RULE_THICK, SHARE_RULE_GAP
     return (x, share_top - px(gap) - px(thick), x + px(length), share_top - px(gap))
 
 

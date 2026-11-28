@@ -22,9 +22,6 @@ from PIL import Image, ImageDraw
 
 from src import brand, brand_system, masthead
 
-# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
-pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
-
 ROOT = Path(__file__).resolve().parent.parent
 OBSERVED = ROOT / "tests" / "fixtures" / "type_sizes_observed.json"
 SIZE = brand_system.type_px("masthead", "carousel")

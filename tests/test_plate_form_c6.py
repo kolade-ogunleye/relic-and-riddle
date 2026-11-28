@@ -254,12 +254,15 @@ def test_a_window_trial_frame_is_base_whole_its_kicker_too(monkeypatch):
     multi_format._render_state.frame_form = "block"
     multi_format._render_state.shipped_ground = True
     try:
-        _scrim(_flat(240))
+        out, _rec = _scrim(_flat(240))
         assert multi_format._render_state.frame_form == "band"
         assert multi_format._render_state.shipped_image is None
     finally:
         multi_format._render_state.shipped_ground = False
         multi_format._render_state.frame_form = None
+    monkeypatch.delenv(plate_form.ENV, raising=False)
+    band = multi_format.scrim(_flat(240), 900, 1800, feather=400, target=0.26, cap=0.90, plain=BOXES)
+    assert np.array_equal(np.asarray(out), np.asarray(band))   # the trial's ground is base's band
 
 
 def test_a_kicker_inside_its_block_takes_its_colour_and_on_a_band_frame_the_decks_step(monkeypatch):
@@ -479,3 +482,36 @@ def test_the_myth_plan_grows_its_block_to_the_drawn_lines(monkeypatch, tmp_path)
     Image.new("RGB", (1600, 2400), (240, 238, 230)).save(photo)
     _dc, plan = _myth(photo)
     assert seen and seen[0] >= 5
+
+
+def test_a_story_frames_drawn_credit_is_a_block_of_its_frame(monkeypatch, tmp_path):
+    """Rule 4 at the frame: a Story frame with a credit lays the credit as a block of the frame's family (tag
+    "credit", the frame's left edge), in the frame's one record, never a band of its own."""
+    from src.multi_format import MultiFormatGenerator
+    monkeypatch.setenv(plate_form.ENV, "block")
+    monkeypatch.setattr(multi_format, "story_credit", lambda photo, pages=None: {
+        "required": True, "lines": ["Photo: Jane Doe, CC BY 4.0"], "license": "CC BY 4.0"})
+    photo = tmp_path / "s.jpg"
+    Image.new("RGB", (1080, 1920), (236, 232, 224)).save(photo)
+    _im, lay = MultiFormatGenerator()._render_story_frame(
+        photo, {"kicker": "DID YOU KNOW?", "line1": "ONE MAN", "line2": "KNOCKED", "body": "Short."}, 0, 3, {})
+    rec = (getattr(lay, "ground", None) or {}).get("plate_form") or {}
+    assert rec.get("laid") == "block", rec
+    tags = [b["tag"] for b in rec["blocks"]]
+    assert "credit" in tags, tags
+    assert len({b["box"][0] for b in rec["blocks"]}) == 1, rec["blocks"]
+
+
+def test_the_hooks_eyebrow_is_in_its_block(monkeypatch, tmp_path):
+    """Rules 1/2 on the hook: the eyebrow is a line of the hook's main block (one form for the frame), so the block
+    reaches above it, never a band or plate of its own."""
+    import tests.test_freeze_cards_2026_11_04 as fc
+    monkeypatch.setenv(plate_form.ENV, "block")
+    photo = tmp_path / "h.jpg"
+    Image.new("RGB", (1600, 2400), (246, 246, 246)).save(photo)
+    plan = fc.hook_plan(photo, eyebrow="The Richat ring")
+    rec = plan.meta["scrim"]["plate_form"]
+    assert rec["laid"] == "block", rec
+    eb = next(x for x in plan.elements if x.name == "eyebrow")
+    assert any(b["box"][1] <= eb.box[1] and b["box"][3] >= eb.box[3] and b["box"][0] <= eb.box[0]
+               for b in rec["blocks"]), (eb.box, rec["blocks"])

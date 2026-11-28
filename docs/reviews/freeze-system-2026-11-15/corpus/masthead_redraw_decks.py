@@ -26,6 +26,7 @@ def main() -> int:
     ap.add_argument("out", type=Path)
     ap.add_argument("--brand", default="default")
     ap.add_argument("--runs", default="")
+    ap.add_argument("--stack-shift", type=float, default=None, help="masthead.STACK_SHIFT for a placement experiment")
     a = ap.parse_args()
     tree, dev = a.tree.resolve(), a.dev.resolve()
     os.environ.update(FONT_SIZE="80", PYTHONIOENCODING="utf-8", RR_FIXTURE_REPO=str(dev))
@@ -35,6 +36,9 @@ def main() -> int:
     socket.create_connection = offline
     sys.path.insert(0, str(tree))
     from src import brand, multi_format, still_layout
+    if a.stack_shift is not None:
+        from src import masthead
+        masthead.STACK_SHIFT = a.stack_shift
     if a.brand != "default":
         sys.path.insert(0, str(tree / "docs/reviews/quality-fixes-2026-11/QF-35a"))
         import render_surfaces
@@ -74,17 +78,38 @@ def main() -> int:
                           int(r0["total"]), r0.get("poll") or {}, r0.get("share") or "", r0.get("subject") or "",
                           r0.get("lead"))
             multi_format._render_state.masthead_form_note = None
-        for sub, entries in recs.items():
-            # slide 2 before slide 1 (the strip meets slide 2's kicker rule), as the sequence draws them
-            order = sorted(entries, key=lambda kv: (kv[0] != "carousel_slide_02.jpg", kv[0]))
-            for name, e in order:
-                recipe = dict(e["recipe"])
-                if form is not None:
-                    recipe["masthead_form"] = form
-                multi_format.redraw_carousel_slide(dst / sub / name, recipe, tight=bool(e.get("tight")))
-            print(f"{run.name[4:48]:44} {sub:11} {len(entries)} slides redrawn, form {form}", flush=True)
+        def redraw(form_):
+            for sub, entries in recs.items():
+                # slide 2 before slide 1 (the strip meets slide 2's kicker rule), as the sequence draws them
+                order = sorted(entries, key=lambda kv: (kv[0] != "carousel_slide_02.jpg", kv[0]))
+                for name, e in order:
+                    recipe = dict(e["recipe"])
+                    if form_ is not None:
+                        recipe["masthead_form"] = form_
+                    multi_format.redraw_carousel_slide(dst / sub / name, recipe, tight=bool(e.get("tight")))
+                print(f"{run.name[4:48]:44} {sub:11} {len(entries)} slides redrawn, form {form_}", flush=True)
+        redraw(form)
+        fell = None
+        if form == "stacked":
+            # the post's fallback as generate_carousel_sequence makes it (multi_format.stack_failures): any slide of
+            # either copy whose stacked mark failed its check sends the whole post to the one-line form
+            failed = []
+            for sub in recs:
+                for name, e in sorted(json.loads((dst / sub / "still_layout.json").read_text(encoding="utf-8")).items()):
+                    chk = (e.get("meta") or {}).get("stack_check") or {}
+                    if chk and not chk.get("ok"):
+                        failed.append(f"{'Facebook' if sub.endswith('_fb') else 'Instagram'} slide "
+                                      f"{int(name[-6:-4])}: {chk.get('why')}")
+            if failed:
+                fell = failed
+                form = "line"
+                multi_format._render_state.masthead_form_note = ("the post fell back to the one-line form: "
+                                                                  + "; ".join(failed))
+                redraw(form)
+                multi_format._render_state.masthead_form_note = None
         d = json.loads((dst / "draw.json").read_text(encoding="utf-8"))
-        d.update(redrawn_decks_at=str(tree), masthead_form=form)
+        d.update(redrawn_decks_at=str(tree), masthead_form=form, stacked_fallback=fell,
+                 stack_shift=a.stack_shift)
         (dst / "draw.json").write_text(json.dumps(d, indent=1), encoding="utf-8", newline="\n")
     return 0
 

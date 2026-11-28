@@ -895,9 +895,41 @@ def keep_deck_set_step(key: str, step) -> None:
             _DECK_STEPS.pop(next(iter(_DECK_STEPS)))
 
 
+_DECK_FORMS: dict[str, tuple] = {}
+
+
+def deck_set_form(key: str):
+    """(form, note) a copy of this deck settled on (freeze cycle 6: one masthead form per post), or None."""
+    with _DECK_STEPS_LOCK:
+        return _DECK_FORMS.get(key)
+
+
+def keep_deck_set_form(key: str, value: tuple) -> None:
+    with _DECK_STEPS_LOCK:
+        _DECK_FORMS[key] = value
+        while len(_DECK_FORMS) > DECK_STEPS_KEPT:
+            _DECK_FORMS.pop(next(iter(_DECK_FORMS)))
+
+
+def stack_failures(*decks_and_copy) -> list[str]:
+    """The slides (of the drawn copies: draw_deck's {index: (im, lay, ...)}) whose stacked mark failed its check
+    (masthead.stack_check, recorded lay.meta["stack_check"]), as "<copy> slide <n>: <why>". The last argument is
+    whether the first deck is the Facebook copy."""
+    *decks, facebook = decks_and_copy
+    out = []
+    for k, deck in enumerate(decks):
+        copy = "Facebook" if (k == 0) == bool(facebook) else "Instagram"
+        for i, entry in sorted(deck.items()):
+            chk = (getattr(entry[1], "meta", None) or {}).get("stack_check") or {}
+            if chk and not chk.get("ok"):
+                out.append(f"{copy} slide {i + 1}: {chk.get('why')}")
+    return out
+
+
 def clear_deck_steps() -> None:
     with _DECK_STEPS_LOCK:
         _DECK_STEPS.clear()
+        _DECK_FORMS.clear()
 
 
 brand.on_change(clear_deck_steps)
@@ -3166,6 +3198,7 @@ class MultiFormatGenerator:
                 form = masthead.hook_form(size, hook_row, x0)
         form = form or "line"
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
+        pre, line_base, line_reach = im, base, base + px(300)   # the ground before the mark; the one-line form's
         if facebook and archetype != "cover":
             # lane D cycle 3 (lander ruling 1 of the second review): the Facebook collage is branded once, on its
             # cover tile; an interior Facebook slide draws no masthead (recorded, not a gate failure)
@@ -3185,15 +3218,25 @@ class MultiFormatGenerator:
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
                                                  max_width=cw - px(280) - x0, form=form)
             mrec["reach_matched"] = round(matched)
-        if not mrec["shown"] and form == "stacked" and not mrec.get("fb_interior"):
-            # freeze cycle 6 (M1): where the stacked form reaches no gate on this ground the one-line form is tried
-            # (the post's form gives way to a drawn mark, never to a missing one), recorded on the slide
-            why = mrec.get("reason")
-            im2, plate2, mrec2, box2 = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
-                                                     max_width=cw - px(280) - x0, form="line")
-            if mrec2["shown"]:
-                im, plate, mrec, box = im2, plate2, mrec2, box2
-                mrec["form_fallback"] = {"post_form": "stacked", "drawn": "line", "stacked": why}
+        if form == "stacked" and not mrec.get("fb_interior"):
+            # freeze cycle 6 (M1, lander ruling 2026-11-27): the stacked mark is held to the one-line mark on the same
+            # ground (masthead.stack_check: no more of the photograph treated, no lower reading after the re-encode,
+            # the gate); a slide that fails it makes the WHOLE post fall back to the one-line form
+            # (generate_carousel_sequence), so this slide's check is recorded here
+            line = masthead.draw(pre.convert("RGB"), x0, line_base, size, reach=line_reach,
+                                 max_width=cw - px(280) - x0, form="line")
+            if line[2].get("shown") is False and facebook and archetype == "cover":
+                ig_base = px(self.HEADER_Y) + cap_height(brand_font)
+                line = masthead.draw(pre.convert("RGB"), x0, line_base, size,
+                                     reach=(ig_base + px(300)) * line_base / ig_base,
+                                     max_width=cw - px(280) - x0, form="line")
+            check = masthead.stack_check((im, plate, mrec, box), line)
+            if isinstance(getattr(lay, "meta", None), dict):
+                lay.meta["stack_check"] = check
+            if not mrec.get("shown") and line[2].get("shown"):
+                # never a missing mark: this slide draws the one-line form (the post falls back as a whole)
+                im, plate, mrec, box = line
+                mrec["form_fallback"] = {"post_form": "stacked", "drawn": "line", "why": check["why"]}
         if archetype == "cover" and isinstance(getattr(lay, "meta", None), dict):
             # the hook ratio of the form drawn (masthead.hook_record), the one-line form's beside it
             lay.meta["hook_ratio"] = masthead.hook_record(
@@ -3382,15 +3425,30 @@ class MultiFormatGenerator:
         # one set: the step is planned once over both copies' kickers (the first copy drawn surveys the other copy
         # too) and kept for the deck (deck_set_step), so the second copy draws on it without planning again.
         def plan_deck():
-            # freeze cycle 6 (MASTHEAD M1): the post's ONE masthead form, from both copies' covers as drawn
-            _render_state.masthead_form = self._deck_masthead_form(cards, archetypes, photos, total, poll, share,
-                                                                   subject, lead)
             key = deck_set_key(output_dir, cards, archetypes, photos, diagram, poll, share, subject, lead, showing)
+            # freeze cycle 6 (MASTHEAD M1): the post's ONE masthead form, from both copies' covers as drawn, and kept
+            # for the other copy (deck_set_form) once both copies' slides were checked
+            kept = deck_set_form(key)
+            if kept is not None:
+                _render_state.masthead_form, _render_state.masthead_form_note = kept
+            else:
+                _render_state.masthead_form = self._deck_masthead_form(cards, archetypes, photos, total, poll, share,
+                                                                       subject, lead)
             planned, step = deck_set_step(key)
             if planned:
                 return draw_deck(step), step
             drawn = draw_deck(None)
             sibling = draw_deck(None, not facebook)
+            if _render_state.masthead_form == "stacked":
+                # lander ruling 2026-11-27 (2c): any slide of either copy whose stacked mark fails its check makes the
+                # WHOLE post fall back to the one-line form, recorded with the slide and the measured values
+                failed = stack_failures(drawn, sibling, facebook)
+                if failed:
+                    _render_state.masthead_form = "line"
+                    _render_state.masthead_form_note = ("the post fell back to the one-line form: " + "; ".join(failed))
+                    drawn = draw_deck(None)
+                    sibling = draw_deck(None, not facebook)
+            keep_deck_set_form(key, (_render_state.masthead_form, getattr(_render_state, "masthead_form_note", None)))
             step = deck_kicker_step([drawn[i][1] for i in order] + [entry[1] for entry in sibling.values()])
             keep_deck_set_step(key, step)
             if step is not None and not kickers_on([drawn[i][1] for i in order], step):

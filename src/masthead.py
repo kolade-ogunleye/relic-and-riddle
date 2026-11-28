@@ -165,6 +165,19 @@ def stack_lines(name: str | None = None, size: float = 64.0) -> tuple[str, str] 
     return best[1]
 
 
+# Lander ruling (2026-11-27, round 2 review): the stacked form stays inside the scrim region the one-line form already
+# has (no new reach, no new darkening). STACK_SHIFT: how many stack pitches the FIRST line's baseline sits above the
+# one-line form's baseline: 1.0 puts the stack's last baseline on the one-line baseline (the first line above it,
+# higher on the same ramp); 0.5 centres the stack on the one-line cap block; 0.0 hangs it from the one-line cap line.
+# Chosen by measurement on the dev corpus (hand-back "Review fixes"): the value with no slide failing against base.
+STACK_SHIFT = 1.0
+
+
+def stack_offset(size: float) -> float:
+    """The first line's baseline offset from the one-line baseline (negative: above it)."""
+    return -STACK_SHIFT * stack_pitch(size)
+
+
 def stack_pitch(size: float) -> float:
     """Baseline to baseline of the stacked form: the name's cap height x (1 + masthead.stack_gap), the clear field
     between its two lines of capitals."""
@@ -226,6 +239,58 @@ def hook_record(surface: str, form: str, group: float | None, row: float | None,
         rec["at_ceiling"] = True
         rec["reason"] = f"drawn {form}: its group is {r:.2f} of the first title row (token {rec['max']}); {why}"
     return rec
+
+
+def treats_more(rec: dict, than: dict) -> str:
+    """What `rec`'s ground treatment does to the photograph beyond `than`'s ("": nothing): a longer scrim reach, a
+    higher scrim peak, a stronger light lift, a lower levels ceiling (each a share of the photograph moved further)."""
+    def reach(r):
+        return r.get("reach_matched") or r.get("reach") or 0
+    out = []
+    if reach(rec) > reach(than) + 0.5:
+        out.append("a longer scrim")
+    if float(rec.get("scrim_peak") or 0) > float(than.get("scrim_peak") or 0) + 1e-6:
+        out.append("a higher scrim peak")
+    if float(rec.get("light_lift") or 0) > float(than.get("light_lift") or 0) + 1e-6:
+        out.append("a stronger light lift")
+    if (rec.get("levels_ceiling") or 256) < (than.get("levels_ceiling") or 256):
+        out.append("a lower levels ceiling")
+    return ", ".join(out)
+
+
+def platform_contrast(drawn) -> float | None:
+    """The drawn masthead's name (masthead.draw's (image, plate, record, box)) measured again after a platform-like
+    re-encode of the image (multi_format.platform_encode): what the delivered still's `contrast_platform` reads."""
+    im, plate, rec, _ = drawn
+    if plate is None or not rec.get("shown"):
+        return None
+    from .multi_format import platform_encode
+    v = plate.measure(platform_encode(im.convert("RGB")))
+    return None if v is None else round(float(v), 2)
+
+
+STACK_NOISE = 0.05   # the re-encode reading's noise: the stacked mark may read this much under the one-line mark
+
+
+def stack_check(stacked, line) -> dict[str, Any]:
+    """The lander's two gates for the stacked form on one slide (round 2, 2026-11-27), against the one-line form drawn
+    on the same ground: the photograph treated no more (treats_more: no new darkening or lifting) and the mark's
+    ratio after the platform re-encode not lower than the one-line mark's by more than STACK_NOISE; with the 5.5:1
+    gate (the stacked mark drawn). {"ok", "why", the readings}."""
+    srec, lrec = stacked[2], line[2]
+    cs, cl = platform_contrast(stacked), platform_contrast(line)
+    why = []
+    if not srec.get("shown"):
+        why.append(f"the stacked mark reaches no gate ({srec.get('contrast')}:1)")
+    else:
+        more = treats_more(srec, lrec) if lrec.get("shown") else ""
+        if more:
+            why.append(f"the stacked mark needs {more}")
+        if cl is not None and (cs is None or cs < cl - STACK_NOISE):
+            why.append(f"it reads {cs} after the re-encode against the one-line mark's {cl}")
+    return {"ok": not why, "why": "; ".join(why), "platform": [cs, cl],
+            "treatment": {k: [srec.get(k), lrec.get(k)] for k in ("scrim_peak", "light_lift", "levels_ceiling",
+                                                                  "reach", "halo")}}
 
 
 class StackPlate:
@@ -579,12 +644,6 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     goal = tok("contrast.masthead_target") if target is None else target
     spec_font = font_for(size)
     asked = baseline + 6 * cap_height(spec_font) if reach is None else float(reach)
-    if form == "stacked" and stack_lines() is not None:
-        # freeze cycle 6 (M1): the stacked form's LAST baseline stands on the share of the top-edge ramp the one-line
-        # form's baseline stands on (the matched reach, as lane D cycle 3 matched the Facebook cover's): its second
-        # line, one stack pitch lower, gets the strength the one-line name gets (on the stored bright stress ground the
-        # default's stacked form reached 4.52:1 on the one-line reach, 5.55 on this one)
-        asked *= (baseline + stack_pitch(size)) / baseline
 
     def rank(rec):
         c = float(rec.get("contrast") or 0.0)
@@ -647,9 +706,9 @@ def plan_at(im: Image.Image, x0: float, baseline: float, size: float, reach: flo
         """The name's plate on `ground` in this form (a StackPlate of its two lines when stacked)."""
         if not lines:
             return plan_text(ground, xy, brand.MASTHEAD, font, fill, "ls", spec["track"], **kw)
-        pitch = stack_pitch(size)
-        return StackPlate([plan_text(ground, (xy[0], xy[1] + k * pitch), t, font, fill, "ls", spec["track"], **kw)
-                           for k, t in enumerate(lines)], brand.MASTHEAD)
+        pitch, top = stack_pitch(size), stack_offset(size)
+        return StackPlate([plan_text(ground, (xy[0], xy[1] + top + k * pitch), t, font, fill, "ls", spec["track"],
+                                     **kw) for k, t in enumerate(lines)], brand.MASTHEAD)
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
     # round 7 (sweep: an accepted scrim stepped 0.58-0.70 luma/px): the top-edge shapes (dark scrim, light lift,
     # levels) never step faster than scrim.slope_max. Smoothstep's steepest slope is 1.5 x its rise over its reach;
@@ -975,13 +1034,13 @@ def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     """The masthead drawn: (image, the name's plate, the record, the group's box including the diamond). When the
     record says `shown: False` (no ruled step reaches the gate, or the group does not fit its room) the image comes
     back untouched, the plate is None and the box is None. `form`: "line" or "stacked" (freeze cycle 6, M1: the
-    diamond centred on the stack's cap block, half a stack pitch under the one-line form's)."""
+    diamond centred on the stack's cap block, placed by stack_offset)."""
     mode = im.mode
     ground, p, rec = plan(im, x0, baseline, size, reach, target, max_width, form=form)
     if not rec["shown"]:
         return im, None, rec, None
     size = rec["size_px"]                                     # the size the fit ladder chose
-    lift = stack_pitch(size) / 2 if rec.get("form") == "stacked" else 0.0
+    lift = stack_offset(size) + stack_pitch(size) / 2 if rec.get("form") == "stacked" else 0.0
     diamond, spec = mark_geometry(x0, baseline + lift, size)
     out = verify(ground, p, diamond, spec["edge"], rec, judged=rec["contrast"])
     if out is None:                                           # fail closed: no masthead with an invisible mark

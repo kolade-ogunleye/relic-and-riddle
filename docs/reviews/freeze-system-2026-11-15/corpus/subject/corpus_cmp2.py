@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 boxes = json.loads(boxes_f.read_text())
 reviewed = {e["sha256"]: e["focus_box"] for e in json.loads((tree / "data/cover_art_direction.json").read_text(encoding="utf-8"))["photos"]}
 pool = json.load(open(HERE / "pool.json"))
-DEV = Path(r"C:\Users\omokolade\GitHub\relic-and-riddle")
+DEV = Path(__import__("os").environ["RR_DEV"])   # the dev checkout
 for e in json.loads((tree / "data/cover_art_direction.json").read_text(encoding="utf-8"))["photos"]:
     pool.append({"path": str(DEV / e["source"]), "sha256": e["sha256"]})
 photos = c.Photos(HERE / "pfcache")

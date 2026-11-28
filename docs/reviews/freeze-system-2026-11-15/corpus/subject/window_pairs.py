@@ -18,7 +18,7 @@ spec = __import__("importlib.util").util.spec_from_file_location("corp", r"C:\tm
 corp = __import__("importlib.util").util.module_from_spec(spec); spec.loader.exec_module(corp)
 wins = {s: w for s, k, w in corp.windows()}
 for rel, surface in zip(args[::2], args[1::2]):
-    p = Path(r"C:\Users\omokolade\GitHub\relic-and-riddle\assets") / rel
+    p = Path(__import__("os").environ["RR_DEV"]) / "assets" / rel
     d = hashlib.sha256(p.read_bytes()).hexdigest()
     clean, kept = pf.load(p)
     with Image.open(p) as im:

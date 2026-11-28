@@ -114,9 +114,12 @@ SHORT_DECK = {"carousel_slides": [
     {"heading": "YOUR TAKE", "body": "What do you think shaped it?"}], "title": "T", "narration_script": ""}
 
 
-def test_one_form_per_post_every_slide_of_both_copies_takes_the_covers_form(tmp_path):
+def test_one_form_per_post_every_slide_of_both_copies_takes_the_covers_form(tmp_path, monkeypatch):
     """The deck's covers take the stacked form, so every slide of the Instagram and the Facebook copy draws it (the
-    mark never changes form or size inside the post), and a redraw keeps it (the recipe's masthead_form)."""
+    mark never changes form or size inside the post), and a redraw keeps it (the recipe's masthead_form). The per-slide
+    check is held passing here (its own tests below)."""
+    monkeypatch.setattr(masthead, "stack_check", lambda stacked, line: {"ok": True, "why": ""})
+    multi_format.clear_deck_steps()
     photos = [_photo(tmp_path / f"q{i}.jpg", c) for i, c in enumerate([(60, 70, 90), (80, 70, 60), (70, 80, 60)])]
     paths = []
     for fb in (False, True):
@@ -137,8 +140,36 @@ def test_one_form_per_post_every_slide_of_both_copies_takes_the_covers_form(tmp_
     assert next(e["masthead"] for e in again["elements"] if e["name"] == "header_brand")["form"] == "stacked"
 
 
-def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_needs_it():
-    """Wieliczka on YouTube (panel 7: 483 / 613 px = 0.79): the thumbnail decides for itself, at its one size."""
+def test_one_failing_slide_sends_the_whole_post_back_to_the_one_line_form(tmp_path, monkeypatch):
+    """Lander ruling 2026-11-27 (2c): a slide of either copy whose stacked mark fails its check (more treatment, a lower
+    re-encoded reading, or no gate) makes the WHOLE post draw the one-line form, recorded with the slide."""
+    real = masthead.stack_check
+    calls = {"n": 0}
+
+    def third_fails(stacked, line):
+        calls["n"] += 1
+        got = real(stacked, line)
+        return dict(got, ok=False, why="probe: reads lower") if calls["n"] == 3 else dict(got, ok=True, why="")
+    monkeypatch.setattr(masthead, "stack_check", third_fails)
+    multi_format.clear_deck_steps()
+    photos = [_photo(tmp_path / f"f{i}.jpg", c) for i, c in enumerate([(60, 70, 90), (80, 70, 60), (70, 80, 60)])]
+    paths = []
+    for fb in (False, True):
+        paths += M().generate_carousel_sequence(photos * 2, json.loads(json.dumps(SHORT_DECK)), tmp_path / "run",
+                                                facebook=fb)
+    forms = {next(e["masthead"] for e in still_layout.load(p)["elements"] if e["name"] == "header_brand")["form"]
+             for p in paths if any(e["name"] == "header_brand" for e in still_layout.load(p)["elements"])}
+    assert forms == {"line"} and {still_layout.load(p)["recipe"]["masthead_form"] for p in paths} == {"line"}
+    cover = still_layout.load(paths[0])
+    rec = cover["meta"]["hook_ratio"] if "meta" in cover else None
+    if rec is not None:
+        assert rec["at_ceiling"] and "probe: reads lower" in rec["reason"]
+
+
+def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_needs_it(monkeypatch):
+    """Wieliczka on YouTube (panel 7: 483 / 613 px = 0.79): the thumbnail decides for itself, at its one size (its
+    stacked-form check held passing here; refused, the one-line form stays: below)."""
+    monkeypatch.setattr(masthead, "stack_check", lambda stacked, line: {"ok": True, "why": ""})
     src = Image.new("RGB", (1920, 1080), (60, 66, 74))
     meta: dict = {}
     _, plates = youtube_thumbnail.render(src, {"line1": "THE SALT", "line2": "CATHEDRAL"}, meta=meta)
@@ -153,14 +184,23 @@ def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_ne
     assert wide["hook_ratio"]["form"] == "line" and wide["hook_ratio"]["holds"]
 
 
-def test_the_stacked_form_stands_on_the_one_line_forms_share_of_the_ramp_and_holds_the_stress_ground():
-    """On the stored bright stress ground the default's stacked form reached 4.52:1 on the one-line reach (its second
-    line lower on the ramp): its last baseline takes the one-line baseline's share of the ramp (matched reach)."""
+def test_a_youtube_stacked_form_that_fails_its_check_keeps_the_one_line_form(monkeypatch):
+    monkeypatch.setattr(masthead, "stack_check", lambda stacked, line: {"ok": False, "why": "probe: reads lower"})
+    meta: dict = {}
+    youtube_thumbnail.render(Image.new("RGB", (1920, 1080), (60, 66, 74)), {"line1": "THE SALT", "line2": "CATHEDRAL"},
+                             meta=meta)
+    assert meta["masthead"]["form"] == "line" and meta["hook_ratio"]["at_ceiling"]
+    assert "probe: reads lower" in meta["hook_ratio"]["reason"]
+
+
+def test_the_stacked_form_stays_inside_the_one_line_forms_scrim():
+    """Lander ruling 2026-11-27 (round 2): no new reach. The stacked form is planned on the reach it is given, its last
+    baseline on the one-line baseline (masthead.STACK_SHIFT 1.0: the first line above it, higher on the same ramp)."""
     w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME
-    ground = masthead.stress_ground(*masthead.BRIGHT_STRESS[1:])
-    _, _, rec = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form="stacked")
-    assert rec["form"] == "stacked" and rec["reach"] == round(reach * (base + masthead.stack_pitch(size)) / base)
-    assert rec["shown"] and rec["contrast"] >= brand_system.tok("contrast.masthead_gate")
+    ground = masthead.validation_ground(60, 20.0, 1.5)
+    _, plate, rec = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form="stacked")
+    assert rec["form"] == "stacked" and rec["reach"] == round(reach)
+    assert abs(plate.plates[-1].xy[1] - base) < 1e-6 and plate.plates[0].xy[1] < base
 
 
 def test_a_slide_whose_stacked_mark_reaches_no_gate_draws_the_one_line_form_recorded(tmp_path, monkeypatch):
@@ -174,7 +214,8 @@ def test_a_slide_whose_stacked_mark_reaches_no_gate_draws_the_one_line_form_reco
     monkeypatch.setattr(masthead, "draw", stacked_refused)
     _, lay = _cover(tmp_path, "THE EYE OF THE SAHARA", form="stacked")
     m = lay.meta["masthead"]
-    assert m["shown"] and m["form"] == "line" and m["form_fallback"]["stacked"] == "probe: no gate"
+    assert m["shown"] and m["form"] == "line" and "no gate" in m["form_fallback"]["why"]
+    assert lay.meta["stack_check"]["ok"] is False
 
 
 def test_the_corpus_measure_on_committed_records():
@@ -251,8 +292,7 @@ def test_the_palette_check_refuses_a_pair_under_the_gate_and_accepts_one_over_it
 def test_the_palettes_readings_on_the_stress_ground_are_pinned_as_data():
     """The shipped default and the second colour set measured on the stored stress ground, each held to its dated pin
     (tests/fixtures/masthead_stress_readings.json) within its tolerance: DATA, not a refusal that hangs on 0.01. The
-    default reads 0.12 over the gate; the second colours' one-line form 0.01 under it (refused on Windows), its
-    stacked form at it. The assertion message carries every reading, so another platform's values are on record."""
+    default reads 0.12 over the gate in both forms; the second colours 0.01 under it in both (refused on Windows). The assertion message carries every reading, so another platform's values are on record."""
     sys.path.insert(0, str(ROOT / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
     import render_surfaces
     pin = json.loads((ROOT / "tests" / "fixtures" / "masthead_stress_readings.json").read_text(encoding="utf-8"))

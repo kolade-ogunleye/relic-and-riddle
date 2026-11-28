@@ -343,11 +343,19 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
         brand_p = next((q for n, q in got[1] if n == "brand"), None)
         hit = [n for n, q in got[1] if n != "brand" and brand_p is not None and not q.empty
                and _intersects(q.box, brand_p.box)]
-        if brand_p is not None and not hit:
+        # the lander's gates for the stacked form (2026-11-27): no more of the photograph treated than the one-line
+        # mark, no lower reading after the re-encode (masthead.stack_check), on the same thumbnail
+        line_p = next((q for n, q in plates if n == "brand"), None)
+        check = masthead.stack_check((got[0], brand_p, got[2].get("masthead") or {"shown": False}, None),
+                                     (im, line_p, trial.get("masthead") or {"shown": False}, None))
+        if brand_p is not None and not hit and check["ok"]:
             im, plates, trial, targets, edge = got
+            trial["stack_check"] = check
         else:
+            trial["stack_check"] = check
             trial["hook_ratio"] = dict(hook, note=("the stacked form would touch the " + hit[0]) if hit else
-                                       "the stacked form is not drawn on this ground (its gate)")
+                                       ("the stacked form fails its check: " + check["why"]) if brand_p is not None
+                                       else "the stacked form is not drawn on this ground (its gate)")
             trial["hook_ratio"]["reason"] = masthead.hook_record(
                 "YouTube thumbnail", "line", hook.get("masthead_px"), hook.get("first_row_px"), hook.get("size_px"),
                 note=trial["hook_ratio"]["note"]).get("reason")

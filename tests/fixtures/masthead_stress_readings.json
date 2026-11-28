@@ -1,5 +1,5 @@
 {
- "what": "Freeze cycle 6 (MASTHEAD M3, lander ruling 2026-11-27): the masthead's best judged ratio (best_tried) on the stored bright stress ground (masthead.BRIGHT_STRESS) per palette and lockup form, measured on Windows (the workstation) at 0a421d34. DATA, not a verdict: the gate is 5.5:1 and these values sit within 0.06 of it, so a rasteriser difference of that size moves a verdict. The test holds each reading to TOLERANCE of its pin; the verdict rule itself is tested with probes far from the gate.",
+ "what": "Freeze cycle 6 (MASTHEAD M3, lander ruling 2026-11-27): the masthead's best judged ratio (best_tried) on the stored bright stress ground (masthead.BRIGHT_STRESS) per palette and lockup form, measured on Windows (the workstation) at 63f9cb35 (STACK_SHIFT 1.0). DATA, not a verdict: the gate is 5.5:1 and these values sit within 0.13 of it, so a rasteriser difference of that size moves a verdict. The test holds each reading to TOLERANCE of its pin; the verdict rule itself is tested with probes far from the gate.",
  "date": "2026-11-27",
  "tolerance": 0.1,
  "gate": 5.5,
@@ -7,6 +7,6 @@
   "default/line": 5.62,
   "default/stacked": 5.62,
   "second-colours/line": 5.49,
-  "second-colours/stacked": 5.5
+  "second-colours/stacked": 5.49
  }
 }

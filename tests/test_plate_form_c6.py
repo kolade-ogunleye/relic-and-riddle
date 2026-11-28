@@ -447,3 +447,20 @@ def test_the_decks_one_step_is_planned_on_the_shipped_grounds_survey():
     on_band = {"shown": True, "step": ["plate", 0], "passes": [["halo", 0], ["plate", 0]]}
     assert tuple(multi_format.deck_kicker_step([Lay(on_block), Lay(on_band)])) == ("plate", 0)
     assert tuple(multi_format.deck_kicker_step([Lay(on_block), Lay(dict(on_block))])) == ("plate", 0)
+
+
+def test_the_myth_plan_grows_its_block_to_the_drawn_lines(monkeypatch, tmp_path):
+    """Rule 6 at the plan: _myth_compose hands every drawn text box to the block (cover) after the type is set."""
+    from src import design_cards as dc
+    monkeypatch.setenv(plate_form.ENV, "block")
+    seen = []
+    real = dc._BlockDrift.cover
+
+    def spy(self, boxes):
+        seen.append(len(boxes))
+        return real(self, boxes)
+    monkeypatch.setattr(dc._BlockDrift, "cover", spy)
+    photo = tmp_path / "m.jpg"
+    Image.new("RGB", (1600, 2400), (240, 238, 230)).save(photo)
+    _dc, plan = _myth(photo)
+    assert seen and seen[0] >= 5

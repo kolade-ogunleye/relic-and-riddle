@@ -246,7 +246,9 @@ def test_a_crop_that_shows_less_than_the_cycle5_crop_is_not_drawn_even_if_it_bea
     def as_without(photo, w, *args, legacy=False, floor=None, analysis=None, **kw):
         rec = real(photo, w, *args, legacy=legacy, floor=floor, analysis=analysis, **kw)
         if analysis is not None and analysis.focus is not None and not legacy:
-            rec = {**rec, "box": list(blind["box"]), "problems": []}
+            rec = {**rec, "box": list(blind["box"]), "problems": []}   # only as good as the crop without the box
+        if legacy:   # the cycle-5 crop carries a certain problem, so ranking by problems alone would pass it over
+            rec = {**rec, "problems": ["protected"], "fit": False}
         return rec
     monkeypatch.setattr(pf, "_place", as_without)
     got = pf.place(None, window, analysis=a)

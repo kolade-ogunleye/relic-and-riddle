@@ -512,6 +512,10 @@ def test_the_hooks_eyebrow_is_in_its_block(monkeypatch, tmp_path):
     plan = fc.hook_plan(photo, eyebrow="The Richat ring")
     rec = plan.meta["scrim"]["plate_form"]
     assert rec["laid"] == "block", rec
-    eb = next(x for x in plan.elements if x.name == "eyebrow")
-    assert any(b["box"][1] <= eb.box[1] and b["box"][3] >= eb.box[3] and b["box"][0] <= eb.box[0]
-               for b in rec["blocks"]), (eb.box, rec["blocks"])
+    for name in ("eyebrow", "eyebrow_rule"):   # the eyebrow and its rule (eyebrow_box) inside the block
+        eb = next(x for x in plan.elements if x.name == name)
+        assert any(b["box"][1] <= eb.box[1] and b["box"][3] >= eb.box[3] and b["box"][0] <= eb.box[0]
+                   for b in rec["blocks"]), (name, eb.box, rec["blocks"])
+    # the eyebrow's box (its rule with it) is a line of the block in its own right, not only reached by a pad
+    drawn = [p for p in plan.meta["_r"]["plates"] if not getattr(p, "empty", False)]
+    assert sum(b["lines"] for b in rec["blocks"]) == len(drawn) + 1, (rec["blocks"], len(drawn))

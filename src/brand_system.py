@@ -230,15 +230,15 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # HOOK surface (the mark sits over the headline's first row and must not compete with it: masthead.hook_ratio_max,
     # one size at the ladder's floor); the end screen is the sign-off, where the mark is the card's subject over a
     # share line and no hook (PL3 is not applicable there: panel 7 protocol). Unifying either way would break one rule.
-    # The gold rule under the end card's / end screen's wordmark (it was a layout literal, 240 x 4 px on both canvases):
     # The stacked form (freeze cycle 6, M1): the clear field between its two lines, a share of the name's cap height.
     # Wider than the lockup's 0.18: the gate's ring (2-10 px around the ink) must read the ground, not the other line
     "masthead.stack_gap": 0.45,
-    "masthead.rule_len": 240,
+    # The gold rule under the end card's / end screen's wordmark (it was a layout literal, 240 x 4 px on both canvases):
+    "masthead.rule_len": 240,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
+    "masthead.rule_thick": 4,         # px: its stroke
     # The swipe strip's part on slide 1 (freeze cycle 6, M2): drawn only outside the profile grid's 3:4 crop, and
     # only where that part is at least this long (design px); else none, and none run in on slide 2
-    "swipe.part_min": 24,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
-    "masthead.rule_thick": 4,         # px: its stroke
+    "swipe.part_min": 24,
     # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
     "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
     "map.home_edge_w": 1.5,           # px: the casing's GOLD_LIGHT edge inside the core

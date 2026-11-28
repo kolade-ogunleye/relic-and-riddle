@@ -166,6 +166,78 @@ def test_one_failing_slide_sends_the_whole_post_back_to_the_one_line_form(tmp_pa
         assert rec["at_ceiling"] and "probe: reads lower" in rec["reason"]
 
 
+def _deck_with_stacked_draw(tmp_path, monkeypatch, alter):
+    """The short deck through production (generate_carousel_sequence, both copies), every stacked masthead draw passed
+    through `alter(drawn)` (a REAL drawn mark changed the way a gate must catch); the real masthead.stack_check is
+    spied (its verdicts kept): (the slides' records, the checks seen)."""
+    real_draw, real_check, seen = masthead.draw, masthead.stack_check, []
+
+    def draw(*a, **k):
+        got = real_draw(*a, **k)
+        return alter(got) if k.get("form") == "stacked" and got[2].get("shown") else got
+
+    def check(stacked, line):
+        out = real_check(stacked, line)
+        seen.append(out)
+        return out
+    monkeypatch.setattr(masthead, "draw", draw)
+    monkeypatch.setattr(masthead, "stack_check", check)
+    multi_format.clear_deck_steps()
+    photos = [_photo(tmp_path / f"g{i}.jpg", c) for i, c in enumerate([(60, 70, 90), (80, 70, 60), (70, 80, 60)])]
+    paths = []
+    for fb in (False, True):
+        paths += M().generate_carousel_sequence(photos * 2, json.loads(json.dumps(SHORT_DECK)), tmp_path / "run",
+                                                facebook=fb)
+    return [still_layout.load(p) for p in paths], seen
+
+
+def _forms(recs):
+    return {next(e["masthead"] for e in r["elements"] if e["name"] == "header_brand")["form"]
+            for r in recs if any(e["name"] == "header_brand" for e in r["elements"])}
+
+
+def test_a_stacked_mark_that_darkens_the_photograph_sends_the_post_back_to_one_line(tmp_path, monkeypatch):
+    """Gate 1 on real drawn pairs (lander ruling 2026-11-27, round 3): a stacked mark whose ground leaves the photograph
+    darker than with the one-line mark anywhere (here 40 luma on a patch beside the mark) fails, and the WHOLE post
+    draws the one-line form."""
+    from PIL import ImageDraw
+
+    def darken(drawn):
+        im = drawn[0].copy()
+        ImageDraw.Draw(im).rectangle([900, 300, 1100, 420], fill=(10, 10, 10))
+        return (im, *drawn[1:])
+    recs, seen = _deck_with_stacked_draw(tmp_path, monkeypatch, darken)
+    assert any(not c["ok"] and "darker" in c["why"] and c["darker"]["px"] > 0 for c in seen)
+    assert _forms(recs) == {"line"} and {r["recipe"]["masthead_form"] for r in recs} == {"line"}
+
+
+def test_a_stacked_mark_that_reads_lower_after_the_re_encode_sends_the_post_back_to_one_line(tmp_path, monkeypatch):
+    """Gate 2 on real drawn pairs: the stacked mark softened inside its own box (no photograph darkened) reads more
+    than 0.05 lower after the platform re-encode than the one-line mark, and the WHOLE post draws one line."""
+    from PIL import ImageFilter
+
+    def soften(drawn):
+        im, plate, rec, box = drawn
+        im = im.copy()
+        region = im.crop(tuple(int(v) for v in box)).filter(ImageFilter.GaussianBlur(2.5))
+        im.paste(region, tuple(int(v) for v in box[:2]))
+        return (im, plate, rec, box)
+    recs, seen = _deck_with_stacked_draw(tmp_path, monkeypatch, soften)
+    assert any(not c["ok"] and "after the re-encode" in c["why"] and not (c["darker"] or {}).get("px") for c in seen)
+    assert _forms(recs) == {"line"} and {r["recipe"]["masthead_form"] for r in recs} == {"line"}
+
+
+def test_a_lighter_variant_is_not_darker_and_passes_the_ground_gate():
+    """Lander ruling 2026-11-27 (round 3): a stacked mark that takes the LIGHTER variant (a lift where the one-line mark
+    took the scrim) darkens less and passes gate 1 (masthead.darker_than on the pixels)."""
+    a = Image.new("RGB", (400, 200), (120, 120, 120))
+    lighter = Image.new("RGB", (400, 200), (150, 150, 150))
+    darker = Image.new("RGB", (400, 200), (100, 100, 100))
+    assert masthead.darker_than(lighter, a, [])["px"] == 0
+    assert masthead.darker_than(darker, a, [])["px"] == 400 * 200
+    assert masthead.darker_than(darker, a, [(0, 0, 400, 200)])["px"] == 0      # the marks' own boxes excluded
+
+
 def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_needs_it(monkeypatch):
     """Wieliczka on YouTube (panel 7: 483 / 613 px = 0.79): the thumbnail decides for itself, at its one size (its
     stacked-form check held passing here; refused, the one-line form stays: below)."""
@@ -179,6 +251,8 @@ def test_the_youtube_thumbnail_takes_the_stacked_form_where_its_own_first_row_ne
     assert rec["line_ratio"] > TOKEN and rec["form"] == "stacked" and rec["holds"]
     assert meta["masthead"]["size_px"] == youtube_thumbnail.mast_px()
     assert not any(youtube_thumbnail._intersects(p.box, brand_p.box) for n, p in plates if n != "brand")
+    # round 3: the stack's first cap on the one-line form's header line where it clears the hook (shift 0.0)
+    assert meta["masthead"]["stack_shift"] == 0.0 and meta["stack_check"]["placements"][-1]["shift"] == 0.0
     wide: dict = {}
     youtube_thumbnail.render(src, {"line1": "GIANT DESERT", "line2": "DRAWINGS"}, meta=wide)
     assert wide["hook_ratio"]["form"] == "line" and wide["hook_ratio"]["holds"]

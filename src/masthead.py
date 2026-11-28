@@ -175,9 +175,10 @@ def stack_lines(name: str | None = None, size: float = 64.0) -> tuple[str, str] 
 STACK_SHIFT = 0.5
 
 
-def stack_offset(size: float) -> float:
-    """The first line's baseline offset from the one-line baseline (negative: above it)."""
-    return -STACK_SHIFT * stack_pitch(size)
+def stack_offset(size: float, shift: float | None = None) -> float:
+    """The first line's baseline offset from the one-line baseline (negative: above it); `shift` overrides
+    STACK_SHIFT for one draw (0.0: the first line's cap on the one-line form's header line)."""
+    return -(STACK_SHIFT if shift is None else shift) * stack_pitch(size)
 
 
 def stack_pitch(size: float) -> float:
@@ -243,23 +244,6 @@ def hook_record(surface: str, form: str, group: float | None, row: float | None,
     return rec
 
 
-def treats_more(rec: dict, than: dict) -> str:
-    """What `rec`'s ground treatment does to the photograph beyond `than`'s ("": nothing): a longer scrim reach, a
-    higher scrim peak, a stronger light lift, a lower levels ceiling (each a share of the photograph moved further)."""
-    def reach(r):
-        return r.get("reach_matched") or r.get("reach") or 0
-    out = []
-    if reach(rec) > reach(than) + 0.5:
-        out.append("a longer scrim")
-    if float(rec.get("scrim_peak") or 0) > float(than.get("scrim_peak") or 0) + 1e-6:
-        out.append("a higher scrim peak")
-    if float(rec.get("light_lift") or 0) > float(than.get("light_lift") or 0) + 1e-6:
-        out.append("a stronger light lift")
-    if (rec.get("levels_ceiling") or 256) < (than.get("levels_ceiling") or 256):
-        out.append("a lower levels ceiling")
-    return ", ".join(out)
-
-
 def platform_contrast(drawn) -> float | None:
     """The drawn masthead's name (masthead.draw's (image, plate, record, box)) measured again after a platform-like
     re-encode of the image (multi_format.platform_encode): what the delivered still's `contrast_platform` reads."""
@@ -274,23 +258,51 @@ def platform_contrast(drawn) -> float | None:
 STACK_NOISE = 0.05   # the re-encode reading's noise: the stacked mark may read this much under the one-line mark
 
 
+DARKER_LUMA = 2.0   # luma: a pixel this much darker than with the one-line mark counts as darkened (rounding noise)
+MARK_PAD = 8        # px around either mark's box that is the mark's own (its ink and halo), not the photograph
+
+
+def darker_than(im, base, boxes) -> dict[str, float]:
+    """Where `im` is darker than `base` outside the marks' `boxes` (each grown by MARK_PAD): the count of pixels more
+    than DARKER_LUMA darker, their share of the frame and the largest drop (luma)."""
+    import numpy as np
+    w = np.array([0.2126, 0.7152, 0.0722], np.float32)
+    a = np.asarray(im.convert("RGB"), np.float32) @ w
+    b = np.asarray(base.convert("RGB"), np.float32) @ w
+    keep = np.ones(a.shape, bool)
+    for bx in boxes:
+        if bx:
+            x0, y0, x1, y1 = (int(v) for v in bx)
+            keep[max(0, y0 - MARK_PAD):y1 + MARK_PAD, max(0, x0 - MARK_PAD):x1 + MARK_PAD] = False
+    drop = np.where(keep, b - a, 0.0)
+    n = int((drop > DARKER_LUMA).sum())
+    return {"px": n, "share_pct": round(100.0 * n / drop.size, 4), "max_luma": round(float(drop.max()), 1)}
+
+
 def stack_check(stacked, line) -> dict[str, Any]:
-    """The lander's two gates for the stacked form on one slide (round 2, 2026-11-27), against the one-line form drawn
-    on the same ground: the photograph treated no more (treats_more: no new darkening or lifting) and the mark's
-    ratio after the platform re-encode not lower than the one-line mark's by more than STACK_NOISE; with the 5.5:1
-    gate (the stacked mark drawn). {"ok", "why", the readings}."""
+    """The lander's gates for the stacked form on one slide (rulings 2026-11-27), against the one-line form drawn on
+    the same ground: (1) the PHOTOGRAPH is nowhere darker than with the one-line mark (measured on the pixels outside
+    both marks, darker_than; a lighter variant, a lift where the one-line mark took the scrim, darkens less and passes);
+    (2) the mark's ratio after the platform re-encode not lower than the one-line mark's by more than STACK_NOISE;
+    with the 5.5:1 gate (the stacked mark drawn). {"ok", "why" (with the measured values), the readings}."""
     srec, lrec = stacked[2], line[2]
     cs, cl = platform_contrast(stacked), platform_contrast(line)
     why = []
+    dark = None
     if not srec.get("shown"):
-        why.append(f"the stacked mark reaches no gate ({srec.get('contrast')}:1)")
+        why.append(f"the stacked mark reaches no gate (best {srec.get('best_tried')}:1)")
     else:
-        more = treats_more(srec, lrec) if lrec.get("shown") else ""
-        if more:
-            why.append(f"the stacked mark needs {more}")
+        if lrec.get("shown"):
+            dark = darker_than(stacked[0], line[0], [stacked[3], line[3]])
+            if dark["px"]:
+                why.append(f"the photograph is darker than with the one-line mark on {dark['px']} px "
+                           f"({dark['share_pct']} % of the frame, up to {dark['max_luma']} luma; treatment "
+                           + ", ".join(f"{k} {srec.get(k)} vs {lrec.get(k)}" for k in
+                                       ("scrim_peak", "light_lift", "levels_ceiling") if srec.get(k) != lrec.get(k))
+                           + ")")
         if cl is not None and (cs is None or cs < cl - STACK_NOISE):
             why.append(f"it reads {cs} after the re-encode against the one-line mark's {cl}")
-    return {"ok": not why, "why": "; ".join(why), "platform": [cs, cl],
+    return {"ok": not why, "why": "; ".join(why), "platform": [cs, cl], "darker": dark,
             "treatment": {k: [srec.get(k), lrec.get(k)] for k in ("scrim_peak", "light_lift", "levels_ceiling",
                                                                   "reach", "halo")}}
 
@@ -649,8 +661,8 @@ MARGIN_REACH_FREE = 1.5           # past this a reach is taken only to draw a wi
 
 
 def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
-         target: float | None = None, max_width: float | None = None, form: str = "line"
-         ) -> tuple[Image.Image, Any, dict[str, Any]]:
+         target: float | None = None, max_width: float | None = None, form: str = "line",
+         shift: float | None = None) -> tuple[Image.Image, Any, dict[str, Any]]:
     """`plan_at` with MARGIN above the gate (freeze cycle 5, stream PLATES; panel 6, eight of twelve lens-runs: real
     mastheads sat on the 5.5 floor: 5.51 with the halo exception, 5.55, 5.62). Where the ruled order at the surface's
     own reach ends short of the target, is withheld, or needs the halo exception, the same ruled order is solved
@@ -671,14 +683,15 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
     def short(rec):
         return (not rec.get("shown")) or rec.get("halo_exception") or float(rec.get("contrast") or 0.0) < goal
 
-    best = plan_at(im, x0, baseline, size, asked, target, max_width, floor=MARGIN, form=form)
+    best = plan_at(im, x0, baseline, size, asked, target, max_width, floor=MARGIN, form=form, shift=shift)
     best[2]["reach"] = round(asked)
     if short(best[2]) and best[2].get("fit_floor_px") is None:      # a group that does not fit its room stays refused
         first = best[2]
         for k in MARGIN_REACH:
             if k > MARGIN_REACH_FREE and best[2].get("shown") and not best[2].get("halo_exception"):
                 break   # drawn within the ruled caps: the photograph is not darkened further for margin alone
-            trial = plan_at(im, x0, baseline, size, asked * k, target, max_width, floor=MARGIN, form=form)
+            trial = plan_at(im, x0, baseline, size, asked * k, target, max_width, floor=MARGIN, form=form,
+                            shift=shift)
             trial[2].update(reach=round(asked * k), margin_step=f"reach x{k:g}",
                             margin_from={"contrast": first.get("contrast"), "shown": first.get("shown"),
                                          "halo_exception": bool(first.get("halo_exception")),
@@ -698,7 +711,7 @@ def plan(im: Image.Image, x0: float, baseline: float, size: float, reach: float 
 
 def plan_at(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
             target: float | None = None, max_width: float | None = None, floor: float | None = None,
-            form: str = "line") -> tuple[Image.Image, Any, dict[str, Any]]:
+            form: str = "line", shift: float | None = None) -> tuple[Image.Image, Any, dict[str, Any]]:
     """(the image with the masthead's ground solved, the name's TextPlate, the record). `x0`: the diamond's left
     point; `baseline`: the name's baseline; `reach`: where the top scrim has eased out (default: baseline + 6 caps);
     `max_width`: the room the group may take (default: the canvas less x0 each side). The record's `contrast` is the
@@ -725,7 +738,7 @@ def plan_at(im: Image.Image, x0: float, baseline: float, size: float, reach: flo
         """The name's plate on `ground` in this form (a StackPlate of its two lines when stacked)."""
         if not lines:
             return plan_text(ground, xy, brand.MASTHEAD, font, fill, "ls", spec["track"], **kw)
-        pitch, top = stack_pitch(size), stack_offset(size)
+        pitch, top = stack_pitch(size), stack_offset(size, shift)
         return StackPlate([plan_text(ground, (xy[0], xy[1] + top + k * pitch), t, font, fill, "ls", spec["track"],
                                      **kw) for k, t in enumerate(lines)], brand.MASTHEAD)
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
@@ -737,7 +750,8 @@ def plan_at(im: Image.Image, x0: float, baseline: float, size: float, reach: flo
     bone, ink = colour_of("masthead.colour_dark"), colour_of("masthead.colour_light")
     base = im.convert("RGB")
     width = form_width(size, form)
-    rec: dict[str, Any] = {"form": form, **({"lines": list(lines)} if lines else {}), "variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1),
+    rec: dict[str, Any] = {"form": form, **({"lines": list(lines), "stack_shift": STACK_SHIFT if shift is None
+                                             else shift} if lines else {}), "variant": "dark", "scrim_peak": 0.0, "halo": 0.0, "size": round(float(size), 1),
                            "size_px": float(size), "size_asked": round(float(asked), 1),
                            "group_width": round(width, 1), "room": round(float(room), 1)}
     if fitted is None:   # round 3, finding 7: never clipped silently: refused below the fit ladder's floor
@@ -1048,18 +1062,18 @@ def verify(ground: Image.Image, plate, diamond, edge: int, rec: dict[str, Any], 
 
 
 def draw(im: Image.Image, x0: float, baseline: float, size: float, reach: float | None = None,
-         target: float | None = None, max_width: float | None = None, form: str = "line"
-         ) -> tuple[Image.Image, Any, dict[str, Any], tuple[int, int, int, int] | None]:
+         target: float | None = None, max_width: float | None = None, form: str = "line",
+         shift: float | None = None) -> tuple[Image.Image, Any, dict[str, Any], tuple[int, int, int, int] | None]:
     """The masthead drawn: (image, the name's plate, the record, the group's box including the diamond). When the
     record says `shown: False` (no ruled step reaches the gate, or the group does not fit its room) the image comes
     back untouched, the plate is None and the box is None. `form`: "line" or "stacked" (freeze cycle 6, M1: the
     diamond centred on the stack's cap block, placed by stack_offset)."""
     mode = im.mode
-    ground, p, rec = plan(im, x0, baseline, size, reach, target, max_width, form=form)
+    ground, p, rec = plan(im, x0, baseline, size, reach, target, max_width, form=form, shift=shift)
     if not rec["shown"]:
         return im, None, rec, None
     size = rec["size_px"]                                     # the size the fit ladder chose
-    lift = stack_offset(size) + stack_pitch(size) / 2 if rec.get("form") == "stacked" else 0.0
+    lift = stack_offset(size, shift) + stack_pitch(size) / 2 if rec.get("form") == "stacked" else 0.0
     diamond, spec = mark_geometry(x0, baseline + lift, size)
     out = verify(ground, p, diamond, spec["edge"], rec, judged=rec["contrast"])
     if out is None:                                           # fail closed: no masthead with an invisible mark

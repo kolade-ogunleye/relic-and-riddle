@@ -315,13 +315,13 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     first pass also measures the type's right edge, and the ink's feather is fitted to it (round 4)."""
     given = dict(meta or {})
 
-    def solve(form):
+    def solve(form, shift=None):
         targets: dict[str, float] = {}
         edge = None
         while True:
             trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
             im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
-                                 column, form=form)
+                                 column, form=form, shift=shift)
             if edge is None and _type_edge(plates) is not None:
                 edge = _type_edge(plates)
                 continue
@@ -339,20 +339,31 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     from . import masthead
     hook = trial.get("hook_ratio") or {}
     if not hook.get("holds", True) and masthead.stack_lines() is not None:
-        got = solve("stacked")
-        brand_p = next((q for n, q in got[1] if n == "brand"), None)
-        hit = [n for n, q in got[1] if n != "brand" and brand_p is not None and not q.empty
-               and _intersects(q.box, brand_p.box)]
-        # the lander's gates for the stacked form (2026-11-27): no more of the photograph treated than the one-line
-        # mark, no lower reading after the re-encode (masthead.stack_check), on the same thumbnail
+        # the stack's placement (lander ruling 2026-11-27, round 3): its first cap on the header line the one-line
+        # form uses (shift 0.0), the second line below; where that touches the hook or fails a gate, centred on the
+        # one-line baseline (masthead.STACK_SHIFT), recorded
         line_p = next((q for n, q in plates if n == "brand"), None)
-        check = masthead.stack_check((got[0], brand_p, got[2].get("masthead") or {"shown": False}, None),
-                                     (im, line_p, trial.get("masthead") or {"shown": False}, None))
+        tried = []
+        for shift in (0.0, None):
+            got = solve("stacked", shift)
+            brand_p = next((q for n, q in got[1] if n == "brand"), None)
+            hit = [n for n, q in got[1] if n != "brand" and brand_p is not None and not q.empty
+                   and _intersects(q.box, brand_p.box)]
+            # the lander's gates for the stacked form (2026-11-27): the photograph nowhere darker than with the
+            # one-line mark, no lower reading after the re-encode (masthead.stack_check), on the same thumbnail
+            check = masthead.stack_check((got[0], brand_p, got[2].get("masthead") or {"shown": False},
+                                          brand_p.box if brand_p is not None else None),
+                                         (im, line_p, trial.get("masthead") or {"shown": False},
+                                          line_p.box if line_p is not None else None))
+            tried.append({"shift": masthead.STACK_SHIFT if shift is None else shift, "touches": hit[:1],
+                          "check": check["why"] or "ok"})
+            if brand_p is not None and not hit and check["ok"]:
+                break
         if brand_p is not None and not hit and check["ok"]:
             im, plates, trial, targets, edge = got
-            trial["stack_check"] = check
+            trial["stack_check"] = dict(check, placements=tried)
         else:
-            trial["stack_check"] = check
+            trial["stack_check"] = dict(check, placements=tried)
             trial["hook_ratio"] = dict(hook, note=("the stacked form would touch the " + hit[0]) if hit else
                                        ("the stacked form fails its check: " + check["why"]) if brand_p is not None
                                        else "the stacked form is not drawn on this ground (its gate)")
@@ -905,7 +916,7 @@ def type_column(focus_box) -> float:
 
 
 def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
-            column=None, form: str = "line"):
+            column=None, form: str = "line", shift: float | None = None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -971,7 +982,7 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     # group in the form, so the fit ladder lands on mast_px in either form
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
                                                   max_width=masthead.form_width(mast_px(), form, LEFT) + 0.5,
-                                                  form=form)
+                                                  form=form, shift=shift)
     im = im.convert(mode)
     # Lane B c4 (panel 5 BC MG-02 / PL: "48 px drawn against 64 asked, room 488.5" read as a fit to each hook): the
     # size is the ruled token, not a measure of this thumbnail; the record says which rule set it.

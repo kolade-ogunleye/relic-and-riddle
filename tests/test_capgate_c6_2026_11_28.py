@@ -260,3 +260,210 @@ def test_the_current_composer_never_draws_a_word_still_to_be_spoken(tmp_path, kw
                 seen += 1
                 assert colour in reading and colour != future, (chunk, colour, line[:160])
     assert seen > 20
+
+
+# ---------------------------------------------------------------- review round (2026-11-28): the bar, never-settled
+def test_the_bar_is_4_5_to_1_on_the_real_bound():
+    """Review B1 (G1): the bar is brand.TEXT_CONTRAST, 4.5:1, unchanged: a burst fully shown at 4.4 blocks and at 4.6
+    passes, read against the real bound (no bound passed)."""
+    from src.brand import TEXT_CONTRAST
+    assert TEXT_CONTRAST == 4.5
+    bursts = video_qa.caption_bursts(ONE)
+    rows, shown = video_qa.caption_frame_plan(bursts, 30.0)
+    for reading, blocks in ((4.4, True), (4.6, False), (4.49, True), (4.5, False)):
+        values = {n: 9.0 for n, _, _ in rows}
+        values[shown[0]] = reading
+        v = video_qa.caption_verdict(bursts, rows, shown, values, 30.0)
+        assert bool(v["under"]) is blocks, reading
+        assert bool(video_qa.caption_findings(v)) is blocks, reading
+
+
+NEVER_SETTLED = "\n".join([
+    "[Script Info]", "PlayResX: 1080", "PlayResY: 1920", "", "[Events]",
+    "Dialogue: 0,0:00:00.00,0:00:00.60,CapBox,,0,0,0,,{\\pos(300,1100)\\fad(0,80)\\p1}m 0 0 l 400 0{\\p0}",
+    "Dialogue: 1,0:00:00.00,0:00:00.50,CapText,,0,0,0,,{\\pos(540,1150)\\q2}A {\\alpha&HFF&}B",
+    "Dialogue: 1,0:00:00.50,0:00:00.60,CapText,,0,0,0,,{\\pos(540,1150)\\q2}{\\fad(0,80)}A "
+    "{\\alpha&HFF&\\t(0,70,\\alpha&H00&)}B",
+]) + "\n"
+
+
+def test_a_never_settled_burst_under_the_bar_fully_shown_blocks():
+    """Review B1 (G2): a burst whose last word arrives inside its own fade-out is never still; its fully shown frame
+    lies inside a fade, so a one-frame reading under the bar there is not a dip: the burst fully shown blocks."""
+    bursts = video_qa.caption_bursts(NEVER_SETTLED)
+    rows, shown = video_qa.caption_frame_plan(bursts, 30.0)
+    n = shown[0]
+    assert all(fading for m, _, fading in rows if video_qa._frame_ms(m, 30.0) >= 500)   # never still once whole
+    values = {m: 9.0 for m, _, _ in rows}
+    values[n] = 3.0
+    v = video_qa.caption_verdict(bursts, rows, shown, values, 30.0)
+    assert v["samples"][0]["settled"] is False and not v["dips"]
+    assert [u["kind"] for u in v["under"]] == ["fully_shown"]
+    assert "fully shown" in video_qa.caption_findings(v)[0]
+
+
+# ---------------------------------------------------------------- review round: faint (partly opaque) text
+def test_a_faint_letter_is_measured_as_drawn():
+    """Ruling R2 (review N1): text held at partial opacity is still text. Stems drawn at 43.5 % opacity (alpha
+    &H90&, peak coverage 111, under CAPTION_INK_COVERAGE everywhere) are measured: the composited colour against the
+    ground, the analytic value."""
+    op = (255 - 0x90) / 255.0
+    ground = (0x50, 0x50, 0x50)
+    rgb, cov = _stems(ground, BONE, edge_right=round(110 * op), edge_left=round(200 * op))
+    full = cov == 255
+    cov = np.where(full, round(255 * op), cov).astype(np.uint8)
+    a = cov[..., None].astype(np.float64) / 255.0
+    rgb = np.round(a * np.array(BONE, np.float64) + (1 - a) * np.array(ground, np.float64)).astype(np.uint8)
+    drawn = tuple(int(c) for c in rgb[60, 45])
+    got = video_qa.caption_frame_contrast(rgb, cov)
+    assert got is not None and got == pytest.approx(contrast_ratio(drawn, ground), rel=0.005)
+    assert got < 4.5                                         # 43.5 % bone on 505050: unreadable, and now it says so
+
+
+def test_a_piece_that_never_reaches_five_percent_is_not_drawn_text():
+    rgb, cov = _stems(PLATE, BONE)
+    cov = np.where(cov > 0, np.minimum(cov, video_qa.CAPTION_FAINT_MIN_PEAK - 1), 0).astype(np.uint8)
+    assert video_qa.caption_frame_contrast(rgb, cov) is None
+
+
+# ---------------------------------------------------------------- review round: the mask's coverage scale (N2)
+def test_the_mask_file_draws_coverage_on_the_full_scale():
+    for text in (CASE.format(plate="&H200B0E12&", colour=ASS_BONE, ph=80),
+                 CASE.format(plate="&H200B0E12&", colour=ASS_BONE, ph=80).replace(
+                     "[Script Info]\n", "[Script Info]\nYCbCr Matrix: TV.601\n")):
+        mask = video_qa._caption_mask_ass(text)
+        heads = [ln for ln in mask.splitlines() if ln.lower().startswith("ycbcr matrix:")]
+        assert heads == ["YCbCr Matrix: None"]
+        assert "CapBox" not in "".join(ln for ln in mask.splitlines() if ln.startswith("Dialogue:"))
+
+
+@needs_ffmpeg
+def test_the_mask_peaks_at_full_coverage_without_the_header(tmp_path):
+    """Review N2: a caption file without `YCbCr Matrix: None` (every older master) drew the mask's white at 235."""
+    text = CASE.format(plate="&H200B0E12&", colour=ASS_BONE, ph=80)
+    assert "YCbCr" not in text
+    m = tmp_path / "m.ass"
+    m.write_bytes(video_qa._caption_mask_ass(text).encode("utf-8"))
+    out = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=black:s=360x640:r=30:d=0.5,format=rgb24",
+                          "-vf", f"subtitles='{video_qa._ffmpeg_path(m)}':fontsdir='{video_qa._ffmpeg_path(config.FONTS_DIR)}'",
+                          "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True, check=True,
+                         timeout=120).stdout
+    assert max(out) == 255
+
+
+# ---------------------------------------------------------------- review round: decoding (N5), crop pad (N6), record (N7)
+@needs_ffmpeg
+def test_a_truncated_master_fails_closed_wherever_the_missing_frames_fall(tmp_path):
+    """Review N5: the master ends at 1.5 s while a caption runs to 2.0 s; the fully shown frame (1.0 s) is decoded,
+    the burst's last half second is not. The measure refuses (it skipped them silently), and the audit fails closed."""
+    ass = tmp_path / "x_master_captions.ass"
+    ass.write_bytes(CASE.format(plate="&H200B0E12&", colour=ASS_BONE, ph=80).replace("0:00:01.00,CapBox",
+                    "0:00:02.00,CapBox").replace("0:00:01.00,CapText", "0:00:02.00,CapText").encode("utf-8"))
+    master = tmp_path / "x_master.mp4"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "color=c=0x404040:s=360x640:r=30:d=1.5", "-vf",
+                    f"subtitles='{video_qa._ffmpeg_path(ass)}':fontsdir='{video_qa._ffmpeg_path(config.FONTS_DIR)}'",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12", "-pix_fmt", "yuv420p", str(master)],
+                   check=True, timeout=120)
+    with pytest.raises(RuntimeError, match="could not be decoded"):
+        video_qa.caption_contrast(master, ass, tmp_path / "out")
+    audit = video_qa.text_contrast_audit(tmp_path, master, ass)
+    assert audit["certified"] is False
+    assert any("caption contrast could not be measured" in i["issue"] and "could not be decoded" in i["issue"]
+               for i in audit["issues"] if i["severity"] == "major")
+
+
+def test_the_crop_reads_what_the_whole_frame_reads():
+    """Review N6: the frame is measured in the box around the coverage, padded by _CAPTION_CROP_PAD; a light band 4-9
+    px right of the last letter's ink lies in its surround (1-4 px) and the ring (2-10 px), and outside a 2 px pad, so
+    a pad too small to hold them changes the reading."""
+    rgb, cov = _stems(PLATE, BONE)
+    xs = np.nonzero(cov.any(axis=0))[0]
+    rgb = rgb.copy()
+    rgb[30:90, xs.max() + 3:xs.max() + 9] = (0x90, 0x90, 0x90)   # 4-9 px out of the ink: surround and ring
+    whole = text_contrast(rgb, video_qa.caption_letter_mask(cov), (0, 0))
+    got = video_qa.caption_frame_contrast(rgb, cov)
+    clean = video_qa.caption_frame_contrast(*_stems(PLATE, BONE))
+    assert got == whole and got < clean * 0.9
+
+
+def test_the_record_keeps_every_reading_unrounded():
+    """Review N7: 4.4996 was written 4.500, so the record said a frame passed that the verdict counted under."""
+    rec = video_qa.caption_frames_record([(5, 0, False), (6, 0, True)], {5: 4.4996, 6: None}, 30.0, 2)
+    assert rec["frames"][0]["contrast"] == 4.4996 and rec["frames"][0]["contrast"] < 4.5
+    assert rec["frames"][1]["contrast"] is None and rec["allowance_frames"] == 2
+
+
+# ---------------------------------------------------------------- review round: the real pipeline, faint word and badge
+def _render(tmp_path, ass_text, ground="0x404040", size="360x640", dur=1):
+    ass = tmp_path / "c.ass"
+    ass.write_bytes(ass_text.encode("utf-8"))
+    master = tmp_path / "m.mp4"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c={ground}:s={size}:r=30:d={dur}", "-vf",
+                    f"subtitles='{video_qa._ffmpeg_path(ass)}':fontsdir='{video_qa._ffmpeg_path(config.FONTS_DIR)}'",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12", "-pix_fmt", "yuv420p", str(master)],
+                   check=True, timeout=120)
+    return master, ass
+
+
+@needs_ffmpeg
+def test_a_faint_word_beside_solid_text_blocks(tmp_path):
+    """Ruling R2 (the reviewer's faint_alpha90_word_beside_solid): bone "ARCH" at alpha &H90& (43.5 % opacity) beside
+    solid "STONE", on a 505050 plate, for the whole second: measured as drawn, it reads under the bar and blocks."""
+    text = CASE.format(plate="&H00505050&", colour=ASS_BONE, ph=80).replace("STONE ARCH",
+                                                                           "STONE {\\alpha&H90&}ARCH")
+    master, ass = _render(tmp_path, text)
+    v = video_qa.caption_contrast(master, ass, tmp_path / "out")
+    found = video_qa.caption_findings(v)
+    assert found and v["samples"][0]["contrast"] < 4.5, (v["samples"], found)
+    solid = CASE.format(plate="&H00505050&", colour=ASS_BONE, ph=80)   # the same, solid: readable
+    master, ass = _render(tmp_path, solid)
+    v = video_qa.caption_contrast(master, ass, tmp_path / "out2")
+    assert not video_qa.caption_findings(v) and v["samples"][0]["contrast"] > 4.5
+
+
+BADGE = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 360
+PlayResY: 640
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: CapText,Anton,64,&H00F3EDE2&,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1
+Style: CapBox,Anton,64,&H200B0E12&,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: ReconBadge,IBM Plex Mono SemiBold,30,{badge},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1
+Style: ReconPlate,IBM Plex Mono SemiBold,30,&H26120E0B&,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:01.00,CapBox,,0,0,0,,{{\\pos(30,280)\\p1}}m 0 0 l 300 0 l 300 80 l 0 80{{\\p0}}
+Dialogue: 1,0:00:00.00,0:00:01.00,CapText,,0,0,0,,{{\\pos(180,320)\\q2}}{{\\c&H00F3EDE2&}}STONE ARCH
+{plate}Dialogue: 3,0:00:00.00,0:00:01.00,ReconBadge,,0,0,0,,{{\\an7\\pos(30,46)}}AI ILLUSTRATION
+"""
+BADGE_PLATE = "Dialogue: 2,0:00:00.00,0:00:01.00,ReconPlate,,0,0,0,,{\\pos(20,40)\\p1}m 0 0 l 300 0 l 300 46 l 0 46{\\p0}\n"
+
+
+@needs_ffmpeg
+@pytest.mark.parametrize("badge, plate, ground, blocks", [
+    ("&H00F3EDE2&", True, "0x707070", False),     # bone on its ink plate: the badge as drawn
+    ("&H00404040&", True, "0x707070", True),      # the reviewer's unreadable badge: 404040 on its ink plate
+    ("&H00F3EDE2&", False, "0xF0F0F0", True),     # shown without its plate over a bright ground
+], ids=["readable_badge", "unreadable_404040_badge", "badge_without_plate_on_bright"])
+def test_the_ai_badge_is_measured(tmp_path, badge, plate, ground, blocks):
+    """Lander ruling N8: the AI badge's letters (ReconBadge, drawn by the caption file) are measured in their own
+    colour against what is under them, at 4.5:1, on every interval the badge is shown; the captions are unaffected."""
+    text = BADGE.format(badge=badge, plate=BADGE_PLATE if plate else "")
+    master, ass = _render(tmp_path, text, ground=ground)
+    v = video_qa.caption_contrast(master, ass, tmp_path / "out")
+    assert v["badge"] is not None and v["badge"]["bursts"] == 1 and v["badge"]["samples"][0]["contrast"] is not None
+    badge_found = [f for f in video_qa.caption_findings(v) if f.startswith("AI badge:")]
+    assert bool(badge_found) is blocks, (v["badge"]["samples"], badge_found)
+    assert video_qa.caption_unmeasured(v) is None
+
+
+def test_a_badge_that_cannot_be_measured_fails_closed():
+    v = {"samples": [{"t": 0.5, "contrast": 9.0}], "bursts": 1, "under": [], "dips": [],
+         "badge": {"samples": [{"t": 0.5, "contrast": None}], "bursts": 1, "under": [], "dips": []}}
+    assert "AI badge" in video_qa.caption_unmeasured(v)
+    v["badge"]["samples"] = []
+    assert "AI badge" in video_qa.caption_unmeasured(v)

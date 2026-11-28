@@ -24,4 +24,4 @@ def test_captions_under_the_end_card_are_not_judged(tmp_path):
     rows, shown = video_qa.caption_frame_plan(bursts, 30.0)
     assert rows and all(n / 30.0 < 45.5 for n, _, _ in rows) and len(shown) == 2
     assert video_qa.caption_contrast(tmp_path / "m.mp4", ass, tmp_path / "out2", until=39.0) == {
-        "samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0}
+        "samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0, "badge": None}

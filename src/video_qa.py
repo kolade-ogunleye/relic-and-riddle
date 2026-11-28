@@ -1775,20 +1775,66 @@ def graphic_contrast_problems(folder: Path, target: Optional[float] = None) -> L
     return out
 
 
-def _caption_mask_ass(text: str) -> str:
-    """The caption file as plain white glyph fills: no pill (CapBox), no outline, shadow, blur or halo layer."""
-    keep = []
-    for line in text.splitlines():
-        if line.startswith("Dialogue:") and ",CapBox," in line:
+def _mask_header(lines: List[str]) -> List[str]:
+    """`lines` with `YCbCr Matrix: None` in [Script Info] (freeze c6 capgate review N2, lander ruling: without it
+    libass/FFmpeg draw white at 235, so coverage meant ~92 % of itself on every master whose caption file lacks the
+    header, all 28 older dev masters: coverage must mean the same on every master)."""
+    out, done = [], False
+    for line in lines:
+        if line.strip().lower().startswith("ycbcr matrix:"):
+            if not done:
+                out.append("YCbCr Matrix: None")
+                done = True
             continue
-        if line.startswith("Dialogue:") and ",CapText," in line:
+        out.append(line)
+        if line.strip() == "[Script Info]" and not done:
+            out.append("YCbCr Matrix: None")
+            done = True
+    return out if done else ["[Script Info]", "YCbCr Matrix: None", *out]
+
+
+def _white_style(line: str, styles: Tuple[str, ...]) -> str:
+    """A `Style:` line of one of `styles` with its primary colour made white (its alpha kept): a glyph with no colour
+    override is drawn in the style's colour, which would put its full coverage under 255."""
+    parts = line.split(",")
+    name = parts[0].split(":", 1)[1].strip() if ":" in parts[0] else ""
+    if name in styles and len(parts) > 3:
+        m = re.fullmatch(r"\s*&H([0-9A-Fa-f]{2})?[0-9A-Fa-f]{6}&?\s*", parts[3])
+        if m:
+            parts[3] = f"&H{(m.group(1) or '00').upper()}FFFFFF&"
+    return ",".join(parts)
+
+
+def _glyph_mask_ass(text: str, keep: str) -> str:
+    """The caption file with only the `keep` style's events, as plain white glyph fills (no plate, outline, shadow,
+    blur or halo layer; alpha, fades and eases kept), coverage on the full 0..255 scale (_mask_header)."""
+    out = []
+    for line in text.splitlines():
+        if line.startswith("Style:"):
+            line = _white_style(line, (keep,))
+        elif line.startswith("Dialogue:"):
+            parts = line.split(",", 9)
+            if len(parts) < 10 or parts[3].strip() != keep:
+                continue   # the plates (CapBox, ReconPlate) and the other glyph layer are not this mask's glyphs
             if re.search(r"\\1a&HFF&", line):        # a halo layer (outline only): not glyphs
                 continue
             line = re.sub(r"\\(?:3c|4c)&H[0-9A-Fa-f]+&|\\(?:bord|shad|blur|be)[\d.]+|\\[34]a&H[0-9A-Fa-f]+&", "", line)
-            line = re.sub(r"\\c&H[0-9A-Fa-f]{6,8}&", r"\\c&H00FFFFFF&", line)
-            line = line.replace("\\q2", "\\q2\\bord0\\shad0\\blur0", 1)
-        keep.append(line)
-    return "\n".join(keep) + "\n"
+            line = re.sub(r"\\1?c&H[0-9A-Fa-f]{6,8}&", r"\\c&H00FFFFFF&", line)
+            head, body = line.split(",", 9)[:9], line.split(",", 9)[9]
+            line = ",".join(head) + ",{\\bord0\\shad0\\blur0}" + body
+        out.append(line)
+    return "\n".join(_mask_header(out)) + "\n"
+
+
+def _caption_mask_ass(text: str) -> str:
+    """The caption file's caption glyphs (CapText) as plain white fills: no pill (CapBox), no AI badge (measured on
+    its own, _badge_mask_ass), no outline, shadow, blur or halo layer; `YCbCr Matrix: None`."""
+    return _glyph_mask_ass(text, "CapText")
+
+
+def _badge_mask_ass(text: str) -> str:
+    """The AI badge's letters (ReconBadge) as plain white fills, without its plate (ReconPlate), as _caption_mask_ass."""
+    return _glyph_mask_ass(text, "ReconBadge")
 
 
 def _ffmpeg_path(p: Path) -> str:
@@ -1805,6 +1851,15 @@ CAPTION_INK_COVERAGE = 127    # libass coverage (0..255) above which a pixel is 
 CAPTION_GROUND_COVERAGE = 0   # coverage at or under which a pixel is GROUND. The mask is drawn on exact black in RGB
                               # (measured: its ground is 0, not 1-2 as a YUV round trip leaves), so any coverage at
                               # all is a letter's own soft edge. Between the two a pixel is neither ink nor ground
+# Review round (lander ruling R2, N1): text held at partial opacity is still text. A letter drawn under half opacity
+# never reaches CAPTION_INK_COVERAGE, so it was never measured. A FAINT letter (a connected piece of coverage whose
+# peak is at or under CAPTION_INK_COVERAGE) is read relative to its own peak: its ink is coverage above
+# CAPTION_FAINT_INK_SHARE of the peak (the same "more than half" rule, of what it actually reaches), its colour is
+# taken where it is at its peak (CAPTION_FAINT_FULL_SHARE: the letter's composited colour as drawn), and its ground is
+# coverage 0 as for any letter.
+CAPTION_FAINT_INK_SHARE = 0.5
+CAPTION_FAINT_FULL_SHARE = 0.95
+CAPTION_FAINT_MIN_PEAK = 13   # coverage (5 % opacity): a piece that never reaches it is not drawn visibly at all
 CAPTION_MASK_MIN_INK = 200    # px: a frame with less ink than this has no caption to judge (a word fading in)
 _CAPTION_CROP_PAD = 16        # px around the coverage a frame is measured in: more than the ring (10) or surround (4)
 
@@ -1814,12 +1869,27 @@ def caption_letter_mask(coverage):
     measure reads (typography.glyph_parts: ink > 127, every pixel > 0 "touched", never ground): ink keeps its
     coverage where it is above CAPTION_INK_COVERAGE; ground is 0 where coverage is at or under
     CAPTION_GROUND_COVERAGE; a partly covered pixel between the two is touched (1..127), so it is neither a letter's
-    ink nor any letter's ground. Never a hard on/off mask (freeze c6 capgate, ruling 1)."""
+    ink nor any letter's ground. Never a hard on/off mask (freeze c6 capgate, ruling 1). A FAINT letter (its peak at
+    or under CAPTION_INK_COVERAGE, over CAPTION_FAINT_MIN_PEAK) is ink above CAPTION_FAINT_INK_SHARE of its own
+    peak, "full" (255, where typography._ink_lum reads a letter with no eroded core) at CAPTION_FAINT_FULL_SHARE of
+    it (review round, ruling R2)."""
+    import cv2
     import numpy as np
     cov = np.asarray(coverage, np.uint8)
     out = np.where(cov > CAPTION_GROUND_COVERAGE, np.minimum(cov, 127), 0).astype(np.uint8)
     ink = cov > CAPTION_INK_COVERAGE
     out[ink] = np.maximum(cov[ink], 128)
+    touched = (cov > CAPTION_GROUND_COVERAGE).astype(np.uint8)
+    n, lab = cv2.connectedComponents(touched, connectivity=8)
+    if n > 1:
+        peak = np.zeros(n, np.int32)
+        np.maximum.at(peak, lab.ravel(), cov.ravel().astype(np.int32))
+        p = peak[lab]
+        faint = (lab > 0) & (p <= CAPTION_INK_COVERAGE) & (p >= CAPTION_FAINT_MIN_PEAK)
+        if faint.any():
+            c = cov.astype(np.float32)
+            out[faint & (c > CAPTION_FAINT_INK_SHARE * p)] = 200
+            out[faint & (c >= CAPTION_FAINT_FULL_SHARE * p)] = 255
     return out
 
 
@@ -1830,14 +1900,17 @@ def caption_frame_contrast(rgb, coverage) -> Optional[float]:
     import numpy as np
     from .typography import text_contrast
     cov = np.asarray(coverage, np.uint8)
-    if int((cov > CAPTION_INK_COVERAGE).sum()) < CAPTION_MASK_MIN_INK:
+    if not (cov > CAPTION_GROUND_COVERAGE).any():
         return None
     ys, xs = np.nonzero(cov > CAPTION_GROUND_COVERAGE)
     h, w = cov.shape
     y0, y1 = max(0, ys.min() - _CAPTION_CROP_PAD), min(h, ys.max() + _CAPTION_CROP_PAD + 1)
     x0, x1 = max(0, xs.min() - _CAPTION_CROP_PAD), min(w, xs.max() + _CAPTION_CROP_PAD + 1)
+    mask = caption_letter_mask(cov[y0:y1, x0:x1])
+    if int((mask > 127).sum()) < CAPTION_MASK_MIN_INK:
+        return None
     rgb = np.ascontiguousarray(np.asarray(rgb)[y0:y1, x0:x1])
-    return text_contrast(rgb, caption_letter_mask(cov[y0:y1, x0:x1]), (0, 0))
+    return text_contrast(rgb, mask, (0, 0))
 
 
 def caption_fade_allowance(fps: float) -> int:
@@ -1868,21 +1941,23 @@ def _event_fades(start: int, end: int, text: str) -> List[Tuple[int, int]]:
     return spans
 
 
-def caption_bursts(ass_text: str, until: Optional[float] = None) -> List[Dict[str, Any]]:
-    """The caption bursts of a caption file, in time order: each plate (CapBox events overlapping in time are one
-    burst: a burst drawn as one plate a line) with its CapText events. [{"start", "end", "last", "text", "events":
+def caption_bursts(ass_text: str, until: Optional[float] = None, plate: str = "CapBox",
+                   glyphs: str = "CapText") -> List[Dict[str, Any]]:
+    """The caption bursts of a caption file, in time order: each plate (`plate` events overlapping in time are one
+    burst: a burst drawn as one plate a line) with its `glyphs` events. [{"start", "end", "last", "text", "events":
     [(start, end)], "fades": [(from, to)]}], times in ms; `last` is when its last event starts (every word is then
     drawn), `text` its last event's words. Captions starting at or after `until` (s, the end card's start, less
-    0.1 s) are not shown (the card replaces them) and are left out; the rest end at `until`."""
+    0.1 s) are not shown (the card replaces them) and are left out; the rest end at `until`. With plate="ReconPlate",
+    glyphs="ReconBadge": the AI badge's shown intervals, each judged as a burst."""
     boxes, texts = [], []
     for line in ass_text.splitlines():
         if not line.startswith("Dialogue:"):
             continue
         parts = line.split(",", 9)
-        if len(parts) < 10 or parts[3].strip() not in ("CapBox", "CapText"):
+        if len(parts) < 10 or parts[3].strip() not in (plate, glyphs):
             continue
         s, e = _ass_ms(parts[1]), _ass_ms(parts[2])
-        (boxes if parts[3].strip() == "CapBox" else texts).append((s, e, parts[9]))
+        (boxes if parts[3].strip() == plate else texts).append((s, e, parts[9]))
     cut = None if until is None else int(round(float(until) * 1000))
     if cut is not None:
         texts = [(s, min(e, cut), x) for s, e, x in texts if s < cut - 100]
@@ -2002,6 +2077,9 @@ def caption_verdict(bursts: List[Dict[str, Any]], rows: List[Tuple[int, int, boo
         if s["contrast"] is not None and s["contrast"] < bound and s["frame"] not in blocked:
             under.append({"kind": "fully_shown", "t": s["t"], "contrast": s["contrast"], "frames": 1,
                           "from": s["t"], "burst": s["burst"], "text": s["text"]})
+    # a dip that holds a burst's fully shown frame under the bar is that burst's block, not a note (review B1, G2)
+    held = {round(u["from"] * fps) for u in under if u["kind"] == "fully_shown"}
+    dips = [d for d in dips if not any(round(d["from"] * fps) <= n < round(d["from"] * fps) + d["frames"] for n in held)]
     under.sort(key=lambda u: u["contrast"])
     vals = [s["contrast"] for s in samples if s["contrast"] is not None]
     measured = [v for v in values.values() if v is not None]
@@ -2021,6 +2099,15 @@ def _video_stream(video: Path) -> Tuple[int, int, float, Optional[int]]:
     return int(st["width"]), int(st["height"]), float(num) / float(den or 1), int(count) if count else None
 
 
+def caption_frames_record(rows: List[Tuple[int, int, bool]], values: Dict[int, Optional[float]], fps: float,
+                          allowance: int) -> Dict[str, Any]:
+    """The per-frame record caption_contrast keeps (caption_frames.json): every reading UNROUNDED, so the record and
+    the verdict agree on which side of the bar a frame is (review N7: 4.4996 was written 4.500)."""
+    return {"fps": fps, "allowance_frames": allowance,
+            "frames": [{"n": n, "t": round(n / fps, 3), "burst": bi, "fade": fading, "contrast": values.get(n)}
+                       for n, bi, fading in rows]}
+
+
 def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
                      until: Optional[float] = None) -> Dict[str, Any]:
     """The captions' ratio on the delivered master, on EVERY caption frame (freeze c6 capgate, ruling 2; it judged 6
@@ -2029,90 +2116,132 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
     is measured where captions are on screen (caption_frame_contrast). The verdict is caption_verdict's: {"samples"
     (every burst fully shown), "min", "under" (what blocks), "dips" (fade frames, reported), ...}; every frame's
     reading is kept in out_dir/caption_frames.json. Only captions that are on screen are judged: none starting at or
-    after `until` (the end card's start), where the card replaces them (production, 30 Oct)."""
+    after `until` (the end card's start), where the card replaces them (production, 30 Oct).
+    The AI badge (ReconBadge on its ReconPlate, drawn by the caption file) is judged the same way on every interval it
+    is shown, its letters alone in their own mask (review round, lander ruling N8): {"badge": its verdict, or None
+    when the file draws no badge}. Every caption or badge frame must be decoded from the master: a frame that is not
+    (a truncated master) raises, wherever it falls (review N5)."""
     import numpy as np
     from .config import FONTS_DIR
     fonts_dir = fonts_dir or FONTS_DIR
     text = Path(ass_file).read_text(encoding="utf-8")
     bursts = caption_bursts(text, until)
-    if not bursts:
-        return {"samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0}
-    w, h, fps, count = _video_stream(Path(video))
-    rows, shown = caption_frame_plan(bursts, fps, count)
-    want = {n for n, _, _ in rows}
-    last = max(want) + 1
+    badges = caption_bursts(text, until, plate="ReconPlate", glyphs="ReconBadge")
+    if not bursts and not badges:
+        return {"samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0, "badge": None}
+    w, h, fps, _count = _video_stream(Path(video))
+    rows, shown = caption_frame_plan(bursts, fps)
+    b_rows, b_shown = caption_frame_plan(badges, fps)
+    want, b_want = {n for n, _, _ in rows}, {n for n, _, _ in b_rows}
+    last = max(want | b_want) + 1
     out_dir.mkdir(parents=True, exist_ok=True)
     mask_ass = out_dir / "caption_mask.ass"
     mask_ass.write_bytes(_caption_mask_ass(text).encode("utf-8"))
-    mask_cmd = ["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
-                f"color=c=black:s={w}x{h}:r={fps:.6g}:d={(last + 1) / fps:.4f},format=rgb24", "-vf",
-                f"subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'",
-                "-frames:v", str(last), "-f", "rawvideo", "-pix_fmt", "gray", "-"]
+    src = f"color=c=black:s={w}x{h}:r={fps:.6g}:d={(last + 1) / fps:.4f},format=rgb24"
+    sub = f"subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'"
+    if badges:   # the badge's own mask beside the captions', in one render (one process): [captions | badge]
+        badge_ass = out_dir / "badge_mask.ass"
+        badge_ass.write_bytes(_badge_mask_ass(text).encode("utf-8"))
+        bsub = f"subtitles='{_ffmpeg_path(badge_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'"
+        mask_cmd = ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", src, "-filter_complex",
+                    f"[0:v]split[a][b];[a]{sub}[x];[b]{bsub}[y];[x][y]hstack=inputs=2[o]", "-map", "[o]"]
+        mw = 2 * w
+    else:
+        mask_cmd = ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", src, "-vf", sub]
+        mw = w
+    mask_cmd += ["-frames:v", str(last), "-f", "rawvideo", "-pix_fmt", "gray", "-"]
     video_cmd = ["ffmpeg", "-v", "error", "-i", str(video), "-frames:v", str(last), "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-"]
     values: Dict[int, Optional[float]] = {}
+    b_values: Dict[int, Optional[float]] = {}
     with subprocess.Popen(mask_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as mp, \
             subprocess.Popen(video_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as vp:
         try:
             for n in range(last):
-                mb = mp.stdout.read(w * h)
+                mb = mp.stdout.read(mw * h)
                 vb = vp.stdout.read(w * h * 3)
-                if len(mb) < w * h or len(vb) < w * h * 3:
+                if len(mb) < mw * h or len(vb) < w * h * 3:
                     break
-                if n in want:
-                    cov = np.frombuffer(mb, np.uint8).reshape(h, w)
+                if n in want or n in b_want:
+                    full = np.frombuffer(mb, np.uint8).reshape(h, mw)
                     rgb = np.frombuffer(vb, np.uint8).reshape(h, w, 3)
-                    values[n] = caption_frame_contrast(rgb, cov)
+                    if n in want:
+                        values[n] = caption_frame_contrast(rgb, full[:, :w])
+                    if n in b_want:
+                        b_values[n] = caption_frame_contrast(rgb, full[:, w:])
         finally:
             for p in (mp, vp):
                 p.kill()
-    missing = want - set(values)
+    missing = (want - set(values)) | (b_want - set(b_values))
     if missing:
-        raise RuntimeError(f"{len(missing)} caption frame(s) could not be decoded (from frame {min(missing)})")
+        raise RuntimeError(f"{len(missing)} caption frame(s) could not be decoded from the master (from frame "
+                           f"{min(missing)}, {min(missing) / fps:.2f}s)")
     verdict = caption_verdict(bursts, rows, shown, values, fps)
-    (out_dir / "caption_frames.json").write_bytes(json.dumps(
-        {"fps": fps, "allowance_frames": verdict["allowance_frames"],
-         "frames": [{"n": n, "t": round(n / fps, 3), "burst": bi, "fade": fading,
-                     "contrast": None if values[n] is None else round(values[n], 3)} for n, bi, fading in rows]},
-        indent=0).encode("utf-8"))
+    record = caption_frames_record(rows, values, fps, verdict["allowance_frames"])
+    verdict["badge"] = None
+    if badges:
+        verdict["badge"] = caption_verdict(badges, b_rows, b_shown, b_values, fps)
+        record["badge_frames"] = caption_frames_record(b_rows, b_values, fps, verdict["allowance_frames"])["frames"]
+    (out_dir / "caption_frames.json").write_bytes(json.dumps(record, indent=0).encode("utf-8"))
     return verdict
 
 
-def caption_findings(captions: Dict[str, Any], bound: Optional[float] = None) -> List[str]:
-    """What blocks in a caption_contrast verdict, one sentence each, worst first."""
-    from .brand import TEXT_CONTRAST
-    bound = TEXT_CONTRAST if bound is None else bound
+def _verdict_findings(v: Dict[str, Any], what: str, bound: float) -> List[str]:
     out = []
-    for u in captions.get("under") or []:
+    for u in v.get("under") or []:
         where = f"at {u['t']:.2f}s on the master"
         if u["kind"] == "fully_shown":
-            what = f"burst \"{u['text']}\" fully shown"
+            how = f"burst \"{u['text']}\" fully shown" if what == "captions" else f"\"{u['text']}\" shown"
         else:
             span = f"{u['frames']} frame{'s' if u['frames'] > 1 else ''} from {u['from']:.2f}s"
-            what = (f"{span}, longer than a caption fade ({captions.get('allowance_frames')} frames)"
-                    if u["kind"] == "longer_than_fade" else f"{span}, no fade in progress")
+            how = (f"{span}, longer than a caption fade ({v.get('allowance_frames')} frames)"
+                   if u["kind"] == "longer_than_fade" else f"{span}, no fade in progress")
             if u.get("fully_shown"):
-                what += ", burst " + ", ".join(f"\"{t}\"" for t in u["fully_shown"][:2]) + " fully shown"
-        out.append(f"captions: {u['contrast']:.2f}:1 {where} ({what}; needs {bound}:1)")
+                how += ", burst " + ", ".join(f"\"{t}\"" for t in u["fully_shown"][:2]) + " fully shown"
+        out.append(f"{what}: {u['contrast']:.2f}:1 {where} ({how}; needs {bound}:1)")
     return out
 
 
-def caption_unmeasured(captions: Optional[Dict[str, Any]]) -> Optional[str]:
-    """Why a caption_contrast verdict judges nothing it should (None when every burst has its fully shown reading):
-    no result, no burst, a burst with no frame on the master, or a burst whose fully shown frame had no ink to read.
-    The gate fails closed on it (lander ruling 2, freeze c6 capgate follow-up)."""
-    if not captions:
+def caption_findings(captions: Dict[str, Any], bound: Optional[float] = None) -> List[str]:
+    """What blocks in a caption_contrast verdict, one sentence each, worst first: the captions', then the AI badge's."""
+    from .brand import TEXT_CONTRAST
+    bound = TEXT_CONTRAST if bound is None else bound
+    out = _verdict_findings(captions, "captions", bound)
+    if captions.get("badge"):
+        out += _verdict_findings(captions["badge"], "AI badge", bound)
+    return out
+
+
+def _verdict_unmeasured(v: Optional[Dict[str, Any]], what: str) -> Optional[str]:
+    if not v:
         return "no result"
-    n = int(captions.get("bursts") or 0)
+    n = int(v.get("bursts") or 0)
     if n <= 0:
-        return "no caption burst was found to measure"
-    samples = captions.get("samples") or []
+        return f"no {what} was found to measure"
+    samples = v.get("samples") or []
     if len(samples) < n:
-        return f"{n - len(samples)} of {n} caption bursts have no frame on the master"
+        return f"{n - len(samples)} of {n} {what}s have no frame on the master"
     blank = [s for s in samples if s.get("contrast") is None]
     if blank:
-        return (f"{len(blank)} of {n} caption bursts have no measurable glyphs when fully shown (first at "
+        return (f"{len(blank)} of {n} {what}s have no measurable glyphs when fully shown (first at "
                 f"{blank[0]['t']:.2f}s)")
+    return None
+
+
+def caption_unmeasured(captions: Optional[Dict[str, Any]], expect_captions: bool = True) -> Optional[str]:
+    """Why a caption_contrast verdict judges nothing it should (None when every burst, and every badge interval, has
+    its fully shown reading): no result, no burst, a burst with no frame on the master, or a burst whose fully shown
+    frame had no ink to read. The gate fails closed on it (lander ruling 2, freeze c6 capgate follow-up; the badge:
+    review round N8). `expect_captions` False: the file draws only a badge."""
+    if not captions:
+        return "no result"
+    why = _verdict_unmeasured(captions, "caption burst") if expect_captions else None
+    if why:
+        return why
+    if captions.get("badge") is not None:
+        why = _verdict_unmeasured(captions["badge"], "AI badge interval")
+        if why:
+            return f"AI badge: {why}"
     return None
 
 
@@ -2137,12 +2266,15 @@ def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: O
                 except (OSError, ValueError):
                     pass
             until = float(until) if until else None
-            if caption_bursts(Path(ass_file).read_text(encoding="utf-8"), until):   # the master has captions
+            ass_text = Path(ass_file).read_text(encoding="utf-8")
+            has_captions = bool(caption_bursts(ass_text, until))
+            has_badge = bool(caption_bursts(ass_text, until, plate="ReconPlate", glyphs="ReconBadge"))
+            if has_captions or has_badge:   # the master has captions (or the AI badge the caption file draws)
                 if not (video and Path(video).is_file()):
                     raise FileNotFoundError(f"the master {video} is missing")
                 captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
                                             until=until)
-                unmeasured = caption_unmeasured(captions)
+                unmeasured = caption_unmeasured(captions, expect_captions=has_captions)
                 # every burst fully shown, and every frame: a dip inside a fade is reported (captions["dips"], the
                 # release report's caption_fades note), anything else under the bound blocks (freeze c6 capgate)
                 found_caps = caption_findings(captions, TEXT_CONTRAST)

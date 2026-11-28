@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from src import video_qa
 
 ASS = """[Script Info]
@@ -13,23 +11,17 @@ Dialogue: 1,0:00:45.76,0:00:46.18,CapText,,0,0,0,,under the card
 """
 
 
-def test_captions_under_the_end_card_are_not_judged(tmp_path, monkeypatch):
+def test_captions_under_the_end_card_are_not_judged(tmp_path):
     """Production, 30 Oct: the last caption's midpoint fell inside the end card, where no caption is drawn; the
-    bare stone read 2.08:1 and blocked the review. Only captions shown before the card are sampled."""
+    bare stone read 2.08:1 and blocked the review. Only captions shown before the card are judged.
+    Re-stated 2026-11-28 (freeze c6 capgate): this pinned the 6 sampled midpoints' ffmpeg seeks (-ss); the gate now
+    measures every caption frame of the master (video_qa.caption_frame_plan), so the rule is held on the frames it
+    plans: none at or after the card's start, and no caption starting under the card."""
     ass = tmp_path / "c.ass"
     ass.write_text(ASS, encoding="utf-8")
-    seen = []
-
-    def fake_run(cmd, **kw):
-        if "-ss" in cmd:
-            seen.append(float(cmd[cmd.index("-ss") + 1]))
-        raise RuntimeError("stop after recording the sample time")
-
-    monkeypatch.setattr(video_qa.subprocess, "run", fake_run)
-    try:
-        video_qa.caption_contrast(tmp_path / "m.mp4", ass, tmp_path / "out", until=45.5)
-    except RuntimeError:
-        pass
-    assert seen and all(t < 45.5 for t in seen)
-    assert video_qa.caption_contrast(tmp_path / "m.mp4", ass, tmp_path / "out2", until=39.0) == {"samples": [],
-                                                                                                    "min": None}
+    bursts = video_qa.caption_bursts(ass.read_text(encoding="utf-8"), until=45.5)
+    assert [b["text"] for b in bursts] == ["first", "before the card"]
+    rows, shown = video_qa.caption_frame_plan(bursts, 30.0)
+    assert rows and all(n / 30.0 < 45.5 for n, _, _ in rows) and len(shown) == 2
+    assert video_qa.caption_contrast(tmp_path / "m.mp4", ass, tmp_path / "out2", until=39.0) == {
+        "samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0}

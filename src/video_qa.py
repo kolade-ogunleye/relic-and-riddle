@@ -1516,7 +1516,10 @@ class QualityAuditor:
             width=kwargs.get("width", VIDEO_WIDTH),
             height=kwargs.get("height", VIDEO_HEIGHT),
         )
-        log.info("Quality audit: score=%d/100, certified=%s, issues=%d",
+        # Named for what it covers (freeze c6 capgate, audit item 13): this is the master's timeline audit only; the
+        # text-contrast audit runs after it, and "Quality audit 100/100" read as a pass the run did not have.
+        log.info("Timeline audit (the master's timeline only; text contrast and the other surfaces follow): "
+                 "score=%d/100, certified=%s, issues=%d",
                  final_audit["score"], final_audit["certified"], len(final_audit["issues"]))
         # Atomic Multi-Asset Audit Integration
         carousel_audit = None
@@ -1588,6 +1591,8 @@ class QualityAuditor:
             is_atomic_cert = False
 
         atomic_score = min(scores) if scores else 100
+        log.info("Quality audit (every surface: timeline, carousel, Stories, covers, policy, text contrast): "
+                 "score=%d/100, certified=%s, issues=%d", atomic_score, is_atomic_cert, len(all_issues))
 
         return {
             "score": atomic_score,
@@ -1788,52 +1793,306 @@ def _ffmpeg_path(p: Path) -> str:
     return str(Path(p).resolve()).replace("\\", "/").replace(":", "\\:")
 
 
+# Freeze c6 capgate (2026-11-28, lander's rulings 1-2; audit of dev run 1795857682): the caption gate read libass's
+# coverage mask through a hard on/off cut (coverage > 127), so each letter's own half-covered edge counted as its
+# ground and the letter was measured partly against itself (3.49:1 where the plate reads 11.8); and it judged 6 burst
+# midpoints, so whether a run was blocked depended on which frames the sampler hit. Now the letters are read from the
+# coverage itself, on every caption frame of the master, and each burst is judged once fully shown.
+CAPTION_INK_COVERAGE = 127    # libass coverage (0..255) above which a pixel is a letter's INK: more than half covered,
+                              # the rule every shaped text mask is read by (typography.glyph_parts, _ink_lum)
+CAPTION_GROUND_COVERAGE = 0   # coverage at or under which a pixel is GROUND. The mask is drawn on exact black in RGB
+                              # (measured: its ground is 0, not 1-2 as a YUV round trip leaves), so any coverage at
+                              # all is a letter's own soft edge. Between the two a pixel is neither ink nor ground
+CAPTION_MASK_MIN_INK = 200    # px: a frame with less ink than this has no caption to judge (a word fading in)
+_CAPTION_CROP_PAD = 16        # px around the coverage a frame is measured in: more than the ring (10) or surround (4)
+
+
+def caption_letter_mask(coverage):
+    """libass's coverage mask (uint8 0..255, the caption drawn as plain white on black) as the mask the per-letter
+    measure reads (typography.glyph_parts: ink > 127, every pixel > 0 "touched", never ground): ink keeps its
+    coverage where it is above CAPTION_INK_COVERAGE; ground is 0 where coverage is at or under
+    CAPTION_GROUND_COVERAGE; a partly covered pixel between the two is touched (1..127), so it is neither a letter's
+    ink nor any letter's ground. Never a hard on/off mask (freeze c6 capgate, ruling 1)."""
+    import numpy as np
+    cov = np.asarray(coverage, np.uint8)
+    out = np.where(cov > CAPTION_GROUND_COVERAGE, np.minimum(cov, 127), 0).astype(np.uint8)
+    ink = cov > CAPTION_INK_COVERAGE
+    out[ink] = np.maximum(cov[ink], 128)
+    return out
+
+
+def caption_frame_contrast(rgb, coverage) -> Optional[float]:
+    """One master frame's caption ratio, UNROUNDED (typography.text_contrast: the ring and the worst letter, the ink
+    as drawn), the letters read from libass's coverage (caption_letter_mask). Measured in the box around the
+    coverage (the same values as on the whole frame). None when the frame has under CAPTION_MASK_MIN_INK ink pixels."""
+    import numpy as np
+    from .typography import text_contrast
+    cov = np.asarray(coverage, np.uint8)
+    if int((cov > CAPTION_INK_COVERAGE).sum()) < CAPTION_MASK_MIN_INK:
+        return None
+    ys, xs = np.nonzero(cov > CAPTION_GROUND_COVERAGE)
+    h, w = cov.shape
+    y0, y1 = max(0, ys.min() - _CAPTION_CROP_PAD), min(h, ys.max() + _CAPTION_CROP_PAD + 1)
+    x0, x1 = max(0, xs.min() - _CAPTION_CROP_PAD), min(w, xs.max() + _CAPTION_CROP_PAD + 1)
+    rgb = np.ascontiguousarray(np.asarray(rgb)[y0:y1, x0:x1])
+    return text_contrast(rgb, caption_letter_mask(cov[y0:y1, x0:x1]), (0, 0))
+
+
+def caption_fade_allowance(fps: float) -> int:
+    """Frames a caption fade lasts at most at `fps`: the longest of the caption fade tokens (config:
+    CAPTION_WORD_EASE_MS, CAPTION_PLATE_FADE_IN_MS, CAPTION_PLATE_FADE_OUT_MS), in whole frames it covers (80 ms at
+    30 fps: 2 frames, 67 ms; a third would last 100 ms, longer than the fade). A reading under the bar for no longer
+    than this, inside a fade, is a word arriving or a burst leaving, not a reading moment (ruling 2)."""
+    from . import config as _cfg
+    longest = max(_cfg.CAPTION_WORD_EASE_MS, _cfg.CAPTION_PLATE_FADE_IN_MS, _cfg.CAPTION_PLATE_FADE_OUT_MS)
+    return int(math.floor(longest * float(fps) / 1000.0 + 1e-9))
+
+
+def _ass_ms(stamp: str) -> int:
+    return int(round(_parse_ass_time(stamp.strip()) * 1000))
+
+
+def _event_fades(start: int, end: int, text: str) -> List[Tuple[int, int]]:
+    """The [from, to) ms spans in which an event's alpha is changing: \\fad(in, out) at its two ends, and a word's
+    alpha ease \\t(t1, t2, \\alpha...) from the event's start to t2 (its start alpha, partial or hidden, included)."""
+    spans = []
+    for a, b in re.findall(r"\\fad\((\d+),(\d+)\)", text):
+        if int(a):
+            spans.append((start, start + int(a)))
+        if int(b):
+            spans.append((end - int(b), end))
+    for _t1, t2 in re.findall(r"\\t\((\d+),(\d+),[^)]*\\(?:alpha|[1-4]a)&", text):
+        spans.append((start, start + int(t2)))
+    return spans
+
+
+def caption_bursts(ass_text: str, until: Optional[float] = None) -> List[Dict[str, Any]]:
+    """The caption bursts of a caption file, in time order: each plate (CapBox events overlapping in time are one
+    burst: a burst drawn as one plate a line) with its CapText events. [{"start", "end", "last", "text", "events":
+    [(start, end)], "fades": [(from, to)]}], times in ms; `last` is when its last event starts (every word is then
+    drawn), `text` its last event's words. Captions starting at or after `until` (s, the end card's start, less
+    0.1 s) are not shown (the card replaces them) and are left out; the rest end at `until`."""
+    boxes, texts = [], []
+    for line in ass_text.splitlines():
+        if not line.startswith("Dialogue:"):
+            continue
+        parts = line.split(",", 9)
+        if len(parts) < 10 or parts[3].strip() not in ("CapBox", "CapText"):
+            continue
+        s, e = _ass_ms(parts[1]), _ass_ms(parts[2])
+        (boxes if parts[3].strip() == "CapBox" else texts).append((s, e, parts[9]))
+    cut = None if until is None else int(round(float(until) * 1000))
+    if cut is not None:
+        texts = [(s, min(e, cut), x) for s, e, x in texts if s < cut - 100]
+        boxes = [(s, min(e, cut), x) for s, e, x in boxes if s < cut - 100]
+    spans: List[List[Any]] = []
+    for s, e, x in sorted(boxes):
+        if spans and s < spans[-1][1]:
+            spans[-1][1] = max(spans[-1][1], e)
+            spans[-1][2].append((s, e, x))
+        else:
+            spans.append([s, e, [(s, e, x)]])
+    inside = [any(s <= ts < e for s, e, _ in spans) for ts, _, _ in texts]
+    for ts, te, x in sorted(t for t, k in zip(texts, inside) if not k):   # a caption with no plate: its own burst
+        if spans and spans[-1][2] == [] and ts < spans[-1][1]:
+            spans[-1][1] = max(spans[-1][1], te)
+        else:
+            spans.append([ts, te, []])
+    spans.sort(key=lambda sp: sp[0])
+    out = []
+    for s, e, plates in spans:
+        mine = sorted((ts, te, x) for ts, te, x in texts if s <= ts < e)
+        if not mine:
+            continue
+        last = max(ts for ts, _, _ in mine)
+        fades = [f for ps, pe, x in plates for f in _event_fades(ps, pe, x)]
+        fades += [f for ts, te, x in mine for f in _event_fades(ts, te, x)]
+        words = [re.sub(r"\{[^}]*\}", "", x).replace("\\N", " ").strip() for ts, _, x in mine if ts == last]
+        out.append({"start": s, "end": max(e, max(te for _, te, _ in mine)), "last": last,
+                    "text": " / ".join(w for w in words if w), "events": [(ts, te) for ts, te, _ in mine],
+                    "fades": fades})
+    return out
+
+
+def _frame_ms(n: int, fps: float) -> int:
+    """The time libass draws frame `n` at, in ms, as FFmpeg's subtitles filter computes it (pts x time base x 1000,
+    truncated), so a frame is classed exactly as it was drawn."""
+    return int(n * (1.0 / float(fps)) * 1000)
+
+
+def caption_frame_plan(bursts: List[Dict[str, Any]], fps: float, frames: Optional[int] = None
+                       ) -> Tuple[List[Tuple[int, int, bool]], Dict[int, int]]:
+    """Which master frames show a caption: [(frame, burst, in_fade)], and per burst the frame it is judged on FULLY
+    SHOWN ({burst: frame}): the middle frame of the span in which every word is drawn (from its last event's start)
+    and no fade is in progress. A burst that is never still so (every such frame inside a fade) is judged on the
+    middle frame from its last event's start, fade or not: a burst is never left unjudged."""
+    rows: List[Tuple[int, int, bool]] = []
+    shown: Dict[int, int] = {}
+    for bi, b in enumerate(bursts):
+        n0 = int(math.floor(b["start"] * fps / 1000.0)) - 1
+        n1 = int(math.ceil(b["end"] * fps / 1000.0)) + 1
+        full, late = [], []
+        for n in range(max(0, n0), n1 + 1):
+            if frames is not None and n >= frames:
+                break
+            t = _frame_ms(n, fps)
+            if not (b["start"] <= t < b["end"]) or not any(s <= t < e for s, e in b["events"]):
+                continue
+            fading = any(f0 <= t < f1 for f0, f1 in b["fades"])
+            rows.append((n, bi, fading))
+            if t >= b["last"]:
+                late.append(n)
+                if not fading:
+                    full.append(n)
+        pick = full or late
+        if pick:
+            shown[bi] = pick[len(pick) // 2]
+    return rows, shown
+
+
+def caption_verdict(bursts: List[Dict[str, Any]], rows: List[Tuple[int, int, bool]], shown: Dict[int, int],
+                    values: Dict[int, Optional[float]], fps: float, bound: Optional[float] = None) -> Dict[str, Any]:
+    """The caption gate on measured frames (`values`: {frame: ratio or None}): every burst's FULLY SHOWN reading
+    ("samples"; "min" the lowest), what blocks ("under") and what is only reported ("dips"). A run of consecutive
+    frames under `bound` (brand.TEXT_CONTRAST) is a DIP, reported with its time, value and length, when every frame of
+    it is inside a fade and it lasts no longer than caption_fade_allowance frames; any other run under the bound
+    blocks (longer than the fade, or on a still caption), as does a burst under the bound fully shown (ruling 2)."""
+    from .brand import TEXT_CONTRAST
+    bound = TEXT_CONTRAST if bound is None else bound
+    allow = caption_fade_allowance(fps)
+    samples = []
+    for bi in range(len(bursts)):
+        if bi not in shown:
+            continue
+        n = shown[bi]
+        samples.append({"t": round(n / fps, 3), "frame": n, "burst": bi, "text": bursts[bi]["text"],
+                        "contrast": values.get(n)})
+    fade_of: Dict[int, Tuple[int, bool]] = {}
+    for n, bi, fading in rows:   # one row a frame (bursts do not overlap; a frame in two is fading if either is)
+        prev = fade_of.get(n)
+        fade_of[n] = (bi, fading or bool(prev and prev[1]))
+    for s in samples:
+        s["settled"] = not fade_of[s["frame"]][1]
+    runs: List[List[int]] = []
+    for n in sorted(fade_of):
+        v = values.get(n)
+        if v is None or v >= bound:
+            continue
+        if runs and runs[-1][-1] == n - 1:
+            runs[-1].append(n)
+        else:
+            runs.append([n])
+    under: List[Dict[str, Any]] = []
+    dips: List[Dict[str, Any]] = []
+    for seq in runs:
+        worst = min(seq, key=lambda n: values[n])
+        bi = fade_of[worst][0]
+        entry = {"t": round(worst / fps, 3), "contrast": values[worst], "frames": len(seq),
+                 "from": round(seq[0] / fps, 3), "burst": bi, "text": bursts[bi]["text"]}
+        in_fade = all(fade_of[n][1] for n in seq)
+        if in_fade and len(seq) <= allow:
+            dips.append(entry)
+        else:
+            whole = [s["text"] for s in samples if seq[0] <= s["frame"] <= seq[-1]]   # a burst fully shown in it
+            under.append({"kind": "longer_than_fade" if in_fade else "still", "fully_shown": whole, **entry})
+    blocked = {n for u in under for n in range(round(u["from"] * fps), round(u["from"] * fps) + u["frames"])}
+    for s in samples:   # a burst under the bound fully shown blocks, its frame in a dip or not (named once)
+        if s["contrast"] is not None and s["contrast"] < bound and s["frame"] not in blocked:
+            under.append({"kind": "fully_shown", "t": s["t"], "contrast": s["contrast"], "frames": 1,
+                          "from": s["t"], "burst": s["burst"], "text": s["text"]})
+    under.sort(key=lambda u: u["contrast"])
+    vals = [s["contrast"] for s in samples if s["contrast"] is not None]
+    measured = [v for v in values.values() if v is not None]
+    return {"samples": samples, "min": min(vals) if vals else None, "bursts": len(bursts), "under": under,
+            "dips": dips, "allowance_frames": allow, "fps": fps, "frames": len(fade_of),
+            "frames_measured": len(measured), "frames_under": sum(1 for v in measured if v < bound)}
+
+
+def _video_stream(video: Path) -> Tuple[int, int, float, Optional[int]]:
+    """(width, height, fps, frame count or None) of a video's first stream."""
+    res = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-count_packets", "-show_entries",
+                          "stream=width,height,r_frame_rate,nb_read_packets", "-of", "json", str(video)],
+                         capture_output=True, text=True, timeout=120, check=True)
+    st = json.loads(res.stdout)["streams"][0]
+    num, den = (st.get("r_frame_rate") or "30/1").split("/")
+    count = st.get("nb_read_packets")
+    return int(st["width"]), int(st["height"]), float(num) / float(den or 1), int(count) if count else None
+
+
 def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
-                     samples: int = 6, until: Optional[float] = None) -> Dict[str, Any]:
-    """The captions' ratio on the delivered master: {"samples": [{"t", "contrast"}], "min"}. Only captions that are
-    on screen are judged: none starting at or after `until` (the end card's start), where the card replaces them
-    (production, 30 Oct: the last caption's midpoint fell in the card, the bare stone read 2.08:1 and blocked the
-    review)."""
+                     until: Optional[float] = None) -> Dict[str, Any]:
+    """The captions' ratio on the delivered master, on EVERY caption frame (freeze c6 capgate, ruling 2; it judged 6
+    burst midpoints): the master is decoded frame by frame beside the caption file drawn again as plain white glyphs
+    on black (no plate, outline or halo; libass's coverage, never cut to on/off: caption_letter_mask), and each frame
+    is measured where captions are on screen (caption_frame_contrast). The verdict is caption_verdict's: {"samples"
+    (every burst fully shown), "min", "under" (what blocks), "dips" (fade frames, reported), ...}; every frame's
+    reading is kept in out_dir/caption_frames.json. Only captions that are on screen are judged: none starting at or
+    after `until` (the end card's start), where the card replaces them (production, 30 Oct)."""
     import numpy as np
     from .config import FONTS_DIR
-    from .typography import text_contrast
     fonts_dir = fonts_dir or FONTS_DIR
-    events = []
-    for line in Path(ass_file).read_text(encoding="utf-8").splitlines():
-        if line.startswith("Dialogue:") and ",CapText," in line:
-            parts = line.split(",", 9)
-            events.append((_parse_ass_time(parts[1].strip()), _parse_ass_time(parts[2].strip())))
-    if until is not None:
-        events = [(s, min(e, until)) for s, e in events if s < until - 0.1]
-    if not events:
-        return {"samples": [], "min": None}
-    events.sort()
-    picks = [events[round(k * (len(events) - 1) / max(1, samples - 1))] for k in range(min(samples, len(events)))]
+    text = Path(ass_file).read_text(encoding="utf-8")
+    bursts = caption_bursts(text, until)
+    if not bursts:
+        return {"samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0}
+    w, h, fps, count = _video_stream(Path(video))
+    rows, shown = caption_frame_plan(bursts, fps, count)
+    want = {n for n, _, _ in rows}
+    last = max(want) + 1
     out_dir.mkdir(parents=True, exist_ok=True)
     mask_ass = out_dir / "caption_mask.ass"
-    mask_ass.write_text(_caption_mask_ass(Path(ass_file).read_text(encoding="utf-8")), encoding="utf-8")
-    w, h = VIDEO_WIDTH, VIDEO_HEIGHT
-    m = re.search(r"PlayResX:\s*(\d+)\s*\nPlayResY:\s*(\d+)", Path(ass_file).read_text(encoding="utf-8"))
-    if m:
-        w, h = int(m.group(1)), int(m.group(2))
-    rows = []
-    for k, (s, e) in enumerate(dict.fromkeys(picks)):
-        t = (s + e) / 2
-        frame, mask = out_dir / f"caption_{k:02d}.png", out_dir / f"caption_{k:02d}_mask.png"
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", str(video), "-frames:v", "1",
-                        "-update", "1", str(frame)], check=True, timeout=60)
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c=black:s={w}x{h}:r=30:d=1",
-                        "-vf", f"setpts=PTS+{t:.3f}/TB,subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'",
-                        "-frames:v", "1", "-update", "1", str(mask)], check=True, timeout=60)
-        with Image.open(frame) as fi, Image.open(mask) as mi:
-            rgb = np.asarray(fi.convert("RGB").resize((w, h)))
-            glyphs = (np.asarray(mi.convert("L")) > 127).astype(np.uint8) * 255
-        if glyphs.sum() < 255 * 200:
-            continue
-        # ring and glyph by glyph (libass's ink components), the ink as drawn (typography.text_contrast)
-        rows.append({"t": round(t, 2), "contrast": text_contrast(rgb, glyphs, (0, 0))})
-    vals = [r["contrast"] for r in rows if r["contrast"] is not None]
-    return {"samples": rows, "min": min(vals) if vals else None}
+    mask_ass.write_bytes(_caption_mask_ass(text).encode("utf-8"))
+    mask_cmd = ["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+                f"color=c=black:s={w}x{h}:r={fps:.6g}:d={(last + 1) / fps:.4f},format=rgb24", "-vf",
+                f"subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'",
+                "-frames:v", str(last), "-f", "rawvideo", "-pix_fmt", "gray", "-"]
+    video_cmd = ["ffmpeg", "-v", "error", "-i", str(video), "-frames:v", str(last), "-f", "rawvideo",
+                 "-pix_fmt", "rgb24", "-"]
+    values: Dict[int, Optional[float]] = {}
+    with subprocess.Popen(mask_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as mp, \
+            subprocess.Popen(video_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as vp:
+        try:
+            for n in range(last):
+                mb = mp.stdout.read(w * h)
+                vb = vp.stdout.read(w * h * 3)
+                if len(mb) < w * h or len(vb) < w * h * 3:
+                    break
+                if n in want:
+                    cov = np.frombuffer(mb, np.uint8).reshape(h, w)
+                    rgb = np.frombuffer(vb, np.uint8).reshape(h, w, 3)
+                    values[n] = caption_frame_contrast(rgb, cov)
+        finally:
+            for p in (mp, vp):
+                p.kill()
+    missing = want - set(values)
+    if missing:
+        raise RuntimeError(f"{len(missing)} caption frame(s) could not be decoded (from frame {min(missing)})")
+    verdict = caption_verdict(bursts, rows, shown, values, fps)
+    (out_dir / "caption_frames.json").write_bytes(json.dumps(
+        {"fps": fps, "allowance_frames": verdict["allowance_frames"],
+         "frames": [{"n": n, "t": round(n / fps, 3), "burst": bi, "fade": fading,
+                     "contrast": None if values[n] is None else round(values[n], 3)} for n, bi, fading in rows]},
+        indent=0).encode("utf-8"))
+    return verdict
+
+
+def caption_findings(captions: Dict[str, Any], bound: Optional[float] = None) -> List[str]:
+    """What blocks in a caption_contrast verdict, one sentence each, worst first."""
+    from .brand import TEXT_CONTRAST
+    bound = TEXT_CONTRAST if bound is None else bound
+    out = []
+    for u in captions.get("under") or []:
+        where = f"at {u['t']:.2f}s on the master"
+        if u["kind"] == "fully_shown":
+            what = f"burst \"{u['text']}\" fully shown"
+        else:
+            span = f"{u['frames']} frame{'s' if u['frames'] > 1 else ''} from {u['from']:.2f}s"
+            what = (f"{span}, longer than a caption fade ({captions.get('allowance_frames')} frames)"
+                    if u["kind"] == "longer_than_fade" else f"{span}, no fade in progress")
+            if u.get("fully_shown"):
+                what += ", burst " + ", ".join(f"\"{t}\"" for t in u["fully_shown"][:2]) + " fully shown"
+        out.append(f"captions: {u['contrast']:.2f}:1 {where} ({what}; needs {bound}:1)")
+    return out
 
 
 def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: Optional[Path] = None) -> Dict[str, Any]:
@@ -1857,9 +2116,9 @@ def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: O
                     pass
             captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
                                         until=float(until) if until else None)
-            if captions["min"] is not None and captions["min"] < TEXT_CONTRAST:
-                worst = min((s for s in captions["samples"] if s["contrast"] is not None), key=lambda s: s["contrast"])
-                found.append(f"captions: {worst['contrast']:.2f}:1 at {worst['t']:.2f}s on the master (needs {TEXT_CONTRAST}:1)")
+            # every burst fully shown, and every frame: a dip inside a fade is reported (captions["dips"], the
+            # release report's caption_fades note), anything else under the bound blocks (freeze c6 capgate)
+            found += caption_findings(captions, TEXT_CONTRAST)
         except Exception as e:  # a measurement failure is reported, never a crash
             found.append(f"captions: contrast not measured ({e})")
     issues = [{"type": "text_contrast", "severity": "minor" if "not measured" in f or "unreadable" in f else "major",

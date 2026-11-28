@@ -26,10 +26,25 @@ def test_the_default_form_is_base_and_draws_nothing(monkeypatch):
     assert np.asarray(lyr.getchannel("A")).max() == 0 and rec["form"] == "base"
 
 
-def test_an_unknown_form_is_refused(monkeypatch):
-    monkeypatch.setenv(plate_form.ENV, "slab")
-    with pytest.raises(ValueError):
-        plate_form.active()
+@pytest.mark.parametrize("value", ["slab", "none", "off"])
+def test_an_unknown_form_draws_base_and_is_recorded(monkeypatch, value):
+    """Lander ruling (review of cycle 6, 2026-11-27): a value that names no form is base, recorded (was: refused)."""
+    monkeypatch.setenv(plate_form.ENV, value)
+    plate_form.UNKNOWN.pop(value, None)
+    assert plate_form.active() == "base"
+    assert plate_form.UNKNOWN.get(value) == 1
+
+
+@pytest.mark.parametrize("value", ["none", "block", "base", "anything"])
+def test_no_switch_value_can_disable_a_gate(monkeypatch, value):
+    """Lander ruling (review of cycle 6, step 1): no RR_PLATE_FORM value skips refusal.require_gate or
+    require_no_problems (the measuring reference lives in the harness, never in src)."""
+    from src import refusal
+    monkeypatch.setenv(plate_form.ENV, value)
+    with pytest.raises(refusal.OwnRecordFailed):
+        refusal.require_gate("probe", [{"name": "body", "text": "x", "contrast": 2.0}], 4.5, "probe rule")
+    with pytest.raises(refusal.OwnRecordFailed):
+        refusal.require_no_problems("probe", ["below_gate: body 2.0 under 4.5"], "probe rule")
 
 
 def test_scrim_under_base_is_the_shipped_band(monkeypatch):

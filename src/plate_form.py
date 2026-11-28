@@ -32,7 +32,6 @@ Forms (the queue document gives the analysis, the limits and the measures):
 - "type":  typographic first (the overlay label rule, typography.plan_label, applied to every line): no ground where
            each line reaches the target with its own halo at the label cap; where any line of the frame cannot, the
            frame's lines take the hug plate (one state per frame, PLATES-04's rule).
-- "none":  no ground at all (a measuring reference: what the photograph gives the type by itself).
 """
 from __future__ import annotations
 
@@ -42,7 +41,8 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 from PIL import Image, ImageDraw
 
-FORMS = ("base", "hug", "block", "field", "grade", "split", "type", "none")
+FORMS = ("base", "hug", "block", "field", "grade", "split", "type")
+UNKNOWN: dict[str, int] = {}   # RR_PLATE_FORM values that name no form, each taken as base (recorded, logged once)
 
 # The candidate token set (proposed; on adoption these move into brand_system.SYSTEM with ranges). Lengths in em are
 # of the line's own ink height (a cap-height-like measure every face has); px are at 1080 wide, scaled by the canvas.
@@ -85,11 +85,17 @@ ENV = "RR_PLATE_FORM"
 
 
 def active() -> str:
-    """The form in force: "base" (the shipped design) unless RR_PLATE_FORM names a candidate."""
+    """The form in force: "base" (the shipped design) unless RR_PLATE_FORM names a form. A value that names no form is
+    taken as base, recorded in UNKNOWN and logged once (lander ruling, review of cycle 6: no setting value may change
+    what ships by accident, and none may switch a gate off)."""
     from .config import plate_form_setting
     v = plate_form_setting()
     if v not in FORMS:
-        raise ValueError(f"{ENV}={v!r} is not a plate form ({', '.join(FORMS)})")
+        if v not in UNKNOWN:
+            import logging
+            logging.getLogger(__name__).warning("RR_PLATE_FORM=%r names no plate form: base is drawn", v)
+        UNKNOWN[v] = UNKNOWN.get(v, 0) + 1
+        return "base"
     return v
 
 
@@ -475,7 +481,7 @@ def layer(im: Image.Image, boxes: Iterable, form: str | None = None, safe=None) 
     rec: dict[str, Any] = {"form": form, "target": tk("target")}
     fb = _fills(boxes)
     clear = Image.new("RGBA", size, (0, 0, 0, 0))
-    if form in ("base", "none") or not fb:
+    if form == "base" or not fb:
         rec["lines"] = len(fb)
         return clear, rec
     G = np.asarray(im.convert("RGB"), np.float32)

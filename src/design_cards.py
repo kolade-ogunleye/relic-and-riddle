@@ -4275,12 +4275,9 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
         ink = [(tuple(p.box), tuple(p.fill[:3]), "main") for p in plates
                if not getattr(p, "empty", False) and getattr(p, "fill", None) is not None]
         lyr, prec = plate_form.layer(bg, ink, safe=safe_box("reel", *bg.size))
-        # the no-ground reference ("none") is the photograph as the type finds it: no halo either
-        h, worst, under = _least_halo(base, lyr, field, plates, 0.0 if prec["form"] == "none" else 1.0)
+        h, worst, under = _least_halo(base, lyr, field, plates, 1.0)
         rec = {"luminance": round(lum, 3), "mode": prec["form"], "plate_form": prec, "halo": h,
                "min": round(worst, 2), "above_kept": _above_kept(base, under, box[1])}
-        if prec["form"] == "none":
-            return under, rec
         ship, srec = _hook_scrim(bg, box, rows, eyebrow_row, eyebrow_box, head, plate_top, plate_bottom, feather,
                                  shipped=True)
         prec["dark_share"] = round(plate_form.dark_share(base, Image.alpha_composite(base, under)), 4)

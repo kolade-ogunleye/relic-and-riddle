@@ -542,3 +542,37 @@ def test_the_switched_off_cta_share_rule_is_bases_pixels(monkeypatch, tmp_path):
     gold = np.all(np.abs(want - np.array(multi_format.brand.GOLD[:3], np.int16)) <= 2, axis=2)
     assert gold.sum() >= 96 * 6 * 0.9          # the fixture holds the rule itself
     assert got.shape == want.shape and int((got != want).any(axis=2).sum()) == 0
+
+
+def test_the_hook_block_is_never_lighter_than_its_shipped_ground(monkeypatch, tmp_path):
+    """Rule 3 on the hook (re-review step 2.2): inside the hook's block the drawn frame takes the darker of the INK
+    block and the shipped wash/plate on the same pixels (plate_form.with_block): on a near-black photograph, where the
+    shipped ground is darker than INK, the block is laid (forced here) and its pad reads the shipped ground, not INK."""
+    from src import design_cards as dc
+    monkeypatch.setenv(plate_form.ENV, "block")
+
+    def lay_block(photo, shipped, blocked, items, rec):
+        rec["laid"] = "block"
+        return "block"
+    monkeypatch.setattr(plate_form, "choose", lay_block)
+    photo = tmp_path / "h.jpg"
+    Image.new("RGB", (1600, 2400), (2, 2, 2)).save(photo)
+    _dc, plan = _hook(photo)
+    rec = plan.meta["scrim"]["plate_form"]
+    assert plan.meta["scrim"]["mode"] == "block", plan.meta["scrim"]
+    frame = np.asarray(dc._hook_compose(plan.meta["_r"], 32).convert("RGB"), np.int16)
+    b = rec["blocks"][0]["box"]
+    x, y = int(b[0]) + 6, int((b[1] + b[3]) / 2)
+    ink = np.array(plate_form.INK if hasattr(plate_form, "INK") else multi_format.brand.INK[:3], np.int16)
+    assert frame[y, x].max() < ink.min() - 3, (frame[y, x], ink)   # the darker shipped ground, not INK
+
+
+def test_the_block_is_opaque_ink(monkeypatch):
+    """The opaque tier (block.tier 1.0, re-review step 2.2): on a white ground the block's pad is INK itself, never a
+    held tier the photograph shows through."""
+    monkeypatch.setenv(plate_form.ENV, "block")
+    out, rec = _scrim(_flat(250))
+    assert rec["laid"] == "block"
+    b = rec["blocks"][0]["box"]
+    px_ = np.asarray(out.convert("RGB"), np.int16)[int((b[1] + b[3]) / 2), int(b[0]) + 6]
+    assert np.abs(px_ - np.array(multi_format.brand.INK[:3], np.int16)).max() <= 2, px_

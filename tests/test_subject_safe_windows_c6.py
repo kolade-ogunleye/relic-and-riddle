@@ -128,13 +128,20 @@ def test_the_cover_tries_first_the_layout_it_takes_without_the_box(monkeypatch):
     assert [m for m, _w in cd.cover_order(None, a)] == ["photo_over_ink", "full_bleed"]
 
 
-def test_a_crop_drawn_as_without_the_box_keeps_its_fitness():
-    # a fixed ground (the hook card's) cannot move to the subject: the box records it, it does not turn it unfit
+def test_a_crop_drawn_as_without_the_box_keeps_its_fitness(monkeypatch):
+    # a fixed ground (the hook card's) cannot move to the subject: where both bases recorded it fit, the box records
+    # the subject partial and does not turn it unfit (round 3, D3)
     rng = np.random.default_rng(17)                         # a blocky texture: the centred crop is fit without a box
     img = Image.fromarray(rng.integers(40, 220, (40, 80, 3)).astype(np.uint8)).resize((2400, 1200), Image.NEAREST)
     a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))       # a subject at the left edge, outside the fixed crop
     window = pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground")
     blind = pf.place(None, window, analysis=dataclasses.replace(a, focus=None, _sat={}), fixed=True)
+    real = pf._place
+
+    def c5_fit(photo, w, *args, legacy=False, **kw):            # the cycle-5 record fit as well (both bases fit)
+        rec = real(photo, w, *args, legacy=legacy, **kw)
+        return {**rec, "problems": [], "fit": True} if legacy else rec
+    monkeypatch.setattr(pf, "_place", c5_fit)
     got = pf.place(None, window, analysis=a, fixed=True)
     assert blind["fit"], blind
     assert got["box"] == blind["box"] and got["focus"] < 0.5
@@ -221,3 +228,38 @@ def test_the_subject_safe_crop_is_drawn_only_when_it_shows_no_less_than_the_cycl
     monkeypatch.setattr(pf, "_place", worse)
     got = pf.place(None, window, analysis=a)
     assert got["box"] == legacy["box"] and "cycle-5" in got.get("basis", "")
+
+
+def test_a_crop_that_shows_less_than_the_cycle5_crop_is_not_drawn_even_if_it_beats_the_crop_without_the_box(
+        monkeypatch):
+    # round 4 (reviewer D5): the subject at the left edge; without the box the centred crop misses most of it, the
+    # cycle-5 rules with the box move to it. A subject-safe crop that only matches the no-box crop is not eligible.
+    rng = np.random.default_rng(23)
+    img = Image.fromarray(rng.integers(40, 220, (40, 80, 3)).astype(np.uint8)).resize((2400, 1200), Image.NEAREST)
+    a = _with_focus(img, (80.0, 300.0, 480.0, 900.0))
+    window = pf.Window((1080, 1350), name="ig carousel immersive")
+    real = pf._place
+    blind = real(None, window, analysis=dataclasses.replace(a, focus=None, _sat={}))
+    c5 = real(None, window, analysis=a, legacy=True)
+    assert _shown(a, c5, window) > _shown(a, blind, window) + 0.1
+
+    def as_without(photo, w, *args, legacy=False, floor=None, analysis=None, **kw):
+        rec = real(photo, w, *args, legacy=legacy, floor=floor, analysis=analysis, **kw)
+        if analysis is not None and analysis.focus is not None and not legacy:
+            rec = {**rec, "box": list(blind["box"]), "problems": []}
+        return rec
+    monkeypatch.setattr(pf, "_place", as_without)
+    got = pf.place(None, window, analysis=a)
+    assert _shown(a, got, window) >= _shown(a, c5, window) - 1e-3
+
+
+def test_a_placement_a_base_rejected_stays_unfit_unless_the_subject_is_served():
+    # round 4 (lander ruling 2): a reviewed subject mostly out of a fixed crop does not turn the placement fit
+    rng = np.random.default_rng(17)
+    img = Image.fromarray(rng.integers(40, 220, (40, 80, 3)).astype(np.uint8)).resize((2400, 1200), Image.NEAREST)
+    a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))
+    window = pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground")
+    c5 = pf._place(None, window, analysis=a, fixed=True, legacy=True)
+    got = pf.place(None, window, analysis=a, fixed=True)
+    assert not c5["fit"]                                    # the cycle-5 rules with the box reject it
+    assert not got["fit"] and got.get("subject_partial") and "subject" in got["problems"]

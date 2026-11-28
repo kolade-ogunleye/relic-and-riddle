@@ -712,6 +712,7 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     c5 = _place(photo, window, centering, earlier, overlap_max, image=image, analysis=a, fixed=fixed, legacy=True)
     rec = _place(photo, window, centering, earlier, overlap_max, image=image, analysis=a, fixed=fixed,
                  floor=tuple(today["box"]))
+    needs = {k: rec[k] for k in ("focus_need", "held_need") if k in rec}
 
     def shown(r: dict[str, Any]) -> tuple[float, float]:
         m = measure(a, tuple(r["box"]), window)
@@ -745,6 +746,13 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         # the crop drawn without the box: the box does not turn it unfit (recorded, not refused). Not on a window
         # with a designed alternative (the Reel cover, hold_min): there a cut subject sends the cover to it
         rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"], "subject_partial": True}
+    m = measure(a, tuple(rec["box"]), window)
+    served = (m.get("focus", 1.0) >= needs.get("focus_need", window.focus_min) - 1e-3
+              and m.get("held", 1.0) >= needs.get("held_need", FOCUS_KEEP) - 1e-3)
+    if not served and not rec["problems"] and (not today.get("fit") or not c5.get("fit")):
+        # round 4 (lander ruling 2): a placement a base recorded unfit becomes fit only when the subject is served
+        # (in view at or above the window's need); otherwise it keeps the unfit record, the subject recorded partial
+        rec = {**rec, "problems": ["subject"], "subject_partial": True}
     rec["fit"] = not rec["problems"]
     return rec
 

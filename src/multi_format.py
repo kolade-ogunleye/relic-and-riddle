@@ -4087,8 +4087,14 @@ def _slide_unfit(cards: list[dict[str, Any]], k: int, photo: Path) -> list[str]:
             window = MultiFormatGenerator.photo_window(archetype, facebook)
             rec = pf.place(Path(photo), window, fixed=True)        # the window as asked: the plain centred fit
             bad = [p for p in rec["problems"] if p != "protected"]
-            if "protected" in rec["problems"] and not pf.place(Path(photo), window)["fit"]:
-                bad.append("protected")                            # no window of it clears the masthead's box
+            if "protected" in rec["problems"]:
+                moved = pf.place(Path(photo), window)
+                if not moved["fit"]:                               # no window of it clears the masthead's box
+                    # with a subject box the moved crop may fail on the subject, not the structure: say which
+                    # (cycle 6, SUBJECT round 4); without one the reason is as before
+                    why = ("subject" if "focus" in moved and "subject" in moved["problems"]
+                           and "protected" not in moved["problems"] else "protected")
+                    bad.append(why)
             out += [p for p in bad if p not in out]
         return out
     except (OSError, ValueError):

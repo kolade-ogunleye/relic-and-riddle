@@ -209,9 +209,21 @@ def _graphic(name):
     return go
 
 
-def _then_now(ctx, size):
+def _stand_in_render(*args, **kwargs):
+    """then_now.render of a synthetic one-size pair as a stand-in pairing (no registration made it; drawn as at base).
+    Freeze cycle 6 (THENNOW round 3, R4): production refuses a registered pair unfit for a format; these observer
+    grounds are not registered pairs (tests/conftest.py thennow_stand_ins does the same inside a test process)."""
     from src import then_now
-    then_now.render(ctx.busy, 1925, ctx.busy2, 2019, ctx.tmp / f"tn{size[0]}.mp4", width=size[0], height=size[1])
+    real = then_now.is_registered
+    then_now.is_registered = lambda old_size, new_size: False
+    try:
+        return then_now.render(*args, **kwargs)
+    finally:
+        then_now.is_registered = real
+
+
+def _then_now(ctx, size):
+    _stand_in_render(ctx.busy, 1925, ctx.busy2, 2019, ctx.tmp / f"tn{size[0]}.mp4", width=size[0], height=size[1])
 
 
 def _then_now_linework(ctx, size):
@@ -219,7 +231,6 @@ def _then_now_linework(ctx, size):
     the marker takes its glow (glow_fall, band_fall, year_cap)."""
     from PIL import ImageDraw
 
-    from src import then_now
     paths = []
     for k in (0, 1):   # one drawing, the NOW photo its mirror
         im = Image.new("RGB", (1200, 2100), (236, 226, 200))
@@ -231,7 +242,7 @@ def _then_now_linework(ctx, size):
                    width=2)
         paths.append(ctx.tmp / f"linework_{k}.png")
         (im if k == 0 else im.transpose(Image.FLIP_LEFT_RIGHT)).save(paths[-1])
-    then_now.render(paths[0], 1925, paths[1], 2019, ctx.tmp / f"tnl{size[0]}.mp4", width=size[0], height=size[1])
+    _stand_in_render(paths[0], 1925, paths[1], 2019, ctx.tmp / f"tnl{size[0]}.mp4", width=size[0], height=size[1])
 
 
 def _callouts(ctx, size):

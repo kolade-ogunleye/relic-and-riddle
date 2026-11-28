@@ -10,6 +10,9 @@ from PIL import Image, ImageDraw
 
 from src import brand, callouts, end_card, safe_zones, then_now
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 FFMPEG = shutil.which("ffmpeg") is not None
 POINTS_916 = [("stone door recess", 600, 900), ("carved tuff wall", 300, 1300), ("ventilation shaft", 1000, 420),
               ("rolling stone door", 70, 700)]
@@ -97,7 +100,7 @@ def test_then_now_divider_ends_on_the_split_and_shows_both_photos():
         split = then_now._split_at(w, h)
         assert then_now.divider_at(0.0, w, h) == max(w, h)                     # the old photo whole
         assert then_now.divider_at(then_now.CLIP_SECONDS, w, h) == pytest.approx(split)
-        settled = sum(then_now.WIPE.values())
+        settled = then_now.wipe_window(w, h)[1]      # freeze cycle 6 (T1, ruling 2026-11-27): one wipe, then the split
         assert then_now.CLIP_SECONDS - settled >= 1.2                          # the split holds >= 1.2 s
     assert then_now._split_at(1080, 1920) == 768 and then_now._split_at(1920, 1080) == 960
     a = Image.new("RGB", (1080, 1920), (200, 30, 30))

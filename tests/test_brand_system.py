@@ -585,6 +585,11 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "motion.push_cap": (1.1, lambda: __import__("src.still_camera", fromlist=["x"]).endpoint_for("push", 300)),
     "motion.hook_hold": (0.9, lambda: __import__("src.design_cards", fromlist=["x"])._hook_ground_alpha(1.0)),
     "motion.hook_fade": (0.25, lambda: __import__("src.design_cards", fromlist=["x"])._hook_alpha(1.15)),
+    # freeze cycle 6 (THENNOW T1): the then-and-now divider's one wipe takes its length from its peak step
+    "thennow.central_keep": (0.9, lambda: __import__("src.then_now", fromlist=["x"]).keeps_centre(
+        __import__("src.then_now", fromlist=["x"])._cover_window((851, 1000), (1997, 1123)), (851, 1000))),
+    "thennow.marker_in": (0.3, lambda: __import__("src.then_now", fromlist=["x"]).divider_at(1.45, 1080, 1920)),
+    "motion.wipe_step": (45.0, lambda: __import__("src.then_now", fromlist=["x"]).divider_at(2.0, 1080, 1920)),
     "masthead.hook_ratio_max": (0.62, _youtube_mark_room),
     "map.home_line_w": (3.0, _map_base_sum),
     "map.home_edge_w": (2.5, _map_base_sum),

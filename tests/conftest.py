@@ -165,6 +165,16 @@ def checked_stamp():
     return stamp_as_checked
 
 
+@pytest.fixture
+def thennow_stand_ins(monkeypatch):
+    """The then-and-now tests of markers, plates, glows and motion draw synthetic pairs of one size that no
+    registration made: stand-in pairings (as the board's dev pairs are), drawn as at base and recorded unregistered.
+    Freeze cycle 6 (THENNOW round 3, R4): production draws registered pairs only and refuses one unfit for a format;
+    that rule is tested on registered pairs in tests/test_freeze_thennow_c6.py."""
+    from src import then_now
+    monkeypatch.setattr(then_now, "is_registered", lambda old_size, new_size: False)
+
+
 @pytest.fixture(autouse=True)
 def no_stale_slowdown(monkeypatch):
     """The slow-step note (src/slowdown.py) is process-wide: one test's "free model busy" showed on a later test's

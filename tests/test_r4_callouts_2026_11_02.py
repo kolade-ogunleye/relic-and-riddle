@@ -15,6 +15,9 @@ from src.brand import DATA_FONT
 from src.typography import get_font
 from tests import callout_fakes
 
+# Freeze cycle 6 (THENNOW round 3): these synthetic one-size pairs are stand-in pairings (tests/conftest.py)
+pytestmark = pytest.mark.usefixtures("thennow_stand_ins")
+
 
 def _photo(path, size=(1200, 2100), seed=1, lo=60, hi=240):
     rng = np.random.default_rng(seed)
@@ -354,7 +357,7 @@ def test_16x9_then_glow_is_kept_to_the_old_photo():
 def test_916_now_glow_hangs_from_the_divider_and_never_reaches_the_old_photo():
     boxes = [(83, 816, 200, 850), (80, 888, 310, 998)]
     split = then_now._split_at(1080, 1920)
-    far = round(1920 * (1 - then_now.SWEEP_TO))
+    far = 384    # the cycle-5 far point (SWEEP_TO 0.8, retired in cycle 6, ruling 2026-11-27): kept as a stress position
     reach = _reach()
     assert 816 - reach < split                                               # at rest its upper fall meets the divider
     for pos in (far, 500, 700, split):

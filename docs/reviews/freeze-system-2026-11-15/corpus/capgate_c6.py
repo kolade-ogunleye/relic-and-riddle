@@ -43,13 +43,18 @@ def end_card(comp: Path):
     return float(start) if start else None
 
 
-# The retired caption design drew the words still to be spoken VISIBLE in this grey (ASS &H00909090&) at 3.2-4.49:1.
-# The lander ruled (2026-11-28) that they count as text a viewer reads, so those masters fail correctly; the current
-# composer never draws a word still to be spoken (tests/test_capgate_c6_2026_11_28.py,
-# test_the_current_composer_never_draws_a_word_still_to_be_spoken). A failing run whose every blocking frame shows
-# such a word is marked as failing on that retired design, so the table is read correctly.
+# Retired caption designs the current composer no longer draws, which older dev masters fail on (lander ruling 1,
+# 2026-11-28: grey preview words COUNT as text a viewer reads, so those masters fail correctly):
+# - PREVIEW: the words still to be spoken drawn VISIBLE in this grey (ASS &H00909090&) at 3.2-4.49:1. The current
+#   composer never draws a word still to be spoken (tests/test_capgate_c6_2026_11_28.py,
+#   test_the_current_composer_never_draws_a_word_still_to_be_spoken).
+# - LONG FADE: a caption faded in or out over longer than the current caption fade tokens allow (the retired
+#   end-of-video "FOLLOW / LOVES / SHARE" lines, \fad(300,0)): its first frames, too faint to read, last longer than
+#   a fade the current composer draws, so they block (ruling R2: faint text is measured).
+# A failing run whose every blocking reading is explained by one of these is marked, naming which, so the table is
+# read correctly; a run with any blocking reading these do not explain is not marked.
 RETIRED_PREVIEW_GREY = "909090"
-RETIRED_NOTE = "fails on the retired preview-word design (not drawn by the current composer)"
+RETIRED_NOTE = "fails on a retired design (not drawn by the current composer)"
 
 
 def _visible_colours(text: str) -> set:
@@ -69,24 +74,33 @@ def _visible_colours(text: str) -> set:
     return out
 
 
-def retired_preview(ass: Path, fps: float, under: list) -> bool:
-    """True when every frame of every blocking reading shows a word drawn visible in RETIRED_PREVIEW_GREY."""
+def retired_designs(ass: Path, fps: float, under: list, longest_fade_ms: int) -> list | None:
+    """The retired designs (["grey preview words", "fade longer than the current tokens"]) that explain every
+    blocking reading, or None when any blocking reading is not explained by one of them."""
+    import re
     events = []
     for line in ass.read_text(encoding="utf-8").splitlines():
-        if line.startswith("Dialogue:") and ",CapText," in line:
+        if line.startswith("Dialogue:") and (",CapText," in line or ",CapBox," in line):
             p = line.split(",", 9)
             s, e = (round(sum(float(x) * k for x, k in zip(v.strip().split(":"), (3600, 60, 1))) * 1000)
                     for v in (p[1], p[2]))
-            events.append((s, e, p[9]))
+            fades = [(s, s + int(a)) for a, _b in re.findall(r"\\fad\((\d+),(\d+)\)", p[9]) if int(a) > longest_fade_ms]
+            fades += [(e - int(b), e) for _a, b in re.findall(r"\\fad\((\d+),(\d+)\)", p[9]) if int(b) > longest_fade_ms]
+            events.append((s, e, p[9] if ",CapText," in line else "", fades))
     if not under:
-        return False
+        return None
+    found = set()
     for u in under:
         n0 = round(u["from"] * fps)
-        for n in range(n0, n0 + int(u["frames"])):
-            t = int(n * (1.0 / fps) * 1000)
-            if not any(RETIRED_PREVIEW_GREY in _visible_colours(x) for s, e, x in events if s <= t < e):
-                return False
-    return True
+        frames = [int(n * (1.0 / fps) * 1000) for n in range(n0, n0 + int(u["frames"]))]
+        if all(any(f0 <= t < f1 for s, e, _x, fs in events if s <= t < e for f0, f1 in fs) for t in frames):
+            found.add(f"a fade longer than the current {longest_fade_ms} ms")
+        elif all(any(RETIRED_PREVIEW_GREY in _visible_colours(x) for s, e, x, _f in events if s <= t < e)
+                 for t in frames):
+            found.add("grey preview words")
+        else:
+            return None
+    return sorted(found)
 
 
 def crop(mp4: Path, t: float, out: Path, ass: Path) -> list[str]:
@@ -168,8 +182,12 @@ def main() -> int:
                 "dip_list": [(d["t"], round(d["contrast"], 2), d["frames"]) for d in cap["dips"]],
                 "min_fully_shown": None if cap["min"] is None else round(cap["min"], 2)}
             worst = cap["under"][0] if cap["under"] else None
-            if findings and not why and retired_preview(ass, float(cap["fps"]), cap["under"]):
+            from src import config as _cfg
+            longest = max(_cfg.CAPTION_WORD_EASE_MS, _cfg.CAPTION_PLATE_FADE_IN_MS, _cfg.CAPTION_PLATE_FADE_OUT_MS)
+            designs = retired_designs(ass, float(cap["fps"]), cap["under"], longest) if findings and not why else None
+            if designs:
                 row["note"] = RETIRED_NOTE
+                row["retired"] = designs
         else:
             vals = [s for s in cap["samples"] if s["contrast"] is not None]
             low = [s for s in vals if s["contrast"] < TEXT_CONTRAST]
@@ -187,12 +205,12 @@ def main() -> int:
               f"dips {row['dips']!s:>3}  unread {row.get('unread', '-')!s:>3}  frames under {row['frames_under']!s:>5}/{row['frames']!s:<5} "
               f"{row['verdict'].upper():4s} ({row['seconds']} s)", flush=True)
         if row.get("note"):
-            print(f"    {row['note']}", flush=True)
+            print(f"    {row['note']}: {', '.join(row['retired'])}", flush=True)
         for f in row["findings"][:4]:
             print(f"    {f}", flush=True)
     print(f"\n{len(rows)} masters measured ({'every burst, every frame' if fixed else '6 sampled midpoints'}); "
           f"{sum(1 for r in rows if r.get('verdict') == 'pass')} pass, {sum(1 for r in rows if r.get('verdict') == 'fail')} "
-          f"fail ({sum(1 for r in rows if r.get('note') == RETIRED_NOTE)} of them on the retired preview-word design), "
+          f"fail ({sum(1 for r in rows if r.get('note') == RETIRED_NOTE)} of them only on retired designs), "
           f"{sum(1 for r in rows if 'error' in r)} not measured")
     for s in skipped:
         print(f"skipped: {s}")

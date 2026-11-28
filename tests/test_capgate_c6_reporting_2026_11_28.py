@@ -74,3 +74,20 @@ def test_the_release_report_drops_the_contradicted_finding_and_notes_the_fade_di
     assert not any("DEDICATED" in p for p in release.release_problems(report, dry_run=True))
     fades = next(c for c in report["checks"] if c["name"] == "caption_fades")
     assert fades["status"] == "pass" and fades["note"] and "2.22:1 at 48.20s" in fades["detail"]
+
+
+def test_the_test_command_prints_what_a_blocked_run_left_on_disk(tmp_path, monkeypatch, capsys):
+    import main
+    (tmp_path / "stories").mkdir()
+    for name in ("story_01_hook.jpg", "story_02_reveal.jpg"):
+        (tmp_path / "stories" / name).write_bytes(b"jpg")
+    (tmp_path / "carousel_plan.json").write_text("{}", encoding="utf-8")
+
+    class Blocked:   # run_cycle's result on a gate block: no "stories" or "carousel" keys
+        def run_cycle(self, *a, **k):
+            return {"run_id": "r", "topic_id": "t", "decision": None, "status": "blocked", "error": "Release blocked",
+                    "master_video": str(tmp_path / "x_master.mp4")}
+    monkeypatch.setattr(main, "PipelineCoordinator", Blocked)
+    assert main.main(["test"]) == 1
+    out = capsys.readouterr().out
+    assert "Story frames on disk: 2" in out and "carousel not drawn" in out and "Stories: 0" not in out

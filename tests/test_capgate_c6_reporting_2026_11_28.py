@@ -91,3 +91,87 @@ def test_the_test_command_prints_what_a_blocked_run_left_on_disk(tmp_path, monke
     assert main.main(["test"]) == 1
     out = capsys.readouterr().out
     assert "Story frames on disk: 2" in out and "carousel not drawn" in out and "Stories: 0" not in out
+
+
+# ---------------------------------------------------------------- lander ruling 2 (follow-up): fail closed
+CAPS = ("[Script Info]\nPlayResX: 1080\nPlayResY: 1920\n\n[Events]\n"
+        "Dialogue: 0,0:00:01.00,0:00:02.00,CapBox,,0,0,0,,{\\pos(300,1100)\\p1}m 0 0 l 400 0{\\p0}\n"
+        "Dialogue: 1,0:00:01.00,0:00:02.00,CapText,,0,0,0,,{\\pos(540,1150)\\q2}STONE\n")
+
+
+def _captioned(tmp_path, video=True):
+    ass = tmp_path / "x_master_captions.ass"
+    ass.write_text(CAPS, encoding="utf-8")
+    master = tmp_path / "x_master.mp4"
+    if video:
+        master.write_bytes(b"video")
+    return master, ass
+
+
+def _blocking(audit):
+    return [i["issue"] for i in audit["issues"] if i["severity"] == "major"]
+
+
+def test_a_caption_measure_that_errors_fails_closed(tmp_path, monkeypatch):
+    master, ass = _captioned(tmp_path)
+
+    def broken(*a, **k):
+        raise RuntimeError("ffmpeg exited 1")
+    monkeypatch.setattr(video_qa, "caption_contrast", broken)
+    audit = video_qa.text_contrast_audit(tmp_path, master, ass)
+    assert audit["certified"] is False
+    assert _blocking(audit) == ["caption contrast could not be measured (RuntimeError: ffmpeg exited 1)"]
+
+
+def test_a_caption_measure_that_returns_nothing_fails_closed(tmp_path, monkeypatch):
+    master, ass = _captioned(tmp_path)
+    for result, why in (({"samples": [], "min": None, "bursts": 0, "under": [], "dips": []}, "no caption burst"),
+                        ({"samples": [{"t": 1.5, "contrast": None}], "min": None, "bursts": 1, "under": [],
+                          "dips": []}, "no measurable glyphs"),
+                        ({"samples": [], "min": None, "bursts": 1, "under": [], "dips": []}, "no frame on the master")):
+        monkeypatch.setattr(video_qa, "caption_contrast", lambda *a, _r=result, **k: _r)
+        audit = video_qa.text_contrast_audit(tmp_path, master, ass)
+        assert audit["certified"] is False and why in _blocking(audit)[0], (why, audit["issues"])
+    master.unlink()   # captions with no master to read them on
+    audit = video_qa.text_contrast_audit(tmp_path, master, ass)
+    assert audit["certified"] is False and "could not be measured" in _blocking(audit)[0]
+
+
+def test_a_master_without_captions_is_not_failed(tmp_path):
+    master, ass = _captioned(tmp_path)
+    ass.write_text("[Events]\n", encoding="utf-8")
+    assert video_qa.text_contrast_audit(tmp_path, master, ass)["certified"] is True
+    ass.unlink()
+    assert video_qa.text_contrast_audit(tmp_path, master, ass)["certified"] is True
+
+
+def test_a_contrast_audit_that_crashes_fails_the_quality_audit(tmp_path, monkeypatch):
+    auditor = video_qa.QualityAuditor()
+    monkeypatch.setattr(auditor, "audit_rendered_timeline",
+                        lambda *a, **k: {"score": 100, "certified": True, "issues": []})
+
+    def crash(*a, **k):
+        raise OSError("disk full")
+    monkeypatch.setattr(video_qa, "text_contrast_audit", crash)
+    master = tmp_path / "m_master.mp4"
+    master.write_bytes(b"video")
+    out = auditor.certify(master, [], [], tmp_path)
+    assert out["certified"] is False
+    assert [i["severity"] for i in out["issues"]] == ["major"]
+    assert out["issues"][0]["issue"] == "caption contrast could not be measured (OSError: disk full)"
+
+
+def test_the_release_check_fails_when_the_captions_could_not_be_measured(tmp_path, monkeypatch):
+    master, ass = _captioned(tmp_path)
+
+    def broken(*a, **k):
+        raise RuntimeError("no frames decoded")
+    monkeypatch.setattr(video_qa, "caption_contrast", broken)
+    audit = video_qa.text_contrast_audit(tmp_path, master, ass)
+    quality = {"master_sha256": sha256_file(master), "issues": audit["issues"]}
+    report = release.write_release_report(_run(master, {"self_healing": quality, "video_check": {"issues": []}}),
+                                          dry_run=True)
+    visual = next(c for c in report["checks"] if c["name"] == "visual_checks")
+    assert visual["status"] == "fail"
+    assert any("caption contrast could not be measured (RuntimeError: no frames decoded)" in p
+               for p in release.release_problems(report, dry_run=True))

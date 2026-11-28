@@ -1553,9 +1553,10 @@ class QualityAuditor:
         try:
             contrast_audit = text_contrast_audit(run_dir, video_path, kwargs.get("caption_path")
                                                  or video_path.parent / f"{video_path.stem}_captions.ass")
-        except Exception as e:
-            contrast_audit = {"issues": [{"type": "text_contrast", "severity": "minor", "issue": f"not measured ({e})"}],
-                              "captions": None, "score": 100, "certified": True}
+        except Exception as e:  # noqa: BLE001 - fails closed (lander ruling 2, freeze c6 capgate follow-up)
+            contrast_audit = {"issues": [{"type": "text_contrast", "severity": "major",
+                                          "issue": f"caption contrast could not be measured ({type(e).__name__}: {e})"}],
+                              "captions": None, "score": 90, "certified": False}
 
         all_issues = list(final_audit["issues"])
         scores = [final_audit["score"]]
@@ -2096,6 +2097,25 @@ def caption_findings(captions: Dict[str, Any], bound: Optional[float] = None) ->
     return out
 
 
+def caption_unmeasured(captions: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Why a caption_contrast verdict judges nothing it should (None when every burst has its fully shown reading):
+    no result, no burst, a burst with no frame on the master, or a burst whose fully shown frame had no ink to read.
+    The gate fails closed on it (lander ruling 2, freeze c6 capgate follow-up)."""
+    if not captions:
+        return "no result"
+    n = int(captions.get("bursts") or 0)
+    if n <= 0:
+        return "no caption burst was found to measure"
+    samples = captions.get("samples") or []
+    if len(samples) < n:
+        return f"{n - len(samples)} of {n} caption bursts have no frame on the master"
+    blank = [s for s in samples if s.get("contrast") is None]
+    if blank:
+        return (f"{len(blank)} of {n} caption bursts have no measurable glyphs when fully shown (first at "
+                f"{blank[0]['t']:.2f}s)")
+    return None
+
+
 def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: Optional[Path] = None) -> Dict[str, Any]:
     """Every surface's text contrast for the run: stills (Stories, carousel copies, covers), graphics (graded) and
     the master's captions. {"issues", "captions", "score", "certified"}."""
@@ -2107,7 +2127,8 @@ def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: O
     if (run_dir / "graphics").is_dir():
         found += graphic_contrast_problems(run_dir / "graphics")
     captions = None
-    if video and Path(video).is_file() and ass_file and Path(ass_file).is_file():
+    unmeasured = None   # why the captions of a master that has them could not be judged: fails closed
+    if ass_file and Path(ass_file).is_file():
         try:
             until = None
             for comp in run_dir.glob("*.composition.json"):   # the end card replaces the captions from its start
@@ -2115,14 +2136,29 @@ def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: O
                     until = (json.loads(comp.read_text(encoding="utf-8")).get("end_card") or {}).get("start_s")
                 except (OSError, ValueError):
                     pass
-            captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
-                                        until=float(until) if until else None)
-            # every burst fully shown, and every frame: a dip inside a fade is reported (captions["dips"], the
-            # release report's caption_fades note), anything else under the bound blocks (freeze c6 capgate)
-            found += caption_findings(captions, TEXT_CONTRAST)
-        except Exception as e:  # a measurement failure is reported, never a crash
-            found.append(f"captions: contrast not measured ({e})")
+            until = float(until) if until else None
+            if caption_bursts(Path(ass_file).read_text(encoding="utf-8"), until):   # the master has captions
+                if not (video and Path(video).is_file()):
+                    raise FileNotFoundError(f"the master {video} is missing")
+                captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
+                                            until=until)
+                unmeasured = caption_unmeasured(captions)
+                # every burst fully shown, and every frame: a dip inside a fade is reported (captions["dips"], the
+                # release report's caption_fades note), anything else under the bound blocks (freeze c6 capgate)
+                found_caps = caption_findings(captions, TEXT_CONTRAST)
+            else:
+                found_caps = []
+        except Exception as e:  # noqa: BLE001 - never a crash, and never a pass: it fails closed (below)
+            unmeasured, found_caps = f"{type(e).__name__}: {e}", []
+    else:
+        found_caps = []
     issues = [{"type": "text_contrast", "severity": "minor" if "not measured" in f or "unreadable" in f else "major",
                "issue": f} for f in found]
+    # Lander ruling 2 (freeze c6 capgate follow-up, 2026-11-28): a caption measurement that cannot run FAILS CLOSED,
+    # blocking (it was a minor "contrast not measured" finding, so a broken measure passed the run).
+    if unmeasured:
+        issues.append({"type": "text_contrast", "severity": "major",
+                       "issue": f"caption contrast could not be measured ({unmeasured})"})
+    issues += [{"type": "text_contrast", "severity": "major", "issue": f} for f in found_caps]
     major = [i for i in issues if i["severity"] == "major"]
     return {"issues": issues, "captions": captions, "score": max(0, 100 - 10 * len(major)), "certified": not major}

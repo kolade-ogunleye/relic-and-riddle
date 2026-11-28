@@ -562,7 +562,7 @@ def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, i
 
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
           floor: float = 0.18, colour=None, pct: float = 95, grade: bool | None = None,
-          out: dict | None = None, plain=(), safe=None, shipped: bool = False) -> Image.Image:
+          out: dict | None = None, plain=(), safe=None, shipped: bool = False, band_on=None) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
     percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
     never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
@@ -579,25 +579,23 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     from . import band_edge, plate_form
     if plain and plate_form.active() != "base" and not shipped:
         # design freeze cycle 6 (PLATEFORM; the block family, lander decision, by switch until the default flips): the
-        # form laid from the type's boxes (with their fills and block tags where the caller gives them), inside
-        # `safe`; laid only where it darkens no more of the frame than this band itself would, else the band
-        # (recorded: the darkened-share rule holds by construction, per still)
-        lyr, rec = plate_form.layer(im, plain, safe=safe)
+        # frame's blocks from the type's items (box, fill, block tag), inside `safe`, never lighter inside than the
+        # band on the same pixels (plate_form.with_block), laid where plate_form.choose says (the band leaves a line
+        # under the target, or the block darkens less of the frame), else the band; `band_on`: the image the shipped
+        # band is laid on (a Story frame's credit band under it), so the choice is the whole frame's
         boxes = [p[0] if len(p) in (2, 3) and hasattr(p[0], "__len__") else p for p in plain]
         got: dict = {}
-        banded = scrim(im, y0, y1, feather, target, cap, floor, colour, pct, grade, out=got, plain=boxes, shipped=True)
-        # inside the block, never lighter than the band would be there: a photograph darker than INK under a band
-        # reads darker than an INK block (cycle 6 corpus: Story titles 0.2-0.5 under base); the block takes the
-        # darker of the two, pixel by pixel (INK where the photograph is lighter, which is almost everywhere)
-        shaded = plate_form.darker_inside(Image.alpha_composite(im.convert("RGBA"), lyr), banded, lyr)
-        shaded = shaded if im.mode == "RGBA" else shaded.convert(im.mode)
-        rec["dark_share"] = round(plate_form.dark_share(im, shaded), 4)
-        rec["band_dark_share"] = round(plate_form.dark_share(im, banded), 4)
-        # and never a lighter ground under the type than the band gives it (a band over a photograph darker than
-        # INK reads darker than an INK block: cycle 6 corpus, three Story titles 0.2-0.5 under base)
-        rec["under_type"] = [plate_form.ground_under(shaded, boxes), plate_form.ground_under(banded, boxes)]
-        darker = rec["dark_share"] <= rec["band_dark_share"] + 1e-4
-        rec["laid"] = rec["form"] if darker and rec["under_type"][0] <= rec["under_type"][1] + 0.5 else "band"
+        banded = scrim(band_on if band_on is not None else im, y0, y1, feather, target, cap, floor, colour, pct,
+                       grade, out=got, plain=boxes, shipped=True)
+        if getattr(_render_state, "shipped_ground", False) or getattr(_render_state, "kicker_survey", False):
+            # a survey or the window fitter's move test reads the shipped ground (lander ruling 1, review of cycle 6)
+            if out is not None:
+                out["strength"] = got.get("strength", 0.0)
+            return banded
+        lyr, rec = plate_form.layer(im, plain, safe=safe)
+        shaded = plate_form.with_block(im, lyr, banded)
+        plate_form.choose(im, banded, shaded, plate_form.items_of(plain), rec)
+        _render_state.frame_form = rec["laid"]
         if out is not None:
             out["plate_form"] = rec
             out["strength"] = 0.0 if rec["laid"] != "band" else got.get("strength", 0.0)
@@ -650,6 +648,15 @@ def kicker_ink_box(x: float, baseline: float, text: str, font) -> tuple:
     return (x, baseline - cap_height(font), x + kicker_width(text, font), baseline + max(0, b[3]))
 
 
+SHARE_RULE = (96, 6, 26)   # design px: the CTA slide's gold rule (length, thickness, gap above the share line's cap)
+
+
+def share_rule_box(x: float, share_top: float, px) -> tuple:
+    """The CTA slide's gold rule over its share line (SHARE_RULE): (x0, y0, x1, y1), drawn and blocked from here."""
+    length, thick, gap = SHARE_RULE
+    return (x, share_top - px(gap) - px(thick), x + px(length), share_top - px(gap))
+
+
 def text_band_items(d, rows, x: float, bottom: float, px) -> list:
     """PLATEFORM (the block family): a carousel stack's rows as (ink box, fill, block tag): the kicker, heading and
     body one block ("main"), a share / CTA line its own ("cta"), its gold rule (drawn 26 + 6 design px above the share
@@ -666,7 +673,7 @@ def text_band_items(d, rows, x: float, bottom: float, px) -> list:
     share = [b for b, r in zip(boxes, drawn) if r.get("name") == "share"]
     if share:
         top = min(b[1] for b in share)
-        out.append(((x, top - px(26) - px(6), x + px(96), top - px(26)), tuple(brand.GOLD[:3]), "cta"))
+        out.append((share_rule_box(x, top, px), tuple(brand.GOLD[:3]), "cta"))
     return out
 
 
@@ -745,7 +752,7 @@ def gold_clash(im: Image.Image, box, gold=None) -> float:
     return round(float(near.mean()), 3)
 
 
-def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float, plain=()):
+def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float, plain=(), band_on=None):
     """The Story's text band shaded (scrim) only as deep as its ground needs (GROUND_ENERGY_MAX, GOLD_CLASH_SHARE),
     trying STORY_SCRIM_STEPS in turn; returns (image, rows, record). A gold row still clashing at the deepest step
     is set in bone (its fill changed, nothing else)."""
@@ -767,7 +774,8 @@ def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float,
                  for r in rows if r[2]] + list(plain)
     for target in STORY_SCRIM_STEPS:
         shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target, out=got,
-                       plain=items, safe=safe_box("story", *base.size) if _pf.active() != "base" else None)
+                       plain=items, safe=safe_box("story", *base.size) if _pf.active() != "base" else None,
+                       band_on=band_on)
         energy = max((ground_energy(shaded, b) for b in every), default=0.0)
         clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
         if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
@@ -823,6 +831,9 @@ def kicker_width(text: str, font) -> float:
     return rule * ch + gap * ch + tracked_width(text, font, font.size * track)
 
 
+LABEL_FIRST_STEP = ("halo", 0)   # typography.label_ladder's first step: the label in its colour, its halo only
+
+
 def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls", track: float = 0.0,
                 rule=None, **kw):
     """The ONE kicker's gate (round 7, F20 + sweep S1) on the ONE overlay-label rule (operator ruling 2, 2026-11-17:
@@ -843,13 +854,13 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
             "variant": "colour", "contrast": None, "gate": gate, "shown": True}
     member = kicker_label(im, xy, text, font, colour, anchor, track, rule, target)
     from . import plate_form
-    if step is None and plate_form.active() == "block":
-        # PLATEFORM (the block family, lander ruling 1): every kicker stands on INK: inside its text block the block
-        # is its ground (its own held plate, INK on the opaque block, adds nothing visible); on a frame that keeps
-        # the shipped band (the block would darken more) it takes its own held plate, the family's smallest block,
-        # so a deck whose bright slides move onto blocks never drops a dark slide's kicker off its plate (cycle 6
-        # corpus check: 7 kickers 0.5-0.7 under base when the deck's one step fell to bare colour)
-        step = ("plate", 0)
+    if step is None and plate_form.active() == "block" and not getattr(_render_state, "kicker_survey", False) \
+            and getattr(_render_state, "frame_form", None) == "block":
+        # PLATEFORM (the block family; lander ruling 2, review of cycle 6: one form per frame): a kicker inside its
+        # frame's block takes the first step of the ladder (its colour; the block is its ground, no plate of its own);
+        # on a frame that keeps the band it takes the deck's one step, which the survey chose on the shipped grounds
+        # (scrim draws the band while a deck or Story is surveyed), so it is base's step there
+        step = LABEL_FIRST_STEP
     # cycle 0 round 8 (R1, one treatment per set): a deck's kickers take ONE step (the deck's, kicker_step); the
     # first drawing of a deck surveys every step each kicker's ground holds (kicker_survey) so the deck can choose
     forced = step if step is not None else getattr(_render_state, "kicker_step", None)
@@ -1232,6 +1243,15 @@ def _moved_windows(lay) -> list[dict[str, Any]]:
     return [r for r in recs if r.get("moved")]
 
 
+def _fit_records(lay) -> list[dict[str, Any]]:
+    """The photo-window fit records of a drawn slide or Story frame, in order."""
+    meta = getattr(lay, "meta", None) or {}
+    recs = [w.get("fit") for w in (meta.get("windows") or []) if isinstance(w.get("fit"), dict)]
+    if isinstance(meta.get("window"), dict) and isinstance(meta["window"].get("fit"), dict):
+        recs.append(meta["window"]["fit"])
+    return recs
+
+
 def keep_text_contrast(draw, im: Image.Image, lay):
     """Review of cycle 5, B3 / B4: a window moved by the photo-fitness rule may not cost the text its legibility.
     `draw()` draws the same slide or Story frame again; when (im, lay) holds a moved window, the slide is drawn again
@@ -1243,6 +1263,33 @@ def keep_text_contrast(draw, im: Image.Image, lay):
     moved = _moved_windows(lay)
     if not moved or getattr(_render_state, "asked_only", False):
         return im, lay
+    from . import plate_form
+    if plate_form.active() != "base" and not getattr(_render_state, "shipped_ground", False):
+        # PLATEFORM (lander ruling 1, review of cycle 6): the photograph's window never moves because of the form.
+        # The move test is decided on the shipped ground (both drawings drawn with scrim laying the band); the frame
+        # is then drawn with the block at the window that test chose, its records carrying the test's
+        _render_state.shipped_ground = True
+        try:
+            im_s, lay_s = draw()
+            im_c, lay_c = keep_text_contrast(draw, im_s, lay_s)
+        finally:
+            _render_state.shipped_ground = False
+        refused = [r for r in _fit_records(lay_c) if r.get("move_refused")]
+        if not refused:
+            for r, c in zip(_fit_records(lay), _fit_records(lay_c)):
+                if "text_contrast" in c:
+                    r["text_contrast"] = c["text_contrast"]
+            return im, lay
+        _render_state.asked_only = True
+        try:
+            im0, lay0 = draw()
+        finally:
+            _render_state.asked_only = False
+        for r, c in zip(_fit_records(lay0), _fit_records(lay_c)):
+            for key in ("move_refused", "text_contrast"):
+                if key in c:
+                    r[key] = c[key]
+        return im0, lay0
     _render_state.asked_only = True
     try:
         im0, lay0 = draw()
@@ -1510,6 +1557,10 @@ class MultiFormatGenerator:
         # text is drawn; the frame's text block then stays above it.
         credit = dict(story_credit(photo, pages))
         text_floor = sy1
+        from . import plate_form as _pf
+        formed = _pf.active() != "base"   # PLATEFORM: the block family (one form for the frame's text and credit)
+        credit_items: list = []
+        band_on = None
         c_fill = brand.STONE_LT
         if credit["required"]:
             # at most STORY_CREDIT_LINES lines, never under 22 px; "fits" False when it takes more (QF-126c: the
@@ -1531,14 +1582,21 @@ class MultiFormatGenerator:
             got_c: dict = {}
             # not graded (ruling N2): the credit's small data face sits in the band's fall-off, and a graded ground there
             # read 0.05-0.25 lower after the platform re-encode
-            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
-                         grade=False, plain=[(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"), c_fill,
-                                              "credit") for k, ln in enumerate(c_drawn)],
-                         safe=_story_safe(base))
+            c_items = [(d.textbbox((x, c_top + k * c_lead), ln, font=font_c, anchor="la"), c_fill, "credit")
+                       for k, ln in enumerate(c_drawn)]
+            c_band = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0, out=got_c,
+                           grade=False, plain=c_items, shipped=formed)
+            if formed:
+                # the block family (lander ruling 4, review of cycle 6): the credit is a block of the frame's own
+                # family (its left edge, width snap and gap, one choice for the frame, in the frame's record); its
+                # shipped band is what the frame's band is laid on
+                credit_items, band_on = c_items, c_band
+            else:
+                base = c_band
             credit["text_band"] = text_band_record(need_c, got_c.get("strength", 0.0))
             d = ImageDraw.Draw(base)
             credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
-                          contrast=_contrast(base, backing, c_fill),
+                          contrast=_contrast(c_band, backing, c_fill),
                           complete=all(drawable(line, font_c) == line for line in credit["lines"]))  # no glyph missing
             text_floor = c_top - STORY_CREDIT_GAP
         kicker = typeset(slide["kicker"]).upper()
@@ -1773,8 +1831,6 @@ class MultiFormatGenerator:
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
         shade_rows, shade_block = rows, block
-        from . import plate_form as _pf
-        formed = _pf.active() != "base"   # PLATEFORM (design switch): a form is laid for the drawn lines only
         if i == 0 and not pointer and not formed:
             # Rulings N1 / N2 (2026-11-26, review 2 of the PLATES c5 fix): the band and its step are laid for the block
             # as designed, the withheld pointer's line included (its room, as the base laid it), so withholding the
@@ -1785,10 +1841,11 @@ class MultiFormatGenerator:
             shade_rows = rows + [ghost]
             shade_block = max(block, d.textbbox((x, ghost[1]), STORY_POINTER, font=font_p, anchor="ls")[3])
         extra = [tuple(credit["backing"])] if credit.get("backing") else []
-        if formed:   # the block family: the kicker (drawn apart, above the rows) is in its frame's one block
-            extra = [(kicker_ink_box(x, top + cap_k, kicker, font_k), tuple(colour_of("kicker.colour")[:3]), "main")
-                     ] if kicker else []
-        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block, plain=extra)
+        if formed:   # the block family: the kicker (drawn apart, above the rows) in the frame's main block, the credit
+            extra = ([(kicker_ink_box(x, top + cap_k, kicker, font_k), tuple(colour_of("kicker.colour")[:3]), "main")]
+                     if kicker else []) + credit_items
+        base, shaded_rows, ground = story_ground(base, d, shade_rows, x, top, shade_block, plain=extra,
+                                                 band_on=band_on)
         rows = [r for r in shaded_rows if r[0] != "reel_pointer"] if shade_rows is not rows else shaded_rows
         lay.ground = ground
         im = base.convert("RGBA")
@@ -2939,8 +2996,8 @@ class MultiFormatGenerator:
         share_box = next((e["box"] for e in (lay.elements if lay is not None else []) if e["name"] == "share"), None)
         if share_box and "y" in rule:
             # The gold rule: 6 design px tall, 96 wide, its own height above the share line's first cap.
-            top = share_box[1] - px(26) - px(6)
-            ImageDraw.Draw(im).rectangle([px(self.MARGIN), top, px(self.MARGIN) + px(96), top + px(6) - 1], fill=brand.GOLD)
+            r = share_rule_box(px(self.MARGIN), share_box[1], px)
+            ImageDraw.Draw(im).rectangle([r[0], r[1], r[2] - 1, r[3] - 1], fill=brand.GOLD)
         return im
 
     def _diagram_fit(self, size: tuple[int, int], box: tuple[int, int, int, int], cw: int, facebook: bool,
@@ -4961,6 +5018,19 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
         if hit:
             lay.meta["swipe_strip"] = {"side": "right", "skipped": f"it would touch the slide's {hit[0]}"}
             return im
+        pf = (lay.meta.get("plate_form") or {}) if isinstance(lay.meta, dict) else {}
+        if pf.get("laid") == "block":
+            # PLATEFORM (lander ruling 5, review of cycle 6): under the block family nothing floats on the photograph:
+            # the strip is drawn only inside a block (to its inner pad); the out-of-crop part that is the swipe cue is
+            # the masthead stream's (outside the 3:4 grid crop), so its seam is left for it here
+            inner = [(b["box"][0] + pf.get("side_pad", 0), b["box"][1], b["box"][2] - pf.get("side_pad", 0), b["box"][3])
+                     for b in pf.get("blocks") or []]
+            hold = next((ib for ib in inner if ib[1] <= box[1] and box[3] <= ib[3] and ib[2] > box[0]), None)
+            if hold is None:
+                lay.meta["swipe_strip"] = {"side": "right", "skipped": "under the block family the strip is drawn only "
+                                           "inside a block; its out-of-crop part is the masthead stream's"}
+                return im
+            box = [box[0], box[1], min(box[2], round(hold[2])), box[3]]
     im = im.convert("RGB")
     if box[2] > box[0]:
         ImageDraw.Draw(im).rectangle([box[0], box[1], box[2] - 1, box[3] - 1], fill=brand.GOLD)

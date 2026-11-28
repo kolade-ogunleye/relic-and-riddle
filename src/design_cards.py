@@ -2901,13 +2901,11 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
         lyr, prec = plate_form.layer(pic, ink_boxes, safe=safe_box("reel", geo.width, geo.height))
         shipped = None
         if prec["form"] == "block" and prec.get("blocks"):
-            # laid only where it darkens no more of the frame than the shipped panel (else the panel, recorded)
+            # never lighter inside than the shipped panel on the same pixels; laid where plate_form.choose says (the
+            # panel leaves a line under the target, or the block darkens less of the frame), else the panel
             shipped = _myth_ground(photo, geo, last_t, dim, y0, y1, opening=opening)
-            done = Image.alpha_composite(pic.convert("RGBA"), lyr).convert("RGB")
-            prec["dark_share"] = round(plate_form.dark_share(pic, done), 4)
-            prec["band_dark_share"] = round(plate_form.dark_share(pic, shipped[1]), 4)
-            prec["laid"] = "block" if prec["dark_share"] <= prec["band_dark_share"] + 1e-4 else "band"
-            if prec["laid"] == "band":
+            fill = plate_form.with_block(pic, lyr, shipped[1])
+            if plate_form.choose(pic, shipped[1], fill, plate_form.items_of(ink_boxes), prec) == "band":
                 shipped[0].edges = {**(getattr(shipped[0], "edges", None) or {}), "plate_form": prec}
                 return shipped
         if prec["form"] == "block" and prec.get("blocks"):
@@ -2915,7 +2913,7 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
             # the caption plate's own fade (CAPTION_PLATE_FADE_IN_MS), holds still while the photograph drifts, and
             # its foot follows the panel's opening (freeze panel M11 (4)): under the myth until t_f, then easing to
             # the block's own foot over STEP_BACK, so no fact line shows before the block is under it
-            drift = _BlockDrift(pic, prec, geo, opening, MYTH_BLOCK_IN)
+            drift = _BlockDrift(pic, prec, geo, opening, MYTH_KICKER_IN, fill)
         else:
             still = Image.alpha_composite(pic.convert("RGBA"), lyr).convert("RGB")
             a = np.asarray(lyr.getchannel("A"), np.float32)
@@ -2968,21 +2966,49 @@ def _panel_mask(geo: _Geo, top: float, foot: float, feathers: tuple[float, float
     return Image.fromarray(np.clip(np.repeat(m[:, None], W, axis=1) * 255 + 0.5, 0, 255).astype(np.uint8), "L")
 
 
-MYTH_BLOCK_IN = 0.20        # s: the 9:16 myth block arrives with the MYTH kicker's reveal (its first element)
+MYTH_KICKER_IN = 0.20       # s: the MYTH kicker's reveal starts (the 9:16 myth block arrives with it)
 
 
 class _BlockDrift:
     """PLATEFORM (the block family): the 9:16 myth's ground per frame: the photograph drifting (GroundDrift) under the
-    block, which holds still; the block's alpha eases in from `t_in` over the caption plate's fade-in
-    (config.CAPTION_PLATE_FADE_IN_MS) and its foot follows the panel's opening (b0 -> b1 design y from t0 over dur),
-    clipped at the block's own foot."""
+    block, which holds still, filled with `fill` (the block over the photograph, never lighter than the shipped panel
+    on the same pixel). The block arrives from `t_in` over the caption plate's fade-in (config.CAPTION_PLATE_FADE_IN_MS)
+    where its luminance step over the photograph is flash-safe (under config.PICTURE_QA_FLASH_LUMINANCE, relative),
+    else over the motion reveal token (motion.reveal, eased: lander ruling 7, review of cycle 6); its foot follows
+    the panel's opening (b0 -> b1 design y from t0 over dur), clipped at the block's own foot."""
 
-    def __init__(self, pic: Image.Image, rec: dict, geo: _Geo, opening, t_in: float) -> None:
-        from .config import CAPTION_PLATE_FADE_IN_MS
+    def __init__(self, pic: Image.Image, rec: dict, geo: _Geo, opening, t_in: float, fill: Image.Image) -> None:
+        from . import plate_form
+        from .config import CAPTION_PLATE_FADE_IN_MS, PICTURE_QA_FLASH_LUMINANCE
         self.pic, self.rec, self.geo, self.opening = GroundDrift(pic), rec, geo, opening
-        self.t_in, self.fade = float(t_in), CAPTION_PLATE_FADE_IN_MS / 1000.0
+        self.fill = np.asarray(fill.convert("RGB"), np.float32)
+        self.t_in = float(t_in)
         self.tier = float(rec.get("tier") or 1.0)
         self._masks: dict[int, np.ndarray] = {}
+        m = self._mask(geo.height) > 0
+        step = 0.0
+        if m.any():
+            step = float(plate_form.rel_lum(np.asarray(pic.convert("RGB"), np.float32)[m]).mean()
+                         - plate_form.rel_lum(self.fill[m]).mean())
+        self.flash_step = round(step, 4)
+        if step > PICTURE_QA_FLASH_LUMINANCE:
+            self.fade, self.curve = float(_mtok("motion.reveal")), "reveal"
+        else:
+            self.fade, self.curve = CAPTION_PLATE_FADE_IN_MS / 1000.0, "caption_plate"
+        rec["entry"] = {"t_in": self.t_in, "seconds": self.fade, "curve": self.curve, "luminance_step": self.flash_step}
+
+    def cover(self, boxes) -> None:
+        """Grows each block to hold every drawn text box with block.pad_min round it (the myth's source line drawn
+        at its own metrics), inside the frame; the masks are drawn again."""
+        from . import plate_form
+        pad = plate_form.tk("block.pad_min") * self.geo.width / 1080.0
+        for b in self.rec["blocks"]:
+            x0, y0, x1, y1 = b["box"]
+            inside = [e for e in boxes if e[0] < x1 and e[2] > x0 and e[1] < y1 + pad and e[3] > y0 - pad]
+            if inside:
+                b["box"] = [x0, round(min(y0, min(e[1] for e in inside) - pad)), x1,
+                            round(min(self.geo.height, max(y1, max(e[3] for e in inside) + pad)))]
+        self._masks.clear()
 
     def foot_at(self, t: float) -> float | None:
         if self.opening is None:
@@ -2998,18 +3024,23 @@ class _BlockDrift:
             self._masks[foot_px] = plate_form.block_mask((self.geo.width, self.geo.height), blocks)
         return self._masks[foot_px]
 
+    def alpha(self, t: float) -> float:
+        if self.fade <= 0:
+            return float(t >= self.t_in)
+        x = (t - self.t_in) / self.fade
+        return _ease(x) if self.curve == "reveal" else _smoothstep(x)
+
     def __call__(self, t: float) -> Image.Image:
         im = self.pic(t).convert("RGB")
-        a = _smoothstep((t - self.t_in) / self.fade) if self.fade > 0 else float(t >= self.t_in)
+        a = self.alpha(t)
         if a <= 0:
             return im
         f = self.foot_at(t)
         foot = self.geo.height if f is None else self.geo.y(f)
-        m = self._mask(int(foot)) * self.tier * a
-        ink = np.asarray(brand.INK, np.float32)[None, None, :]
+        m = (self._mask(int(foot)) * self.tier * a)[..., None]
         p = np.asarray(im, np.float32)
-        out = p * (1 - m[..., None]) + ink * m[..., None]
-        return Image.fromarray(np.clip(out + 0.5, 0, 255).astype(np.uint8), "RGB")
+        out = p * (1 - m) + self.fill * m
+        return Image.fromarray(np.clip(np.rint(out), 0, 255).astype(np.uint8), "RGB")
 
 
 class _PanelDrift:
@@ -3116,8 +3147,8 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     F = R + F_rel
     s_base = R + src_rel
     # a "misleading" myth is labelled so and struck with a broken pen (MYTH_DASH), never drawn as a false one
-    _kicker(card, "myth", MISLEADING_LABEL if misleading else "MYTH", mx, M, brand.STONE_LT, brand.STONE_LT, (0.20, 0.30),
-            (0.20, REVEAL))
+    _kicker(card, "myth", MISLEADING_LABEL if misleading else "MYTH", mx, M, brand.STONE_LT, brand.STONE_LT,
+            (MYTH_KICKER_IN, 0.30), (MYTH_KICKER_IN, REVEAL))
     myth_items = []
     for k, (ln, b) in enumerate(zip(m_lines, m_base)):
         it = card.text(f"myth_{k}", ln, brand.DISPLAY_FONT, None, Pm, brand.BONE, mx, b, ("ease", 0.25 + 0.08 * k, REVEAL),
@@ -3210,6 +3241,8 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
         div_fill = _divider_fill(card, div)
         # freeze panel M8: the divider wipes down as the pen starts, not before the myth is read
         card.rect("divider", div, div_fill, ("ease", t_s + STRIKE_PEN - 0.10, 0.40), "y", role="divider")
+    if isinstance(drift, _BlockDrift):   # PLATEFORM: the block holds every drawn line with pad_min round it
+        drift.cover([e.box for e in card.elements if getattr(e, "kind", "") == "text"])
     bottom = max(e.box[3] for e in card.elements)
     if bottom > geo.y(bottom_zone):
         raise CardRefused(f"the myth card's last ink at {bottom} runs past y {bottom_zone} (the caption band)")
@@ -4269,21 +4302,25 @@ def _hook_scrim(bg: Image.Image, box: Sequence[float], rows: Sequence[tuple],
     from . import plate_form
     if plate_form.active() != "base" and not shipped:
         # design freeze cycle 6 (PLATEFORM; the block family, lander decision, by switch until the default flips): the
-        # claim (and eyebrow) one block inside the Reel safe box, the lines' own halos solved on it as on the plate;
-        # laid only where it darkens no more of the frame than the shipped wash / plate would (else that, recorded)
+        # claim and the eyebrow (its rule inside its box) one block inside the Reel safe box, never lighter inside
+        # than the shipped wash / plate on the same pixels (plate_form.with_block), the lines' own halos solved on it
+        # as on the plate; laid where plate_form.choose says, else the shipped ground (recorded)
         from .safe_zones import safe_box
         ink = [(tuple(p.box), tuple(p.fill[:3]), "main") for p in plates
                if not getattr(p, "empty", False) and getattr(p, "fill", None) is not None]
+        if eyebrow_box is not None:
+            ink.append((tuple(eyebrow_box), tuple(brand.GOLD[:3]), "main"))
         lyr, prec = plate_form.layer(bg, ink, safe=safe_box("reel", *bg.size))
+        ship, srec = _hook_scrim(bg, box, rows, eyebrow_row, eyebrow_box, head, plate_top, plate_bottom, feather,
+                                 shipped=True)
+        shipped_im = Image.alpha_composite(base, ship)
+        filled = np.asarray(plate_form.with_block(base, lyr, shipped_im).convert("RGB"), np.uint8)
+        lyr = Image.fromarray(np.dstack([filled, np.asarray(lyr.getchannel("A"), np.uint8)]), "RGBA")
         h, worst, under = _least_halo(base, lyr, field, plates, 1.0)
         rec = {"luminance": round(lum, 3), "mode": prec["form"], "plate_form": prec, "halo": h,
                "min": round(worst, 2), "above_kept": _above_kept(base, under, box[1])}
-        ship, srec = _hook_scrim(bg, box, rows, eyebrow_row, eyebrow_box, head, plate_top, plate_bottom, feather,
-                                 shipped=True)
-        prec["dark_share"] = round(plate_form.dark_share(base, Image.alpha_composite(base, under)), 4)
-        prec["band_dark_share"] = round(plate_form.dark_share(base, Image.alpha_composite(base, ship)), 4)
-        if prec["dark_share"] <= prec["band_dark_share"] + 1e-4 and h is not None:
-            prec["laid"] = prec["form"]
+        laid = plate_form.choose(base, shipped_im, Image.alpha_composite(base, under), plate_form.items_of(ink), prec)
+        if laid == "block" and h is not None:
             return under, rec
         prec["laid"] = "band"
         return ship, {**srec, "plate_form": prec}

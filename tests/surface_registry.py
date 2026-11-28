@@ -630,8 +630,8 @@ def branches() -> dict[str, dict[str, Callable]]:
                     os.environ["RR_PLATE_FORM"] = saved
         return render_block
     myth = out["design_cards.plan_myth_fact"]
-    for name, render in list(myth.items()):
-        myth[f"block_{name}"] = under_block(render)
+    # the long myth sets the smallest 9:16 lines (the sizes the block's ink boxes are measured at besides the base's)
+    myth["block_long"] = under_block(myth["long"])
     myth["block"] = under_block(lambda ctx, size: _card_plan("plan_myth_fact", photo=ctx.busy)(ctx, size))
     # SYS-D-5: a carousel deck sets every content heading at ONE tier (MultiFormatGenerator._deck_heading_tier,
     # measured over both copies before any slide is drawn); the single-slide renders above never reach it

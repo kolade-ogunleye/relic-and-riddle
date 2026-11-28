@@ -712,7 +712,6 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
     c5 = _place(photo, window, centering, earlier, overlap_max, image=image, analysis=a, fixed=fixed, legacy=True)
     rec = _place(photo, window, centering, earlier, overlap_max, image=image, analysis=a, fixed=fixed,
                  floor=tuple(today["box"]))
-    needs = {k: rec[k] for k in ("focus_need", "held_need") if k in rec}
 
     def shown(r: dict[str, Any]) -> tuple[float, float]:
         m = measure(a, tuple(r["box"]), window)
@@ -740,20 +739,18 @@ def place(photo: Path | None, window: Window, centering: Sequence[float] = (0.5,
         rec = min(ranked, key=lambda x: x[0])[1]
     else:   # no crop shows no less than both: the base that shows more (the cycle-5 crop when neither dominates)
         rec = t if at_least(v_today, v_c5) and not at_least(v_c5, v_today) else c
-    same = all(abs(float(x) - float(y)) < 1.0 for x, y in zip(rec["box"], today["box"]))
-    if (same and today.get("fit") and "subject" in rec["problems"] and window.hold_min <= 0
-            and not set(rec["problems"]) - {"subject"} - set(today["problems"])):
-        # the crop drawn without the box: the box does not turn it unfit (recorded, not refused). Not on a window
-        # with a designed alternative (the Reel cover, hold_min): there a cut subject sends the cover to it
-        rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"], "subject_partial": True}
-    m = measure(a, tuple(rec["box"]), window)
-    served = (m.get("focus", 1.0) >= needs.get("focus_need", window.focus_min) - 1e-3
-              and m.get("held", 1.0) >= needs.get("held_need", FOCUS_KEEP) - 1e-3)
-    if not served and not rec["problems"] and (not today.get("fit") or not c5.get("fit")):
-        # round 4 (lander ruling 2): a placement a base recorded unfit becomes fit only when the subject is served
-        # (in view at or above the window's need); otherwise it keeps the unfit record, the subject recorded partial
-        rec = {**rec, "problems": ["subject"], "subject_partial": True}
-    rec["fit"] = not rec["problems"]
+    if window.hold_min <= 0:
+        # round 4 (lander ruling): the new rules choose the CROP, never the verdict. The subject's verdict is the
+        # cycle-5 measure on the drawn crop (window.focus_min in the view, FOCUS_KEEP in the hold): a subject shown
+        # only "as whole as the window can hold" stays unfit, as production records it today with a reviewed box.
+        # The Reel cover keeps its own, stricter asks (SUBJECT_WHOLE, COVER_GRID_FOCUS; no designed alternative
+        # is reached otherwise).
+        m = measure(a, tuple(rec["box"]), window)
+        c5_verdict = problems(m, window)
+        subject = "subject" in c5_verdict
+        rec = {**rec, "problems": [p for p in rec["problems"] if p != "subject"] + (["subject"] if subject else [])}
+        if subject:
+            rec["subject_partial"] = True
     return rec
 
 

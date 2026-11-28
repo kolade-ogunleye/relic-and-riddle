@@ -42,10 +42,11 @@ def test_wide_subject_in_a_narrow_window_is_fit_and_shown_as_whole_as_it_can_be(
     d.rectangle((200, 300, 1600, 650), fill=(230, 200, 60))          # a subject wider than any 9:16 crop
     a = _with_focus(img, (200.0, 300.0, 1600.0, 650.0))
     rec = pf.place(None, pf.Window((1080, 1920), name="story"), analysis=a)
-    assert "subject" not in rec["problems"], rec            # (b): its size alone is no fault
     best = max(pf._overlap(a.focus, pf._sub(b, (1080, 1920), (0, 0, 1080, 1920)))
                for b in pf._candidates(a, pf.Window((1080, 1920)), 1.0))
-    assert rec["focus"] >= best - 0.01                      # as whole as the window can hold
+    assert rec["focus"] >= best - 0.01                      # the crop: as whole as the window can hold
+    # the verdict (round 4, lander ruling): the cycle-5 measure, so a subject the window cannot hold whole is unfit
+    assert "subject" in rec["problems"] and not rec["fit"] and rec.get("subject_partial"), rec
 
 
 def test_no_crop_shows_less_of_the_subject_than_either_base():
@@ -128,24 +129,17 @@ def test_the_cover_tries_first_the_layout_it_takes_without_the_box(monkeypatch):
     assert [m for m, _w in cd.cover_order(None, a)] == ["photo_over_ink", "full_bleed"]
 
 
-def test_a_crop_drawn_as_without_the_box_keeps_its_fitness(monkeypatch):
-    # a fixed ground (the hook card's) cannot move to the subject: where both bases recorded it fit, the box records
-    # the subject partial and does not turn it unfit (round 3, D3)
-    rng = np.random.default_rng(17)                         # a blocky texture: the centred crop is fit without a box
+def test_the_verdict_is_the_cycle5_measure_on_the_drawn_crop():
+    # round 4 (lander ruling): the new rules choose the crop, never relax the verdict; a crop as without the box
+    # with the subject out of view is unfit on the subject, as the cycle-5 rules record it with the same box
+    rng = np.random.default_rng(17)
     img = Image.fromarray(rng.integers(40, 220, (40, 80, 3)).astype(np.uint8)).resize((2400, 1200), Image.NEAREST)
     a = _with_focus(img, (60.0, 300.0, 500.0, 900.0))       # a subject at the left edge, outside the fixed crop
     window = pf.Window((1080, 1920), checks=("matte", "subject", "flat"), name="hook ground")
-    blind = pf.place(None, window, analysis=dataclasses.replace(a, focus=None, _sat={}), fixed=True)
-    real = pf._place
-
-    def c5_fit(photo, w, *args, legacy=False, **kw):            # the cycle-5 record fit as well (both bases fit)
-        rec = real(photo, w, *args, legacy=legacy, **kw)
-        return {**rec, "problems": [], "fit": True} if legacy else rec
-    monkeypatch.setattr(pf, "_place", c5_fit)
     got = pf.place(None, window, analysis=a, fixed=True)
-    assert blind["fit"], blind
-    assert got["box"] == blind["box"] and got["focus"] < 0.5
-    assert got["fit"] and got.get("subject_partial")
+    m = pf.measure(a, tuple(got["box"]), window)
+    assert ("subject" in got["problems"]) == ("subject" in pf.problems(m, window))
+    assert not got["fit"] and got.get("subject_partial")
 
 
 def _nobox_cases():

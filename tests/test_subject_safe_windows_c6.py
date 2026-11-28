@@ -1,11 +1,12 @@
-"""Subject-safe window rules (design-freeze cycle 6, SUBJECT stream, rounds 2-3). With a subject box:
+"""Subject-safe window rules (design-freeze cycle 6, SUBJECT stream, rounds 2-4). With a subject box:
 (a) no crop shows less of the subject, in the view or the hold, than BOTH bases: the crop without the box and the
     cycle-5 crop with the same box (_place(..., legacy=True));
 (b) the subject's need spans the zoom ladder the window may use: a subject the window can show whole is shown whole;
-    a subject larger than every crop is shown as whole as the best crop shows it, and that crop is fit;
+    a subject larger than every crop is shown as whole as the best crop shows it (the CROP); the VERDICT is the
+    cycle-5 measure on that crop (round 4 ruling): such a subject stays unfit;
 (c) the Reel cover leaves its layout for a full-width one only when the hold keeps the subject whole (SUBJECT_WHOLE)
     and the profile tile COVER_GRID_FOCUS of it; it first tries the layout it takes without the box;
-(d) a crop drawn as without the box keeps that record's fitness ("subject_partial").
+(d) a subject partly out of the drawn crop is recorded "subject_partial".
 Without a subject box every placement is base a9de76b3's (fixture written by the base tree)."""
 import dataclasses
 import json
@@ -36,7 +37,7 @@ def _shown(a, r, window):
     return pf._overlap(a.focus, view)
 
 
-def test_wide_subject_in_a_narrow_window_is_fit_and_shown_as_whole_as_it_can_be():
+def test_wide_subject_in_a_narrow_window_is_shown_as_whole_as_it_can_be_and_judged_by_cycle5():
     img = _picture(1800, 900)
     d = ImageDraw.Draw(img)
     d.rectangle((200, 300, 1600, 650), fill=(230, 200, 60))          # a subject wider than any 9:16 crop

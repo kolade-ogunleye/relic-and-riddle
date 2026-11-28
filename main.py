@@ -5500,6 +5500,29 @@ class PipelineCoordinator:
             log.debug("Could not stamp the review card for %s: %s", run_id, e)
 
 
+def run_outputs_line(res: Dict[str, Any]) -> str:
+    """The `test` command's line on what the run made, read from the run's folder (beside the master), not from the
+    result: a run the release gate blocked returns no "stories" or "carousel" keys, and the line said "Stories: 0,
+    carousel slides: 0" with two Story frames on disk (freeze c6 capgate, audit item 12). A carousel is drawn at its
+    posting slot (carousel_lazy, QF-81): a run that reached none says so instead of counting no slides."""
+    master = res.get("master_video")
+    if not master:
+        return (f"Stories: {len(res.get('stories') or [])}, carousel slides: {len(res.get('carousel') or [])} "
+                "(no run folder recorded)")
+    from src import carousel_lazy
+    from src.release import story_frames
+    run_dir = Path(master).parent
+    stories = story_frames(run_dir)
+    slides = carousel_lazy.drawn(run_dir)
+    line = f"Story frames on disk: {len(stories)}"
+    if slides:
+        return line + f", carousel slides: {len(slides)}"
+    if carousel_lazy.planned(run_dir):
+        return line + ("; carousel not drawn: it is drawn at its posting slot, and this run reached none"
+                       + (f" (status: {res['status']})" if res.get("status") else ""))
+    return line + ", carousel slides: 0"
+
+
 def with_earlier_rejections(notes: str, earlier: List[str]) -> str:
     """This draft's findings, plus every earlier draft's, as claims never to restate. Each revision saw
     only the latest findings, and the same unsupported premise came back reworded in each draft until
@@ -7561,7 +7584,7 @@ def main(argv=None) -> int:
         except Exception:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))
-        print(f"Stories: {len(res.get('stories', []))}, carousel slides: {len(res.get('carousel', []))}")
+        print(run_outputs_line(res))
         return 0 if res.get("status") in ("published", "simulated") else 1
 
     if args.command == "backup":

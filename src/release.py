@@ -204,6 +204,10 @@ def write_release_report(run, dry_run=False):
     # The automated look at the frames (the card's "Automated video check") gates with the audit: a major
     # picture finding (a modern car under "ancient surveyors") sat beside "all checks pass" (Nazca, 2026-10-25).
     look = [{"type": "video_check", **i} for i in ((payload.get("video_check") or {}).get("issues") or []) if isinstance(i, dict)]
+    # A finding the checker itself contradicts (its quoted expected and observed text are the same) is not a finding:
+    # dropped and counted as the checker's false positive (freeze c6 capgate, audit item 14: "'DEDICATED' appears as
+    # 'DEDICATED'" was carried into the block reason).
+    look, false_positives = split_checker_false_positives(look)
     found = [i for i in issues + look if i.get("severity") != "info"]  # info: shown on the card, never a block
     from . import config as _config
     # The verdict is the findings' severities, not the audit's "certified" flag: certified needs a score of
@@ -223,6 +227,9 @@ def write_release_report(run, dry_run=False):
                          else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
         if notes:
             checks[-1]["notes"] = notes
+    if false_positives:
+        checks[-1]["checker_false_positives"] = {"count": len(false_positives), "dropped": false_positives}
+    checks.extend(_caption_fade_notes(quality, audited_master))
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))
     if profile.requires_youtube_thumbnail:
@@ -513,6 +520,47 @@ def _reading_rate_checks(composition: dict | None) -> list:
                  "a shorter script line there would slow them."}]
     return [{"name": "caption_rate", "status": "pass", "rate": rate,
              "detail": f"Every caption burst reads at {limit:g} characters a second or slower."}]
+
+
+# "the text 'X' appears as 'Y'": the quoted text a finding says was expected, and what it says was seen
+_QUOTE_OPEN, _QUOTE_CLOSE = "'\"‘“", "'\"’”"
+_SEEN_AS = re.compile(f"[{_QUOTE_OPEN}](?P<a>[^{_QUOTE_OPEN}{_QUOTE_CLOSE}]+)[{_QUOTE_CLOSE}]\\s+"
+                      r"(?:appears|is shown|is displayed|is drawn|is rendered|reads|is spelled|is written)\s+as\s+"
+                      f"[{_QUOTE_OPEN}](?P<b>[^{_QUOTE_OPEN}{_QUOTE_CLOSE}]+)[{_QUOTE_CLOSE}]")
+
+
+def checker_false_positive(issue) -> bool:
+    """True when a visual-check finding contradicts itself: every "'X' appears as 'Y'" it quotes has X and Y the same
+    text (whitespace aside), so it reports nothing that differs (freeze c6 capgate, audit item 14)."""
+    if not isinstance(issue, dict):
+        return False
+    pairs = _SEEN_AS.findall(str(issue.get("issue") or ""))
+    return bool(pairs) and all(" ".join(a.split()) == " ".join(b.split()) for a, b in pairs)
+
+
+def split_checker_false_positives(look: list) -> tuple[list, list]:
+    """(the findings kept, the findings dropped as checker_false_positive)."""
+    kept, dropped = [], []
+    for i in look:
+        (dropped if checker_false_positive(i) else kept).append(i)
+    return kept, dropped
+
+
+def _caption_fade_notes(quality: dict, audited_master: bool) -> list:
+    """The caption gate's dips (video_qa.caption_verdict: a reading under the bar for no longer than a caption fade,
+    inside one), each with its time and value: a note, never a block (freeze c6 capgate, ruling 2). Only from the
+    audit of this master."""
+    caps = (((quality or {}).get("atomic_breakdown") or {}).get("text_contrast") or {}).get("captions") or {}
+    dips = caps.get("dips") or []
+    if not audited_master or not dips:
+        return []
+    shown = "; ".join(f"{d['contrast']:.2f}:1 at {d['t']:.2f}s ({d['frames']} frame{'s' if d['frames'] > 1 else ''},"
+                      f" \"{d.get('text', '')}\")" for d in dips[:6])
+    more = f" (and {len(dips) - 6} more)" if len(dips) > 6 else ""
+    return [{"name": "caption_fades", "status": "pass", "minor": True, "note": True, "dips": dips, "detail":
+             f"{len(dips)} caption moment(s) read under the bar only while a word fades in or a burst fades out, for "
+             f"no longer than the fade ({caps.get('allowance_frames')} frames): {shown}{more}. Every burst fully "
+             f"shown reads at {caps.get('min', 0) or 0:.2f}:1 or better."}]
 
 
 def _ingest_notes(run_dir: Path) -> list:

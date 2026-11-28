@@ -351,10 +351,11 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
                    and _intersects(q.box, brand_p.box)]
             # the lander's gates for the stacked form (2026-11-27): the photograph nowhere darker than with the
             # one-line mark, no lower reading after the re-encode (masthead.stack_check), on the same thumbnail
+            # each mark's whole group (the diamond with the name: masthead.draw's box) is the mark's own, not photo
             check = masthead.stack_check((got[0], brand_p, got[2].get("masthead") or {"shown": False},
-                                          brand_p.box if brand_p is not None else None),
+                                          (got[2].get("masthead") or {}).get("box")),
                                          (im, line_p, trial.get("masthead") or {"shown": False},
-                                          line_p.box if line_p is not None else None))
+                                          (trial.get("masthead") or {}).get("box")))
             tried.append({"shift": masthead.STACK_SHIFT if shift is None else shift, "touches": hit[:1],
                           "check": check["why"] or "ok"})
             if brand_p is not None and not hit and check["ok"]:

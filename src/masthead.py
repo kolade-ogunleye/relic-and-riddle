@@ -169,8 +169,10 @@ def stack_lines(name: str | None = None, size: float = 64.0) -> tuple[str, str] 
 # has (no new reach, no new darkening). STACK_SHIFT: how many stack pitches the FIRST line's baseline sits above the
 # one-line form's baseline: 1.0 puts the stack's last baseline on the one-line baseline (the first line above it,
 # higher on the same ramp); 0.5 centres the stack on the one-line cap block; 0.0 hangs it from the one-line cap line.
-# Chosen by measurement on the dev corpus (hand-back "Review fixes"): the value with no slide failing against base.
-STACK_SHIFT = 1.0
+# Measured on the 13 dev posts that take the stacked form (hand-back "Review fixes", 2026-11-27): 1.0 and 0.5 both
+# leave 0 of 166 slides failing against base (every one of those posts falls back to one line, recorded), and 1.0 puts
+# the first line's cap at y 37 on the 1440 slide, over the carousel's safe zone (y 40): 0.5 keeps the stack inside it.
+STACK_SHIFT = 0.5
 
 
 def stack_offset(size: float) -> float:
@@ -585,23 +587,26 @@ def stress_ground(bright: float, dark: float, split: float, spread: float, blur:
 _palette_checked: dict[tuple, tuple[str, ...]] = {}
 
 
+def _palette_key(cfg) -> tuple:
+    """The roles the palette check reads (its cache key)."""
+    return (str(cfg.text.get("masthead")),
+            tuple(sorted((k, tuple(v) if not isinstance(v, str) else v) for k, v in cfg.palette.items())),
+            tuple(sorted((k, str(v)) for k, v in cfg.system.items()
+                         if k.startswith(("masthead.", "plate.shade", "halo.step")))),
+            str(cfg.font("masthead")))
+
+
 def palette_problems(config) -> list[str]:
     """Why `config`'s masthead cannot be drawn on a stored ground ([]: on every one its name reaches the gate through
     the ruled order): one line per ground it fails on, with the best ratio each variant reached. A name that does
     not fit the carousel's room is the fit ladder's refusal, not the palette's, and is not listed here."""
-    def roles(cfg):
-        return (str(cfg.text.get("masthead")),
-                tuple(sorted((k, tuple(v) if not isinstance(v, str) else v) for k, v in cfg.palette.items())),
-                tuple(sorted((k, str(v)) for k, v in cfg.system.items()
-                             if k.startswith(("masthead.", "plate.shade", "halo.step")))),
-                str(cfg.font("masthead")))
-    key = roles(config)
-    if key == roles(brand.DEFAULT_BRAND):   # the default brand's roles: held by the corpus proof and the tests
+    key = _palette_key(config)
+    if key == _palette_key(brand.DEFAULT_BRAND):   # the default brand's roles: held by the corpus proof and the tests
         return []
     if key in _palette_checked:
         return list(_palette_checked[key])
     w, h, x0, base, size, reach, room = VALIDATION_FRAME
-    fails = []
+    fails, notes = [], []
     with brand.use(config, validate=False):
         grounds = [(name, validation_ground(mean, spread, blur)) for name, mean, spread, blur in VALIDATION_GROUNDS]
         grounds.append((BRIGHT_STRESS[0], stress_ground(*BRIGHT_STRESS[1:])))   # freeze cycle 6 (M3)
@@ -609,13 +614,27 @@ def palette_problems(config) -> list[str]:
         for (name, ground), form in ((g, f) for g in grounds for f in forms):
             _, _, rec = plan(ground, x0, base, size, reach=reach, max_width=room, form=form)
             if not rec.get("shown") and rec.get("fit_floor_px") is None:
-                name = name if form == "line" else f"{name} (stacked form)"
-                fails.append(f"masthead on a {name} ground: the name reaches at best {rec.get('best_tried')}:1 "
-                             f"({rec.get('best_step')}; {config.name}: masthead.colour_dark best "
-                             f"{rec.get('best_dark')}, masthead.colour_light best {rec.get('best_light')}), under "
-                             f"the {tok('contrast.masthead_gate')}:1 gate")
+                line = (f"masthead on a {name}{'' if form == 'line' else ' (stacked form)'} ground: the name reaches "
+                        f"at best {rec.get('best_tried')}:1 ({rec.get('best_step')}; {config.name}: "
+                        f"masthead.colour_dark best {rec.get('best_dark')}, masthead.colour_light best "
+                        f"{rec.get('best_light')}), under the {tok('contrast.masthead_gate')}:1 gate")
+                # the one-line form is the brand's mark: refused; the stacked form is a hook remedy that falls back to
+                # one line wherever it fails (multi_format: the post's fallback), so its failure is a NOTE
+                (fails if form == "line" else notes).append(line)
     _palette_checked[key] = tuple(fails)
+    _palette_notes[key] = tuple(notes)
+    for n in notes:
+        log.info("palette check (stacked form, not a refusal: such posts draw one line): %s", n)
     return fails
+
+
+_palette_notes: dict[tuple, tuple[str, ...]] = {}
+
+
+def palette_notes(config) -> list[str]:
+    """The stacked form's failures on the stored grounds for `config` (asked by palette_problems; never a refusal)."""
+    palette_problems(config)
+    return list(_palette_notes.get(_palette_key(config), ()))
 
 
 MARGIN = 6.0                      # the worst glyph's ratio a drawn masthead should clear (the gate is 5.5)

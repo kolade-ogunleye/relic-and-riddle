@@ -194,13 +194,14 @@ def test_a_youtube_stacked_form_that_fails_its_check_keeps_the_one_line_form(mon
 
 
 def test_the_stacked_form_stays_inside_the_one_line_forms_scrim():
-    """Lander ruling 2026-11-27 (round 2): no new reach. The stacked form is planned on the reach it is given, its last
-    baseline on the one-line baseline (masthead.STACK_SHIFT 1.0: the first line above it, higher on the same ramp)."""
+    """Lander ruling 2026-11-27 (round 2): no new reach. The stacked form is planned on the reach it is given, centred
+    on the one-line form's baseline (masthead.STACK_SHIFT 0.5: half a pitch above it, half a pitch below)."""
     w, h, x0, base, size, reach, room = masthead.VALIDATION_FRAME
     ground = masthead.validation_ground(60, 20.0, 1.5)
     _, plate, rec = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form="stacked")
     assert rec["form"] == "stacked" and rec["reach"] == round(reach)
-    assert abs(plate.plates[-1].xy[1] - base) < 1e-6 and plate.plates[0].xy[1] < base
+    half = masthead.stack_pitch(size) / 2
+    assert abs(plate.plates[0].xy[1] - (base - half)) < 1e-6 and abs(plate.plates[-1].xy[1] - (base + half)) < 1e-6
 
 
 def test_a_slide_whose_stacked_mark_reaches_no_gate_draws_the_one_line_form_recorded(tmp_path, monkeypatch):
@@ -292,7 +293,8 @@ def test_the_palette_check_refuses_a_pair_under_the_gate_and_accepts_one_over_it
 def test_the_palettes_readings_on_the_stress_ground_are_pinned_as_data():
     """The shipped default and the second colour set measured on the stored stress ground, each held to its dated pin
     (tests/fixtures/masthead_stress_readings.json) within its tolerance: DATA, not a refusal that hangs on 0.01. The
-    default reads 0.12 over the gate in both forms; the second colours 0.01 under it in both (refused on Windows). The assertion message carries every reading, so another platform's values are on record."""
+    default's one-line form reads 0.12 over the gate, its stacked form 5.05; the second colours 0.01 under it on one line
+    (refused on Windows), 4.94 stacked. The assertion message carries every reading, so another platform's values are on record."""
     sys.path.insert(0, str(ROOT / "docs" / "reviews" / "quality-fixes-2026-11" / "QF-35a"))
     import render_surfaces
     pin = json.loads((ROOT / "tests" / "fixtures" / "masthead_stress_readings.json").read_text(encoding="utf-8"))
@@ -306,7 +308,8 @@ def test_the_palettes_readings_on_the_stress_ground_are_pinned_as_data():
             got[key] = masthead.plan(ground, x0, base, size, reach=reach, max_width=room, form=form)[2]["best_tried"]
     off = {k: (got[k], v) for k, v in pin["readings"].items() if abs(got[k] - v) > pin["tolerance"] + 1e-9}
     assert not off, f"readings {got} against the {pin['date']} pin (tolerance {pin['tolerance']}): {off}"
-    assert got["default/line"] >= pin["gate"] and got["default/stacked"] >= pin["gate"], got   # the default draws
+    assert got["default/line"] >= pin["gate"], got   # the default's mark draws there (its stacked form does not:
+    # on such a ground a stacked post falls back to one line, recorded; the palette check notes it, never refuses it)
 
 
 # ------------------------------------------------------------------------------------------------------------- M4

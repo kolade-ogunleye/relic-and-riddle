@@ -876,12 +876,17 @@ def plan_kicker(im: Image.Image, xy, text: str, font, colour, anchor: str = "ls"
             plates, rec = plan_label(**member)
     else:
         plates, rec = plan_label(**member)
-    passes = None
+    passes = survey_step = None
     if getattr(_render_state, "kicker_survey", False):
         shipped = getattr(_render_state, "shipped_image", None) if plate_form.active() == "block" else None
         passes = [list(s) for s in label_passes(**(dict(member, ground=shipped) if shipped is not None else member))]
-    return finish_kicker(plates, rec, rule, gate, target, text, passes=passes, set_broken=broken,
-                         forced=forced is not None and broken is None)
+        if shipped is not None:   # the step this kicker takes on its frame's shipped ground (the set plans on it)
+            survey_step = plan_label(**dict(member, ground=shipped))[1].get("step")
+    plate, out = finish_kicker(plates, rec, rule, gate, target, text, passes=passes, set_broken=broken,
+                               forced=forced is not None and broken is None)
+    if survey_step is not None:
+        out["survey_step"] = list(survey_step)
+    return plate, out
 
 
 def kicker_label(im: Image.Image, xy, text: str, font, colour, anchor: str, track: float, rule, target: float) -> dict:
@@ -948,10 +953,12 @@ def deck_kicker_step(lays) -> tuple[str, int] | None:
     the deck draws no kicker, or no one step holds on every kicker's ground."""
     from .typography import label_ladder, set_step, step_key
     recs = kicker_records(lays)
-    steps = {step_key(r["step"]) for r in recs}
+    # PLATEFORM: a kicker drawn in its block was surveyed on its frame's shipped ground (its "survey_step")
+    steps = {step_key(r.get("survey_step") or r["step"]) for r in recs}
     if len(steps) <= 1:
         return next(iter(steps)) if steps else None
-    return set_step(label_ladder((0, 1), colour_held=True), [r.get("passes") or [r["step"]] for r in recs])
+    return set_step(label_ladder((0, 1), colour_held=True),
+                    [r.get("passes") or [r.get("survey_step") or r["step"]] for r in recs])
 
 
 _DECK_STEPS: dict[str, tuple[str, int] | None] = {}

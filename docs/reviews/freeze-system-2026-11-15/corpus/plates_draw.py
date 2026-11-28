@@ -122,9 +122,8 @@ class _Ground:
             finally:
                 self.depth -= 1
             state = multi_format._render_state
-            if self.depth == 0 and not kw.get("shipped") and not getattr(state, "shipped_ground", False) \
-                    and not getattr(state, "kicker_survey", False):
-                self.add(im, out, kw.get("out"))   # the drawing's own grounds (never a survey or a window test's)
+            if self.depth == 0 and not kw.get("shipped") and not getattr(state, "shipped_ground", False):
+                self.add(im, out, kw.get("out"))   # the drawing's own grounds (never a window test's trial)
             return out
         multi_format.scrim = scrim
         # the window fitter draws a frame again (moved / as asked, and under the block family on the shipped ground):

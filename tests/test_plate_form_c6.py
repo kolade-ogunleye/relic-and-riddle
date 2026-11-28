@@ -435,3 +435,15 @@ def test_the_myth_block_grows_to_hold_every_drawn_line():
     drift.cover([(137, 1051, 594, 1078)])
     assert rec["blocks"][0]["box"][3] >= 1078 + plate_form.tk("block.pad_min")
     assert float(np.asarray(drift(5.0).convert("L"))[1090, 300]) < 40
+
+
+def test_the_decks_one_step_is_planned_on_the_shipped_grounds_survey():
+    """Rule 2: kickers drawn in their blocks all take their colour, but the deck's one step is planned on each
+    kicker's survey on its frame's shipped ground (survey_step / passes), so a band frame's kicker keeps base's step."""
+    class Lay:
+        def __init__(self, rec):
+            self.meta = {"kickers": {"kicker": rec}}
+    on_block = {"shown": True, "step": ["halo", 0], "survey_step": ["plate", 0], "passes": [["plate", 0], ["plate", 1]]}
+    on_band = {"shown": True, "step": ["plate", 0], "passes": [["halo", 0], ["plate", 0]]}
+    assert tuple(multi_format.deck_kicker_step([Lay(on_block), Lay(on_band)])) == ("plate", 0)
+    assert tuple(multi_format.deck_kicker_step([Lay(on_block), Lay(dict(on_block))])) == ("plate", 0)

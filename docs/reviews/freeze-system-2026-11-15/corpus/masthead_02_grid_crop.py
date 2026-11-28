@@ -1,14 +1,15 @@
 """MASTHEAD-02 (freeze cycle 6, panel 7 PL1 M2): the Instagram cover is the post's profile-grid tile, and the grid
 shows its centre 3:4 (x 45-1395 on the 1440 x 1800 slide). Nothing slide 1 draws is cut by that crop: every element's
-box (heading, body, masthead) and the swipe strip's slide-1 part lie inside it, or the part is not drawn and says why
-(lay.meta["swipe_strip"]["skipped"]). The Facebook cover draws no strip at all.
+box (heading, body, masthead) lies inside it, and the swipe strip's slide-1 part lies wholly OUTSIDE it (round 2,
+lander ruling 2026-11-27: from the crop's edge to the slide's, so the feed shows one line across the seam and the grid
+tile none of it), or is not drawn and says why. The Facebook cover draws no strip at all.
 
 Reads what plates_draw.py left for one tree and palette:
 
     python masthead_02_grid_crop.py <decks>/<brand> [--json out.json]
 
-A violation: a drawn box outside the crop (the seam stub at x 1344-1440 was one on every Instagram cover), or a strip
-on a Facebook cover.
+A violation: an element outside the crop, a strip part reaching into it (the seam stub at x 1344-1440 was one on every
+Instagram cover at base), or a strip on a Facebook cover.
 """
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ def main() -> int:
             crop = grid_crop(w, h)
             strip = (e.get("meta") or {}).get("swipe_strip") or {}
             out = [el["name"] for el in e.get("elements") or [] if not inside(el["box"], crop)]
-            if strip.get("box") and not inside(strip["box"], crop):
+            if strip.get("box") and strip["box"][0] < crop[2]:   # the part must lie wholly outside the crop
                 out.append(f"swipe strip {strip['box']}")
             fb_strip = sub == "carousel_fb" and bool(strip.get("box"))
             ok = not (out if sub == "carousel" else fb_strip)
@@ -59,7 +60,7 @@ def main() -> int:
             print(f"{run.name[4:46]:42} {sub:11} {'pass' if ok else 'FAIL'} {why}", flush=True)
     ig = [r for r in rows if r["deck"] == "carousel"]
     counts = {"covers": len(rows), "IG covers": len(ig), "IG covers cut by the grid crop": sum(not r["ok"] for r in ig),
-              "IG strips drawn": sum(bool(r["strip"].get("box")) for r in ig),
+              "IG strips drawn (outside the crop)": sum(bool(r["strip"].get("box")) for r in ig),
               "IG strips skipped": sum(bool(r["strip"].get("skipped")) for r in ig), "violations": len(bad)}
     print(f"\nMASTHEAD-02 grid crop of every cover: {json.dumps(counts)}")
     if a.json:

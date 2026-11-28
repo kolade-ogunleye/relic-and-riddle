@@ -210,3 +210,53 @@ def test_an_unreadable_caption_still_fails(tmp_path, plate, colour, ph, ground):
     found = video_qa.caption_findings(v)
     assert found and v["samples"][0]["contrast"] < 4.5 and not v["dips"]
     assert "fully shown" in " ".join(found)
+
+
+# ---------------------------------------------------------------- lander ruling 1 (follow-up): no preview words
+def _drawn_words(text):
+    """Each word chunk of a CapText event as libass draws it: (visible, colour, text). Alpha and colour carry from
+    one override block to the next; an alpha ease (\\t to &H00&) makes a word visible."""
+    import re
+    alpha, colour, out = "00", None, []
+    for tags, chunk in re.findall(r"\{([^}]*)\}|([^{]+)", text):
+        if tags:
+            for a in re.findall(r"\\alpha&H([0-9A-Fa-f]{2})&", tags.split(r'\t(')[0]):
+                alpha = a.upper()
+            if re.search(r"\\t\([^)]*\\alpha&H00&", tags):
+                alpha = "00"
+            for c in re.findall(r"\\c&H([0-9A-Fa-f]{6,8})&", tags):
+                colour = c.upper()[-6:]
+        elif chunk.strip():
+            out.append((alpha != "FF", colour, chunk.strip()))
+    return out
+
+
+@pytest.mark.parametrize("kw", [{}, {"first_frame_whole": 0.5}, {"width": 1920, "height": 1080}],
+                         ids=["9x16_reveal", "9x16_first_frame_whole", "16x9_whole_burst"])
+def test_the_current_composer_never_draws_a_word_still_to_be_spoken(tmp_path, kw):
+    """Lander ruling 1 (2026-11-28): grey preview words COUNT as text a viewer reads, and the retired design drew the
+    words still to come visible in grey at 3.2-4.49:1 (27 dev masters). The current composer hides a word until it is
+    spoken (9:16 reveal) or draws the whole burst in its reading colours (16:9, a first frame shown whole): no visible
+    word is ever in the upcoming-word colour or any colour but the reading ones, so that state cannot return."""
+    import re
+    from src import video_composer as vc
+    narration = ("Beneath the old city lies a maze carved by hand. It reaches roughly 280 feet deep, about eighteen "
+                 "levels of tunnels and halls. Up to 20,000 people could shelter here, with livestock and food.")
+    words, t = [], 0.0
+    for w in narration.split():
+        words.append({"word": w, "start": round(t, 3), "dur": 0.32})
+        t += 0.36
+    path = vc.VideoComposer().build_subtitles(words, tmp_path / "c.ass", emphasis=["280 feet"], **kw)
+    reading = {c.upper()[-7:-1] for c in (vc._col_past(), vc._col_active(), vc._col_emphasis())}
+    future = vc._col_future().upper()[-7:-1]
+    seen = 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not (line.startswith("Dialogue:") and ",CapText," in line):
+            continue
+        for visible, colour, chunk in _drawn_words(line.split(",", 9)[9]):
+            if colour is None or re.fullmatch(r"\W*", chunk):
+                continue
+            if visible:
+                seen += 1
+                assert colour in reading and colour != future, (chunk, colour, line[:160])
+    assert seen > 20

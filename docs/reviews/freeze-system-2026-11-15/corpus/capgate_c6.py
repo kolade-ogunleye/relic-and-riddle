@@ -43,6 +43,52 @@ def end_card(comp: Path):
     return float(start) if start else None
 
 
+# The retired caption design drew the words still to be spoken VISIBLE in this grey (ASS &H00909090&) at 3.2-4.49:1.
+# The lander ruled (2026-11-28) that they count as text a viewer reads, so those masters fail correctly; the current
+# composer never draws a word still to be spoken (tests/test_capgate_c6_2026_11_28.py,
+# test_the_current_composer_never_draws_a_word_still_to_be_spoken). A failing run whose every blocking frame shows
+# such a word is marked as failing on that retired design, so the table is read correctly.
+RETIRED_PREVIEW_GREY = "909090"
+RETIRED_NOTE = "fails on the retired preview-word design (not drawn by the current composer)"
+
+
+def _visible_colours(text: str) -> set:
+    """The colours (RRGGBB as ASS writes BBGGRR, upper case) of the words a CapText event draws visible."""
+    import re
+    alpha, colour, out = "00", None, set()
+    for tags, chunk in re.findall(r"\{([^}]*)\}|([^{]+)", text):
+        if tags:
+            for a in re.findall(r"\\alpha&H([0-9A-Fa-f]{2})&", tags.split("\\t(")[0]):
+                alpha = a.upper()
+            if re.search(r"\\t\([^)]*\\alpha&H00&", tags):
+                alpha = "00"
+            for c in re.findall(r"\\c&H([0-9A-Fa-f]{6,8})&", tags):
+                colour = c.upper()[-6:]
+        elif chunk.strip() and alpha != "FF" and colour:
+            out.add(colour)
+    return out
+
+
+def retired_preview(ass: Path, fps: float, under: list) -> bool:
+    """True when every frame of every blocking reading shows a word drawn visible in RETIRED_PREVIEW_GREY."""
+    events = []
+    for line in ass.read_text(encoding="utf-8").splitlines():
+        if line.startswith("Dialogue:") and ",CapText," in line:
+            p = line.split(",", 9)
+            s, e = (round(sum(float(x) * k for x, k in zip(v.strip().split(":"), (3600, 60, 1))) * 1000)
+                    for v in (p[1], p[2]))
+            events.append((s, e, p[9]))
+    if not under:
+        return False
+    for u in under:
+        n0 = round(u["from"] * fps)
+        for n in range(n0, n0 + int(u["frames"])):
+            t = int(n * (1.0 / fps) * 1000)
+            if not any(RETIRED_PREVIEW_GREY in _visible_colours(x) for s, e, x in events if s <= t < e):
+                return False
+    return True
+
+
 def crop(mp4: Path, t: float, out: Path, ass: Path) -> list[str]:
     """The master frame at `t` and the caption region of it (the plates' union at that time, padded)."""
     import re
@@ -107,6 +153,9 @@ def main() -> int:
             continue
         if fixed:
             findings = video_qa.caption_findings(cap, TEXT_CONTRAST)
+            why = video_qa.caption_unmeasured(cap) if hasattr(video_qa, "caption_unmeasured") else None
+            if why:   # fails closed, as the gate does (lander ruling 2)
+                findings.insert(0, f"caption contrast could not be measured ({why})")
             row = {"run": run, "bursts": cap["bursts"], "fully_shown_under": sum(
                 1 for s in cap["samples"] if s["contrast"] is not None and s["contrast"] < TEXT_CONTRAST),
                 "dips": len(cap["dips"]), "frames": cap["frames"], "frames_under": cap["frames_under"],
@@ -114,6 +163,8 @@ def main() -> int:
                 "dip_list": [(d["t"], round(d["contrast"], 2), d["frames"]) for d in cap["dips"]],
                 "min_fully_shown": None if cap["min"] is None else round(cap["min"], 2)}
             worst = cap["under"][0] if cap["under"] else None
+            if findings and not why and retired_preview(ass, float(cap["fps"]), cap["under"]):
+                row["note"] = RETIRED_NOTE
         else:
             vals = [s for s in cap["samples"] if s["contrast"] is not None]
             low = [s for s in vals if s["contrast"] < TEXT_CONTRAST]
@@ -130,11 +181,14 @@ def main() -> int:
         print(f"{run:55s} bursts {row['bursts']!s:>9}  fully-shown under {row['fully_shown_under']!s:>12}  "
               f"dips {row['dips']!s:>3}  frames under {row['frames_under']!s:>5}/{row['frames']!s:<5} "
               f"{row['verdict'].upper():4s} ({row['seconds']} s)", flush=True)
+        if row.get("note"):
+            print(f"    {row['note']}", flush=True)
         for f in row["findings"][:4]:
             print(f"    {f}", flush=True)
     print(f"\n{len(rows)} masters measured ({'every burst, every frame' if fixed else '6 sampled midpoints'}); "
           f"{sum(1 for r in rows if r.get('verdict') == 'pass')} pass, {sum(1 for r in rows if r.get('verdict') == 'fail')} "
-          f"fail, {sum(1 for r in rows if 'error' in r)} not measured")
+          f"fail ({sum(1 for r in rows if r.get('note') == RETIRED_NOTE)} of them on the retired preview-word design), "
+          f"{sum(1 for r in rows if 'error' in r)} not measured")
     for s in skipped:
         print(f"skipped: {s}")
     if a.json:

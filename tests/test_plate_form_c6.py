@@ -382,3 +382,21 @@ def test_every_block_measure_is_a_token():
                  "block.radius", "block.tier", "block.encode_margin", "block.dark_step", "block.share_tie",
                  "block.ring", "block.ring_pct", "block.supersample"):
         assert name in plate_form.TOKENS
+
+
+def test_each_frame_starts_without_a_form():
+    """Rule 2 (one form per frame): a frame renderer starts with no form, so a split slide (no ground of its own) never
+    inherits the previous slide's block (its kicker then takes the deck's step, as at base)."""
+    seen = []
+
+    class Gen:
+        @multi_format._holds_text_contrast
+        def render(self):
+            seen.append(getattr(multi_format._render_state, "frame_form", None))
+
+            class Lay:
+                meta: dict = {}
+            return Image.new("RGB", (4, 4)), Lay()
+    multi_format._render_state.frame_form = "block"
+    Gen().render()
+    assert seen == [None]

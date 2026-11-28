@@ -353,7 +353,7 @@ def test_the_mask_peaks_at_full_coverage_without_the_header(tmp_path):
 
 # ---------------------------------------------------------------- review round: decoding (N5), crop pad (N6), record (N7)
 @needs_ffmpeg
-def test_a_truncated_master_fails_closed_wherever_the_missing_frames_fall(tmp_path):
+def test_a_truncated_master_fails_closed_wherever_the_missing_frames_fall(tmp_path, monkeypatch):
     """Review N5: the master ends at 1.5 s while a caption runs to 2.0 s; the fully shown frame (1.0 s) is decoded,
     the burst's last half second is not. The measure refuses (it skipped them silently), and the audit fails closed."""
     ass = tmp_path / "x_master_captions.ass"
@@ -370,6 +370,27 @@ def test_a_truncated_master_fails_closed_wherever_the_missing_frames_fall(tmp_pa
     assert audit["certified"] is False
     assert any("caption contrast could not be measured" in i["issue"] and "could not be decoded" in i["issue"]
                for i in audit["issues"] if i["severity"] == "major")
+    # a frame the master's stream says it has but that does not decode (a damaged file) fails closed too
+    real = video_qa._video_stream
+    monkeypatch.setattr(video_qa, "_video_stream", lambda p: (*real(p)[:3], 60))
+    with pytest.raises(RuntimeError, match="could not be decoded"):
+        video_qa.caption_contrast(master, ass, tmp_path / "out2")
+
+
+@needs_ffmpeg
+def test_a_caption_ending_one_frame_after_the_picture_is_not_a_truncation(tmp_path):
+    """CAPTION_END_SLACK_FRAMES: two older dev masters' last caption ends one frame after their last picture frame
+    (centisecond timing); that frame is not on screen, so it is not judged and nothing is truncated."""
+    ass = tmp_path / "x_master_captions.ass"
+    ass.write_bytes(CASE.format(plate="&H200B0E12&", colour=ASS_BONE, ph=80).replace("0:00:01.00,CapBox",
+                    "0:00:01.03,CapBox").replace("0:00:01.00,CapText", "0:00:01.03,CapText").encode("utf-8"))
+    master = tmp_path / "x_master.mp4"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "color=c=0x404040:s=360x640:r=30:d=1", "-vf",
+                    f"subtitles='{video_qa._ffmpeg_path(ass)}':fontsdir='{video_qa._ffmpeg_path(config.FONTS_DIR)}'",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12", "-pix_fmt", "yuv420p", str(master)],
+                   check=True, timeout=120)
+    v = video_qa.caption_contrast(master, ass, tmp_path / "out")
+    assert v["frames"] == 30 and not video_qa.caption_findings(v) and video_qa.caption_unmeasured(v) is None
 
 
 def test_the_crop_reads_what_the_whole_frame_reads():

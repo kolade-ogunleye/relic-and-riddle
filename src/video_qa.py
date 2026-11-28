@@ -1862,6 +1862,10 @@ CAPTION_FAINT_FULL_SHARE = 0.95
 CAPTION_FAINT_MIN_PEAK = 13   # coverage (5 % opacity): a piece that never reaches it is not drawn visibly at all
 CAPTION_MASK_MIN_INK = 200    # px: a frame with less ink than this has no caption to judge (a word fading in)
 _CAPTION_CROP_PAD = 16        # px around the coverage a frame is measured in: more than the ring (10) or surround (4)
+CAPTION_END_SLACK_FRAMES = 1  # frames a caption may run past the master's last frame and not be on screen: its end is
+                              # written in centiseconds, so a last caption can end up to one frame after the picture
+                              # (two older dev masters: captions to 44.60 s, master 1337 frames, 44.57 s). Any more is
+                              # a truncated master, and fails closed (review N5)
 
 
 def caption_letter_mask(coverage):
@@ -2165,9 +2169,14 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
     badges = caption_bursts(text, until, plate="ReconPlate", glyphs="ReconBadge")
     if not bursts and not badges:
         return {"samples": [], "min": None, "bursts": 0, "under": [], "dips": [], "frames": 0, "badge": None}
-    w, h, fps, _count = _video_stream(Path(video))
-    rows, shown = caption_frame_plan(bursts, fps)
-    b_rows, b_shown = caption_frame_plan(badges, fps)
+    w, h, fps, count = _video_stream(Path(video))
+    need = [n for n, _, _ in caption_frame_plan(bursts, fps)[0] + caption_frame_plan(badges, fps)[0]]
+    if count is not None and need and max(need) >= count + CAPTION_END_SLACK_FRAMES:
+        raise RuntimeError(f"{max(need) - count + 1} caption frame(s) could not be decoded from the master: it ends "
+                           f"at frame {count} ({count / fps:.2f}s) while captions run to frame {max(need)} "
+                           f"({max(need) / fps:.2f}s), a truncated master")
+    rows, shown = caption_frame_plan(bursts, fps, count)       # a caption past the last frame is not on screen
+    b_rows, b_shown = caption_frame_plan(badges, fps, count)
     want, b_want = {n for n, _, _ in rows}, {n for n, _, _ in b_rows}
     last = max(want | b_want) + 1
     out_dir.mkdir(parents=True, exist_ok=True)

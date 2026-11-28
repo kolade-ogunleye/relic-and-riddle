@@ -158,7 +158,8 @@ def test_a_mid_tone_ground_the_band_leaves_under_the_target_takes_the_block(monk
     """Rule 2: the band on a mid-tone ground leaves gold under target x margin: the block is laid there although
     it darkens more of the frame (the brief's "where the ground needs it")."""
     monkeypatch.setenv(plate_form.ENV, "block")
-    out, rec = _scrim(_flat(96))
+    out, rec = _scrim(_flat(64))
+    assert rec["band_dark_share"] <= rec["dark_share"], rec    # the band darkens less here
     assert rec["band_under_target"] and rec["laid"] == "block", rec
 
 
@@ -290,6 +291,7 @@ def test_the_hook_lays_the_block_by_the_choice(monkeypatch, tmp_path, v, laid):
     except Exception as e:   # a ground the card refuses at base too is not this rule's
         pytest.skip(f"refused: {e}")
     assert plan.meta["scrim"]["plate_form"]["laid"] == laid
+    assert (plan.meta["scrim"]["mode"] == "block") == (laid == "block"), plan.meta["scrim"]   # what is drawn
 
 
 def _myth(photo):

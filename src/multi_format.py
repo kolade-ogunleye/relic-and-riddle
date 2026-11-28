@@ -588,7 +588,10 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
         banded = scrim(band_on if band_on is not None else im, y0, y1, feather, target, cap, floor, colour, pct,
                        grade, out=got, plain=boxes, shipped=True)
         if getattr(_render_state, "shipped_ground", False):
-            # the window fitter's move test reads the shipped ground (lander ruling 1, review of cycle 6)
+            # the window fitter's move test reads the shipped ground (lander ruling 1, review of cycle 6), and the
+            # frame it draws is base's whole: its kicker takes base's step (never one left by the block drawing)
+            _render_state.frame_form = "band"
+            _render_state.shipped_image = None
             if out is not None:
                 out["strength"] = got.get("strength", 0.0)
             return banded

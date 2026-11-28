@@ -247,6 +247,21 @@ def test_the_window_fitters_move_test_reads_the_shipped_ground(monkeypatch):
     assert seen[:2] == [True, True], seen
 
 
+def test_a_window_trial_frame_is_base_whole_its_kicker_too(monkeypatch):
+    """Rule 1: a window trial drawn on the shipped ground never keeps the form a block drawing left (frame_form),
+    so its kicker takes base's step and the moved/asked comparison is base's."""
+    monkeypatch.setenv(plate_form.ENV, "block")
+    multi_format._render_state.frame_form = "block"
+    multi_format._render_state.shipped_ground = True
+    try:
+        _scrim(_flat(240))
+        assert multi_format._render_state.frame_form == "band"
+        assert multi_format._render_state.shipped_image is None
+    finally:
+        multi_format._render_state.shipped_ground = False
+        multi_format._render_state.frame_form = None
+
+
 def test_a_kicker_inside_its_block_takes_its_colour_and_on_a_band_frame_the_decks_step(monkeypatch):
     """Rule 2 (one form per frame): inside a block the kicker has no plate of its own; on a frame that keeps the band
     it takes the deck's one step (base's)."""

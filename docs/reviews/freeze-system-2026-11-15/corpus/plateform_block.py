@@ -13,7 +13,10 @@ same tree, RR_PLATE_FORM unset (base) and =block. Rules (a violation exits 1):
   than base by > 0.05, and our own re-encoded pixel measure (pf_measure.element_contrast: q75 4:2:0, glyph p10 against
   the p95 of a 3-10 px ring) not lower than base by > 0.25 where it is under 7:1; and at or above the element's gate
   (contrast.text 4.5; a kicker or the masthead contrast.kicker / masthead gate 5.5) wherever base was.
-- darkened share: the share of the still its text grounds darkened by > 20 luma (ground record) not above base.
+- darkened share: the share of the still its text grounds darkened by > block.dark_step luma (ground record),
+  reported per still (above base is allowed where the band leaves a line under the target: ruling 2, review c6).
+- window: the photograph's window (photo, fit box, zoom) identical to base (ruling 1, review c6).
+- one form per frame: a still's ground calls lay one form (ruling 2, review c6).
 - subject: where a labelled subject (the SUBJECT stream's subject_labels.json, measurement only) lies in a still's
   photo window, the share of it the grounds darkened by > 20 not above base's.
 - safe box: no block clamped by its safe box (Story: safe_zones story box; carousel: the frame) with its type
@@ -99,6 +102,15 @@ def subject_boxes(meta: dict, run: str, labels: dict, size) -> list:
     return out
 
 
+def window_of(meta) -> list:
+    """The still's photo windows as drawn: (photo, fit box, zoom) each."""
+    out = []
+    for w in (meta or {}).get("windows") or []:
+        fit = w.get("fit") or {}
+        out.append([str(w.get("photo")), [round(float(v), 1) for v in fit.get("box") or []], fit.get("zoom")])
+    return out
+
+
 def subject_dark(png: Path, boxes) -> float | None:
     if not boxes or not png.is_file():
         return None
@@ -167,8 +179,14 @@ def main() -> int:
             row["laid"] = gt.get("laid")
             if gb.get("dark_share") is not None and gt.get("dark_share") is not None \
                     and gt["dark_share"] > gb["dark_share"] + 5e-4:
-                row["violations"].append(f"darkened share {gb['dark_share']} -> {gt['dark_share']}")
-                viol["dark"] += 1
+                row["darker"] = True    # allowed where the band leaves a line under the target (ruling 2), reported
+            if len(set(gt.get("laid") or [])) > 1:
+                row["violations"].append(f"mixed forms in one frame: {gt.get('laid')}")
+                viol["mixed"] += 1
+            wb, wt = window_of(eb.get("meta")), window_of(et.get("meta"))
+            if wb != wt:
+                row["violations"].append(f"photo window moved: {wb} -> {wt}")
+                viol["window"] += 1
             sb = subject_boxes(eb.get("meta"), run, labels, ib.size)
             if sb:
                 db = subject_dark(side.parent / Path(name).with_suffix(".ground.png").name, sb)
@@ -197,7 +215,8 @@ def main() -> int:
     if sj:
         print(f"  labelled subjects on {len(sj)} stills: darkened median {np.median([s[0] for s in sj]):.1f} -> "
               f"{np.median([s[1] for s in sj]):.1f} %")
-    print(f"  clamped blocks: {sum(1 for r in rows if r.get('clamped'))}")
+    print(f"  clamped blocks: {sum(1 for r in rows if r.get('clamped'))}; stills darker than base: "
+          f"{sum(1 for r in rows if r.get('darker'))}")
     print(f"  violations: {dict(viol)}")
     for r in rows:
         if r["violations"]:

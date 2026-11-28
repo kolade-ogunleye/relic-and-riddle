@@ -197,12 +197,13 @@ def _observe_in_a_fresh_process(tmp_path, with_modules: bool = False):
     return (observed, modules) if with_modules else observed
 
 
-def _run_observation(tmp_path):
-    """render_all under the observer in a NEW interpreter, so no font any earlier test cached hides its creation."""
+def _run_observation(tmp_path, **extra_env):
+    """render_all under the observer in a NEW interpreter, so no font any earlier test cached hides its creation.
+    `extra_env`: settings for that interpreter only (the block family switched on, test below)."""
     import os
     import subprocess
     import sys
-    env = {**os.environ, "FONT_SIZE": os.environ.get("FONT_SIZE", "80")}
+    env = {**os.environ, "FONT_SIZE": os.environ.get("FONT_SIZE", "80"), **extra_env}
     res = subprocess.run([sys.executable, str(ROOT / "tests" / "observe_render.py"), str(tmp_path)], cwd=ROOT, env=env,
                          capture_output=True, text=True, timeout=1500, check=False)
     line = next((ln for ln in res.stdout.splitlines() if ln.startswith("OBSERVED=")), None)
@@ -230,6 +231,21 @@ def test_every_observed_type_size_is_on_the_ladder_or_declared(tmp_path):
     declared_sites = set(brand_system.SIZE_SITES) | set(brand_system.RUNTIME_SIZE_SITES)
     assert set(observed) <= declared_sites, sorted(set(observed) - declared_sites)
     assert not set(brand_system.RUNTIME_SIZE_SITES) & set(brand_system.SIZE_SITES)   # each declared once
+
+
+def test_with_the_block_form_on_every_observed_size_and_surface_is_the_same(tmp_path):
+    """PLATEFORM (re-review of cycle 6, step 2.1): the registry observed with RR_PLATE_FORM=block (the form the
+    default flip would ship) makes exactly the committed sizes and the same surfaces as with the switch off, so a size
+    or surface the block form adds is declared before it can ship. In its own interpreter, like the observation."""
+    import os
+    want = _observe_in_a_fresh_process(tmp_path)
+    sites, rendered = list(_OBSERVATION["sites"]), list(_OBSERVATION["rendered"])
+    other = "base" if os.environ.get("RR_PLATE_FORM", "base") == "block" else "block"
+    (tmp_path / other).mkdir()
+    got, _mods = _run_observation(tmp_path / other, RR_PLATE_FORM=other)
+    assert got == want, {s: (want.get(s), got.get(s)) for s in set(got) | set(want) if got.get(s) != want.get(s)}
+    assert sorted(_OBSERVATION["sites"]) == sorted(sites) and sorted(_OBSERVATION["rendered"]) == sorted(rendered)
+    _OBSERVATION["sites"], _OBSERVATION["rendered"] = sites, rendered
 
 
 def test_the_observed_renders_cover_every_surface_module(tmp_path):

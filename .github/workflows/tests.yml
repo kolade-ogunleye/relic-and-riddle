@@ -113,13 +113,6 @@ jobs:
       # The units go through pytest's @file argument (one per line; test ids can hold spaces and brackets).
       - name: Test suite, this shard's units
         run: python -m pytest -q -n 4 --junitxml="$RUNNER_TEMP/shard/junit.xml" "@$RUNNER_TEMP/shard/files.txt"
-      # PLATEFORM (re-review of cycle 6, step 2.1): the type-size and surface registry tests with the block family
-      # switched on, as well as off (the suite above), so a size the block form makes is declared before it can ship
-      - name: Registry tests with the block form on (RR_PLATE_FORM=block)
-        if: matrix.shard == 1
-        env:
-          RR_PLATE_FORM: block
-        run: python -m pytest -q -n 4 tests/test_brand_system_r4.py tests/test_brand_system_r6.py
       - name: Shard results for the aggregate check
         if: always()
         uses: actions/upload-artifact@v4

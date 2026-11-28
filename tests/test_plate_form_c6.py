@@ -576,3 +576,55 @@ def test_the_block_is_opaque_ink(monkeypatch):
     b = rec["blocks"][0]["box"]
     px_ = np.asarray(out.convert("RGB"), np.int16)[int((b[1] + b[3]) / 2), int(b[0]) + 6]
     assert np.abs(px_ - np.array(multi_format.brand.INK[:3], np.int16)).max() <= 2, px_
+
+
+def test_the_myth_source_labels_step_is_planned_on_the_shipped_ground(monkeypatch, tmp_path):
+    """Re-review step 2.3: under the block the SOURCE label's colour step is planned on the shipped panel under it,
+    so on the darker block it is never a dimmer step than base's (no element lower than base, none newly under 7:1)."""
+    photo = tmp_path / "m.jpg"   # a real photograph where the block alone would take a dimmer step than base
+    Image.open(FIX / "plates_c5_masthead_ground.jpg").convert("RGB").resize((1600, 2400)).save(photo)
+    fills = {}
+    for form in ("base", "block"):
+        monkeypatch.setenv(plate_form.ENV, form)
+        _dc, plan = _myth(photo)
+        fills[form] = next(x for x in plan.elements if x.name == "source_label").fill
+    assert fills["base"] != (142, 136, 123)          # base steps toward the domain colour on this ground
+    lum = {k: float(plate_form.rel_lum(np.asarray(v[:3], np.float32))) for k, v in fills.items()}
+    assert lum["block"] >= lum["base"] - 1e-6, fills
+
+
+def test_under_the_block_the_kicker_lead_rule_starts_at_the_blocks_edge():
+    """Ruling 4 (re-review): under the block family the slide-2 lead rule (the swipe strip from the left edge) starts
+    at the inner edge of the block holding the kicker, nothing on the photograph; recorded per frame (base_box)."""
+    class Lay:
+        def __init__(self, laid):
+            self.elements = []
+            self.meta = {"kicker_rule": [140, 950, 180, 956],
+                         "plate_form": {"laid": laid, "blocks": [{"tag": "main", "box": [96, 900, 1000, 1400]}]}}
+    im = Image.new("RGB", (1440, 1800), (200, 200, 200))
+    lay = Lay("block")
+    out = multi_format.swipe_strip(im, lay, {"side": "left"})
+    rec = lay.meta["swipe_strip"]
+    assert rec["box"][0] == 96 and rec["from"] == "block_edge" and rec["base_box"][0] == 0, rec
+    a = np.asarray(out, np.int16)
+    assert (a[953, :96] == 200).all()                   # the photograph left of the block untouched
+    assert np.abs(a[953, 100] - np.array(multi_format.brand.GOLD[:3])).max() <= 2
+    lay = Lay("band")
+    multi_format.swipe_strip(Image.new("RGB", (1440, 1800)), lay, {"side": "left"})
+    assert lay.meta["swipe_strip"]["box"][0] == 0         # base: from the frame's edge
+
+
+def test_the_choice_counts_only_a_target_the_block_can_meet(monkeypatch):
+    """Ruling 5 (re-review): a line whose colour cannot reach the target even on the opaque INK block takes its reach
+    there as its target, so a dark ground that already carries it as INK would does not lay the block by itself; the
+    palette's shortfall is one palette finding."""
+    monkeypatch.setenv(plate_form.ENV, "block")
+    dim = (120, 96, 40)                                   # an accent under 7 x 1.2 even on INK
+    assert plate_form.ink_reach(dim) < plate_form.tk("target") * plate_form.tk("block.encode_margin")
+    assert plate_form.line_target(dim) == pytest.approx(plate_form.ink_reach(dim))
+    ink = Image.new("RGB", (1440, 1800), tuple(multi_format.brand.INK[:3]))
+    items = [((113, 1000, 900, 1100), dim, "main")]
+    assert plate_form.under_target(ink, items) == []    # on a ground as dark as INK it is met
+    rec: dict = {}
+    assert plate_form.choose(ink, ink, ink, items, rec) == "band" and rec["target_capped"] == ["0"]
+    assert plate_form.palette_finding([dim])["short"]

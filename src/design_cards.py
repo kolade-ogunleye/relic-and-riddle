@@ -2914,6 +2914,7 @@ def _myth_ground(photo: Path | None, geo: _Geo, last_t: float, dim: float, y0: f
             # its foot follows the panel's opening (freeze panel M11 (4)): under the myth until t_f, then easing to
             # the block's own foot over STEP_BACK, so no fact line shows before the block is under it
             drift = _BlockDrift(pic, prec, geo, opening, MYTH_KICKER_IN, fill)
+            drift.shipped_rest = shipped[1]   # the panel the block replaces (the SOURCE label's step is planned on it)
         else:
             still = Image.alpha_composite(pic.convert("RGBA"), lyr).convert("RGB")
             a = np.asarray(lyr.getchannel("A"), np.float32)
@@ -3221,7 +3222,25 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
         lpx = SOURCE_LABEL_PX[geo.wide]
         # muted, but never under the house target: on a ground where its halo cannot carry it (16:9, a dark or busy
         # photo opening under the block), it steps toward the domain's colour in 10 % steps until it reads
-        for i in range(11):
+        start = 0
+        shipped_rest = getattr(drift, "shipped_rest", None)
+        if shipped_rest is not None:
+            # PLATEFORM (lander ruling, re-review of cycle 6, step 2.3): under the block the step is planned on the
+            # SHIPPED ground under it (the panel the block replaces), so on the darker block it is never dimmer than
+            # base's; the block's own measure then decides only a step further on (recorded)
+            probe = _Card("mythfact", geo, shipped_rest)
+            for i in range(11):
+                try:
+                    probe.text("source_label", SOURCE_LABEL, brand.TEXT_FONT, 800, lpx,
+                               _mix(_source_label_fill(), _source_fill(), 0.1 * i), fx, s_base,
+                               ("ease", t_src, REVEAL), "chrome", track=SOURCE_LABEL_TRACK * lpx,
+                               target=SOURCE_LABEL_TARGET)
+                    start = i
+                    break
+                except CardRefused:
+                    continue
+            card.source_label_step = {"shipped": start}
+        for i in range(start, 11):
             try:
                 card.text("source_label", SOURCE_LABEL, brand.TEXT_FONT, 800, lpx,
                           _mix(_source_label_fill(), _source_fill(), 0.1 * i), fx, s_base, ("ease", t_src, REVEAL), "chrome",

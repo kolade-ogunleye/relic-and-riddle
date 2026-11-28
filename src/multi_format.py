@@ -5031,6 +5031,18 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
             lay.meta["swipe_strip"] = {"side": "left", "skipped": "the slide has no kicker rule"}
             return im
         box = [0, rule[1], rule[0], rule[3]]
+        pf = (lay.meta.get("plate_form") or {}) if isinstance(lay.meta, dict) else {}
+        if pf.get("laid") == "block":
+            # PLATEFORM (lander ruling 4, re-review of cycle 6): under the block family nothing floats on the
+            # photograph: the lead rule starts at the inner edge of the block that holds the kicker, recorded
+            hold = next((b["box"] for b in pf.get("blocks") or []
+                         if b["box"][1] <= rule[1] and rule[3] <= b["box"][3] and b["box"][0] <= rule[0]), None)
+            if hold is None:
+                lay.meta["swipe_strip"] = {"side": "left", "skipped": "under the block family the lead rule is drawn "
+                                           "only inside a block, and no block holds the kicker's rule"}
+                return im
+            box = [round(hold[0]), rule[1], rule[0], rule[3]]
+            lay.meta["swipe_strip"] = {"side": "left", "box": box, "from": "block_edge", "base_box": [0] + box[1:]}
     else:
         box = [cw - px(SWIPE_STRIP), int(strip["y0"]), cw, int(strip["y1"])]
         clear = px(SWIPE_CLEAR)
@@ -5055,7 +5067,7 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
     im = im.convert("RGB")
     if box[2] > box[0]:
         ImageDraw.Draw(im).rectangle([box[0], box[1], box[2] - 1, box[3] - 1], fill=brand.GOLD)
-    lay.meta["swipe_strip"] = {"side": strip.get("side"), "box": box}
+    lay.meta["swipe_strip"] = {**(lay.meta.get("swipe_strip") or {}), "side": strip.get("side"), "box": box}
     return im
 
 

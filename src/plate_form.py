@@ -129,9 +129,43 @@ def ground_under(im: Image.Image, boxes) -> float:
     return float(np.percentile(luma(im)[m], tk("block.ring_pct"))) if m.any() else 0.0
 
 
+def ink_reach(fill) -> float:
+    """The ratio a `fill` line reaches on the opaque INK block (the most the block can give it)."""
+    from . import brand
+    return ratio(float(rel_lum(np.asarray(fill[:3], np.float32))),
+                 float(rel_lum(np.asarray(brand.INK[:3], np.float32))))
+
+
+def line_target(fill) -> float:
+    """A line's target for the choice (lander ruling 5, re-review of cycle 6): the target x block.encode_margin, or
+    what the line's colour reaches on the opaque INK block where that is less, so a target the block cannot meet
+    either never lays the block by itself (the palette's shortfall is a palette finding: palette_finding)."""
+    return min(tk("target") * tk("block.encode_margin"), ink_reach(fill))
+
+
+_FINDINGS: dict[str, dict] = {}
+
+
+def palette_finding(fills) -> dict:
+    """The active palette's colours that cannot reach the target x block.encode_margin even on the opaque INK block:
+    {"palette", "short": [{"fill", "reach"}]}, logged once per palette (recorded once, not acted on per frame)."""
+    from . import brand
+    key = brand.fingerprint() if hasattr(brand, "fingerprint") else "palette"
+    if key not in _FINDINGS:
+        want = tk("target") * tk("block.encode_margin")
+        short = sorted({tuple(int(v) for v in f[:3]) for f in fills if ink_reach(f) < want})
+        _FINDINGS[key] = {"palette": key, "short": [{"fill": list(f), "reach": round(ink_reach(f), 2)} for f in short]}
+        if short:
+            import logging
+            logging.getLogger(__name__).warning("palette finding: %s reach under %.2f on the INK block",
+                                                _FINDINGS[key]["short"], want)
+    return _FINDINGS[key]
+
+
 def under_target(im: Image.Image, items) -> list[str]:
-    """The lines (by index) `im` leaves under the target x block.encode_margin: each line's ground at block.ring_pct
-    of its ring, against its own fill."""
+    """The lines (by index) `im` leaves under their target (line_target: the target x block.encode_margin, capped at
+    what the line's colour reaches on the opaque INK block): each line's ground at block.ring_pct of its ring,
+    against its own fill."""
     out = []
     rgb = np.asarray(im.convert("RGB"), np.float32)
     for k, (box, fill, _tag) in enumerate(items):
@@ -139,7 +173,7 @@ def under_target(im: Image.Image, items) -> list[str]:
         if not m.any():
             continue
         g = float(np.percentile(rel_lum(rgb[m]), tk("block.ring_pct")))
-        if g > max_ground(fill, tk("target") * tk("block.encode_margin")):
+        if g > max_ground(fill, line_target(fill)):
             out.append(str(k))
     return out
 
@@ -302,6 +336,10 @@ def choose(photo: Image.Image, shipped: Image.Image, blocked: Image.Image, items
     rec["dark_share"] = round(dark_share(photo, blocked), 5)
     rec["band_dark_share"] = round(dark_share(photo, shipped), 5)
     rec["band_under_target"] = under_target(shipped, items)
+    capped = [str(k) for k, (_b, fill, _t) in enumerate(items) if line_target(fill) < tk("target") * tk("block.encode_margin")]
+    if capped:   # a line whose colour cannot reach the target even on INK: its target is its reach there (ruling 5)
+        rec["target_capped"] = capped
+        palette_finding([fill for _b, fill, _t in items])
     less = rec["dark_share"] < rec["band_dark_share"] - tk("block.share_tie")
     rec["laid"] = "block" if rec["band_under_target"] or less else "band"
     return rec["laid"]

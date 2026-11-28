@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-from src import brand, multi_format, still_layout
+from src import brand, multi_format, safe_zones, still_layout
 from src.multi_format import (
     MultiFormatGenerator,
     carousel_diagram,
@@ -288,7 +288,9 @@ def test_instagrams_swipe_strip_runs_across_the_seam_and_facebook_draws_none(tmp
     assert r1["side"] == "right" and r2["side"] == "left"
     assert r1["box"][1:4:2] == r2["box"][1:4:2]                  # one height across the seam
     assert r1["box"][2] == CW and r2["box"][0] == 0
-    assert 60 <= r1["box"][2] - r1["box"][0] <= 120
+    # Changed pin, freeze cycle 6 M2 (lander ruling 2026-11-27; panel 7 PL1, the stub the 3:4 profile-grid crop cut at
+    # x 1395): slide 1's part runs only outside the grid crop, from its edge (x 1395) to the slide's (was: 60-120 px)
+    assert r1["box"][0] == safe_zones.grid_crop(CW, CH)[2] and r1["box"][2] - r1["box"][0] == 45
     a1 = np.asarray(Image.open(ig[0]).convert("RGB"), dtype=np.int16)
     y = (r1["box"][1] + r1["box"][3]) // 2
     assert np.abs(a1[y, CW - 20] - np.array(brand.GOLD)).max() < 40

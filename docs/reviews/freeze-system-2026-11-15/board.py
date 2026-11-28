@@ -1929,6 +1929,13 @@ def main() -> None:
                 be.REFUSED.append(("brand (configure-time fit corpus)", "brand refused at configure", str(why)[:400]))
         except ImportError:
             pass
+        try:   # freeze cycle 6 (MASTHEAD M3): and the palette's masthead pair on the stored grounds, its value
+            from src.masthead import palette_problems
+            for why in palette_problems(brand.active()) or []:
+                be.REFUSED.append(("brand (configure-time masthead palette check)", "brand refused at configure",
+                                   str(why)[:400]))
+        except ImportError:
+            pass
     import board_extras as bx
     import board_motion as bm
     work = Path(tempfile.mkdtemp(prefix="board-"))

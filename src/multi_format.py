@@ -977,9 +977,41 @@ def keep_deck_set_step(key: str, step) -> None:
             _DECK_STEPS.pop(next(iter(_DECK_STEPS)))
 
 
+_DECK_FORMS: dict[str, tuple] = {}
+
+
+def deck_set_form(key: str):
+    """(form, note) a copy of this deck settled on (freeze cycle 6: one masthead form per post), or None."""
+    with _DECK_STEPS_LOCK:
+        return _DECK_FORMS.get(key)
+
+
+def keep_deck_set_form(key: str, value: tuple) -> None:
+    with _DECK_STEPS_LOCK:
+        _DECK_FORMS[key] = value
+        while len(_DECK_FORMS) > DECK_STEPS_KEPT:
+            _DECK_FORMS.pop(next(iter(_DECK_FORMS)))
+
+
+def stack_failures(*decks_and_copy) -> list[str]:
+    """The slides (of the drawn copies: draw_deck's {index: (im, lay, ...)}) whose stacked mark failed its check
+    (masthead.stack_check, recorded lay.meta["stack_check"]), as "<copy> slide <n>: <why>". The last argument is
+    whether the first deck is the Facebook copy."""
+    *decks, facebook = decks_and_copy
+    out = []
+    for k, deck in enumerate(decks):
+        copy = "Facebook" if (k == 0) == bool(facebook) else "Instagram"
+        for i, entry in sorted(deck.items()):
+            chk = (getattr(entry[1], "meta", None) or {}).get("stack_check") or {}
+            if chk and not chk.get("ok"):
+                out.append(f"{copy} slide {i + 1}: {chk.get('why')}")
+    return out
+
+
 def clear_deck_steps() -> None:
     with _DECK_STEPS_LOCK:
         _DECK_STEPS.clear()
+        _DECK_FORMS.clear()
 
 
 brand.on_change(clear_deck_steps)
@@ -1899,15 +1931,20 @@ class MultiFormatGenerator:
     PHOTO_VIEW = {"cover": 0.55, "immersive": 0.66, "debate": 0.42}
 
     @classmethod
-    def _masthead_box(cls, cw: int, facebook: bool, archetype: str, inset: bool) -> tuple[int, int, int, int]:
+    def _masthead_box(cls, cw: int, facebook: bool, archetype: str, inset: bool,
+                      form: str = "line") -> tuple[int, int, int, int]:
         """The masthead's box on a slide (canvas px, 16 design px of air around the mark and the name): what the deck
-        window rule and the photo-fitness rule keep clear. `inset`: the Facebook cover's margin (FB_COVER_MARGIN)."""
+        window rule and the photo-fitness rule keep clear. `inset`: the Facebook cover's margin (FB_COVER_MARGIN).
+        `form`: the masthead's form (freeze cycle 6: the stacked form's box is narrower and one stack pitch taller)."""
         from . import masthead as _mh
         px = cls._px(cw)
         size = type_px("masthead", "carousel") * cw / 1440
         header = cls.FB_HEADER_Y if facebook and archetype == "cover" else cls.HEADER_Y
         mx = px(cls.FB_COVER_MARGIN) if inset else px(80)
         base = px(header) + cap_height(_mh.font_for(size))
+        if form == "stacked" and _mh.stack_lines(size=size):
+            return (mx - px(16), px(header) - px(16), mx + _mh.form_width(size, "stacked") + px(16),
+                    base + _mh.stack_pitch(size) + px(16))
         return (mx - px(16), px(header) - px(16), mx + _mh.group_width(size) + px(16), base + px(16))
 
     @classmethod
@@ -2378,6 +2415,34 @@ class MultiFormatGenerator:
         except TextFitError:
             return 2
         return max(1, sum(1 for r in rows if r["name"] == "heading" and r.get("text")))
+
+    def _deck_masthead_form(self, cards, archetypes, photos, total, poll, share, subject, lead) -> str:
+        """Freeze cycle 6 (MASTHEAD M1, lander rulings 2026-11-27): the post's ONE masthead form. Both copies' covers
+        are drawn as the deck draws them, each deciding from its own first title row as drawn (masthead.hook_form:
+        the stacked form where the one-line form's group is over masthead.hook_ratio_max of it); where either takes
+        the stacked form, every slide of both copies draws it, so the mark never changes form inside the post. A deck
+        without a cover draws the one-line form. The decision and the two covers' readings are on
+        _render_state.masthead_form_note (the covers' hook_ratio records)."""
+        _render_state.masthead_form_note = None
+        if not cards or not archetypes or archetypes[0] != "cover":
+            return "line"
+        prev = getattr(_render_state, "masthead_form", None)
+        _render_state.masthead_form = None
+        seen = []
+        try:
+            for fb in (False, True):
+                _, lay = self._render_carousel_slide("cover", photos[0], photos[1 % len(photos)], cards[0], 0, total,
+                                                     poll, share, fb, subject=subject, lead=lead)
+                rec = (getattr(lay, "meta", None) or {}).get("hook_ratio") or {}
+                seen.append(f"{'Facebook' if fb else 'Instagram'} cover {rec.get('form', 'line')} "
+                            f"(one-line ratio {rec.get('line_ratio')})")
+                if rec.get("form") == "stacked":
+                    _render_state.masthead_form = "stacked"
+        finally:
+            form = _render_state.masthead_form or "line"
+            _render_state.masthead_form = prev
+        _render_state.masthead_form_note = f"the post's form: {form} ({'; '.join(seen)})"
+        return form
 
     def _deck_heading_frame(self, cards: list[dict[str, Any]], archetypes: list[str], facebook: bool) -> int:
         """The copy's frame (1 or 2 heading lines): 2 when any content slide's heading, as that copy draws it
@@ -3147,7 +3212,7 @@ class MultiFormatGenerator:
                                total: int, poll: dict[str, Any], share: str, facebook: bool, tight: bool = False,
                                subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None,
                                lead: str | None = None, window: int = 0, heading_tier: int = 0,
-                               heading_px: float | None = None):
+                               heading_px: float | None = None, masthead_form: str | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -3180,6 +3245,8 @@ class MultiFormatGenerator:
         # lane D cycle 3: the deck's posted collage decides the Facebook cover's inset (_fb_cover_inset)
         _render_state.fb_hero_tile = bool(facebook) and total <= 4
         _render_state.window_k = max(0, int(window or 0))
+        # (the one-line form's box in either form, as the deck's photo pickers ask it: photo_window; the stacked form
+        # lies inside its width and one stack pitch lower, freeze cycle 6)
         _render_state.masthead_box = self._masthead_box(cw, bool(facebook), archetype,
                                                         inset=self._fb_cover_inset() and archetype == "cover")
         _render_state.window_rec = []
@@ -3219,7 +3286,18 @@ class MultiFormatGenerator:
         # diamond fell outside the tile's crop at x 107).
         x0 = px(self.FB_COVER_MARGIN) if self._fb_cover_inset() and archetype == "cover" else px(80)
         base = px(self._header_y(facebook, archetype)) + cap_height(brand_font)
+        # freeze cycle 6 (MASTHEAD M1, lander rulings 2026-11-27): the masthead's form, ONE per post: the deck's
+        # (generate_carousel_sequence decides it from both copies' covers, kept in the recipe); a cover drawn alone
+        # decides for itself from its own first title row as drawn (masthead.hook_form); else the one-line form
+        form = masthead_form or getattr(_render_state, "masthead_form", None)
+        hook_row = None
+        if archetype == "cover":
+            hook_row = masthead.ink_row((getattr(lay, "plates", None) or {}).get("heading") or [])
+            if form is None:
+                form = masthead.hook_form(size, hook_row, x0)
+        form = form or "line"
         # its room: up to Instagram's counter region (cw - 280 design px), never past it and never clipped
+        pre, line_base, line_reach = im, base, base + px(300)   # the ground before the mark; the one-line form's
         if facebook and archetype != "cover":
             # lane D cycle 3 (lander ruling 1 of the second review): the Facebook collage is branded once, on its
             # cover tile; an interior Facebook slide draws no masthead (recorded, not a gate failure)
@@ -3228,7 +3306,7 @@ class MultiFormatGenerator:
                                               "tile only (lane D cycle 3)", "fb_interior": True}
         else:
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=base + px(300),
-                                                 max_width=cw - px(280) - x0)
+                                                 max_width=cw - px(280) - x0, form=form)
         if not mrec["shown"] and facebook and archetype == "cover":
             # lane D cycle 3: the masthead's ground is a TOP-EDGE gradient (masthead.top_scrim), so at FB_HEADER_Y it
             # is weaker on the name than at HEADER_Y (6 of 28 real Facebook slides fell under the gate). Only then,
@@ -3237,8 +3315,35 @@ class MultiFormatGenerator:
             ig_base = px(self.HEADER_Y) + cap_height(brand_font)
             matched = (ig_base + px(300)) * base / ig_base
             im, plate, mrec, box = masthead.draw(im.convert("RGB"), x0, base, size, reach=matched,
-                                                 max_width=cw - px(280) - x0)
+                                                 max_width=cw - px(280) - x0, form=form)
             mrec["reach_matched"] = round(matched)
+        if form == "stacked" and not mrec.get("fb_interior"):
+            # freeze cycle 6 (M1, lander ruling 2026-11-27): the stacked mark is held to the one-line mark on the same
+            # ground (masthead.stack_check: no more of the photograph treated, no lower reading after the re-encode,
+            # the gate); a slide that fails it makes the WHOLE post fall back to the one-line form
+            # (generate_carousel_sequence), so this slide's check is recorded here
+            line = masthead.draw(pre.convert("RGB"), x0, line_base, size, reach=line_reach,
+                                 max_width=cw - px(280) - x0, form="line")
+            if line[2].get("shown") is False and facebook and archetype == "cover":
+                ig_base = px(self.HEADER_Y) + cap_height(brand_font)
+                line = masthead.draw(pre.convert("RGB"), x0, line_base, size,
+                                     reach=(ig_base + px(300)) * line_base / ig_base,
+                                     max_width=cw - px(280) - x0, form="line")
+            check = masthead.stack_check((im, plate, mrec, box), line)
+            if isinstance(getattr(lay, "meta", None), dict):
+                lay.meta["stack_check"] = check
+            if not mrec.get("shown") and line[2].get("shown"):
+                # never a missing mark: this slide draws the one-line form (the post falls back as a whole)
+                im, plate, mrec, box = line
+                mrec["form_fallback"] = {"post_form": "stacked", "drawn": "line", "why": check["why"]}
+        if archetype == "cover" and isinstance(getattr(lay, "meta", None), dict):
+            # the hook ratio of the form drawn (masthead.hook_record), the one-line form's beside it
+            lay.meta["hook_ratio"] = masthead.hook_record(
+                "Facebook carousel cover" if facebook else "carousel cover", mrec.get("form", form),
+                mrec.get("group_width") if mrec.get("shown") else None, hook_row,
+                mrec.get("size_px") if mrec.get("shown") else None,
+                line_group=masthead.form_width(mrec.get("size_px") or size, "line", x0),
+                note=getattr(_render_state, "masthead_form_note", None))
         if mrec["shown"]:   # one header element, as before: its box takes in the mark
             lay.add("header_brand", box)
             lay.elements[-1].update(plate.record())
@@ -3420,11 +3525,29 @@ class MultiFormatGenerator:
         # too) and kept for the deck (deck_set_step), so the second copy draws on it without planning again.
         def plan_deck():
             key = deck_set_key(output_dir, cards, archetypes, photos, diagram, poll, share, subject, lead, showing)
+            # freeze cycle 6 (MASTHEAD M1): the post's ONE masthead form, from both copies' covers as drawn, and kept
+            # for the other copy (deck_set_form) once both copies' slides were checked
+            kept = deck_set_form(key)
+            if kept is not None:
+                _render_state.masthead_form, _render_state.masthead_form_note = kept
+            else:
+                _render_state.masthead_form = self._deck_masthead_form(cards, archetypes, photos, total, poll, share,
+                                                                       subject, lead)
             planned, step = deck_set_step(key)
             if planned:
                 return draw_deck(step), step
             drawn = draw_deck(None)
             sibling = draw_deck(None, not facebook)
+            if _render_state.masthead_form == "stacked":
+                # lander ruling 2026-11-27 (2c): any slide of either copy whose stacked mark fails its check makes the
+                # WHOLE post fall back to the one-line form, recorded with the slide and the measured values
+                failed = stack_failures(drawn, sibling, facebook)
+                if failed:
+                    _render_state.masthead_form = "line"
+                    _render_state.masthead_form_note = ("the post fell back to the one-line form: " + "; ".join(failed))
+                    drawn = draw_deck(None)
+                    sibling = draw_deck(None, not facebook)
+            keep_deck_set_form(key, (_render_state.masthead_form, getattr(_render_state, "masthead_form_note", None)))
             step = deck_kicker_step([drawn[i][1] for i in order] + [entry[1] for entry in sibling.values()])
             keep_deck_set_step(key, step)
             if step is not None and not kickers_on([drawn[i][1] for i in order], step):
@@ -3487,6 +3610,7 @@ class MultiFormatGenerator:
                                           "subject": subject, "heading_frame": frame, "heading_tier": tier,
                                           "lead": lead,
                                           "window": showing[i],
+                                          "masthead_form": getattr(_render_state, "masthead_form", None) or "line",
                                           **({"kicker_step": list(deck_step)} if deck_step else {}),
                                           **({"diagram_withheld": withheld}
                                              if withheld and i == withheld["slide"] - 1 else {}),
@@ -3541,6 +3665,8 @@ class MultiFormatGenerator:
                                                   "total": total, "poll": poll, "share": share, "facebook": True,
                                                   "subject": subject, "heading_frame": frame, "heading_tier": tier,
                                                   "lead": lead, "window": showing[j], "heading_px": size,
+                                                  "masthead_form": getattr(_render_state, "masthead_form", None)
+                                                  or "line",
                                                   "kicker_line_exempt": lay.meta.get("kicker_line_exempt"),
                                                   **({"deck_dropped": dropped_rows} if dropped_rows else {}),
                                                   # freeze cycle 5: each photo window's crop and its fit (an unfit window is drawn as
@@ -3559,6 +3685,7 @@ class MultiFormatGenerator:
                                 "deck's tier.", j + 1, size, lay.problems())
             write_collage_report(slides, out_dir)
         log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
+        _render_state.masthead_form = _render_state.masthead_form_note = None   # never left for another deck
         return slides
 
 
@@ -4950,11 +5077,28 @@ SWIPE_STRIP = 72          # design px of the strip on slide 1 (96 at 1440)
 # ended ~45 px right of the heading at its cap line, a near-collision tick): it meets the heading or clears it by the
 # ledger's 48 canvas px (24 half px), else slide 1 draws no part and says why (lay.meta["swipe_strip"])
 SWIPE_CLEAR = 36
+# Freeze cycle 6 (stream MASTHEAD M2, lander ruling 2026-11-27; panel 7 PL1, the stub the 3:4 profile-grid crop cut at
+# x 1395): slide 1 is the post's grid tile, and the grid shows its centre 3:4 (safe_zones.grid_crop). Slide 1's part
+# of the strip is drawn ONLY outside that crop, from the crop's right edge to the slide's edge (45 canvas px on the
+# 1440 x 1800 slide): the feed still shows one line crossing the seam into slide 2, and the grid tile shows nothing of
+# it. Where that part would be shorter than the token swipe.part_min (design px), slide 1 draws none and slide 2's
+# strip is not run in from its edge (the kicker's own rule stands complete), recorded.
+
+
+def swipe_part(cw: int, ch: int) -> tuple[int, int] | None:
+    """Slide 1's part of the strip, (x0, x1): from the profile grid crop's right edge to the slide's edge; None where
+    it is shorter than swipe.part_min design px (no part on slide 1, none run in on slide 2)."""
+    from .brand_system import tok
+    from .safe_zones import grid_crop
+    px = MultiFormatGenerator._px(cw)
+    x0 = grid_crop(cw, ch)[2]
+    return (x0, cw) if cw - x0 >= px(tok("swipe.part_min")) else None
 
 
 def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
     """Draws `strip` ({"side": "left"} on slide 2: from the left edge to its kicker rule; {"side": "right", "y0",
-    "y1"} on slide 1: the last SWIPE_STRIP px to the right edge) in gold; recorded in lay.meta["swipe_strip"]."""
+    "y1"} on slide 1: its part outside the profile grid's crop, swipe_part) in gold; recorded in
+    lay.meta["swipe_strip"]."""
     cw = im.width
     px = MultiFormatGenerator._px(cw)
     if strip.get("side") == "left":
@@ -4962,9 +5106,19 @@ def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
         if not rule:
             lay.meta["swipe_strip"] = {"side": "left", "skipped": "the slide has no kicker rule"}
             return im
+        if swipe_part(cw, im.height) is None:   # freeze c6 M2: slide 1 has no part to meet: none run in
+            lay.meta["swipe_strip"] = {"side": "left", "skipped": "slide 1's part outside the grid crop would be "
+                                                                  "shorter than swipe.part_min: the kicker's rule "
+                                                                  "stands complete"}
+            return im
         box = [0, rule[1], rule[0], rule[3]]
     else:
-        box = [cw - px(SWIPE_STRIP), int(strip["y0"]), cw, int(strip["y1"])]
+        part = swipe_part(cw, im.height)
+        if part is None:
+            lay.meta["swipe_strip"] = {"side": "right", "skipped": "its part outside the profile grid's crop would be "
+                                                                   "shorter than swipe.part_min"}
+            return im
+        box = [part[0], int(strip["y0"]), part[1], int(strip["y1"])]
         clear = px(SWIPE_CLEAR)
         hit = [e["name"] for e in lay.elements if e["name"] != "header_brand" and e["box"][2] + clear > box[0]
                and e["box"][1] - clear < box[3] and e["box"][3] + clear > box[1]]
@@ -4995,7 +5149,8 @@ def redraw_carousel_slide(path: Path, recipe: dict[str, Any], tight: bool = True
                                              heading_tier=int(recipe.get("heading_tier") or 0),
                                              strip=_redraw_strip(recipe.get("strip"), path),
                                              window=int(recipe.get("window") or 0),
-                                             heading_px=recipe.get("heading_px"))
+                                             heading_px=recipe.get("heading_px"),
+                                             masthead_form=recipe.get("masthead_form") or "line")
         _render_state.tile_px = None
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)

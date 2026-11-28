@@ -136,5 +136,14 @@ def cover_box(width: int = REFERENCE_WIDTH, height: int = REFERENCE_HEIGHT) -> T
     return 0, (height - side) // 2, width, (height + side) // 2
 
 
+def grid_crop(width: int, height: int) -> Tuple[int, int, int, int]:
+    """The Instagram profile grid's crop of a post's first image (3:4 since January 2025): its centre 3:4, the whole
+    width where the image is 3:4 or narrower (a 1440x1800 carousel cover: x 45..1395)."""
+    w = min(width, round(height * 3 / 4))
+    h = min(height, round(width * 4 / 3))
+    x0, y0 = (width - w) // 2, (height - h) // 2
+    return x0, y0, x0 + w, y0 + h
+
+
 def inside(box: Tuple[int, int, int, int], within: Tuple[int, int, int, int]) -> bool:
     return box[0] >= within[0] and box[1] >= within[1] and box[2] <= within[2] and box[3] <= within[3]

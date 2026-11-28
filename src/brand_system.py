@@ -225,6 +225,20 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # the step at which the hook-ratio rule holds on the worst real copy (a 424 px first row), at its feed floor.
     # youtube_thumbnail draws every thumbnail's masthead at it (lane B, mast_px).
     "masthead.youtube_px": 48,
+    # Freeze cycle 6 (MASTHEAD M4, panel 7 BC r1 BC-G4 / TY r2): why the YouTube thumbnail (48, the token above) and the
+    # 16:9 end screen (64, TYPE["wide"]["masthead"]) set the mark at two sizes on one 1920 canvas: the thumbnail is a
+    # HOOK surface (the mark sits over the headline's first row and must not compete with it: masthead.hook_ratio_max,
+    # one size at the ladder's floor); the end screen is the sign-off, where the mark is the card's subject over a
+    # share line and no hook (PL3 is not applicable there: panel 7 protocol). Unifying either way would break one rule.
+    # The stacked form (freeze cycle 6, M1): the clear field between its two lines, a share of the name's cap height.
+    # Wider than the lockup's 0.18: the gate's ring (2-10 px around the ink) must read the ground, not the other line
+    "masthead.stack_gap": 0.45,
+    # The gold rule under the end card's / end screen's wordmark (it was a layout literal, 240 x 4 px on both canvases):
+    "masthead.rule_len": 240,         # px: the rule's full length (9:16 centred; 16:9 from the mark's left point)
+    "masthead.rule_thick": 4,         # px: its stroke
+    # The swipe strip's part on slide 1 (freeze cycle 6, M2): drawn only outside the profile grid's 3:4 crop, and
+    # only where that part is at least this long (design px); else none, and none run in on slide 2
+    "swipe.part_min": 24,
     # ---- maps (freeze cycle 3, SYS-A-4, lander ruling: option C; brand.map_fill_problems checks the pairs)
     "map.home_line_w": 2.0,           # px at the base's scale: the home casing's INK core (>= 2 px)
     "map.home_edge_w": 1.5,           # px: the casing's GOLD_LIGHT edge inside the core
@@ -352,6 +366,10 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "map.coast_w": (1.0, 3.0),
     "globe.limb_dark": (0.0, 0.25),
     "masthead.hook_ratio_max": (0.6, 0.9),
+    "masthead.stack_gap": (0.4, 0.8),
+    "masthead.rule_len": (120, 480),
+    "swipe.part_min": (12, 72),
+    "masthead.rule_thick": (2, 8),
     "masthead.youtube_px": (48, 64),      # a step of masthead.fit_ladder(64): 64 / 60 / 56 / 52 / 48   # of the hook's first row (rubric CD2: >= 0.8 competes with the title)
     "kicker.weight": (400, 900),
     "kicker.track": (0.0, 0.40),          # em
@@ -663,6 +681,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:with_region_line": "A",     # lane A c2: the map label's region line under the name
     "masthead:font_for": "system",
     "masthead:group_width": "system",
+    "masthead:stack_pitch": "system",    # freeze c6 M1: the stacked form's pitch, from the masthead's cap
     "masthead:mark_geometry": "system",
     "masthead:plan": "system",
     "masthead:plan_at": "system",        # freeze cycle 5: the ruled order (plan adds the margin's longer reach)
@@ -699,6 +718,7 @@ SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "youtube_thumbnail:_lockup": "B",              # lane B cycle 3: the refusal names its rule at the floor
     "youtube_thumbnail:_lockup.attempt": "B",
     "youtube_thumbnail:_lockup.width_at": "B",
+    "youtube_thumbnail:mast_size_rule": "B",       # freeze c6 M4: the mark's one size, its feed capitals recorded
     "youtube_thumbnail:_qual_font": "B",
     "youtube_thumbnail:_render": "B",
     "youtube_thumbnail:_figure_fonts": "B",        # cycle 0 round 8: the figure and unit held at their feed floors
@@ -739,7 +759,7 @@ RUNTIME_SIZE_SITES: Mapping[str, str] = MappingProxyType({
     "graphics:draw_plate": "A",
     "graphics:ink_box": "A",
     "graphics:quantity_plate": "A",          # cycle 0 round 8: a stated quantity's runs, drawn in a font sized by its caller
-    "masthead:plan_at.name": "system",      # SYS-B-2: lane B c2's masthead fit ladder on YouTube (sized at run time)
+    "masthead:plan_at.mk": "system",      # SYS-B-2: lane B c2's masthead fit ladder on YouTube (sized at run time)
     "masthead:plan_on.at": "system",
     "multi_format:MultiFormatGenerator._stack": "D",
 })

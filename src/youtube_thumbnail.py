@@ -313,21 +313,64 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
     at 5.1 full size and measured 4.43 at 246 px wide, failing its own gate): a line whose ratio falls under 4.5
     at feed size is planned again with a higher target and a wider halo until it holds or FEED_TARGET_MAX. The
     first pass also measures the type's right edge, and the ink's feather is fitted to it (round 4)."""
-    targets: dict[str, float] = {}
     given = dict(meta or {})
-    edge = None
-    while True:
-        trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
-        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
-                             column)
-        if edge is None and _type_edge(plates) is not None:
-            edge = _type_edge(plates)
-            continue
-        low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
-        if not low:
-            break
-        for n in low:
-            targets[n] = targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP
+
+    def solve(form, shift=None):
+        targets: dict[str, float] = {}
+        edge = None
+        while True:
+            trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
+            im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal,
+                                 column, form=form, shift=shift)
+            if edge is None and _type_edge(plates) is not None:
+                edge = _type_edge(plates)
+                continue
+            low = [n for n in _low_contrast(trial)
+                   if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
+            if not low:
+                return im, plates, trial, targets, edge
+            for n in low:
+                targets[n] = targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP
+
+    # freeze cycle 6 (MASTHEAD M1, lander rulings 2026-11-27): the thumbnail is its own post and decides its own form:
+    # the one-line masthead, else (its group over masthead.hook_ratio_max of the hook's first row as drawn) the
+    # stacked form, kept where it is drawn and clear of every other element (else the one-line form, recorded)
+    im, plates, trial, targets, edge = solve("line")
+    from . import masthead
+    hook = trial.get("hook_ratio") or {}
+    if not hook.get("holds", True) and masthead.stack_lines() is not None:
+        # the stack's placement (lander ruling 2026-11-27, round 3): its first cap on the header line the one-line
+        # form uses (shift 0.0), the second line below; where that touches the hook or fails a gate, centred on the
+        # one-line baseline (masthead.STACK_SHIFT), recorded
+        line_p = next((q for n, q in plates if n == "brand"), None)
+        tried = []
+        for shift in (0.0, None):
+            got = solve("stacked", shift)
+            brand_p = next((q for n, q in got[1] if n == "brand"), None)
+            hit = [n for n, q in got[1] if n != "brand" and brand_p is not None and not q.empty
+                   and _intersects(q.box, brand_p.box)]
+            # the lander's gates for the stacked form (2026-11-27): the photograph nowhere darker than with the
+            # one-line mark, no lower reading after the re-encode (masthead.stack_check), on the same thumbnail
+            # each mark's whole group (the diamond with the name: masthead.draw's box) is the mark's own, not photo
+            check = masthead.stack_check((got[0], brand_p, got[2].get("masthead") or {"shown": False},
+                                          (got[2].get("masthead") or {}).get("box")),
+                                         (im, line_p, trial.get("masthead") or {"shown": False},
+                                          (trial.get("masthead") or {}).get("box")))
+            tried.append({"shift": masthead.STACK_SHIFT if shift is None else shift, "touches": hit[:1],
+                          "check": check["why"] or "ok"})
+            if brand_p is not None and not hit and check["ok"]:
+                break
+        if brand_p is not None and not hit and check["ok"]:
+            im, plates, trial, targets, edge = got
+            trial["stack_check"] = dict(check, placements=tried)
+        else:
+            trial["stack_check"] = dict(check, placements=tried)
+            trial["hook_ratio"] = dict(hook, note=("the stacked form would touch the " + hit[0]) if hit else
+                                       ("the stacked form fails its check: " + check["why"]) if brand_p is not None
+                                       else "the stacked form is not drawn on this ground (its gate)")
+            trial["hook_ratio"]["reason"] = masthead.hook_record(
+                "YouTube thumbnail", "line", hook.get("masthead_px"), hook.get("first_row_px"), hook.get("size_px"),
+                note=trial["hook_ratio"]["note"]).get("reason")
     if targets:
         trial["feed_targets"] = {n: round(t, 2) for n, t in targets.items()}
     if edge is not None:
@@ -403,6 +446,10 @@ def mast_size_rule() -> dict:
             "step": ladder.index(px) if px in ladder else None, "floor": ladder[-1],
             "measured_px": measured_mast_px(), "worst_hook_row": WORST_HOOK_ROW,
             "hook_ratio_max": tok("masthead.hook_ratio_max"),
+            # freeze cycle 6 (MASTHEAD M4, panel 7 PL r2 backlog): the drawn capitals at YouTube's feed widths. At the
+            # floor they read as a texture at 246 px (YouTube prints the channel name under the tile); no change under
+            # the floor, recorded for the next YouTube token review
+            "cap_px_at_feed": {str(w): round(cap_height(masthead.font_for(px)) * w / W, 1) for w in FEED_WIDTHS},
             "why": ("one size on every thumbnail: the largest step of the masthead's fit ladder whose group is at most "
                     "masthead.hook_ratio_max of the narrowest real hook row (WORST_HOOK_ROW), never under the ladder's "
                     "floor (lane B cycle 3 ruling B-S2-1; SYS-B-5)")}
@@ -870,7 +917,7 @@ def type_column(focus_box) -> float:
 
 
 def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None,
-            column=None):
+            column=None, form: str = "line", shift: float | None = None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -932,13 +979,17 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     mode = im.mode
     # lane B cycle 3: one size on every thumbnail (mast_px, a step of the masthead's own fit ladder, drawn through
     # the ladder's fit); the baseline and the band below keep the canvas size's, so the hero stack does not move
+    # freeze cycle 6 (M1): in the thumbnail's form (render decides it), at the one size: the room is that size's
+    # group in the form, so the fit ladder lands on mast_px in either form
     im, name, meta["masthead"], _ = masthead.draw(im, LEFT, top + cap_height(f_brand), BRAND_PX,
-                                                  max_width=masthead.group_width(mast_px(), LEFT) + 0.5)
+                                                  max_width=masthead.form_width(mast_px(), form, LEFT) + 0.5,
+                                                  form=form, shift=shift)
     im = im.convert(mode)
     # Lane B c4 (panel 5 BC MG-02 / PL: "48 px drawn against 64 asked, room 488.5" read as a fit to each hook): the
     # size is the ruled token, not a measure of this thumbnail; the record says which rule set it.
     meta["masthead"]["size_rule"] = mast_size_rule()
-    if name is not None:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
+    mast_drawn = name is not None
+    if mast_drawn:   # fail closed: an undrawn masthead (under its gate) is recorded in meta["masthead"]
         plates.append(("brand", name))
     # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).
     centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
@@ -1252,6 +1303,13 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         plates.append(("provenance", p))
     if fb:
         meta["text_over_focus"] = [n for n, p in plates if n != "brand" and _intersects(p.box, fb)]
+    # freeze cycle 6 (MASTHEAD M1, panel 7 PL3): the hook ratio on THIS thumbnail's own first row as drawn (the
+    # headline's first row, or the figure with its unit), the one rule of every hook surface (masthead.hook_record)
+    mrec = meta.get("masthead") or {}
+    meta["hook_ratio"] = masthead.hook_record(
+        "YouTube thumbnail", mrec.get("form", form), mrec.get("group_width") if mast_drawn else None,
+        hook_row(plates), mrec.get("size_px") if mast_drawn else None,
+        line_group=masthead.form_width(mast_px(), "line", LEFT))
     meta["_plates"] = plates
     downscale_check(im.convert("RGB"), meta)
     return im.convert("RGB"), plates

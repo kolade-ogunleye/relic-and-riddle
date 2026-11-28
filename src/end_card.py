@@ -87,6 +87,8 @@ def __getattr__(name: str):
         return getattr(brand, _BRAND_NAMES[name])
     if name in _MOTION_NAMES or name == "LOOP_CROSSFADE":   # SYS-E-1: the motion tokens, read now
         return motion(name)
+    if name == "RULE_HALF":   # freeze cycle 6 (M4): half the wordmark rule, the token masthead.rule_len read now
+        return tok("masthead.rule_len") / 2
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -96,7 +98,8 @@ TOP = 780                # y of the share line's first row (9:16)
 MAST_TOP = 490           # y of the masthead's cap top (9:16): the composition spreads through the Reel box
 MASTHEAD_W = 740         # the masthead group at cover scale (panel round 2, 2026-11-02: ~200 px wide here, big
                          # everywhere else); on 9:16 the Reel box's width (735; 696 centred on the ads box) caps it first
-RULE_HALF = 120          # half the gold rule under the masthead
+# the gold rule under the masthead: the system tokens masthead.rule_len / masthead.rule_thick since freeze cycle 6 (M4;
+# it was the literal 240 x 4 here and in layout), read when drawn; RULE_HALF is served by __getattr__ for its readers
 FOLLOW_GAP = 60          # px from the share block's last row to the follow line
 # The share ask: two lines at the largest of these that fits (operator, 2026-10-29: two lines at >= 54 px), else
 # three at the largest that fits, then longer asks smaller. Montserrat SemiBold (panel round 2: ~56 px, balanced).
@@ -490,7 +493,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         mast_xy = (x0 + 2 * mast["mark_r"] + mast["gap"], y0)
         mark_c = (x0 + mast["mark_r"], y0 + (cap[1] + cap[3]) / 2)
         rule_y = y0 + cap[3] + 40
-        rule = (x0, x0 + 240)
+        rule = (x0, x0 + tok("masthead.rule_len"))
         # The WATCH NEXT kicker leads the hand-off line in the text column (freeze lane E cycle 3): its cap line
         # where the line's was, the line one kicker.gap below its baseline (_column_kicker_step).
         k_cap = rule_y + 70 + share_font.getbbox("H", anchor="la")[1]
@@ -509,7 +512,7 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         mast_xy = (mast_x0 + 2 * mast["mark_r"] + mast["gap"], mast_top)
         mark_c = (mast_x0 + mast["mark_r"], mast_top + (cap[1] + cap[3]) / 2)
         rule_y = mast_top + cap[3] + 64
-        rule = (cx - RULE_HALF, cx + RULE_HALF)
+        rule = (cx - tok("masthead.rule_len") / 2, cx + tok("masthead.rule_len") / 2)
         top = TOP + dy
         align_x = None
     share_bottom = top + len(lines) * line_h
@@ -682,11 +685,12 @@ def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) 
     if r_draw > 0:
         x0, x1 = lay["rule"]
         y = lay["rule_y"]
+        thick = int(tok("masthead.rule_thick"))   # freeze cycle 6 (M4): the rule's token, read now
         if lay["landscape"]:
-            d.line([(x0, y), (x0 + (x1 - x0) * r_draw, y)], fill=(*brand.GOLD, 235), width=4)
+            d.line([(x0, y), (x0 + (x1 - x0) * r_draw, y)], fill=(*brand.GOLD, 235), width=thick)
         else:
             mid, half = (x0 + x1) / 2, (x1 - x0) / 2 * r_draw
-            d.line([(mid - half, y), (mid + half, y)], fill=(*brand.GOLD, 235), width=4)
+            d.line([(mid - half, y), (mid + half, y)], fill=(*brand.GOLD, 235), width=thick)
 
 
 def landscape_zoom_at(t: float) -> float:

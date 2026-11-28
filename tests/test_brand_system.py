@@ -597,6 +597,12 @@ TOKEN_PROBES = {   # token -> (an override value, a probe of the renderer that r
     "map.coast_w": (3.0, _map_base_sum),
     "globe.limb_dark": (0.05, _globe_sum),
     "masthead.youtube_px": (56, _youtube_mast_px),
+    # freeze cycle 6 (MASTHEAD M4, panel 7 BC-G4): the gold rule under the end card's wordmark, a token now
+    "masthead.rule_len": (360, lambda: __import__("src.end_card", fromlist=["x"]).layout("Send this.")["rule"]),
+    "masthead.rule_thick": (7, lambda: _end_card_frame(40)),
+    # freeze cycle 6 round 2: the stacked lockup form's line gap (M1) and the swipe strip's least part on slide 1 (M2)
+    "masthead.stack_gap": (0.6, lambda: masthead.stack_pitch(64)),
+    "swipe.part_min": (60, lambda: __import__("src.multi_format", fromlist=["x"]).swipe_part(1440, 1800)),
     "lockup.line_gap": (0.25, lambda: __import__("src.youtube_thumbnail", fromlist=["x"]).line_pitch()),
     "credit.weight": (600, _credits_ink),   # freeze cycle 4 (SYS item 4): a SPEC value, now read
     # freeze cycle 4 (SYS-E-c4-1): the dot's pop on the one curve, and the act dissolve's curve

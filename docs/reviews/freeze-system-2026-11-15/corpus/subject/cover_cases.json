@@ -1,0 +1,282 @@
+[
+ {
+  "name": "damascus_s_05",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "hero": "assets/damascus_steel_nanotubes/05_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "damascus_s_09",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "hero": "assets/damascus_steel_nanotubes/09_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "damascus_s_17",
+  "run": "run_damascus_steel_nanotubes_1792732472_short",
+  "hero": "assets/damascus_steel_nanotubes/17_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "greek_fire_05",
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "hero": "assets/greek_fire_siphon/05_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "greek_fire_17",
+  "run": "run_greek_fire_siphon_1792735284_short",
+  "hero": "assets/greek_fire_siphon/17_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "kailasa_te_05",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "hero": "assets/kailasa_temple_monolith/05_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "kailasa_te_17",
+  "run": "run_kailasa_temple_monolith_1792524470",
+  "hero": "assets/kailasa_temple_monolith/17_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "nazca_line_02",
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "hero": "assets/nazca_lines_runway_paradox/02_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "nazca_line_07",
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "hero": "assets/nazca_lines_runway_paradox/07_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "nazca_line_08",
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "hero": "assets/nazca_lines_runway_paradox/08_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "nazca_line_10",
+  "run": "run_nazca_lines_runway_paradox_1792961797",
+  "hero": "assets/nazca_lines_runway_paradox/10_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "odessa_cat_08",
+  "run": "run_odessa_catacombs_1792970549",
+  "hero": "assets/odessa_catacombs/08_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "odessa_cat_13",
+  "run": "run_odessa_catacombs_1792970549",
+  "hero": "assets/odessa_catacombs/13_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "richat_str_05",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/05_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "richat_str_08",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/08_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "richat_str_09",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/09_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "richat_str_10",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/10_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "richat_str_13",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/13_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "richat_str_14",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/14_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "richat_str_19",
+  "run": "run_richat_structure_sahara_eye_1792737039_short",
+  "hero": "assets/richat_structure_sahara_eye/19_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "roman_self_03",
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "hero": "assets/roman_self_healing_concrete/03_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "roman_self_25",
+  "run": "run_roman_self_healing_concrete_1793161347",
+  "hero": "assets/roman_self_healing_concrete/25_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "singing_co_09",
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "hero": "assets/singing_colossi_of_memnon/09_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "singing_co_12",
+  "run": "run_singing_colossi_of_memnon_1792952878",
+  "hero": "assets/singing_colossi_of_memnon/12_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "full_bleed"
+ },
+ {
+  "name": "trepanatio_13",
+  "run": "run_trepanation_miracle_1792991470",
+  "hero": "assets/trepanation_miracle/13_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "trepanatio_17",
+  "run": "run_trepanation_miracle_1792991470",
+  "hero": "assets/trepanation_miracle/17_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "tunguska_e_09",
+  "run": "run_tunguska_event_1908_1792930600",
+  "hero": "assets/tunguska_event_1908/09_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "unfinished_05",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "hero": "assets/unfinished_obelisk_aswan/05_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "unfinished_10",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "hero": "assets/unfinished_obelisk_aswan/10_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "unfinished_11",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "hero": "assets/unfinished_obelisk_aswan/11_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "unfinished_13",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "hero": "assets/unfinished_obelisk_aswan/13_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "unfinished_18",
+  "run": "run_unfinished_obelisk_aswan_1792985912",
+  "hero": "assets/unfinished_obelisk_aswan/18_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ },
+ {
+  "name": "voynich_ma_17",
+  "run": "run_voynich_manuscript_1792965308",
+  "hero": "assets/voynich_manuscript/17_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "wieliczka__01",
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "hero": "assets/wieliczka_salt_mine/01_commons.jpg",
+  "style": "badge",
+  "base": "contain",
+  "tip": "photo_over_ink"
+ },
+ {
+  "name": "wieliczka__06",
+  "run": "run_wieliczka_salt_mine_1792974672",
+  "hero": "assets/wieliczka_salt_mine/06_commons.jpg",
+  "style": "badge",
+  "base": "photo_over_ink",
+  "tip": "contain"
+ }
+]

@@ -1,0 +1,2178 @@
+[
+ {
+  "id": "000",
+  "name": "amber_room_heist/01_commons.jpg",
+  "sha256": "12e7fd63fd0ca913ab5805cae26300d46997d64e752dbc70eb7f834b79b8e2ef",
+  "size": [
+   6000,
+   4000
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "Amber Room wall interior: panels across the whole frame, no single object"
+ },
+ {
+  "id": "001",
+  "name": "amber_room_heist/05_commons.jpg",
+  "sha256": "def83d59abce21cac7ecde47268b07027fe13d62c2fabb34b8014d062b678186",
+  "size": [
+   4096,
+   3864
+  ],
+  "kind": "scene",
+  "box": [
+   0.01,
+   0.01,
+   0.99,
+   0.99
+  ],
+  "reason": "historic lantern slide of the Amber Room wall with chairs; the wall is the subject, edge to edge inside the mount"
+ },
+ {
+  "id": "002",
+  "name": "amber_room_heist/07_commons.jpg",
+  "sha256": "0a5d420f0b58d3411aee50403eb4786470598830006abcdc82d1c0eb58279bb3",
+  "size": [
+   4096,
+   3856
+  ],
+  "kind": "scene",
+  "box": [
+   0.01,
+   0.01,
+   0.99,
+   0.99
+  ],
+  "reason": "lantern slide of an Amber Room corner; whole wall is the subject"
+ },
+ {
+  "id": "003",
+  "name": "amber_room_heist/08_commons.jpg",
+  "sha256": "8a10b7abeba550b1b3103ee85ba9acda9a79bfc0f2c3070f76486d3623f30a2d",
+  "size": [
+   6000,
+   4000
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "cornice and amber wall seen from below, ornament everywhere"
+ },
+ {
+  "id": "004",
+  "name": "amber_room_heist/09_commons.jpg",
+  "sha256": "d1b71ce702275adabe5d146a7bf74012ee3ccba0293d34e30f9b6ef1fa6ba8e8",
+  "size": [
+   1920,
+   1080
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "amber panel wall close view, no single object"
+ },
+ {
+  "id": "005",
+  "name": "amber_room_heist/13_commons.jpg",
+  "sha256": "113160f3db6a4c27669ce95cd7d8a0a48e0dba6b3133c7e68d632cc37ab4df5a",
+  "size": [
+   1920,
+   1080
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "Amber Room cornice and walls, wide view"
+ },
+ {
+  "id": "006",
+  "name": "amber_room_heist/17_commons.jpg",
+  "sha256": "dd02f3ce3335a157ba2256beae1986be4bf09eb3348a9c9c191d393b5cb2e790",
+  "size": [
+   1920,
+   1080
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "Amber Room wall with framed painting and clock; whole wall is the subject"
+ },
+ {
+  "id": "007",
+  "name": "amber_room_heist/18_commons.jpg",
+  "sha256": "411e091270a1ecba216fef6aa444b4ae79f62ca276bd31d4a4987e66ad07233c",
+  "size": [
+   1920,
+   1080
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "palace hall windows and gilt ornament; no single object"
+ },
+ {
+  "id": "008",
+  "name": "damascus_steel_nanotubes/01_commons.jpg",
+  "sha256": "d74ab4a95cf13f30e3e9efde462c9dab31782867f6588c545d332679dd9be4ee",
+  "size": [
+   3088,
+   2056
+  ],
+  "kind": "object",
+  "box": [
+   0.2,
+   0.44,
+   0.775,
+   0.86
+  ],
+  "reason": "Damascus-steel knife (blade and handle); the leather sheath behind is context"
+ },
+ {
+  "id": "009",
+  "name": "damascus_steel_nanotubes/05_commons.jpg",
+  "sha256": "954f0022c21f0aa27f8a781d8348c615f9b9883d76c069bcf9cecb5f9c582a59",
+  "size": [
+   3088,
+   2056
+  ],
+  "kind": "object",
+  "box": [
+   0.095,
+   0.46,
+   0.93,
+   0.66
+  ],
+  "reason": "knife lying across, blade left, handle right; sheath is context"
+ },
+ {
+  "id": "010",
+  "name": "damascus_steel_nanotubes/09_commons.jpg",
+  "sha256": "6c165a475252026a654b943c97665dd81911852eaaad9050bcc806dbfc7e56a9",
+  "size": [
+   1859,
+   1113
+  ],
+  "kind": "object",
+  "box": [
+   0.06,
+   0.14,
+   0.92,
+   0.78
+  ],
+  "reason": "knife diagonal, handle top-left to blade tip right; sheath context"
+ },
+ {
+  "id": "011",
+  "name": "damascus_steel_nanotubes/13_commons.jpg",
+  "sha256": "0122ed63a7297aced95ad12b5cbb920ce954a420a05082f71d9d17ce8846c989",
+  "size": [
+   3000,
+   4000
+  ],
+  "kind": "object",
+  "box": [
+   0.33,
+   0.08,
+   0.665,
+   0.95
+  ],
+  "reason": "mail helmet with spike and aventail on a stand"
+ },
+ {
+  "id": "012",
+  "name": "damascus_steel_nanotubes/17_commons.jpg",
+  "sha256": "5de66a0fe20d816d8aa0f6ad1ea7a08882985813a8571258ad248a176e5d2f69",
+  "size": [
+   4000,
+   2194
+  ],
+  "kind": "object",
+  "box": [
+   0.02,
+   0.23,
+   0.945,
+   0.71
+  ],
+  "reason": "curved sword above its scabbard on grey ground"
+ },
+ {
+  "id": "013",
+  "name": "flannan_isle_lighthouse_disappearance/01_commons.jpg",
+  "sha256": "d14681289fff723c10af9d57ccd45a1174ca9f769f752a2a56badf823c34c174",
+  "size": [
+   11245,
+   8221
+  ],
+  "kind": "scene",
+  "box": [
+   0.02,
+   0.02,
+   0.98,
+   0.98
+  ],
+  "reason": "Admiralty chart of the isles: a document, the whole sheet is the subject"
+ },
+ {
+  "id": "014",
+  "name": "flannan_isle_lighthouse_disappearance/02_commons.jpg",
+  "sha256": "dba6afb35726c4822a869ea733541e20e297d78451dad4166bb171e7b571db25",
+  "size": [
+   5712,
+   3504
+  ],
+  "kind": "scene",
+  "box": [
+   0.07,
+   0.0,
+   0.99,
+   0.92
+  ],
+  "reason": "engraved map of the isles with profile views along the foot: document"
+ },
+ {
+  "id": "015",
+  "name": "flannan_isle_lighthouse_disappearance/03_commons.jpg",
+  "sha256": "ed7c5c865779643249c04a8dc13713e590a6935a0c236bb7cf57f7a68e80979b",
+  "size": [
+   1665,
+   5992
+  ],
+  "kind": "object",
+  "box": [
+   0.03,
+   0.0,
+   0.97,
+   0.995
+  ],
+  "reason": "the stained-glass window whole (arched top, inscription at the foot) on black"
+ },
+ {
+  "id": "016",
+  "name": "flannan_isle_lighthouse_disappearance/05_commons.jpg",
+  "sha256": "ae89af2773f553a1f229969885935068406e111a49ce25cf7c538f8113e0f3ba",
+  "size": [
+   880,
+   2628
+  ],
+  "kind": "object",
+  "box": [
+   0.12,
+   0.18,
+   0.85,
+   0.95
+  ],
+  "reason": "standing saint in the stained glass (mitre to feet); border and name plate are context"
+ },
+ {
+  "id": "017",
+  "name": "gobekli_tepe_enclosure_d/01_commons.jpg",
+  "sha256": "eee10c80d4a36fb7a02dd8ca52e834662f917a63d3838d895554648923058adc",
+  "size": [
+   4000,
+   3000
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.33,
+   1.0,
+   1.0
+  ],
+  "reason": "excavated stone enclosures and pillars; shelter roof and walkway above are context"
+ },
+ {
+  "id": "018",
+  "name": "gobekli_tepe_enclosure_d/05_commons.jpg",
+  "sha256": "4a0b8e36b53781e8fdcaa805cb1d597df899b649e38c870f6e1913d6c9098c9c",
+  "size": [
+   4000,
+   3000
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.38,
+   1.0,
+   1.0
+  ],
+  "reason": "excavated enclosure with T-pillars below the walkway; shelter, visitors and sky are context"
+ },
+ {
+  "id": "019",
+  "name": "gobekli_tepe_enclosure_d/06_commons.jpg",
+  "sha256": "87ac4e3a7324addc74ba41b3058b1efed06632a4519f27cdc4c794b70cc930bc",
+  "size": [
+   3645,
+   2018
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.08,
+   1.0,
+   1.0
+  ],
+  "reason": "close view of several T-pillars and walls filling the frame"
+ },
+ {
+  "id": "020",
+  "name": "gobekli_tepe_enclosure_d/09_commons.jpg",
+  "sha256": "353f3aa739217c29b9b0a9fd6917e69b7498acfc118dca2525f54a9ad584da89",
+  "size": [
+   2268,
+   1722
+  ],
+  "kind": "object",
+  "box": [
+   0.44,
+   0.17,
+   0.99,
+   0.74
+  ],
+  "reason": "aerial plan: the round pillar enclosures right of centre; tin roof at left and trenches are context"
+ },
+ {
+  "id": "021",
+  "name": "greek_fire_siphon/01_commons.jpg",
+  "sha256": "d20a5075c394d10a7e8de5839bedeeebc4ab591d4beeb98dc7d1fe9d46bee2fc",
+  "size": [
+   3013,
+   1543
+  ],
+  "kind": "object",
+  "box": [
+   0.02,
+   0.12,
+   0.97,
+   0.95
+  ],
+  "reason": "illumination: the fire-throwing ship and the burning enemy ship; Greek text above is context"
+ },
+ {
+  "id": "022",
+  "name": "greek_fire_siphon/05_commons.jpg",
+  "sha256": "04a94fb66ad3c436cdb6e256d8e83741c0232d1d6eadb9ec0cf62aea03314a3e",
+  "size": [
+   3376,
+   4605
+  ],
+  "kind": "object",
+  "box": [
+   0.16,
+   0.2,
+   0.97,
+   0.44
+  ],
+  "reason": "manuscript page: the miniature (town walls, soldiers, ships); the text block is context"
+ },
+ {
+  "id": "023",
+  "name": "greek_fire_siphon/09_commons.jpg",
+  "sha256": "d4f0426f566d4938bff1fc536f0286bf8a54effc136810fae0423eac9267fa90",
+  "size": [
+   4488,
+   2403
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.08,
+   0.97,
+   0.9
+  ],
+  "reason": "papyrus letter in its mount: the written sheet; dark frame is the mount"
+ },
+ {
+  "id": "024",
+  "name": "greek_fire_siphon/13_commons.jpg",
+  "sha256": "be4ea6b9413d90f1d497fa6458e60750908695c1bb096d58cea77c94c312865b",
+  "size": [
+   2592,
+   1944
+  ],
+  "kind": "object",
+  "box": [
+   0.1,
+   0.09,
+   0.86,
+   0.94
+  ],
+  "reason": "ship model with lateen sail and oars in a museum case; backdrop panels are context"
+ },
+ {
+  "id": "025",
+  "name": "greek_fire_siphon/17_commons.jpg",
+  "sha256": "48ddd89557470e6eb15407a4a17ed116ed11af91616430a5ae85780a97ee73d3",
+  "size": [
+   3241,
+   4411
+  ],
+  "kind": "object",
+  "box": [
+   0.04,
+   0.28,
+   0.66,
+   0.5
+  ],
+  "reason": "manuscript page: miniature of riders, enthroned ruler and two men; text is context"
+ },
+ {
+  "id": "026",
+  "name": "hal_saflieni_hypogeum/01_commons.jpg",
+  "sha256": "6c9b300adf39efcf81cc270611f68eee8148d2d17b851196be38a3d5488ce42a",
+  "size": [
+   3000,
+   2128
+  ],
+  "kind": "object",
+  "box": [
+   0.13,
+   0.05,
+   0.86,
+   0.92
+  ],
+  "reason": "rock-cut hall: corbelled ceiling and trilithon doorways; dark side walls are context"
+ },
+ {
+  "id": "027",
+  "name": "hal_saflieni_hypogeum/05_commons.jpg",
+  "sha256": "25d9fcacd374d309184d2cecc0a96c459e38380a16863196f3ab86f1071643e1",
+  "size": [
+   2944,
+   2078
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "rock-cut chamber with a lit niche and slabs: the whole view"
+ },
+ {
+  "id": "028",
+  "name": "hal_saflieni_hypogeum/06_commons.jpg",
+  "sha256": "854ef7532e319b6e2fb40d077cd9c3890ffef3e4167b55e7550cc71cd47048de",
+  "size": [
+   2954,
+   2068
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "red ochre spiral painting on the ceiling: pattern over the whole frame"
+ },
+ {
+  "id": "029",
+  "name": "hal_saflieni_hypogeum/09_commons.jpg",
+  "sha256": "6e4b9c420168ff09327c4e665bf19a85e3ca13edc1b2278130f5990380de438e",
+  "size": [
+   1600,
+   1174
+  ],
+  "kind": "object",
+  "box": [
+   0.125,
+   0.165,
+   0.885,
+   0.845
+  ],
+  "reason": "postcard: the printed photograph of the chamber; card margin and caption are context"
+ },
+ {
+  "id": "030",
+  "name": "hal_saflieni_hypogeum/13_commons.jpg",
+  "sha256": "6bcae02478c2d8d52a8e0d4ceae67606d6e1d3fed1d495d13c141d05362a2e59",
+  "size": [
+   1687,
+   1106
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.12,
+   0.85,
+   0.88
+  ],
+  "reason": "site plan drawing; title, scale bar and legend are context"
+ },
+ {
+  "id": "031",
+  "name": "kailasa_temple_monolith/01_commons.jpg",
+  "sha256": "f6dffa1425559ec3eae018cc4f53630cb646e1ba087d7a6de7b0c68e2c13f4c4",
+  "size": [
+   3072,
+   4096
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.04,
+   0.98,
+   1.0
+  ],
+  "reason": "carved temple facade and tower filling the frame; visitor at lower right is context"
+ },
+ {
+  "id": "032",
+  "name": "kailasa_temple_monolith/02_commons.jpg",
+  "sha256": "f04b9633e6cd221378a701888e33e21d1669142d8501d315f369a6a2054dfe8c",
+  "size": [
+   5504,
+   8256
+  ],
+  "kind": "object",
+  "box": [
+   0.13,
+   0.0,
+   0.72,
+   0.99
+  ],
+  "reason": "the carved free-standing pillar, capital to plinth; elephant and court are context"
+ },
+ {
+  "id": "033",
+  "name": "kailasa_temple_monolith/04_commons.jpg",
+  "sha256": "f66176faa45a0813fb480320db217fde814bf6cc44a81addd61a13ce3a2c9f47",
+  "size": [
+   2400,
+   1800
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.1,
+   1.0,
+   1.0
+  ],
+  "reason": "temple court with shrine, pillar and visitors: a scene"
+ },
+ {
+  "id": "034",
+  "name": "kailasa_temple_monolith/05_commons.jpg",
+  "sha256": "0004f12f8092cd21525217bcb5b8d755a67a23a12d9adfb286dd5efd85e8be91",
+  "size": [
+   5504,
+   8256
+  ],
+  "kind": "object",
+  "box": [
+   0.36,
+   0.07,
+   0.65,
+   0.7
+  ],
+  "reason": "the carved pillar standing in the court; carved wall at left, elephant and cliff are context"
+ },
+ {
+  "id": "035",
+  "name": "kailasa_temple_monolith/09_commons.jpg",
+  "sha256": "9913a13ff8ed1b88438fc74172c2fca5d596414825ad088037dd7f1d3e592e25",
+  "size": [
+   3072,
+   2048
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "temple plinth with elephant reliefs and the colonnaded cloister: a scene"
+ },
+ {
+  "id": "036",
+  "name": "kailasa_temple_monolith/13_commons.jpg",
+  "sha256": "e84ee8885265753e77bc55fcd38957f79ea1d86ebd8cc98c5bee319b9c7d8f96",
+  "size": [
+   2400,
+   1800
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.0,
+   1.0,
+   1.0
+  ],
+  "reason": "rock-cut temple blocks, bridge and visitors: a scene"
+ },
+ {
+  "id": "037",
+  "name": "kailasa_temple_monolith/17_commons.jpg",
+  "sha256": "d6769651791bafd970c240e69fa04da9df263bbe77db2cf234a33714f965c12f",
+  "size": [
+   1800,
+   2400
+  ],
+  "kind": "object",
+  "box": [
+   0.14,
+   0.3,
+   0.84,
+   0.83
+  ],
+  "reason": "lingam with offerings and lamps in a dark shrine"
+ },
+ {
+  "id": "038",
+  "name": "lycurgus_cup_nanotech/01_commons.jpg",
+  "sha256": "227aedafca4648228da8cc3bcde582b0a467dfe63582af09f5e63d8f17904174",
+  "size": [
+   3024,
+   4032
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.13,
+   0.87,
+   1.0
+  ],
+  "reason": "the cage cup seen from above, rim to foot; case floor is context"
+ },
+ {
+  "id": "039",
+  "name": "lycurgus_cup_nanotech/05_commons.jpg",
+  "sha256": "4320f03092286bde2eb752bb96cb637f4d591882ec695fca6df89f13c29615bc",
+  "size": [
+   2720,
+   3649
+  ],
+  "kind": "object",
+  "box": [
+   0.12,
+   0.1,
+   0.88,
+   0.93
+  ],
+  "reason": "the cage cup lit red, rim to foot, on its plinth"
+ },
+ {
+  "id": "040",
+  "name": "lycurgus_cup_nanotech/09_commons.jpg",
+  "sha256": "4091b519641e16474fde6494538c044616c031dfc4a46b1779903e72a44c1efb",
+  "size": [
+   2268,
+   3667
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.12,
+   0.97,
+   0.98
+  ],
+  "reason": "the cage cup in green reflected light, rim to foot"
+ },
+ {
+  "id": "041",
+  "name": "lycurgus_cup_nanotech/13_commons.jpg",
+  "sha256": "1d1ebc19264fa0d89c3af6b64673b0680011d6ccca6f75a995d4bab485902245",
+  "size": [
+   3402,
+   2229
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.16,
+   0.95,
+   1.0
+  ],
+  "reason": "close view of the cup's rim and cage, running out of the bottom of the frame"
+ },
+ {
+  "id": "042",
+  "name": "lycurgus_cup_nanotech/17_commons.jpg",
+  "sha256": "016961885b4804db95a430ca9281d9ce10f43279fe93a91b181f4a3ae1c6c44b",
+  "size": [
+   2438,
+   4026
+  ],
+  "kind": "object",
+  "box": [
+   0.06,
+   0.08,
+   0.95,
+   0.89
+  ],
+  "reason": "the cage cup lit red, rim to foot; visitor and case are context"
+ },
+ {
+  "id": "043",
+  "name": "nazca_lines_runway_paradox/01_commons.jpg",
+  "sha256": "d646f7f6b8286fce602a8d4688fa393bc850fe7e57f5d8b7be4af5baa8b226fd",
+  "size": [
+   2480,
+   3508
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.0,
+   0.95,
+   0.99
+  ],
+  "reason": "line drawing of a spiral geoglyph with its long line: the whole figure"
+ },
+ {
+  "id": "044",
+  "name": "nazca_lines_runway_paradox/02_commons.jpg",
+  "sha256": "2c9706f2db3b298d120acac6e2ee07b9f045bd8f8b8baa0c63e9613e2332f296",
+  "size": [
+   3872,
+   2592
+  ],
+  "kind": "object",
+  "box": [
+   0.27,
+   0.1,
+   0.68,
+   0.88
+  ],
+  "reason": "the hummingbird geoglyph (beak, wings, tail); tracks at the top and the ravine are context"
+ },
+ {
+  "id": "045",
+  "name": "nazca_lines_runway_paradox/05_commons.jpg",
+  "sha256": "5c77a06dd658f378c336c866c63f8ffd4feeeead6fe2e9751244db82f2e17a68",
+  "size": [
+   1600,
+   1067
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "stony desert floor and sky: no object, the ground is the subject"
+ },
+ {
+  "id": "046",
+  "name": "nazca_lines_runway_paradox/07_commons.jpg",
+  "sha256": "fc5ad4da7ac813ac8fad83cebf14149009aff2d338b7e926e6047fbae497152d",
+  "size": [
+   3872,
+   2592
+  ],
+  "kind": "object",
+  "box": [
+   0.4,
+   0.47,
+   0.62,
+   0.71
+  ],
+  "reason": "the LINEAS DE NASCA road sign on its posts; lorry at left is foreign context"
+ },
+ {
+  "id": "047",
+  "name": "nazca_lines_runway_paradox/08_commons.jpg",
+  "sha256": "4e83ad9a780271379e69b16a89febae85a3f5d81e1c6a85ead1f30a40c458044",
+  "size": [
+   3872,
+   2592
+  ],
+  "kind": "object",
+  "box": [
+   0.33,
+   0.29,
+   0.98,
+   1.0
+  ],
+  "reason": "aerial: the dark trapezoid clearings and lines by the red hills; plain and road are context"
+ },
+ {
+  "id": "048",
+  "name": "nazca_lines_runway_paradox/09_commons.jpg",
+  "sha256": "1c2bda1a7ce146a58560f68dcd92a469f453e9c015ce5c611e39c45e77ea7864",
+  "size": [
+   3872,
+   2592
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.3,
+   1.0,
+   1.0
+  ],
+  "reason": "highway crossing the pampa with the protected-zone sign: a scene, no single object"
+ },
+ {
+  "id": "049",
+  "name": "nazca_lines_runway_paradox/10_commons.jpg",
+  "sha256": "b820c1a1f0a38f3fa64ba37eeeaa64879d92a49c9c4fa8743c1b0defd4182245",
+  "size": [
+   3872,
+   2592
+  ],
+  "kind": "object",
+  "box": [
+   0.44,
+   0.31,
+   0.6,
+   0.88
+  ],
+  "reason": "the 'astronaut' figure on the hillside"
+ },
+ {
+  "id": "050",
+  "name": "nazca_lines_runway_paradox/13_commons.jpg",
+  "sha256": "5a87b6ddb2defd2bf0786544b0618354d05191a00b79ad6b0fb40b74b9b68542",
+  "size": [
+   4928,
+   3264
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "village roofs, smoke and fields seen from a hill: a scene"
+ },
+ {
+  "id": "051",
+  "name": "nazca_lines_runway_paradox/17_commons.jpg",
+  "sha256": "859066b7548b15300475a344abb292707c6863a9ebb99e04c3fa1566728ac1c0",
+  "size": [
+   4928,
+   3264
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "valley, town and mountains over a rocky foreground: a landscape"
+ },
+ {
+  "id": "052",
+  "name": "odessa_catacombs/01_commons.jpg",
+  "sha256": "1640ce53b257b5f40faedfe2ca200761efb66d7fbaebd045cd5cdf5b00c2106e",
+  "size": [
+   2592,
+   1944
+  ],
+  "kind": "object",
+  "box": [
+   0.13,
+   0.33,
+   0.92,
+   0.82
+  ],
+  "reason": "memorial: rock with lantern, wreaths and tiled base behind the chain; walls are context"
+ },
+ {
+  "id": "053",
+  "name": "odessa_catacombs/05_commons.jpg",
+  "sha256": "c84d84107cbefce1e850fd90a91e449ce7ce1194c72950ae94d080b74cf7de52",
+  "size": [
+   3120,
+   4160
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.2,
+   1.0,
+   1.0
+  ],
+  "reason": "catacomb gallery receding: the passage is the whole view"
+ },
+ {
+  "id": "054",
+  "name": "odessa_catacombs/08_commons.jpg",
+  "sha256": "fc14243d841372e77e574e5dae834fa8dd32e442d19561873fb4985fbe633b49",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.02,
+   0.99,
+   0.7
+  ],
+  "reason": "catacomb museum display: rusted helmets and relics on the stone ledge with photo boards above; floor is empty"
+ },
+ {
+  "id": "055",
+  "name": "odessa_catacombs/09_commons.jpg",
+  "sha256": "4b6870624225aaf571230ef9d65da1d4327a090a8da92c796db30e85d6079969",
+  "size": [
+   4849,
+   3233
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "quarried limestone gallery with props and rubble: the whole chamber"
+ },
+ {
+  "id": "056",
+  "name": "odessa_catacombs/12_commons.jpg",
+  "sha256": "2f5270ccb177ba2eabb1f9b87549cacc6f0b9b796e74b6e15c5a9c73cee778e7",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.21,
+   0.1,
+   0.71,
+   0.81
+  ],
+  "reason": "the red entrance hut to the catacombs (door, plaque, flag); van, pole and bin are context"
+ },
+ {
+  "id": "057",
+  "name": "odessa_catacombs/13_commons.jpg",
+  "sha256": "5f346c98d7b420fc22dbb492fee5fdc1df8021aba2625ef5386dce88e481d9de",
+  "size": [
+   5482,
+   3655
+  ],
+  "kind": "object",
+  "box": [
+   0.1,
+   0.16,
+   0.8,
+   0.82
+  ],
+  "reason": "gallery junction with the signpost and dated inscriptions on the masonry"
+ },
+ {
+  "id": "058",
+  "name": "odessa_catacombs/17_commons.jpg",
+  "sha256": "0d7270ed541d329fbf5ed2f9370e53c78e8f42de56269002a6eea9cf3ffd2430",
+  "size": [
+   2875,
+   4312
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "close view of limestone strata: texture, no object"
+ },
+ {
+  "id": "059",
+  "name": "richat_structure_sahara_eye/01_commons.jpg",
+  "sha256": "75c28f1711c9106c2c3f033dbdfd42a2ececf35e5bc96584e56f2bf8f6c6f19a",
+  "size": [
+   3840,
+   2491
+  ],
+  "kind": "object",
+  "box": [
+   0.28,
+   0.18,
+   0.8,
+   0.74
+  ],
+  "reason": "the Richat rings from orbit (outer ring included); desert and logo are context"
+ },
+ {
+  "id": "060",
+  "name": "richat_structure_sahara_eye/02_commons.jpg",
+  "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+  "size": [
+   3840,
+   2536
+  ],
+  "kind": "object",
+  "box": [
+   0.29,
+   0.25,
+   0.74,
+   0.74
+  ],
+  "reason": "the Richat rings in false colour; logo strip and plain are context (the one reviewed box, 0.235-0.755 x 0.285-0.77, agrees)"
+ },
+ {
+  "id": "061",
+  "name": "richat_structure_sahara_eye/05_commons.jpg",
+  "sha256": "4be11f17d8f9003a98501b7dd2f2a21a958a6e30841f390f33e852fcd7633c52",
+  "size": [
+   9930,
+   5190
+  ],
+  "kind": "object",
+  "box": [
+   0.29,
+   0.16,
+   0.8,
+   0.82
+  ],
+  "reason": "the Richat rings; title strip at the top and logo are context"
+ },
+ {
+  "id": "062",
+  "name": "richat_structure_sahara_eye/06_commons.jpg",
+  "sha256": "3ef186031cbc0a900b7b0735ab4394301293fd52c1b31c683a25c448e0d4cd0c",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.43,
+   0.79,
+   0.53,
+   0.9
+  ],
+  "reason": "ISS view: the Eye is the small ring at lower centre; Soyuz, station and arrays are foreign foreground"
+ },
+ {
+  "id": "063",
+  "name": "richat_structure_sahara_eye/08_commons.jpg",
+  "sha256": "6a975f85558e1d944c1d54511d4715309b40c056a6e770c7d129d3533410b02b",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.4,
+   0.51,
+   0.48,
+   0.6
+  ],
+  "reason": "ISS view: the Eye's rings left of centre inside the dark plateau; window corner is frame"
+ },
+ {
+  "id": "064",
+  "name": "richat_structure_sahara_eye/09_commons.jpg",
+  "sha256": "71bcf2727fb5b64e8bbae7a356a07d3ca997bf859a0ab12256236324cce60065",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.4,
+   0.2,
+   0.78,
+   0.61
+  ],
+  "reason": "the Richat rings and outer arc; plateau and sand are context"
+ },
+ {
+  "id": "065",
+  "name": "richat_structure_sahara_eye/10_commons.jpg",
+  "sha256": "087a1413ab0b7f02b4e3bf2f92e07491a7452f811a46399f70165a0b23b190b3",
+  "size": [
+   5568,
+   3712
+  ],
+  "kind": "object",
+  "box": [
+   0.44,
+   0.48,
+   0.53,
+   0.55
+  ],
+  "reason": "oblique ISS view: the Eye is a small ring on the dark ridge; horizon and desert are context"
+ },
+ {
+  "id": "066",
+  "name": "richat_structure_sahara_eye/13_commons.jpg",
+  "sha256": "37dbd31ec73b8fa96abf0f896d8efe705da5079a056ec808ba4ca55aeca81e58",
+  "size": [
+   4448,
+   4451
+  ],
+  "kind": "object",
+  "box": [
+   0.42,
+   0.29,
+   1.0,
+   0.79
+  ],
+  "reason": "the Richat rings lower right, outer arc running to the right edge; plateau at left is context"
+ },
+ {
+  "id": "067",
+  "name": "richat_structure_sahara_eye/14_commons.jpg",
+  "sha256": "54c0337f2b9563a0a19428f1f9f51f14a56e1b7925c7786942c24677fe390c91",
+  "size": [
+   4144,
+   4184
+  ],
+  "kind": "object",
+  "box": [
+   0.24,
+   0.56,
+   0.51,
+   0.74
+  ],
+  "reason": "Gemini-era photo: the Eye at lower left of centre; desert and spacecraft window edge are context"
+ },
+ {
+  "id": "068",
+  "name": "richat_structure_sahara_eye/17_commons.jpg",
+  "sha256": "0b36850dc1a07b664779c3305ae415d79b975c1b1c8b483c33a316e40ae20d06",
+  "size": [
+   5288,
+   3000
+  ],
+  "kind": "object",
+  "box": [
+   0.42,
+   0.16,
+   0.62,
+   0.53
+  ],
+  "reason": "USGS poster: the Eye in the Landsat strip; poster text, logos and inset map are context"
+ },
+ {
+  "id": "069",
+  "name": "richat_structure_sahara_eye/19_commons.jpg",
+  "sha256": "7dd416b99611679ce68e9cb4bb2cecffd7b5bfa2b28e0100c8b0eec35a7e97ab",
+  "size": [
+   4288,
+   2848
+  ],
+  "kind": "object",
+  "box": [
+   0.08,
+   0.0,
+   0.82,
+   0.99
+  ],
+  "reason": "close view of the rings filling the frame; the ring system runs past the top and bottom"
+ },
+ {
+  "id": "070",
+  "name": "roman_self_healing_concrete/01_commons.jpg",
+  "sha256": "40adacf58694076d1951a1424df83c02c4b1df73e7b59ffb164e5da8fe61dbc1",
+  "size": [
+   2048,
+   1536
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "octagonal coffers of a vault seen from below: pattern over the frame"
+ },
+ {
+  "id": "071",
+  "name": "roman_self_healing_concrete/03_commons.jpg",
+  "sha256": "b5946d164ad86e9a26fd5e11f83f992690c9207132168b8b94738c28604a3d16",
+  "size": [
+   3838,
+   3024
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.06,
+   0.95,
+   0.97
+  ],
+  "reason": "a lump of Roman concrete lit on black"
+ },
+ {
+  "id": "072",
+  "name": "roman_self_healing_concrete/05_commons.jpg",
+  "sha256": "8fab026b7d97287c0e030b706fd4f1bfc323782bdd6bbf7c100b5216e5fa5580",
+  "size": [
+   5698,
+   4875
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "the dome's coffers and oculus fill the frame; the dome is the whole picture"
+ },
+ {
+  "id": "073",
+  "name": "roman_self_healing_concrete/06_commons.jpg",
+  "sha256": "50e064d3de84cc8499b9118e83db9a6f4477726537138fc70cc5217c197b1e8e",
+  "size": [
+   5892,
+   3913
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "coffered dome with oculus filling the frame"
+ },
+ {
+  "id": "074",
+  "name": "roman_self_healing_concrete/09_commons.jpg",
+  "sha256": "c9bab656569315ee9c38781fc01aadc20f97e7d62ce17e27f336d0e9f66988b9",
+  "size": [
+   2600,
+   2491
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "coffered dome with oculus filling the frame"
+ },
+ {
+  "id": "075",
+  "name": "roman_self_healing_concrete/11_commons.jpg",
+  "sha256": "09e15ef4e2ed2cc647317fa1ea8d8792d951041225a5a04181384ff151dcf362",
+  "size": [
+   3585,
+   7377
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.08,
+   1.0,
+   0.75
+  ],
+  "reason": "the coffered dome and oculus; drum, apse and crowd below are context"
+ },
+ {
+  "id": "076",
+  "name": "roman_self_healing_concrete/13_commons.jpg",
+  "sha256": "6a49af81b67899ed474969cdf96ba69def133447fac9d973fcdf20962da9137f",
+  "size": [
+   3024,
+   4032
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "coffered dome with oculus and sun patch filling the frame"
+ },
+ {
+  "id": "077",
+  "name": "roman_self_healing_concrete/17_commons.jpg",
+  "sha256": "9d6155bcff706191af9a2151788c64093c198c97827f8fd2e2f93ddde772672a",
+  "size": [
+   3889,
+   2814
+  ],
+  "kind": "object",
+  "box": [
+   0.3,
+   0.1,
+   0.88,
+   0.84
+  ],
+  "reason": "watercolour: the ruined arch and piers of the baths; trees, figures and mount are context"
+ },
+ {
+  "id": "078",
+  "name": "roman_self_healing_concrete/21_commons.jpg",
+  "sha256": "e54a0146806d9557b3c61d2246c8062ccb44a610d7129895bbc12881e5d523a7",
+  "size": [
+   1012,
+   2190
+  ],
+  "kind": "object",
+  "box": [
+   0.2,
+   0.04,
+   0.84,
+   0.96
+  ],
+  "reason": "weathered concrete figure standing against the brick wall"
+ },
+ {
+  "id": "079",
+  "name": "roman_self_healing_concrete/25_commons.jpg",
+  "sha256": "587097321f69c14f9bb0912ea0a08cff4c24839fe94b8ed25f8f6d670a3b7b02",
+  "size": [
+   6000,
+   4000
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.0,
+   0.8,
+   0.75
+  ],
+  "reason": "the Pantheon portico and rotunda; crowd and side buildings are context"
+ },
+ {
+  "id": "080",
+  "name": "singing_colossi_of_memnon/01_commons.jpg",
+  "sha256": "543f47fe8042c5f290194f6af05db03cae806239217e43cb6a4b983ec2d8a883",
+  "size": [
+   2379,
+   3835
+  ],
+  "kind": "object",
+  "box": [
+   0.24,
+   0.13,
+   0.8,
+   0.94
+  ],
+  "reason": "the seated colossus with throne and plinth; hills, tree and fence are context"
+ },
+ {
+  "id": "081",
+  "name": "singing_colossi_of_memnon/05_commons.jpg",
+  "sha256": "496e995d423f18f8bdbc233ecf06077046ca42f6bb9bac0ba051f505da7a2fab",
+  "size": [
+   949,
+   1861
+  ],
+  "kind": "object",
+  "box": [
+   0.16,
+   0.07,
+   0.93,
+   0.96
+  ],
+  "reason": "seated statue on its inscribed throne, head to base"
+ },
+ {
+  "id": "082",
+  "name": "singing_colossi_of_memnon/09_commons.jpg",
+  "sha256": "64020bfae13797f006b51a88faf636b4b0ce81f16f2b4549bedd946d7c77f441",
+  "size": [
+   1472,
+   1189
+  ],
+  "kind": "object",
+  "box": [
+   0.33,
+   0.4,
+   0.62,
+   0.61
+  ],
+  "reason": "lithograph: the two colossi in the flood; book page, scan edge and colour chart are frame"
+ },
+ {
+  "id": "083",
+  "name": "singing_colossi_of_memnon/12_commons.jpg",
+  "sha256": "35e5856b236a33c9085bc7cfad0d8a911be74766b796596a5abd6bb8d46cd367",
+  "size": [
+   1468,
+   1190
+  ],
+  "kind": "object",
+  "box": [
+   0.4,
+   0.44,
+   0.52,
+   0.55
+  ],
+  "reason": "lithograph: the two colossi small on the plain; page, grey scale and colour chart are frame"
+ },
+ {
+  "id": "084",
+  "name": "singing_colossi_of_memnon/13_commons.jpg",
+  "sha256": "74d517350f61dcff9dd730958aab8532b80610d69439332ab970460270633697",
+  "size": [
+   4284,
+   5712
+  ],
+  "kind": "object",
+  "box": [
+   0.02,
+   0.02,
+   0.84,
+   0.99
+  ],
+  "reason": "the colossus close up from its pedestal to the head"
+ },
+ {
+  "id": "085",
+  "name": "singing_colossi_of_memnon/17_commons.jpg",
+  "sha256": "9248be99e620644adbef482338d471e6f277052de8acb81ecb407d74552612b5",
+  "size": [
+   5712,
+   4284
+  ],
+  "kind": "object",
+  "box": [
+   0.29,
+   0.49,
+   0.75,
+   0.8
+  ],
+  "reason": "both colossi on their bases; crowd, palm, hills and sky are context"
+ },
+ {
+  "id": "086",
+  "name": "trepanation_miracle/01_commons.jpg",
+  "sha256": "4907eac1c7aa7cbfe97137113429f55e7b726c0a31014ea3226e7adb41b8e379",
+  "size": [
+   3728,
+   4944
+  ],
+  "kind": "object",
+  "box": [
+   0.1,
+   0.01,
+   0.92,
+   0.97
+  ],
+  "reason": "engraved plate of trepanning instruments: all the tools together; plate caption is context"
+ },
+ {
+  "id": "087",
+  "name": "trepanation_miracle/05_commons.jpg",
+  "sha256": "e6776ea102995759c6e01549ab520d0acd46ee87099c97e8327f4218fb31e4b6",
+  "size": [
+   5092,
+   3537
+  ],
+  "kind": "object",
+  "box": [
+   0.32,
+   0.4,
+   0.8,
+   0.9
+  ],
+  "reason": "diorama: the group trepanning a patient in front of the stone hut; valley backdrop is context"
+ },
+ {
+  "id": "088",
+  "name": "trepanation_miracle/09_commons.jpg",
+  "sha256": "56b27718552d2fad18217d25e8a9ad3ea926de15d3fdfa65af44af5ecb1e39aa",
+  "size": [
+   4362,
+   2792
+  ],
+  "kind": "object",
+  "box": [
+   0.03,
+   0.04,
+   0.97,
+   0.82
+  ],
+  "reason": "the trepanned skull vault; caption lines below are context"
+ },
+ {
+  "id": "089",
+  "name": "trepanation_miracle/13_commons.jpg",
+  "sha256": "65c3973d361ef3f6201edecad799747625694c51ac41e37e93da1deb6af513a5",
+  "size": [
+   4256,
+   2832
+  ],
+  "kind": "object",
+  "box": [
+   0.09,
+   0.02,
+   1.0,
+   1.0
+  ],
+  "reason": "close view of the trephined skull with the hole and inscriptions, running off right and bottom"
+ },
+ {
+  "id": "090",
+  "name": "trepanation_miracle/17_commons.jpg",
+  "sha256": "4c170a50e6a1249960a5304f542beb0d90f36c0b9e78dd9ad517ef0f76af415c",
+  "size": [
+   1960,
+   3008
+  ],
+  "kind": "object",
+  "box": [
+   0.04,
+   0.16,
+   0.92,
+   0.87
+  ],
+  "reason": "the skull, front view, vault to teeth; label card at the foot is context"
+ },
+ {
+  "id": "091",
+  "name": "unfinished_obelisk_aswan/01_commons.jpg",
+  "sha256": "82cb0245b0efcfaa143cfc5e98cf57611fdfe2af76417a3df4049a0ae971f72c",
+  "size": [
+   3024,
+   4032
+  ],
+  "kind": "object",
+  "box": [
+   0.17,
+   0.12,
+   0.71,
+   0.98
+  ],
+  "reason": "the unfinished obelisk lying in its trench, tip at top to cut end at foot"
+ },
+ {
+  "id": "092",
+  "name": "unfinished_obelisk_aswan/05_commons.jpg",
+  "sha256": "f4d09ad07c433178166b2f4ac107af5200d7834bbaa66a7b00a1a0f726781211",
+  "size": [
+   3024,
+   4032
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.35,
+   0.79,
+   0.98
+  ],
+  "reason": "the obelisk lying diagonally in the quarry; town, trees and posts are context"
+ },
+ {
+  "id": "093",
+  "name": "unfinished_obelisk_aswan/09_commons.jpg",
+  "sha256": "53719dd4a12ab7f4f69abaeea7e2d1ff43d89029de08c69f8358a27125192386",
+  "size": [
+   1600,
+   1167
+  ],
+  "kind": "object",
+  "box": [
+   0.36,
+   0.17,
+   0.77,
+   0.88
+  ],
+  "reason": "the obelisk in its trench (slide-film scan); visitors and steps are context"
+ },
+ {
+  "id": "094",
+  "name": "unfinished_obelisk_aswan/10_commons.jpg",
+  "sha256": "d97d2790a749ae42128c41b5ab36ea6ead3066fb011a18331ab5e2182fc705cc",
+  "size": [
+   3000,
+   4000
+  ],
+  "kind": "object",
+  "box": [
+   0.02,
+   0.42,
+   0.8,
+   1.0
+  ],
+  "reason": "the obelisk's cut end and trench in the foreground; tourists, mast and town are context"
+ },
+ {
+  "id": "095",
+  "name": "unfinished_obelisk_aswan/11_commons.jpg",
+  "sha256": "e26048e3094dd3421c21023f635a42df886b4e4b4659f1373128f733ef77da99",
+  "size": [
+   4000,
+   3000
+  ],
+  "kind": "object",
+  "box": [
+   0.0,
+   0.12,
+   1.0,
+   1.0
+  ],
+  "reason": "granite outcrop at the quarry (the obelisk's bedrock) across the frame; the tourist in front is NOT subject (revised round 3, reviewer D6)"
+ },
+ {
+  "id": "096",
+  "name": "unfinished_obelisk_aswan/13_commons.jpg",
+  "sha256": "ae7763dbab491f38534cfd37054475c25ac964470b93a2145b826773481ef7c1",
+  "size": [
+   4000,
+   3000
+  ],
+  "kind": "object",
+  "box": [
+   0.3,
+   0.3,
+   1.0,
+   0.88
+  ],
+  "reason": "the obelisk lying beside the tourist, alone; the tourist is NOT subject (revised round 3, reviewer D6)"
+ },
+ {
+  "id": "097",
+  "name": "unfinished_obelisk_aswan/17_commons.jpg",
+  "sha256": "1b7431770c3c2e18ee74e2880da1e0b308ef2c4d9087c076eb0d0ded2925c2ad",
+  "size": [
+   4000,
+   3000
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.3,
+   1.0,
+   1.0
+  ],
+  "reason": "view over the quarry edge to the road and town: no single object"
+ },
+ {
+  "id": "098",
+  "name": "unfinished_obelisk_aswan/18_commons.jpg",
+  "sha256": "b5795b7e24e0f187c6bd1ec0e2f3fa95ca81f1baf7b89727bc9baa17b4c924c0",
+  "size": [
+   4288,
+   2848
+  ],
+  "kind": "object",
+  "box": [
+   0.2,
+   0.0,
+   1.0,
+   0.8
+  ],
+  "reason": "rotated frame: the obelisk's worked surface and edges filling the upper right; quarry and town at left are context"
+ },
+ {
+  "id": "099",
+  "name": "voynich_manuscript/01_commons.jpg",
+  "sha256": "28a5c54cbde4c70a531822e83e0f0eee97e21e55a34a4f36bfd56028713f44ae",
+  "size": [
+   2852,
+   3759
+  ],
+  "kind": "object",
+  "box": [
+   0.04,
+   0.01,
+   0.93,
+   0.99
+  ],
+  "reason": "manuscript folio: the whole page (text with the green-pool figures); binding edge and dark ground are frame"
+ },
+ {
+  "id": "100",
+  "name": "voynich_manuscript/05_commons.jpg",
+  "sha256": "f32343a9379033ad83b43824f605e03437053d8911bc0353f0494c7b834e3d9d",
+  "size": [
+   1233,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.27,
+   0.02,
+   0.98,
+   0.98
+  ],
+  "reason": "manuscript folio on the open volume: the page with text and marginal figures; page stack at left is context"
+ },
+ {
+  "id": "101",
+  "name": "voynich_manuscript/09_commons.jpg",
+  "sha256": "d7e30e6725e78e62fee204e648aef85ecd0808bc49d181f91a756b25fc47a2c7",
+  "size": [
+   1223,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.22,
+   0.02,
+   0.99,
+   0.98
+  ],
+  "reason": "manuscript folio: text and the green pool of figures; page stack at left is context"
+ },
+ {
+  "id": "102",
+  "name": "voynich_manuscript/11_commons.jpg",
+  "sha256": "7fd9594ffdee4df4055b1acb5beef00b8710fdbea3757e92565f88cff6bc55a8",
+  "size": [
+   1212,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.2,
+   0.02,
+   0.99,
+   0.98
+  ],
+  "reason": "manuscript folio: text with bathing-figure margins; page stack at left is context"
+ },
+ {
+  "id": "103",
+  "name": "voynich_manuscript/13_commons.jpg",
+  "sha256": "73b775bffced5a37ccf05f3118613732b19bc967b14c5b9714e086d018e4e582",
+  "size": [
+   1183,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.19,
+   0.01,
+   0.98,
+   0.99
+  ],
+  "reason": "manuscript folio: the plant drawing (two flower heads, leaves, roots) spanning the page"
+ },
+ {
+  "id": "104",
+  "name": "voynich_manuscript/14_commons.jpg",
+  "sha256": "540065cd7c341c2fbdd44a28466642375566a31c318bc86907401f7e9463a383",
+  "size": [
+   1182,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.2,
+   0.08,
+   0.94,
+   0.97
+  ],
+  "reason": "manuscript folio: the plant drawing from flower head to red roots; text lines are context"
+ },
+ {
+  "id": "105",
+  "name": "voynich_manuscript/17_commons.jpg",
+  "sha256": "cc3de476f6dcf5d764dbe378b23e5be2ea98ab7e56837a39086cd1e32554bbc7",
+  "size": [
+   1166,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.5,
+   0.27,
+   0.97,
+   0.98
+  ],
+  "reason": "manuscript folio: the plant drawing at right (leaf crown, stem, roots); text and the faded ghost are context"
+ },
+ {
+  "id": "106",
+  "name": "wieliczka_salt_mine/01_commons.jpg",
+  "sha256": "c71860c1bdd25fd57dc6553a55808ddda8585e485942de257731a1ce020ccea5",
+  "size": [
+   5184,
+   3456
+  ],
+  "kind": "object",
+  "box": [
+   0.4,
+   0.36,
+   0.56,
+   0.89
+  ],
+  "reason": "the painted Madonna statue on its plinth in a niche; beams and chandelier are context"
+ },
+ {
+  "id": "107",
+  "name": "wieliczka_salt_mine/05_commons.jpg",
+  "sha256": "ce09ff1548e87ed804fa286bfc0761d612afe070c95a1dda79098b2ec9931fb4",
+  "size": [
+   1536,
+   2048
+  ],
+  "kind": "scene",
+  "box": [
+   0.0,
+   0.0,
+   1.0,
+   0.9
+  ],
+  "reason": "timbered mine gallery with rails receding: the passage is the view"
+ },
+ {
+  "id": "108",
+  "name": "wieliczka_salt_mine/06_commons.jpg",
+  "sha256": "559f4c31f3dae6be07e014c76c41d19bc3d824addca86bd7ff6b3bb8ec979cda",
+  "size": [
+   5097,
+   3350
+  ],
+  "kind": "object",
+  "box": [
+   0.06,
+   0.07,
+   0.95,
+   0.9
+  ],
+  "reason": "postcard of the salt chapel: the printed picture; deckled card edge and black ground are frame"
+ },
+ {
+  "id": "109",
+  "name": "wieliczka_salt_mine/09_commons.jpg",
+  "sha256": "cb1f5208f66918d3d6d89843fb3782b78340604e038de1dfa2d91f3d14272e36",
+  "size": [
+   3375,
+   2220
+  ],
+  "kind": "object",
+  "box": [
+   0.05,
+   0.07,
+   0.95,
+   0.89
+  ],
+  "reason": "postcard of the salt chapel: the printed picture; card margin is frame"
+ },
+ {
+  "id": "110",
+  "name": "wieliczka_salt_mine/13_commons.jpg",
+  "sha256": "aa5f2ba8b1333d0c62651a7d8c70be13966d3ff669ab58650e1a7241c43d6b00",
+  "size": [
+   2048,
+   1536
+  ],
+  "kind": "object",
+  "box": [
+   0.22,
+   0.0,
+   0.84,
+   0.9
+  ],
+  "reason": "the salt-crystal chandelier; dark hall and a second chandelier at the corner are context"
+ },
+ {
+  "id": "111",
+  "name": "wieliczka_salt_mine/15_commons.jpg",
+  "sha256": "ddceacd8a4c42951919aee98db9705fb77bff07a56a9eb7e020c057e241788fb",
+  "size": [
+   2872,
+   2154
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "office building facade with flags: a facade across the frame (off-topic for the deck)"
+ },
+ {
+  "id": "112",
+  "name": "wieliczka_salt_mine/17_commons.jpg",
+  "sha256": "38f2df4cdd12bbc6ed76126cea6bcc411a88a11f6cb83f86a8673d3ee153deb2",
+  "size": [
+   2872,
+   2154
+  ],
+  "kind": "object",
+  "box": [
+   0.25,
+   0.6,
+   0.62,
+   0.85
+  ],
+  "reason": "park pond: the fountain jets over the water; trees are context"
+ },
+ {
+  "id": "113",
+  "name": "upscaled/06_commons_6dc822485da090bf.jpg",
+  "sha256": "4bc07868e4eee6691165f5f9cfb12db004a49b0ee4a78a3c15a9fc0dbbae3f2a",
+  "size": [
+   6404,
+   3840
+  ],
+  "kind": "object",
+  "box": [
+   0.19,
+   0.51,
+   0.64,
+   0.75
+  ],
+  "reason": "the condor geoglyph with its line strip; ravine sides and tracks are context"
+ },
+ {
+  "id": "114",
+  "name": "antikythera_mechanism/01_commons.jpg",
+  "sha256": "6ad07c5f4852a5cb2001c31fe0d2f933bb67ee0d0ebdb75907e2f10c93a7236e",
+  "size": [
+   3000,
+   4000
+  ],
+  "kind": "object",
+  "box": [
+   0.16,
+   0.15,
+   0.82,
+   0.37
+  ],
+  "reason": "the mechanism fragments in their case; label board, reflections and empty case are context"
+ },
+ {
+  "id": "115",
+  "name": "antikythera_mechanism/04_commons.jpg",
+  "sha256": "940dff65081c35c25f364c2c7c9c920853cd3a673353ee09fcf5b9ea5c56a432",
+  "size": [
+   5184,
+   3456
+  ],
+  "kind": "object",
+  "box": [
+   0.02,
+   0.01,
+   1.0,
+   0.92
+  ],
+  "reason": "museum label text: the card itself is the content (no object)"
+ },
+ {
+  "id": "116",
+  "name": "antikythera_mechanism/07_commons.jpg",
+  "sha256": "8178ec647e48dfcc25b0fd1efbf3824375b05ec36339ec4dfd5012b047dea793",
+  "size": [
+   3000,
+   4000
+  ],
+  "kind": "object",
+  "box": [
+   0.15,
+   0.0,
+   0.84,
+   0.97
+  ],
+  "reason": "the reconstruction model: dials, gear train and side dial; gallery behind is context"
+ },
+ {
+  "id": "117",
+  "name": "antikythera_mechanism/10_commons.jpg",
+  "sha256": "5557d09c96824478d1bc5dd644c156c0eca93176632c5c1c5fb65cd81a33ddd1",
+  "size": [
+   1944,
+   2593
+  ],
+  "kind": "object",
+  "box": [
+   0.16,
+   0.03,
+   0.9,
+   0.99
+  ],
+  "reason": "bronze front face of the reconstruction with dials and inscriptions; vases behind are context"
+ },
+ {
+  "id": "118",
+  "name": "antikythera_mechanism/13_commons.jpg",
+  "sha256": "9b94ce387e1441648f22f6b1729e7e4c4b4b28b1f19031ac0b4e84ce3ed2c861",
+  "size": [
+   4288,
+   2848
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0.25,
+   1,
+   1
+  ],
+  "reason": "Antikythera island hillside with ruins: a landscape, no object"
+ },
+ {
+  "id": "119",
+  "name": "antikythera_mechanism/16_commons.jpg",
+  "sha256": "18d5c759f6a5b8df5a281decfee0b100c9d94e3836488f6728f2b8d7816b1ac3",
+  "size": [
+   3168,
+   4752
+  ],
+  "kind": "object",
+  "box": [
+   0.38,
+   0.13,
+   0.82,
+   0.92
+  ],
+  "reason": "the corroded marble figure on its plinth; garden, statues and wall are context"
+ },
+ {
+  "id": "120",
+  "name": "antikythera_mechanism/19_commons.jpg",
+  "sha256": "9dd1ab0ee540c60291b4c748cce941ef57308f359454a9d20d86161478544d7a",
+  "size": [
+   4752,
+   3168
+  ],
+  "kind": "object",
+  "box": [
+   0.04,
+   0.0,
+   0.9,
+   0.96
+  ],
+  "reason": "museum text panel: the panel is the content (no object); red wall is context"
+ },
+ {
+  "id": "121",
+  "name": "tunguska_event_1908/01_commons.jpg",
+  "sha256": "1f1e314c4fec63a5b754681b63b884744eac1d1dd936283d74ac727845bb8ab4",
+  "size": [
+   5218,
+   3543
+  ],
+  "kind": "scene",
+  "box": [
+   0,
+   0,
+   1,
+   1
+  ],
+  "reason": "felled forest after the blast: trees across the whole frame"
+ },
+ {
+  "id": "122",
+  "name": "tunguska_event_1908/05_commons.jpg",
+  "sha256": "92d0165b5050a38eef40a9ac21c7be84312849c2eea164c852d98016d1d25661",
+  "size": [
+   1941,
+   1393
+  ],
+  "kind": "object",
+  "box": [
+   0.06,
+   0.0,
+   0.98,
+   1.0
+  ],
+  "reason": "map figure: the whole map (the event marker is a detail of it)"
+ },
+ {
+  "id": "123",
+  "name": "tunguska_event_1908/09_commons.jpg",
+  "sha256": "1ddc7d6919c58f5d24393821eea3323cad2a5a69359d205d67009067609e65d1",
+  "size": [
+   2157,
+   2514
+  ],
+  "kind": "object",
+  "box": [
+   0.1,
+   0.2,
+   0.97,
+   0.77
+  ],
+  "reason": "comparison figure: the destruction zone with the overlaid city and its label text"
+ },
+ {
+  "id": "124",
+  "name": "tunguska_event_1908/10_commons.jpg",
+  "sha256": "afc14aed34cf2b29d234830854bfe0d69f393703326336fd0965972ea2a0b4f7",
+  "size": [
+   1778,
+   2012
+  ],
+  "kind": "scene",
+  "box": [
+   0.01,
+   0.0,
+   0.99,
+   1.0
+  ],
+  "reason": "map of the fall zone: the whole map is the content"
+ },
+ {
+  "id": "125",
+  "name": "tunguska_event_1908/13_commons.jpg",
+  "sha256": "d7a33d6006defd535947a34619422138ff9420de56d3c7c9626266bbc56147a0",
+  "size": [
+   1778,
+   2012
+  ],
+  "kind": "scene",
+  "box": [
+   0.01,
+   0.0,
+   0.99,
+   1.0
+  ],
+  "reason": "map of the fall zone (second version): the whole map is the content"
+ },
+ {
+  "id": "126",
+  "name": "nazca_lines_runway_paradox/06_commons.jpg",
+  "sha256": "abfdd00ea4fb07d65e60dc2f92ed21a7234c692259974e1b2814475b2a3d5d89",
+  "size": [
+   2096,
+   1397
+  ],
+  "kind": "object",
+  "box": [
+   0.18,
+   0.55,
+   0.64,
+   0.8
+  ],
+  "reason": "the hummingbird geoglyph and its lines; the aircraft wing at the top edge is FOREIGN (not subject)"
+ },
+ {
+  "id": "127",
+  "name": "upscaled/06_commons_e3cf85989c79a369.jpg",
+  "sha256": "38b1e2427e017b165c311137710835b4d9816fbb1107681e39f9dc0c76ffcd13",
+  "size": [
+   5762,
+   3840
+  ],
+  "kind": "object",
+  "box": [
+   0.18,
+   0.55,
+   0.64,
+   0.8
+  ],
+  "reason": "upscaled copy of 126: hummingbird geoglyph; aircraft wing at the top is foreign"
+ }
+]

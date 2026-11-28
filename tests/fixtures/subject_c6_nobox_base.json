@@ -1,0 +1,754 @@
+{
+ "p0|full_bleed|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   211.7,
+   13.6,
+   765.8,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject",
+   "flat"
+  ],
+  "shown": 0.37,
+  "subject": 0.3,
+  "upscale": 1.95,
+  "zoom": 1.01
+ },
+ "p0|full_bleed|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   522.9,
+   13.6,
+   1077.1,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject",
+   "flat"
+  ],
+  "shown": 0.29,
+  "subject": 0.23,
+  "upscale": 1.95,
+  "zoom": 1.01
+ },
+ "p0|ground|0.2": {
+  "box": [
+   0.0,
+   50.0,
+   1600.0,
+   950.0
+  ],
+  "fit": true,
+  "flat": 0.83,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.94,
+  "upscale": 1.2,
+  "zoom": 1.0
+ },
+ "p0|ground|0.5": {
+  "box": [
+   0.0,
+   50.0,
+   1600.0,
+   950.0
+  ],
+  "fit": true,
+  "flat": 0.83,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.94,
+  "upscale": 1.2,
+  "zoom": 1.0
+ },
+ "p0|photo_over_ink|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   142.2,
+   13.6,
+   1051.6,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.82,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject",
+   "flat"
+  ],
+  "shown": 0.62,
+  "subject": 0.36,
+  "upscale": 1.19,
+  "zoom": 1.01
+ },
+ "p0|photo_over_ink|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   345.3,
+   13.6,
+   1254.7,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.84,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "shown": 0.6,
+  "subject": 0.35,
+  "upscale": 1.19,
+  "zoom": 1.01
+ },
+ "p0|slide|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   165.9,
+   13.6,
+   954.1,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.79,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.44,
+  "upscale": 1.83,
+  "zoom": 1.01
+ },
+ "p0|slide|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   405.9,
+   13.6,
+   1194.1,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.39,
+  "upscale": 1.83,
+  "zoom": 1.01
+ },
+ "p0|story|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   211.7,
+   13.6,
+   765.8,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.48,
+  "upscale": 1.95,
+  "zoom": 1.01
+ },
+ "p0|story|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   522.9,
+   13.6,
+   1077.1,
+   998.9
+  ],
+  "fit": false,
+  "flat": 0.8,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.4,
+  "upscale": 1.95,
+  "zoom": 1.01
+ },
+ "p1|full_bleed|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   24.5,
+   14.2,
+   915.5,
+   1598.3
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "shown": 0.64,
+  "subject": 0.49,
+  "upscale": 1.21,
+  "zoom": 1.01
+ },
+ "p1|full_bleed|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   54.5,
+   14.2,
+   945.5,
+   1598.3
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "shown": 0.64,
+  "subject": 0.49,
+  "upscale": 1.21,
+  "zoom": 1.01
+ },
+ "p1|ground|0.2": {
+  "box": [
+   0.0,
+   518.8,
+   1000.0,
+   1081.2
+  ],
+  "fit": true,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.44,
+  "upscale": 1.92,
+  "zoom": 1.0
+ },
+ "p1|ground|0.5": {
+  "box": [
+   0.0,
+   518.8,
+   1000.0,
+   1081.2
+  ],
+  "fit": true,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.44,
+  "upscale": 1.92,
+  "zoom": 1.0
+ },
+ "p1|photo_over_ink|0.2": {
+  "box": [
+   0.0,
+   258.3,
+   1000.0,
+   1341.7
+  ],
+  "fit": false,
+  "flat": 0.8,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [
+   "flat"
+  ],
+  "shown": 0.71,
+  "subject": 0.38,
+  "upscale": 1.08,
+  "zoom": 1.0
+ },
+ "p1|photo_over_ink|0.5": {
+  "box": [
+   0.0,
+   258.3,
+   1000.0,
+   1341.7
+  ],
+  "fit": false,
+  "flat": 0.8,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [
+   "flat"
+  ],
+  "shown": 0.71,
+  "subject": 0.38,
+  "upscale": 1.08,
+  "zoom": 1.0
+ },
+ "p1|slide|0.2": {
+  "box": [
+   0.0,
+   175.0,
+   1000.0,
+   1425.0
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.57,
+  "upscale": 1.44,
+  "zoom": 1.0
+ },
+ "p1|slide|0.5": {
+  "box": [
+   0.0,
+   175.0,
+   1000.0,
+   1425.0
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.57,
+  "upscale": 1.44,
+  "zoom": 1.0
+ },
+ "p1|story|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   24.5,
+   14.2,
+   915.5,
+   1598.3
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.92,
+  "upscale": 1.21,
+  "zoom": 1.01
+ },
+ "p1|story|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   54.5,
+   14.2,
+   945.5,
+   1598.3
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "flat"
+  ],
+  "subject": 0.92,
+  "upscale": 1.21,
+  "zoom": 1.01
+ },
+ "p2|full_bleed|0.2": {
+  "box": [
+   390.0,
+   0.0,
+   840.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.74,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "subject",
+   "flat"
+  ],
+  "shown": 0.23,
+  "subject": 0.19,
+  "upscale": 2.4,
+  "zoom": 1.0
+ },
+ "p2|full_bleed|0.5": {
+  "box": [
+   975.0,
+   0.0,
+   1425.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.82,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "subject",
+   "flat"
+  ],
+  "shown": 0.17,
+  "subject": 0.14,
+  "upscale": 2.4,
+  "zoom": 1.0
+ },
+ "p2|ground|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   212.9,
+   19.1,
+   1600.4,
+   799.6
+  ],
+  "fit": true,
+  "flat": 0.91,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.71,
+  "upscale": 1.38,
+  "zoom": 1.02
+ },
+ "p2|ground|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   506.2,
+   19.1,
+   1893.8,
+   799.6
+  ],
+  "fit": true,
+  "flat": 0.92,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.69,
+  "upscale": 1.38,
+  "zoom": 1.02
+ },
+ "p2|photo_over_ink|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   341.3,
+   19.1,
+   1061.8,
+   799.6
+  ],
+  "fit": false,
+  "flat": 0.92,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject",
+   "flat"
+  ],
+  "shown": 0.44,
+  "subject": 0.24,
+  "upscale": 1.5,
+  "zoom": 1.02
+ },
+ "p2|photo_over_ink|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   839.8,
+   19.1,
+   1560.2,
+   799.6
+  ],
+  "fit": false,
+  "flat": 0.94,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject",
+   "flat"
+  ],
+  "shown": 0.34,
+  "subject": 0.19,
+  "upscale": 1.5,
+  "zoom": 1.02
+ },
+ "p2|slide|0.2": {
+  "box": [
+   352.0,
+   0.0,
+   992.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.75,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "flat"
+  ],
+  "subject": 0.31,
+  "upscale": 2.25,
+  "zoom": 1.0
+ },
+ "p2|slide|0.5": {
+  "box": [
+   880.0,
+   0.0,
+   1520.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.81,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "subject",
+   "flat"
+  ],
+  "subject": 0.23,
+  "upscale": 2.25,
+  "zoom": 1.0
+ },
+ "p2|story|0.2": {
+  "box": [
+   390.0,
+   0.0,
+   840.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.85,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "flat"
+  ],
+  "subject": 0.29,
+  "upscale": 2.4,
+  "zoom": 1.0
+ },
+ "p2|story|0.5": {
+  "box": [
+   975.0,
+   0.0,
+   1425.0,
+   800.0
+  ],
+  "fit": false,
+  "flat": 0.88,
+  "matte": 0.02,
+  "moved": false,
+  "problems": [
+   "matte",
+   "upscale",
+   "flat"
+  ],
+  "subject": 0.23,
+  "upscale": 2.4,
+  "zoom": 1.0
+ },
+ "p3|full_bleed|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   108.3,
+   11.9,
+   776.7,
+   1200.0
+  ],
+  "fit": false,
+  "flat": 0.41,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject"
+  ],
+  "shown": 0.45,
+  "subject": 0.35,
+  "upscale": 1.62,
+  "zoom": 1.01
+ },
+ "p3|full_bleed|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   265.8,
+   11.9,
+   934.2,
+   1200.0
+  ],
+  "fit": false,
+  "flat": 0.4,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [
+   "subject"
+  ],
+  "shown": 0.43,
+  "subject": 0.33,
+  "upscale": 1.62,
+  "zoom": 1.01
+ },
+ "p3|ground|0.2": {
+  "box": [
+   0.0,
+   262.5,
+   1200.0,
+   937.5
+  ],
+  "fit": true,
+  "flat": 0.25,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.65,
+  "upscale": 1.6,
+  "zoom": 1.0
+ },
+ "p3|ground|0.5": {
+  "box": [
+   0.0,
+   262.5,
+   1200.0,
+   937.5
+  ],
+  "fit": true,
+  "flat": 0.25,
+  "matte": 0.0,
+  "moved": false,
+  "problems": [],
+  "subject": 0.65,
+  "upscale": 1.6,
+  "zoom": 1.0
+ },
+ "p3|photo_over_ink|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   23.9,
+   11.9,
+   1120.7,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.21,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "shown": 0.85,
+  "subject": 0.5,
+  "upscale": 0.98,
+  "zoom": 1.01
+ },
+ "p3|photo_over_ink|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   51.6,
+   11.9,
+   1148.4,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.21,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "shown": 0.85,
+  "subject": 0.5,
+  "upscale": 0.98,
+  "zoom": 1.01
+ },
+ "p3|slide|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   52.8,
+   11.9,
+   1003.2,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.27,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.54,
+  "upscale": 1.51,
+  "zoom": 1.01
+ },
+ "p3|slide|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   124.8,
+   11.9,
+   1075.2,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.27,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.54,
+  "upscale": 1.51,
+  "zoom": 1.01
+ },
+ "p3|story|0.2": {
+  "basis": "minimal frame move",
+  "box": [
+   108.3,
+   11.9,
+   776.7,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.26,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.64,
+  "upscale": 1.62,
+  "zoom": 1.01
+ },
+ "p3|story|0.5": {
+  "basis": "minimal frame move",
+  "box": [
+   265.8,
+   11.9,
+   934.2,
+   1200.0
+  ],
+  "fit": true,
+  "flat": 0.25,
+  "matte": 0.0,
+  "moved": true,
+  "problems": [],
+  "subject": 0.62,
+  "upscale": 1.62,
+  "zoom": 1.01
+ }
+}

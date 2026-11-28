@@ -675,12 +675,30 @@ def cover_windows(top=COVER_TYPE_TOP):
     # central half in the crop (lander ruling on the second review); else it stands contained on INK
     return (("full_bleed", pf.Window((1080, 1920), view=(0, COVER_GRID_TOP, 1080, top - 40),
                                      hold=(0, 0, 1080, top - 40), focus_min=COVER_GRID_FOCUS,
+                                     hold_min=pf.SUBJECT_WHOLE,
                                      shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, top - 40),
                                      centre_half=True, name="reel cover full_bleed")),
             ("photo_over_ink", pf.Window((1080, foot), view=(0, COVER_GRID_TOP, 1080, foot - COVER_INK_FADE),
                                          hold=(0, 0, 1080, foot - COVER_INK_FADE), focus_min=COVER_GRID_FOCUS,
+                                         hold_min=pf.SUBJECT_WHOLE,
                                          shown_min=COVER_SHOWN_MIN, tile=(0, COVER_GRID_TOP, 1080, foot),
                                          centre_half=True, name="reel cover photo_over_ink")))
+
+
+def cover_order(src, analysis, top=COVER_TYPE_TOP):
+    """cover_windows in the order the cover tries them. With a subject box (cycle 6, SUBJECT stream) the window the
+    photograph takes WITHOUT one comes first when it is fit with it too: the subject changes the cover's layout only
+    where it must (a full-width crop that would cut it, or a contained photograph it shows whole), never trading the
+    type's INK ground for a shaded photograph (contrast per element not lower than without the box)."""
+    import dataclasses
+
+    from . import photo_fitness as pf
+    order = list(cover_windows(top))
+    if analysis.focus is None:
+        return order
+    blind = dataclasses.replace(analysis, focus=None, _sat=analysis._sat)
+    first = next((m for m, w in order if pf.place(None, w, image=src, analysis=blind)["fit"]), None)
+    return sorted(order, key=lambda mw: mw[0] != first) if first else order
 
 
 def _filled(source, focus, top, lay):
@@ -722,7 +740,7 @@ def _filled(source, focus, top, lay):
     analysis = pf.analyse(src, fbox)
     foot = min(1920, int(top) - COVER_INK_CLEAR)
     tried = []
-    for mode, window in cover_windows(top):
+    for mode, window in cover_order(src, analysis, top):
         size = window.size
         rec = pf.place(None, window, image=src, analysis=analysis)
         tried.append({"mode": mode, **{k: v for k, v in rec.items() if k != "window"}})
@@ -747,6 +765,10 @@ def _filled(source, focus, top, lay):
         if fbox is not None:
             protected = [max(0, math.floor((fbox[0] - bx0) * k)), max(0, math.floor((fbox[1] - by0) * k)),
                          min(size[0], math.ceil((fbox[2] - bx0) * k)), min(size[1], math.ceil((fbox[3] - by0) * k))]
+            if rec.get("held", 1.0) < pf.FOCUS_KEEP and window.hold is not None:
+                # a subject larger than the hold (cycle 6: SUBJECT_CUT_MAX of it is held, the rest runs under the
+                # type's shade or the fade): the feature protected from the type is the part the hold shows
+                protected[3] = min(protected[3], int(window.hold[3]))
             lay.protected.append({"name": "reviewed photographic feature", "box": protected})
             comp.update({"focus_box": focus["focus_box"], "protected_box": protected,
                          "reviewed": focus.get("reviewed", ""), "source_sha256": focus.get("sha256", "")})

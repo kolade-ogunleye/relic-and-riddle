@@ -1,0 +1,6 @@
+window rows 1844 changed crops 374
+gt: subject less visible 0, more visible 304
+d: subject less visible 0, more visible 304
+fit base->tip {(True, True): 1610, (False, False): 70, (False, True): 156, (True, False): 8}
+covers base->tip Counter({('photo_over_ink', 'photo_over_ink'): 46, ('contain', 'contain'): 44, ('photo_over_ink', 'contain'): 16, ('contain', 'photo_over_ink'): 16, ('contain', 'full_bleed'): 1})
+structure under type base 45 tip 32

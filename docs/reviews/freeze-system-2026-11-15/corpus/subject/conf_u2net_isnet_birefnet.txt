@@ -1,0 +1,10 @@
+threshold  boxed  cuts  (objects cut)  cut ids
+     0.30     29     4      3   062 richat_str/06 (0.37), 096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93), 125 tunguska_e/13 (0.42)
+     0.40     26     3      2   096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93), 125 tunguska_e/13 (0.42)
+     0.50     23     2      2   096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93)
+     0.60     22     2      2   096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93)
+     0.70     20     2      2   096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93)
+     0.80     17     2      2   096 unfinished/13 (0.82), 123 tunguska_e/09 (0.93)
+     0.85     15     1      1   123 tunguska_e/09 (0.93)
+     0.90     13     1      1   123 tunguska_e/09 (0.93)
+     0.95      3     0      0   

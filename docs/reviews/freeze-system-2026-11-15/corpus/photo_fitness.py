@@ -198,7 +198,7 @@ def crop_tip(a: pf.Analysis, window: pf.Window, kind: str, k: int = 0) -> dict:
             box = got["box"] if got and got["fit"] and got["moved"] else pf.fit_box(a.size, window.size, cen)
             if any(abs(x - y) >= 1.0 for x, y in zip(box, rec["box"])):
                 m = pf.measure(a, tuple(box), window)
-                m["problems"] = pf.problems(m, window)
+                m["problems"] = pf.problems(m, window)   # as photo_fitness.drawn_record: the cycle-5 verdict
                 rec = {**m, "fit": not m["problems"], "moved": True, "window": window.name, "drawn": "cover crop"}
     elif kind == "ground":   # typography.cover_crop: its own fit record (photo_fitness.ground_fit), as written
         rec = pf.ground_fit(a, window.size, cen)
@@ -285,7 +285,8 @@ def cover_tip(a: pf.Analysis) -> dict:
     if a.focus is None and a.size[1] > a.size[0]:   # cover_design._filled: an unreviewed portrait stays whole
         return {"layout": "contain", "pad": 0.0, "problems": [], "outcome": "alternative", "why": ["portrait"],
                 "shown": 1.0, "fit": False}
-    for mode, window in cd.cover_windows():
+    order = cd.cover_order(None, a) if hasattr(cd, "cover_order") else cd.cover_windows()
+    for mode, window in order:
         rec = pf.place(None, window, analysis=a)
         tried.append(rec["problems"])
         if rec["fit"]:

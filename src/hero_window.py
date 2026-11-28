@@ -449,7 +449,7 @@ def subject_box(image: Image.Image, path=None) -> tuple[int, int, int, int] | No
     if path is not None:
         from pathlib import Path
 
-        from .cover_design import reviewed_focus
+        from .photo_subject import subject_focus as reviewed_focus
         found = reviewed_focus(Path(path))
         if found is not None:
             w, h = image.size

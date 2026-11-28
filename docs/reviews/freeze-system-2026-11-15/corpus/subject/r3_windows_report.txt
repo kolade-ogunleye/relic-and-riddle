@@ -1,0 +1,51 @@
+== all
+fit->unfit vs blind (picker may swap)         8
+fit->unfit vs c5-with-box                     1
+more_vs_blind                                 551
+more_vs_c5                                    484
+new structure vs blind                        1
+new structure vs c5                           14
+rows                                          1709
+structures blind                              24
+structures c5-with-box                        2
+structures tip                                16
+unfit->fit vs blind                           198
+   ('swap?', '0b36850d', 'richat_structu/17', 'fb carousel comparison', [], ['protected'])
+   ('swap?', 'b5946d16', 'roman_self_hea/03', 'ig carousel comparison', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'ig carousel cover', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'fb carousel cover', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'ig carousel immersive', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'fb carousel immersive', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'ig carousel debate', [], ['subject'])
+   ('swap?', '92d0165b', 'tunguska_event/05', 'fb carousel debate', [], ['subject'])
+== builder
+fit->unfit vs blind (picker may swap)         8
+fit->unfit vs c5-with-box                     1
+more_vs_blind                                 417
+more_vs_c5                                    377
+new structure vs blind                        1
+new structure vs c5                           14
+rows                                          1304
+structures blind                              24
+structures c5-with-box                        2
+structures tip                                16
+unfit->fit vs blind                           144
+== reviewer
+more_vs_blind                                 123
+more_vs_c5                                    99
+new structure vs blind                        0
+new structure vs c5                           0
+rows                                          375
+structures blind                              0
+structures c5-with-box                        0
+structures tip                                0
+unfit->fit vs blind                           54
+== reviewed
+more_vs_blind                                 19
+more_vs_c5                                    15
+new structure vs blind                        0
+new structure vs c5                           0
+rows                                          45
+structures blind                              0
+structures c5-with-box                        0
+structures tip                                0

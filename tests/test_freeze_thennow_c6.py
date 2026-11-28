@@ -394,3 +394,53 @@ def test_the_markers_enter_on_their_own_token():
         assert (then_now.then_dwell("THEN 1876"), then_now.divider_at(1.45, *TALL)) == base
     with brand.use(brand.DEFAULT_BRAND.derive("marker", system={"thennow.marker_in": 0.3})):
         assert then_now.then_dwell("THEN 1876") < base[0] and then_now.divider_at(1.45, *TALL) < base[1]
+
+
+# ------------------------------------------------------------------------------------ review round 4: G1, N1
+def test_a_searched_subject_with_no_passing_window_is_unfit_not_drawn(tmp_path):
+    """G1(a): a near-square registered picture keeps its central half at 9:16 and has a subject the T7 search finds
+    (a busy foot under an empty sky), but no window lifts it into the THEN pane while keeping the central half: the
+    path Wieliczka 9:16 takes. Its window is "none (unfit)" and nothing is drawn (base's fallback drew it)."""
+    rng = np.random.default_rng(23)       # large enough for the search's zoom (FRAME_MIN_SOURCE)
+    a = np.full((2600, 2400, 3), 222, np.float32) + rng.normal(0, 2, (2600, 2400, 1))
+    a[2000:] = rng.integers(20, 230, (600, 2400, 1))                    # a busy foot: the search's subject top
+    old = tmp_path / "old.png"
+    Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save(old)
+    reg = _registered(tmp_path, old, old)
+    _, _, info = then_now.frame_pair(reg[0], reg[1], *TALL)
+    assert info["registered"] is True and info["gate"] == "THEN pane empty"
+    assert info["subject_top_share"] is not None                         # the search had a subject to place
+    assert info["window"] == "none (unfit)" and "none of the searched windows" in info["unfit"]
+    with pytest.raises(then_now.Unfit):
+        then_now.render(reg[0], 1876, reg[1], 2011, tmp_path / "x.mp4", *TALL)
+
+
+def test_the_drawn_marker_entry_follows_marker_in_not_motion_reveal(monkeypatch, tmp_path, default_brand_after):
+    """G1(b): under a brand whose thennow.marker_in differs from motion.reveal, the drawn schedule's THEN entry and
+    NOW entry (from the landing) run over marker_in."""
+    from src.brand_system import ease_out
+    old, new = _pair_for(tmp_path, TALL)
+    brand.configure(brand.DEFAULT_BRAND.derive("entry", system={"thennow.marker_in": 0.25, "motion.reveal": 0.7}))
+    meta = _plan_only(monkeypatch, tmp_path, old, new, TALL)
+    m = 0.25
+    then_s, now_s = meta["schedule"]["then"], meta["schedule"]["now"]
+    for i in range(0, 12):
+        assert then_s[i] == pytest.approx(ease_out(i / FPS / m), abs=1e-4), i
+    t1 = then_now.wipe_window(*TALL, then_now.then_text(1876))[1]
+    k = next(i for i in range(len(now_s)) if i / FPS >= t1 - 1e-9)
+    for i in range(k, k + 12):
+        assert now_s[i] == pytest.approx(ease_out((i / FPS - t1) / m), abs=1e-4), i
+
+
+def test_the_central_half_keep_is_one_token_for_both_formats(tmp_path, default_brand_after):
+    """N1: a window passes when it keeps at least thennow.central_keep (0.95) of the central half on each axis, the
+    same on 9:16 and 16:9. A 0.86 portrait at 16:9 keeps 0.93 of the half's height: refused at 0.95, drawn at 0.9
+    (token mutation); a 1.29 landscape at 9:16 keeps 0.84 of the half's width: refused at either."""
+    port = _registered(tmp_path, *(_photo(tmp_path / f"p{k}.png", 1000, 1160, [(0.2, 0.2, 0.8, 0.9)], seed=60 + k)
+                                   for k in (0, 1)), name="port")
+    land = _registered(tmp_path, *_memnon_like(tmp_path), name="land")
+    assert then_now.frame_pair(*port, *WIDE)[2].get("unfit")
+    assert then_now.frame_pair(*land, *TALL)[2].get("unfit")
+    brand.configure(brand.DEFAULT_BRAND.derive("keep 0.9", system={"thennow.central_keep": 0.9}))
+    assert not then_now.frame_pair(*port, *WIDE)[2].get("unfit")
+    assert then_now.frame_pair(*land, *TALL)[2].get("unfit")

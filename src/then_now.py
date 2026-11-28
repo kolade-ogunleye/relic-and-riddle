@@ -875,10 +875,18 @@ def _rest_view(window: tuple[float, ...], size: tuple[int, int]) -> tuple[float,
     return (cx - hw) / size[0], (cy - hh) / size[1], (cx + hw) / size[0], (cy + hh) / size[1]
 
 
-def keeps_centre(window: tuple[float, ...], size: tuple[int, int], big: tuple[int, int]) -> bool:
-    """Does `window` keep the picture's central region (central_region) in view at rest?"""
-    r, v = central_region(size, big), _rest_view(window, size)
-    return v[0] <= r[0] + 1e-3 and v[1] <= r[1] + 1e-3 and v[2] >= r[2] - 1e-3 and v[3] >= r[3] - 1e-3
+def centre_held(window: tuple[float, ...], size: tuple[int, int]) -> tuple[float, float]:
+    """The share of the picture's central half (central_region) `window` keeps in view at rest, across and down."""
+    r, v = central_region(), _rest_view(window, size)
+    return tuple(max(0.0, min(v[k + 2], r[k + 2]) - max(v[k], r[k])) / (r[k + 2] - r[k]) for k in (0, 1))
+
+
+def keeps_centre(window: tuple[float, ...], size: tuple[int, int], big: tuple[int, int] | None = None) -> bool:
+    """Does `window` keep the picture's central half in view at rest? Round 4 (N1, lander ruling 2026-11-27): it does
+    when it holds at least tok("thennow.central_keep") of the half on each axis; one rule for both formats."""
+    from .brand_system import tok
+    keep = float(tok("thennow.central_keep"))
+    return all(h >= keep - 1e-6 for h in centre_held(window, size))
 
 
 def _middle_density(pane: Any) -> float:

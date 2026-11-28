@@ -327,6 +327,9 @@ SYSTEM_TOKENS: Mapping[str, Any] = MappingProxyType({
     # start, NOW's from the divider's landing. Its own token (it borrowed motion.reveal, whose end-card range it then
     # narrowed through the timing gate); joint with motion.wipe_step (TOKEN_TIMING_JOINT).
     "thennow.marker_in": 0.40,
+    # round 4 (N1): the share of a registered picture's central half (each axis) the shared window must keep at rest
+    # (then_now.keeps_centre); under it the pair is unfit for that format, recorded and refused
+    "thennow.central_keep": 0.95,
     # ---- credits (freeze cycle 4, SYS item 4, panel 5 BC-06: a written SPEC value no renderer read): the credit
     # role's weight in the data face, read by the end screen's credits line, the Story's photo credit and the cards'
     # citation (each drew a literal 500 until now; the value is unchanged)
@@ -397,6 +400,7 @@ TOKEN_RANGES: Mapping[str, tuple[float, float]] = MappingProxyType({
     "motion.hook_hold": (0.8, 1.2),       # s: frames 0-24 at least whole; gone before CAPTION_CLEAR 1.40 (SYS-F-1)
     "motion.hook_fade": (0.1, 0.3),       # s
     "motion.wipe_step": (33.0, 48.0),     # px a frame (1080 short side): 1.2-1.77 s for the 9:16 wipe
+    "thennow.central_keep": (0.80, 1.0),  # of the central half: never under 0.8 (the half itself, less a margin)
     "thennow.marker_in": (0.2, 0.68),     # s: the reading rule's ceiling at the fastest wipe (48); with a slower wipe
                                           # TOKEN_TIMING_JOINT refuses it (0.4 at the floor, 33)
     "credit.weight": (500, 600),          # the data face's bundled weights (IBM Plex Mono Medium / SemiBold)
